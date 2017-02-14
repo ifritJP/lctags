@@ -86,7 +86,7 @@ $(CORE_SO): swig/libClangLua_wrap.o $(LUA_LIB)
 
 
 test: build
-	lua5.3 test.lua
+	$(LUA_COMMAND) test.lua
 
 install: build
 	$(MAKE) install-lib LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))

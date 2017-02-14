@@ -110,9 +110,10 @@ libs.getNamespaceList = function( cursor, includeCurrent )
 
    if cursor:getCursorKind() == libclangcore.CXCursor_StructDecl then
       table.insert( nsList, 1, "@struct" )
-   end
-   if cursor:getCursorKind() == libclangcore.CXCursor_EnumDecl then
+   elseif cursor:getCursorKind() == libclangcore.CXCursor_EnumDecl then
       table.insert( nsList, 1, "@enum" )
+   elseif cursor:getCursorKind() == libclangcore.CXCursor_UnionDecl then
+      table.insert( nsList, 1, "@union" )
    end
 
    local namespace = ""
