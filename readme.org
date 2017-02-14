@@ -1,6 +1,8 @@
 # -*- coding:utf-8 -*-
 #+STARTUP: nofold
 
-* libclanglua
+* lctags
 
-lua から libclang をアクセスするためのパッケージ
+libclanglua (https://github.com/ifritJP/libclanglua) を利用した c/c++ インデックスツール
+
+※準備中
