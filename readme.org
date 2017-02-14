@@ -1,0 +1,6 @@
+# -*- coding:utf-8 -*-
+#+STARTUP: nofold
+
+* libclanglua
+
+lua から libclang をアクセスするためのパッケージ
