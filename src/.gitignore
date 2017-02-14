@@ -1,0 +1,6 @@
+*.so
+*.o
+*.pch
+*.log
+*.sqlite3
+hoge*
