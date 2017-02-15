@@ -5,6 +5,9 @@
 
 libclanglua (https://github.com/ifritJP/libclanglua) を利用した c/c++ インデックスツール
 
+libclang を利用することで、異なる構造体、クラスで同じメンバーがあるような場合でも、
+型を認識して正確に参照箇所をリストできます。
+
 libclang を利用したインデックスツールは RTags がメジャーですが、
 複雑な Makefile を使用したプロジェクトだと適応し難いので、
 プロジェクトごとにカスタマイズしやすいインタフェースを持った
@@ -14,7 +17,7 @@ libclang を利用したインデックスツールは RTags がメジャーで�
 
 lctags コマンドを使用します。
    
-#+BEGIN_VERSE
+#+BEGIN_SRC txt
 usage:
  - build DB
    lctags init [--lctags-projDir dir] [--lctags-db path] [--lctags-log lv] 
@@ -42,7 +45,7 @@ usage:
         -xs: symbol declaration
         -xr: symbol reference
         -xP: file list
-#+END_VERSE
+#+END_SRC
 
 *** DB の生成
 
@@ -65,7 +68,6 @@ src は、一つだけ指定してください。
 なお、lctags は gcc のコンパイルオプションに対応していますが、
 後述する方法で簡単にカスタマイズできます。
 
-ファイルの
 
 
 *** インデックス問い合わせ
@@ -80,9 +82,14 @@ $ lctags def-at[a] file line column
 r は、シンボルの参照場所をリストします。
 t は、シンボルの定義場所をリストします。
 a は、表示する場所のファイルパスをフルパスにします。
+このモードでは、シンボル名だけを使用して問い合わせするので、
+型を認識した検索には向きません。
 
 ref-at[a] は、指定ファイルの場所のシンボルを使用している参照箇所をリストします。
 def-at[a] は、指定ファイルの場所のシンボルの定義箇所をリストします。
+
+指定のファイルにコンパイルエラーがあると、正常に動作しません。
+
 
 *** emacs からアクセス
 
