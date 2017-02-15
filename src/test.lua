@@ -1,3 +1,6 @@
+-- -*- coding:utf-8 -*-
+-- Copyright (C) 2017 ifritJP
+
 local clang = require( 'libclanglua.if' )
 
 local function getFileLocation( cursor )

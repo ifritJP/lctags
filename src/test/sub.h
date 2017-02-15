@@ -1,0 +1,3 @@
+struct ddddd {
+    int value;
+};

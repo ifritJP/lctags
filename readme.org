@@ -5,4 +5,178 @@
 
 libclanglua (https://github.com/ifritJP/libclanglua) を利用した c/c++ インデックスツール
 
-※準備中
+libclang を利用したインデックスツールは RTags がメジャーですが、
+複雑な Makefile を使用したプロジェクトだと適応し難いので、
+プロジェクトごとにカスタマイズしやすいインタフェースを持った
+インデックスツールを作成しました。
+
+** 使用方法
+
+lctags コマンドを使用します。
+   
+#+BEGIN_VERSE
+usage:
+ - build DB
+   lctags init [--lctags-projDir dir] [--lctags-db path] [--lctags-log lv] 
+   lctags build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] comp-op [...] src
+   lctags shrink [--lctags-db path]
+ - query DB
+   lctags dump
+   lctags ref-at[a] file line column
+   lctags def-at[a] file line column
+   lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] symbol
+   lctags -xP[a] [--lctags-db path] [--lctags-log lv] file
+
+
+     init: initialize DB file.
+     build: build DB for "src".
+            "compiler" is "gcc" or "cc" or ....
+            "comp-op" is compiler option. This include source file path.
+     shrink: shrink DB.
+     dump: dump DB.
+     --lctags-projDir: set "dir" as project directory.
+     --lctags-db: set DB file path.
+     --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
+     -x: query DB.
+        -xt: symbol declaration
+        -xs: symbol declaration
+        -xr: symbol reference
+        -xP: file list
+#+END_VERSE
+
+*** DB の生成
+
+プロジェクトのルートディレクトリで次のコマンドを実行します。
+これは、一度だけ実行します。
+
+$ lctags init
+
+*** ソースの解析
+
+$ lctags build compiler comp-op [...] src
+
+compiler には、使用しているコンパイラコマンドを指定します。
+comp-op には、コンパイルに指定しているコンパイルオプションを指定します。
+src には、コンパイル対象のソースファイルパスを指定します。オプションの最後に指定する必要はありません。
+src は、一つだけ指定してください。
+
+このコマンドは、コンパイルを実行しているディレクトリと同じディレクトリで実行してください。
+
+なお、lctags は gcc のコンパイルオプションに対応していますが、
+後述する方法で簡単にカスタマイズできます。
+
+ファイルの
+
+
+*** インデックス問い合わせ
+
+次のパターンを利用できます。
+    
+$ lctags -x[r|t][a] symbol
+$ lctags ref-at[a] file line column
+$ lctags def-at[a] file line column
+
+-x は、 GNU global と互換のあるモードです。
+r は、シンボルの参照場所をリストします。
+t は、シンボルの定義場所をリストします。
+a は、表示する場所のファイルパスをフルパスにします。
+
+ref-at[a] は、指定ファイルの場所のシンボルを使用している参照箇所をリストします。
+def-at[a] は、指定ファイルの場所のシンボルの定義箇所をリストします。
+
+*** emacs からアクセス
+
+emacs からアクセスする場合は、 lctags.el をロードしてください。
+
+#+BEGIN_SRC lisp
+(autoload 'lctags-mode "lctags" "" t)
+(add-hook 'lctags-mode-hook
+      '(lambda ()
+         (local-set-key "\M-t" 'lctags-def)
+         (local-set-key "\M-r" 'lctags-ref)
+         (local-set-key "\C-\M-t" 'lctags-def-at)
+         (local-set-key "\C-\M-r" 'lctags-ref-at)
+         (local-set-key "\C-t" 'gtags-pop-stack)))
+#+END_SRC
+
+** ビルド方法
+
+*** 必要なライブラリ等
++ swig (3.0)
++ lua, lua-dev(5.2 or 5.3)
++ libclang-dev (r380, r390)
++ luasqlite3 (0.9.4)
+
+*** makefile の編集
+
+lua, libclang, luasqlite3 の環境にあわせて変更してください。
+
+*** ビルド
+
+$ make build
+$ make install
+
+** カスタマイズ
+
+lctags の次の動作をカスタマイズできます。
+
++ コンパイルオプションの変換
++ 解析無視のファイルパターン指定
+  
+カスタマイズは Lua で行ないます。
+
+*** カスタマイズの方法
+
+次のファイルをコピーし、これを編集します。
+
+src/lctags/config.lua
+
+編集したファイルのパスを、lctags build 時の --lctags-conf conf オプションに指定します。
+
+**** コンパイルオプションの変換
+
+lctags の build に指定するコンパイラ名を gcc 以外の名前を指定してください。
+
+コピーしたコンフィルファイルの convertCompileOption() メソッドを、
+使用しているコンパイラにあわせて変更してください。
+
+インクルードパスと define シンボルを、
+clang が認識する -I, -D で与えるように変換してください。
+
+-I, -D 以外のオプションは与えないようにしてください。
+
+convertCompileOption() は、2 つの引数(compiler, arg)を持ちます。
+compiler は、 build で指定したコンパイラ名です。
+arg はコンパイラオプション文字列です。
+
+convertCompileOption() は、コンパイルオプションの変換結果を返します。
+変換結果は次のいずれかです。
+
+- "opt"
+- "src"
+- "skip"
+  
+"opt" は、 arg が libclang に渡すべきオプションであること示します。
+このとき、"opt" に続けて libclang に渡すオプションを返します。
+
+"src" は、 arg が解析対象のソースファイルパスであること示します。
+このとき、"src" に続けてソースファイルパス返します。
+
+"skip" は、arg が無視すべきオプションであることを示します。
+
+
+**** 解析無視のファイルパターン指定
+
+lctags の build で指定されたファイルの解析を無視するかどうかを判定する
+ファイルパスのパターンを指定します。
+
+パターンは、 2 つの文字列を持つ table を要素した table を返します。
+1つ目の文字列は "simple" か "lua" です。
+2つ目の文字列は無視するファイルパスのパターンを指定します。
+
+"simple" は、パターン文字列がファイルパス文字列そのものであることを示します。
+なお、パターンが部分一致すると無視します。
+
+"lua" は、パターン文字列が Lua のパターン文字列であることを示します。
+パターンに一致すると無視します。
+     

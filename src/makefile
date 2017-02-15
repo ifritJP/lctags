@@ -26,6 +26,13 @@ LIBCLANG_STD_INC=/usr/lib/llvm-3.8/lib/clang/3.8.0/include
 #LIBCLANG_INC=../external/clang/r390/llvm/tools/clang/include
 #LIBCLANG_STD_INC=../external/clang/r390/build/lib/clang/3.9.0/include
 
+####### customize luasqlite3 environment ######
+# If you don't have luasqlite3, you must customize this setting.
+# http://lua.sqlite.org/index.cgi/index
+
+LUASQLITE3_DIR=../external/luasqlite3/lsqlite3_fsl09x
+
+
 ####### make rules ######
 
 #OPT_OP = -O3
@@ -40,14 +47,18 @@ LUA_DIR_SCRIPT='print( string.gsub( package.cpath, "([^;]+)/%?.so;.*", "%1" ) ..
 all:
 	$(MAKE) build
 
-build: $(IF_LUA) $(LUA_COMMAND) $(CORE_SO) 
+build: $(IF_LUA) $(LUA_COMMAND) $(CORE_SO) sqlite3 lctags-build
 
 clean:
-	-$(MAKE) -C $(LUA_DIR) clean
+ifneq ($(LUA_DIR),)
+	$(MAKE) -C $(LUA_DIR) clean
+endif
 	rm -f $(COREBASE_SO) $(CORE_SO)
 	rm -f $(IF_LUA) $(IFC_LUA)
 	rm -f swig/libClangLua_wrap.* swig/libClangLuaBase_wrap.*
 	rm -f clanglua
+	rm -f lsqlite3.so
+	$(MAKE) -C lctags clean
 
 $(LUA_LIB):
 	$(MAKE) -C $(LUA_DIR) linux ALL=liblua.a MYCFLAGS=$(LUA_CFLAGS)
@@ -85,14 +96,37 @@ $(CORE_SO): swig/libClangLua_wrap.o $(LUA_LIB)
 	@gcc $(OPT_OP) -fPIC -shared -Wl,-soname,$(CORE_SO) -o $(CORE_SO) -lrt -ldl -lpthread -lm swig/libClangLua_wrap.o $(LUA_LIB) -L$(LIBCLANG_LIB) -lclang 
 
 
+sqlite3: lsqlite3.so
+
+ifeq ($(shell $(LUA_COMMAND) -e 'print( require( "lsqlite3" ) )' 2> /dev/null),)
+lsqlite3.so:
+	gcc -fPIC -shared $(OPT_OP) -o lsqlite3.so \
+		$(LUASQLITE3_DIR)/lsqlite3.c $(LUASQLITE3_DIR)/sqlite3.c \
+		-I$(LUA_INC) $(LUA_LIB) -lpthread
+else
+lsqlite3.so:
+	@echo lsqlite3 is ready
+endif
+
+lctags-build:
+	$(MAKE) -C lctags LUA_COMMAND=$(LUA_COMMAND) LUA_INC=$(LUA_INC) LUA_LIB=$(LUA_LIB)
+
+
 test: build
-	$(LUA_COMMAND) test.lua
+	$(LUA_COMMAND) lctags/lctags.lua init
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -Itest --lctags-log 2
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -Itest --lctags-log 2
+	$(LUA_COMMAND) lctags/lctags.lua dump > dump
+	$(LUA_COMMAND) lctags/lctags.lua -xa sub
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 213 23
 
 install: build
 	$(MAKE) install-lib LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
+	$(MAKE) -C lctags install
 
 uninstall:
 	$(MAKE) uninstall-lib LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
+	$(MAKE) -C lctags uninstall
 
 install-lib:
 ifeq ($(LUA_LIB_DIR),)
@@ -101,9 +135,13 @@ endif
 	mkdir -p $(LUA_LIB_DIR)
 	mkdir -p $(LUA_LIB_DIR)/libclanglua
 	cp $(CORE_SO) $(IF_LUA) $(IFC_LUA) $(LUA_LIB_DIR)/libclanglua
+	if [ -f lsqlite3.so  ]; then cp lsqlite3.so $(LUA_LIB_DIR); fi
+	cp -a lctags $(LUA_LIB_DIR)/
 
 uninstall-lib:
 ifeq ($(LUA_LIB_DIR),)
 	$(error LUA_LIB_DIR is empty)
 endif
 	rm -rf $(LUA_LIB_DIR)/libclanglua
+	rm -rf $(LUA_LIB_DIR)/lctags
+	if [ -f lsqlite3.so  ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.so; fi

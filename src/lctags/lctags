@@ -1,0 +1,7 @@
+#!/bin/bash
+# -*- mode: sh; coding:utf-8 -*-
+
+LUA_CMD=lua5.3
+SCRIPT=$(${LUA_CMD} -e 'print( package.searchpath( "lctags.lctags", package.path ) )')
+
+${LUA_CMD} ${SCRIPT} $@
