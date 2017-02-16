@@ -23,6 +23,9 @@
 (defvar lctags-mode-map (make-sparse-keymap)
   "lctags-mode Keymap.")
 
+(defvar lctags-db nil
+  "lcatags.sqlite's path. nil is default")
+
 (setq lctags-hack-gtags nil)
 
 
@@ -68,14 +71,16 @@
       (setq select-name (format "(R)%s" tag)))
      )
     (setq buffer (generate-new-buffer
-		  (concat "*GTAGS SELECT* " select-name)))
+		  (concat "GTAGS SELECT* " select-name)))
     (with-current-buffer buffer
       (setq default-directory dir)
       (call-process lctags-command nil buffer t lctags-opt
 		    tag
-		    (number-to-string line) (number-to-string column))
+		    (number-to-string line) (number-to-string column)
+		    (when lctags-db "--lctags-db")
+		    (when lctags-db lctags-db))
       (goto-char 1)
-      (message (buffer-string))
+      ;;(message (buffer-string))
       (setq lineNum (count-lines (point-min) (point-max)))
       (cond
        ((= lineNum 0)

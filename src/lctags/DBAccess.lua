@@ -49,13 +49,16 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
       query = string.format( "%s LIMIT %d", query, limit )
    end
 
-   local success = pcall(
+   local success, message = pcall(
       function( params )
 	 for item in self.db:nrows( query ) do
 	    func( item, table.unpack( params ) )
 	 end
       end, { ... }
    )
+   if not success then
+      self:errorExit( 3, message )
+   end
 end
 
 function DBAccess:exec( stmt )

@@ -808,7 +808,7 @@ if baseMode then
    mapPointerParam(
       analyzeInfo.pointerParamTypeSet,
       function( typeName, typeInfo, arrayName )
-	 local pointeeTxt = typeInfo[ 1 ]
+	 local pointeeTxt = string.gsub( typeInfo[ 1 ], "const", "" )
 	 local baseTxt = typeInfo[ 2 ]
 	 local baseTypeKind = typeInfo[ 3 ]
 	 local swigTxt = string.format(

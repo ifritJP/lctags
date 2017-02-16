@@ -5,8 +5,12 @@ local log = require( 'lctags.LogCtrl' )
 local Analyzer = require( 'lctags.Analyzer' )
 local Query = require( 'lctags.Query' )
 local gcc = require( 'lctags.gcc' )
+local DBCtrl = require( 'lctags.DBCtrl' )
 
-local function printUsage()
+local function printUsage( message )
+   if message then
+      print( message )
+   end
    local command = "lctags"
    print( string.format( [[
 usage:
@@ -45,14 +49,14 @@ end
 local function analyzeOption( argList )
    local srcList = {}
    local optList = {}
-   local nextArgType = nil
+   local skipArgNum = 0
    local lctagOptMap = {}
    for index, arg in ipairs( argList ) do
       if index == 1 then
 	 if string.find( arg, "build", 1, true ) then
 	    lctagOptMap.mode = "build"
 	    lctagOptMap.cc = argList[ index + 1 ]
-	    nextArgType = "skip"
+	    skipArgNum = 1
 	 elseif string.find( arg, "init", 1, true ) then
 	    lctagOptMap.mode = "init"
 	 elseif string.find( arg, "shrink", 1, true ) then
@@ -63,14 +67,14 @@ local function analyzeOption( argList )
 	    lctagOptMap.file = argList[ index + 1 ]
 	    lctagOptMap.line = tonumber( argList[ index + 2 ] )
 	    lctagOptMap.column = tonumber( argList[ index + 3 ] )
-	    break
+	    skipArgNum = 3
 	 elseif string.find( arg, "def-at", 1, true ) then
 	    lctagOptMap.mode = "def-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
 	    lctagOptMap.file = argList[ index + 1 ]
 	    lctagOptMap.line = tonumber( argList[ index + 2 ] )
 	    lctagOptMap.column = tonumber( argList[ index + 3 ] )
-	    break
+	    skipArgNum = 3
 	 elseif string.find( arg, "dump", 1, true ) then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = "dump"
@@ -79,22 +83,22 @@ local function analyzeOption( argList )
 	    lctagOptMap.query = arg
 	 end
       else
-	 if nextArgType == "skip" then
-	    nextArgType = nil
+	 if skipArgNum > 0 then
+	    skipArgNum = skipArgNum - 1
 	 else
 	    local processMode = "skip"
 	    if string.find( arg, "^-" ) then
 	       if string.find( arg, "--lctags-log", 1, true ) then
-		  nextArgType = "skip"
+		  skipArgNum = 1
 		  log( 0, tonumber( argList[ index + 1 ] ) )
 	       elseif string.find( arg, "--lctags-projDir", 1, true ) then
-		  nextArgType = "skip"
+		  skipArgNum = 1
 		  lctagOptMap.projDir = argList[ index + 1 ]
 	       elseif string.find( arg, "--lctags-db", 1, true ) then
-		  nextArgType = "skip"
+		  skipArgNum = 1
 		  lctagOptMap.dbPath = argList[ index + 1 ]
 	       elseif string.find( arg, "--lctags-conf", 1, true ) then
-		  nextArgType = "skip"
+		  skipArgNum = 1
 		  local chunk, err = loadfile( argList[ index + 1 ] )
 		  if not chunk then
 		     print( "loadfile error", err )
@@ -138,7 +142,7 @@ local function analyzeOption( argList )
 end
 
 if not arg[1] then
-   printUsage()
+   printUsage( "" )
 end
 
 local srcList, optList, lctagOptMap = analyzeOption( arg )
@@ -149,7 +153,7 @@ if lctagOptMap.projDir then
 end
 
 if not lctagOptMap.mode then
-   printUsage()
+   printUsage( "mode is none" )
 end
 
 if not lctagOptMap.dbPath then
@@ -168,7 +172,7 @@ if not lctagOptMap.dbPath then
       if lctagOptMap.mode == "init" then
          lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
       else
-	 printUsage()
+	 printUsage( "db is not found." )
       end
    end
 end
@@ -187,7 +191,6 @@ end
 
 if lctagOptMap.mode == "build" then
    local src = srcList[1]
-   print( "src:",  src )
 
    local option = ""
    for index, opt in ipairs( optList ) do
@@ -198,14 +201,15 @@ if lctagOptMap.mode == "build" then
    
    if lctagOptMap.conf then
       for index, info in ipairs( lctagOptMap.conf:getIgnorePattern() ) do
+	 local fullpath = DBCtrl:convFullpath( src, os.getenv( "PWD" ) )
 	 if info[ 1 ] == "simple" then
-	    if string.find( src, info[ 2 ], 1, true ) then
-	       log( 1, "ignore:", src )
+	    if string.find( fullpath, info[ 2 ], 1, true ) then
+	       log( 1, "ignore:", fullpath )
 	       os.exit( 0 )
 	    end
 	 elseif info[ 1 ] == "lua" then
-	    if string.find( src, info[ 2 ] ) then
-	       log( 1, "ignore:", src )
+	    if string.find( fullpath, info[ 2 ] ) then
+	       log( 1, "ignore:", fullpath )
 	       os.exit( 0 )
 	    end
 	 end
@@ -231,7 +235,7 @@ if lctagOptMap.mode == "query" then
    if not Query:exec(
       lctagOptMap.dbPath, lctagOptMap.query, srcList[ 1 ], lctagOptMap.abs )
    then
-      printUsage()
+      printUsage( "query is error" )
    end
 end
 

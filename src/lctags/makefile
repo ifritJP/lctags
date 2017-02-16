@@ -1,12 +1,14 @@
 LUA_COMMAND=lua5.3
 LUA_INC=../../external/lua/lua-5.3.4/src/
 LUA_LIB=-llua5.3
+LUA_CFLAGS=
+LUA_LDFLAGS=
 
 all: Helper.so
 
-Helper.so:
-	gcc Helper.c -DHELPER_STAND_ALONE -o Helper -I$(LUA_INC) -lcrypto $(LUA_LIB)
-	gcc Helper.c -fPIC -shared -DHELPER_STAND_ALONE -o Helper.so -I$(LUA_INC) -lcrypto $(LUA_LIB)
+Helper.so: Helper.c
+	gcc Helper.c -std=c99 -DHELPER_STAND_ALONE -o Helper -lcrypto -lm $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS)
+	gcc Helper.c -std=c99 -fPIC -shared -DHELPER_STAND_ALONE -o Helper.so -lcrypto -lm $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS)
 
 test: all
 	./Helper

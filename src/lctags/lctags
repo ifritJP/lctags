@@ -4,4 +4,4 @@
 LUA_CMD=lua5.3
 SCRIPT=$(${LUA_CMD} -e 'print( package.searchpath( "lctags.lctags", package.path ) )')
 
-${LUA_CMD} ${SCRIPT} $@
+${LUA_CMD} ${SCRIPT} $@ || exit 1

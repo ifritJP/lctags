@@ -20,14 +20,12 @@ local function visitFuncMain( cursor, parent, exInfo )
    	     string.rep( " ", exInfo.depth ), txt, 
    	     clang.getCursorKindSpelling( cursorKind ), cursorKind ) )
 
-   if not exInfo.curFunc then
-      local cxfile, line = getFileLocation( cursor )
-      if (cxfile and prevFile and not prevFile:isEqual( cxfile ) ) or
-	 (cxfile ~= prevFile and (not cxfile or not prevFile))
-      then
-	 print( "change file:", cxfile and cxfile:getFileName() or "", line )
-	 prevFile = cxfile
-      end
+   local cxfile, line = getFileLocation( cursor )
+   if (cxfile and prevFile and not prevFile:isEqual( cxfile ) ) or
+      (cxfile ~= prevFile and (not cxfile or not prevFile))
+   then
+      print( "change file:", cxfile and cxfile:getFileName() or "", line )
+      prevFile = cxfile
    end
 
    if cursorKind == clang.CXCursorKind.FunctionDecl.val or
@@ -81,4 +79,11 @@ end
 
 local clangIndex = clang.createIndex( 0, 1 )
 
+---[[
 dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
+--]]
+
+--[[
+dumpCursor( clangIndex, "swig/libClangLua_wrap.c",
+	    { "-I/usr/include/lua5.3", "-I/usr/lib/llvm-3.8/include" } )
+--]]

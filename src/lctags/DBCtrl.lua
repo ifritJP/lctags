@@ -135,21 +135,20 @@ INSERT INTO filePath VALUES( NULL, '%s', 0, 0, '', 0, '', '');
 
 CREATE TABLE symbolDecl ( nsId INTEGER, parentId INTEGER, snameId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE nocase, PRIMARY KEY( nsId, fileId, line ) );
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line ) );
-CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
+CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER, digest CHAR(32) );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER );
 CREATE INDEX index_ns ON namespace ( id, parentId, snameId, name, otherName );
 CREATE INDEX index_sName ON simpleName ( id, name );
 CREATE INDEX index_filePath ON filePath ( id, path );
 CREATE INDEX index_symDecl ON symbolDecl ( nsId, parentId, snameId, fileId );
 CREATE INDEX index_symRef ON symbolRef ( nsId, snameId, fileId, belongNsId );
-CREATE INDEX index_incRef ON incRef ( id, baseFileId );
+CREATE INDEX index_incRef ON incRef ( id, baseFileId, digest );
 CREATE INDEX index_incBelong ON incBelong ( id, baseFileId );
 COMMIT;
 ]], projDir ) )
 end
 
-function DBCtrl:updateFile( path )
-   local fileInfo = self:getFileInfo( nil, path )
+function DBCtrl:updateFile( fileInfo )
    if not fileInfo then
       return
    end
@@ -159,7 +158,7 @@ function DBCtrl:updateFile( path )
    end
 
    
-   log( 2, "updateFile", path, fileId )
+   log( 1, "updateFile", fileInfo.path, fileId )
    self:delete( "symbolDecl", "fileId = " .. tostring( fileId ) )
    self:delete( "symbolRef", "fileId = " .. tostring( fileId ) )
    self:delete( "incRef",
@@ -242,7 +241,7 @@ function DBCtrl:getSimpleName( id, name )
 end
 
 
-function DBCtrl:addFile( filePath, time, digest, compileOp, currentDir  )
+function DBCtrl:addFile( filePath, time, digest, compileOp, currentDir, isTarget )
    if not compileOp then
       compileOp = ""
    end
@@ -251,13 +250,16 @@ function DBCtrl:addFile( filePath, time, digest, compileOp, currentDir  )
    end
    local fileInfo, filePath = self:getFileInfo( nil, filePath )
    if fileInfo then
+      if not isTarget then
+	 return fileInfo
+      end
       if fileInfo.modTime == time then
 	 if digest ~= "" and fileInfo.digest == digest then
 	    fileInfo.uptodate = true
 	    log( "uptodate:", filePath )
 	    return fileInfo
 	 else
-	    log( 2, "detect mismatch digest", filePath )
+	    log( 2, "detect mismatch digest", filePath, digest, fileInfo.digest )
 	    self:exec(
 	       string.format(
 		  "UPDATE filePath SET digest = '%s' WHERE id == %d",
@@ -265,7 +267,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp, currentDir  )
 	    return fileInfo
  	 end
       else
-	 self:updateFile( filePath )
+	 self:updateFile( fileInfo )
       end
    end
    self:exec( string.format(
@@ -681,6 +683,13 @@ function DBCtrl:addReference( refInfo )
 	 declCursor, "", systemFileId, 0, name, "::" .. name )
    end
 
+   if fileInfo.uptodate then
+      local declFileInfo = self:getFileFromCursor( declCursor )
+      if declFileInfo.uptodate then
+	 log( 3, "uptodate ref", nsInfo.name )
+      end
+   end
+
 
    self:insert(
       "symbolRef",
@@ -702,21 +711,55 @@ function DBCtrl:addReference( refInfo )
    -- end
 end
 
-function DBCtrl:addInclude( cursor )
+function DBCtrl:getIncRef( parentFileId, includeFileId )
+   return self:getRow(
+      "incRef", string.format( "baseFileId = %d AND id = %d",
+			       parentFileId, includeFileId ) )
+end
+
+function DBCtrl:existsIncWithDigest( includeFileId, digest )
+   return self:exists(
+      "incRef", string.format( "id = %d AND digest = '%s'",
+			       includeFileId, digest ) )
+end
+
+function DBCtrl:addInclude( cursor, digest )
    local cxfile = cursor:getIncludedFile()
-   local path = cxfile:getFileName()
+   local path = cxfile and cxfile:getFileName() or ""
    
-   log( "inc:", path )
+   log( "inc:", path, digest )
 
    local fileInfo = self:getFileInfo( nil, path )
 
    local currentFile, line = getFileLocation( cursor )
    local currentFileInfo = self:getFileInfo( nil, currentFile:getFileName() )
 
+   local incInfo = self:getIncRef( currentFileInfo.id, fileInfo.id )
+
+   if self:existsIncWithDigest( fileInfo.id, digest ) then
+      fileInfo.uptodate = true
+      log( "uptodate some:", path )
+   end
+
+
+   if incInfo then 
+      if incInfo.digest == digest then
+	 fileInfo.uptodate = true
+	 log( "uptodate:", path )
+	 return
+      else
+	 log( 2, "detect mismatch digest", fileInfo.path, digest, fileInfo.digest )
+	 self:exec(
+	    string.format(
+	       "UPDATE incRef SET digest = '%s' WHERE id = %d AND baseFileId = %d",
+	       digest, fileInfo.id, currentFileInfo.id ) )
+      end
+   end
+
    self:exec(
       string.format(
-	 "INSERT INTO incRef VALUES( %d, %d, %d )",
-	 fileInfo.id, currentFileInfo.id, line ) )
+	 "INSERT INTO incRef VALUES( %d, %d, %d, '%s' )",
+	 fileInfo.id, currentFileInfo.id, line, digest ) )
 
    table.insert( currentFileInfo.incPosList, line )
 end
@@ -727,7 +770,7 @@ function DBCtrl:addIncBelong( incBelong )
       return
    end
    local path = incBelong.cxfile:getFileName()
-   log( "incBelong:", path )
+   log( 3, "incBelong:", path )
 
    local fileInfo = self:getFileInfo( nil, path )
    local belongNsId
@@ -860,19 +903,25 @@ function DBCtrl:getSystemPath( path, baseDir )
    return path
 end
 
-function DBCtrl:convFullpath( path )
+function DBCtrl:convFullpath( path, currentDir )
+   if path == "" then
+      return ""
+   end
+   if not currentDir then
+      currentDir = self.currentDir
+   end
    path = string.gsub( path, ".*//", "/" )
    if string.find( path, "^[^/%.]" ) then
-      path = self.currentDir .. "/" .. path
+      path = currentDir .. "/" .. path
    else
-      path = string.gsub( path, "^./", self.currentDir .. "/" )
-      path = string.gsub( path, "^../", self.currentDir .. "/../" )
+      path = string.gsub( path, "^./", currentDir .. "/" )
+      path = string.gsub( path, "^../", currentDir .. "/../" )
    end
    local nameList = {}
    for name in string.gmatch( path, "[^/]+" ) do
       if name == "." then
 	 if #nameList == 0 then
-	    table.insert( nameList, self.currentDir )
+	    table.insert( nameList, currentDir )
 	 end
       elseif name == ".." then
 	 if #nameList == 0 or nameList[ #nameList ] == ".." then
@@ -988,11 +1037,9 @@ function DBCtrl:infoAt( tableName, path, line, column )
       	 fileInfo.id, line, line ),
       nil, nil,
       function( item )
-	 if ( item.line == line and item.column > column ) or
-	    ( item.endLine == line and item.endColumn < column )
+	 if not ( ( item.line == line and item.column > column ) or
+	       ( item.endLine == line and item.endColumn < column ) )
 	 then
-	    ;
-	 else
 	    if not info then
 	       info = item
 	    elseif info.charSize > item.charSize then
@@ -1044,12 +1091,12 @@ function DBCtrl:dump( level )
    )
 
    log( level, "-- table incRef -- " )
-   log( level, "incFile", "file", "line" )
+   log( level, "incFile", "file", "line", "digest" )
    self:mapRowList(
       "incRef", nil, nil, nil,
-      function( row ) 
+      function( row )
 	 local fileInfo = self:getFileInfo( row.id )
-	 log( level, row.id, row.baseFileId, row.line,
+	 log( level, row.id, row.baseFileId, row.line, row.digest,
 	      fileInfo and fileInfo.path or "<none>" )
       end
    )

@@ -5,6 +5,7 @@ local prefix = ""
 local log = function( level, ... )
 
    local logLevel = level
+   local param = { ... }
    
    if level == nil and ... == nil then
       local info = debug.getinfo( 2 )
@@ -12,10 +13,10 @@ local log = function( level, ... )
    end
    if type( level ) ~= "number" then
       logLevel = 3
+      table.insert( param, 1, level )
    end
    if logLevel == 0 then
       displayLevel = ...
-      print( "displayLevel", displayLevel )
       return
    elseif logLevel == -1 then
       prefix = ...
@@ -25,9 +26,9 @@ local log = function( level, ... )
       return
    end
    if prefix ~= "" then
-      print( prefix, logLevel, ... )
+      print( prefix, logLevel, table.unpack( param ) )
    else
-      print( logLevel, ... )
+      print( logLevel, table.unpack( param ) )
    end
 end
 --[[

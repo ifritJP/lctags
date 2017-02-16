@@ -81,11 +81,20 @@ int luaopen_lctags_Helper( lua_State * pLua )
     luaL_newmetatable(pLua, HELPER_ID );
     lua_pushvalue(pLua, -1);
     lua_setfield(pLua, -2, "__index");
+
+#if LUA_VERSION_NUM >= 502
     luaL_setfuncs(pLua, s_obj_lib, 0);
+
     lua_pop(pLua, 1);
 
-    
     luaL_newlib( pLua, s_if_lib );
+#else
+    luaL_register(pLua, NULL, s_obj_lib);
+
+    lua_pop(pLua, 1);
+
+    luaL_register( pLua, "lctags.Helper", s_if_lib );
+#endif
     return 1;
 }
 
@@ -138,7 +147,12 @@ static int helper_openDigest( lua_State * pLua )
     }
     pHelper->pInfo = pInfo;
     
+#if LUA_VERSION_NUM >= 502
     luaL_setmetatable( pLua, HELPER_ID );
+#else
+    luaL_getmetatable( pLua, HELPER_ID);
+    lua_setmetatable( pLua, -2 );
+#endif
 
     return 1;
 }
@@ -171,7 +185,7 @@ static int helper_digest_fix( lua_State * pLua )
 {
     helper_userData_t * pHelper = toHelper( pLua );
     helper_digestInfo_t * pInfo = pHelper->pInfo;
-    char * pBuf = malloc( pInfo->mdsize * 2 );
+    unsigned char * pBuf = malloc( pInfo->mdsize * 2 );
     if ( pBuf == NULL ) {
         return 0;
     }
@@ -183,9 +197,13 @@ static int helper_digest_fix( lua_State * pLua )
             memcpy( pBuf + index * 2, buf, 2 );
         }
         lua_pushlstring( pLua, pBuf, pInfo->mdsize * 2 );
-        return 1;
     }
-    return 0;
+    else {
+        lua_pushnil( pLua );
+        
+    }
+    free( pBuf );
+    return 1;
 }
 
 static int helper_digest_gc( lua_State * pLua )

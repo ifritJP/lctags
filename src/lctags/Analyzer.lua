@@ -55,12 +55,12 @@ local function visitFuncMain( cursor, parent, analyzer )
       then
 	 local path = ""
 	 if cxfile then
-	    path = cxfile:getFileName()
+	    path = DBCtrl:convFullpath( cxfile:getFileName(), analyzer.currentDir )
 	 end
 
 	 table.insert( analyzer.incBelongList,
 		       { cxfile = cxfile,
-			 namespace = analyzer.nsList[ #analyzer.nsList ] } )
+			 namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
 
 	 analyzer.currentFile = cxfile
 	 local spInfo = analyzer.path2InfoMap[ path ]
@@ -79,7 +79,8 @@ local function visitFuncMain( cursor, parent, analyzer )
 
    if isNamespaceDecl( cursorKind ) then
       table.insert( analyzer.nsList, cursor )
-      table.insert( endProcess, function() table.remove( analyzer.nsList ) end )
+      table.insert( analyzer.nsLevelList, cursor )
+      table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
       calcDigest( cursor, analyzer.currentSpInfo.digest )
 
    end
@@ -87,9 +88,10 @@ local function visitFuncMain( cursor, parent, analyzer )
    
    if cursorKind == clang.core.CXCursor_InclusionDirective then
       local cxfile = cursor:getIncludedFile()
-      local path = cxfile:getFileName()
+      local path = cxfile and cxfile:getFileName() or ""
       local spInfo = analyzer.path2InfoMap[ path ]
       if not spInfo then
+	 path = DBCtrl:convFullpath( path, analyzer.currentDir )	 
 	 spInfo = analyzer:createSpInfo( path, true, cxfile )
       end
       
@@ -97,8 +99,8 @@ local function visitFuncMain( cursor, parent, analyzer )
       calcDigest( cursor, analyzer.currentSpInfo.digest )
       return 1
    elseif cursorKind == clang.core.CXCursor_ClassDecl then
-      table.insert( analyzer.nsList, cursor )
-      table.insert( endProcess, function() table.remove( analyzer.nsList ) end )
+      table.insert( analyzer.nsLevelList, cursor )
+      table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
 
       table.insert( analyzer.classList, cursor )
       calcDigest( cursor, analyzer.currentSpInfo.digest )
@@ -107,8 +109,8 @@ local function visitFuncMain( cursor, parent, analyzer )
       cursorKind == clang.core.CXCursor_UnionDecl or
       cursorKind == clang.core.CXCursor_EnumDecl
    then
-      table.insert( analyzer.nsList, cursor )
-      table.insert( endProcess, function() table.remove( analyzer.nsList ) end )
+      table.insert( analyzer.nsLevelList, cursor )
+      table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
       
       if cursor:getCursorSpelling() == "" then
 	 analyzer.currentSpInfo.anonymousCount =
@@ -154,8 +156,9 @@ local function visitFuncMain( cursor, parent, analyzer )
 	 table.insert(
 	    analyzer.refList,
 	    { cursor = cursor, declCursor = declCursor,
-	      namespace = analyzer.nsList[ #analyzer.nsList ] } )
+	      namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
 	 calcDigest( cursor, analyzer.currentSpInfo.digest )
+	 calcDigest( declCursor, analyzer.currentSpInfo.digest )
       end
    elseif cursorKind == clang.core.CXCursor_DeclRefExpr or
       cursorKind == clang.core.CXCursor_MemberRefExpr
@@ -169,8 +172,9 @@ local function visitFuncMain( cursor, parent, analyzer )
 	    table.insert(
 	       analyzer.refList,
 	       { cursor = cursor, declCursor = declCursor,
-		 namespace = analyzer.nsList[ #analyzer.nsList ] } )
+		 namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
 	    calcDigest( cursor, analyzer.currentSpInfo.digest )
+	    calcDigest( declCursor, analyzer.currentSpInfo.digest )
 	 end
       end
    elseif cursorKind == clang.core.CXCursor_TypedefDecl then
@@ -219,6 +223,7 @@ function Analyzer:new( dbPath )
       targetFile = nil,
       currentFile = nil,
       nsList = {},
+      nsLevelList = {},
       incList = {},
       incBelong = {},
       classList = {},
@@ -312,7 +317,9 @@ function Analyzer:isUptodate( unit )
 		    fileInfo.modTime, cxfile:getFileTime() )
 	    end
 	    fileId2InfoMap[ fileInfo.id ] =
-	       self:createSpInfo( fileInfo.path, uptodateFlag, cxfile )
+	       self:createSpInfo(
+		  db:convFullpath( db:getSystemPath( fileInfo.path ) ),
+		  uptodateFlag, cxfile )
 	 end
 
 	 
@@ -380,10 +387,10 @@ end
 
 
 function Analyzer:analyzeUnit( transUnit, compileOp )
-   log( 2, "start", os.clock(), os.date() )
-
    local target = transUnit:getTranslationUnitSpelling()
    log( -1, string.gsub( target, ".*/", "" ) )
+
+   log( 2, "start", compileOp, os.clock(), os.date() )
    
    if self:isUptodate( transUnit ) then
       return
@@ -401,41 +408,55 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
 
    log( 2, "visitChildren", os.clock(), os.date() )
    root:visitChildren( visitFuncMain, self )
+   log( 2, "visitChildren end", os.clock(), os.date() )
 
-   log( 2, "db open", os.clock(), os.date() )
    local db = self:openDBForWrite()
    if not db then
       log( 1, "db open error" )
       os.exit( 1 )
    end
+   log( 2, "db open", os.clock(), os.date() )
    
 
-   log( "-- file --", os.clock(), os.date() )
+   
+   log( 2, "-- file --", os.clock(), os.date() )
    for filePath, spInfo in pairs( self.path2InfoMap ) do
       log( filePath )
       local cxfile = transUnit:getFile( db:getSystemPath( filePath ) )
       local isTarget = cxfile and cxfile:isEqual( self.targetFile )
+      spInfo.fixDigest = spInfo.digest:fix()
       db:addFile( filePath, cxfile and cxfile:getFileTime() or 0,
-		  spInfo.digest:fix(),
-		  isTarget and compileOp, isTarget and self.currentDir )
+		  spInfo.fixDigest,
+		  isTarget and compileOp, isTarget and self.currentDir,
+		  isTarget )
    end
-   log( "-- inc --", os.clock(), os.date() )
+   
+   log( 2, "-- nsList --", os.clock(), os.date() )
+   for index, cursor in ipairs( self.nsList ) do
+      db:addNamespace( cursor )
+   end
+   
+   log( 2, "-- inc --", os.clock(), os.date() )
    for index, inclusion in ipairs( self.incList ) do
-      db:addInclude( inclusion )
+      local cxfile = inclusion:getIncludedFile()
+      local path = cxfile and cxfile:getFileName() or ""
+      path = db:convFullpath( path )
+      local spInfo = self.path2InfoMap[ path ]
+      db:addInclude( inclusion, spInfo.fixDigest )
    end
 
-   log( "-- macroDefList --", os.clock(), os.date()  )
+   log( 2, "-- macroDefList --", os.clock(), os.date()  )
    for index, macroDef in ipairs( self.macroDefList ) do
       db:addNamespace( macroDef )
    end
 
-   log( "-- macroRefList --", os.clock(), os.date()  )
+   log( 2, "-- macroRefList --", os.clock(), os.date()  )
    for index, macroRef in ipairs( self.macroRefList ) do
       db:addReference( macroRef )
    end
-   
+
    -- typedef を先に処理する
-   log( "-- typedef -- ", os.clock(), os.date() )
+   log( 2, "-- typedef -- ", os.clock(), os.date() )
    for index, info in ipairs( self.typedefList ) do
       log( info:getCursorSpelling(),
 	   clang.getCursorKindSpelling( info:getCursorKind() ) )
@@ -451,26 +472,26 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
       db:addNamespace( info )
    end
    
-   log( "-- classList --", os.clock(), os.date()  )
+   log( 2, "-- classList --", os.clock(), os.date()  )
    for index, cursor in ipairs( self.classList ) do
       log( cursor:getCursorSpelling() )
       db:addNamespace( cursor )
    end
 
-   log( "-- funcList --", os.clock(), os.date()  )
+   log( 2, "-- funcList --", os.clock(), os.date()  )
    for index, funcDecl in ipairs( self.funcList ) do
       log( funcDecl:getCursorSpelling() )
       db:addNamespace( funcDecl )
    end
    
-   log( "-- methodList --", os.clock(), os.date()  )
+   log( 2, "-- methodList --", os.clock(), os.date()  )
    for index, methodDecl in ipairs( self.methodList ) do
       log( methodDecl:getCursorSpelling() )
       db:addNamespace( methodDecl )
    end
   
 
-   log( "-- enum -- ", os.clock(), os.date()  )
+   log( 2, "-- enum -- ", os.clock(), os.date()  )
    for index, info in ipairs( self.enumList ) do
       local cursor = info[ 1 ]
       log( cursor:getCursorSpelling(),
@@ -480,7 +501,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
 		      typedefInfo and typedefInfo.typedef:getCursorSpelling() or "" )
    end
    
-   log( "-- struct -- ", os.clock(), os.date()  )
+   log( 2, "-- struct -- ", os.clock(), os.date()  )
    for index, info in ipairs( self.structList ) do
       local cursor = info[ 1 ]
       log( cursor:getCursorSpelling(),
@@ -491,7 +512,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
 			typedefInfo and typedefInfo.typedef:getCursorSpelling() or "" )
    end
 
-   log( "-- union -- ", os.clock(), os.date()  )
+   log( 2, "-- union -- ", os.clock(), os.date()  )
    for index, info in ipairs( self.unionList ) do
       local cursor = info[ 1 ]
       log( cursor:getCursorSpelling(),
@@ -502,19 +523,19 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
 			typedefInfo and typedefInfo.typedef:getCursorSpelling() or "" )
    end
    
-   log( "-- wideAreaVal -- ", os.clock(), os.date()  )
+   log( 2, "-- wideAreaVal -- ", os.clock(), os.date()  )
    for index, info in ipairs( self.wideAreaValList ) do
       log( info:getCursorSpelling(),
 	   clang.getCursorKindSpelling( info:getCursorKind() ) )
       db:addNamespace( info )
    end
 
-   log( "-- incBelong --", os.clock(), os.date() )
+   log( 2, "-- incBelong --", os.clock(), os.date() )
    for index, incBelong in ipairs( self.incBelongList ) do
       db:addIncBelong( incBelong )
    end
 
-   log( "-- refList --", os.clock(), os.date()  )
+   log( 2, "-- refList --", os.clock(), os.date()  )
    for index, refInfo in ipairs( self.refList ) do
       log( refInfo.cursor:getCursorSpelling(),
 	   clang.getCursorKindSpelling( refInfo.cursor:getCursorKind() ) )
