@@ -7,8 +7,8 @@ LUA_LDFLAGS=
 all: Helper.so
 
 Helper.so: Helper.c
-	gcc Helper.c -std=c99 -DHELPER_STAND_ALONE -o Helper -lcrypto -lm $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS)
-	gcc Helper.c -std=c99 -fPIC -shared -DHELPER_STAND_ALONE -o Helper.so -lcrypto -lm $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS)
+	gcc Helper.c -std=c99 -DHELPER_STAND_ALONE -o Helper $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS) -lcrypto -lm 
+	gcc Helper.c -std=c99 -fPIC -shared -DHELPER_STAND_ALONE -o Helper.so  $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS) -lcrypto -lm
 
 test: all
 	./Helper

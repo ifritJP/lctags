@@ -13,21 +13,31 @@ function DBAccess:errorExit( level, ... )
    os.exit()
 end
 
-function DBAccess:open( path, readonly )
+function DBAccess:open( path, readonly, onMemoryFlag )
    local flag = nil
    if readonly then
       flag = sqlite3.OPEN_READONLY
    end
-   local db = sqlite3.open( path, flag )
+   local db
+   if onMemoryFlag then
+      db = sqlite3.open_memory()
+   else
+      db = sqlite3.open( path, flag )
+   end
    if not db then
+      log( 1, "open error." )
       return nil
    end
-   
-   --local db = sqlite3.open_memory()
+
    local obj = {
       db = db,
    }
    setmetatable( obj, { __index = DBAccess } )
+
+   if not readonly then
+      obj:exec( "PRAGMA journal_mode = MEMORY" )
+   end
+   
    return obj
 end
 
@@ -52,7 +62,13 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
    local success, message = pcall(
       function( params )
 	 for item in self.db:nrows( query ) do
-	    func( item, table.unpack( params ) )
+	    local continue = func( item, table.unpack( params ) )
+	    if not continue then
+	       if continue == nil then
+		  errorExit( 3, "func returned nil" )
+	       end
+	       break
+	    end
 	 end
       end, { ... }
    )

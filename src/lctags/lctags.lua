@@ -15,24 +15,26 @@ local function printUsage( message )
    print( string.format( [[
 usage:
  - build DB
-   %s init [--lctags-projDir dir] [--lctags-db path] [--lctags-log lv] 
+   %s init projDir [--lctags-db path] [--lctags-log lv] 
    %s build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] comp-op [...] src
    %s shrink [--lctags-db path]
+   %s chg-proj projDir [--lctags-db path]
  - query DB
    %s dump
-   %s ref-at[a] file line column
-   %s def-at[a] file line column
-   %s -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] symbol
-   %s -xP[a] [--lctags-db path] [--lctags-log lv] file
+   %s ref-at[a] [--lctags-db path] file line column 
+   %s def-at[a] [--lctags-db path] file line column 
+   %s -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
+   %s -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
+   %s -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
 
 
-     init: initialize DB file.
+     init: initialize DB file. "projDir" is a root directory of your project.
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
             "comp-op" is compiler option. This include source file path.
      shrink: shrink DB.
+     chg-proj: change project directory.
      dump: dump DB.
-     --lctags-projDir: set "dir" as project directory.
      --lctags-db: set DB file path.
      --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
      -x: query DB.
@@ -40,8 +42,11 @@ usage:
         -xs: symbol declaration
         -xr: symbol reference
         -xP: file list
+     -c: list symbol.
+     --use-global: use GNU global when db is not found.
    ]],
-	     command, command, command, command, command, command, command, command ) )
+	     command, command, command, command, command,
+	     command, command, command, command, command ) )
    os.exit( 1 )
 end
 
@@ -59,26 +64,27 @@ local function analyzeOption( argList )
 	    skipArgNum = 1
 	 elseif string.find( arg, "init", 1, true ) then
 	    lctagOptMap.mode = "init"
+	    lctagOptMap.projDir = argList[ index + 1 ]
+	    skipArgNum = 1
 	 elseif string.find( arg, "shrink", 1, true ) then
 	    lctagOptMap.mode = "shrink"
+	 elseif string.find( arg, "chg-proj", 1, true ) then
+	    lctagOptMap.mode = "chg-proj"
+	    lctagOptMap.projDir = argList[ index + 1 ]
+	    skipArgNum = 1
 	 elseif string.find( arg, "ref-at", 1, true ) then
 	    lctagOptMap.mode = "ref-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
-	    lctagOptMap.file = argList[ index + 1 ]
-	    lctagOptMap.line = tonumber( argList[ index + 2 ] )
-	    lctagOptMap.column = tonumber( argList[ index + 3 ] )
-	    skipArgNum = 3
 	 elseif string.find( arg, "def-at", 1, true ) then
 	    lctagOptMap.mode = "def-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
-	    lctagOptMap.file = argList[ index + 1 ]
-	    lctagOptMap.line = tonumber( argList[ index + 2 ] )
-	    lctagOptMap.column = tonumber( argList[ index + 3 ] )
-	    skipArgNum = 3
 	 elseif string.find( arg, "dump", 1, true ) then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = "dump"
 	 elseif string.find( arg, "-x", 1, true ) then
+	    lctagOptMap.mode = "query"
+	    lctagOptMap.query = arg
+	 elseif string.find( arg, "-c", 1, true ) then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = arg
 	 end
@@ -91,12 +97,13 @@ local function analyzeOption( argList )
 	       if string.find( arg, "--lctags-log", 1, true ) then
 		  skipArgNum = 1
 		  log( 0, tonumber( argList[ index + 1 ] ) )
-	       elseif string.find( arg, "--lctags-projDir", 1, true ) then
-		  skipArgNum = 1
-		  lctagOptMap.projDir = argList[ index + 1 ]
 	       elseif string.find( arg, "--lctags-db", 1, true ) then
 		  skipArgNum = 1
 		  lctagOptMap.dbPath = argList[ index + 1 ]
+	       elseif string.find( arg, "--lctags-digestRec", 1, true ) then
+		  lctagOptMap.recordDigestSrcFlag = true
+	       elseif string.find( arg, "--use-global", 1, true ) then
+		  lctagOptMap.useGlobalFlag = true
 	       elseif string.find( arg, "--lctags-conf", 1, true ) then
 		  skipArgNum = 1
 		  local chunk, err = loadfile( argList[ index + 1 ] )
@@ -147,6 +154,11 @@ end
 
 local srcList, optList, lctagOptMap = analyzeOption( arg )
 
+for key, val in pairs( lctagOptMap ) do
+   log( 3, key, val )
+end
+
+
 local projDir = os.getenv( "PWD" )
 if lctagOptMap.projDir then
    projDir = lctagOptMap.projDir
@@ -171,23 +183,44 @@ if not lctagOptMap.dbPath then
    if not lctagOptMap.dbPath then
       if lctagOptMap.mode == "init" then
          lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
-      else
-	 printUsage( "db is not found." )
       end
    end
 end
-local analyzer = Analyzer:new( lctagOptMap.dbPath, projDir )
 
 
 if lctagOptMap.mode == "init" then
-   analyzer:initDB()
+   DBCtrl:init( lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
    os.exit( 0 )
 end
 
+
 if lctagOptMap.mode == "shrink" then
-   analyzer:shrinkDB()
+   DBCtrl:shrinkDB( lctagOptMap.dbPath )
    os.exit( 0 )
 end
+
+if lctagOptMap.mode == "chg-proj" then
+   DBCtrl:changeProjDir( lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "query" then
+   if not Query:exec(
+      lctagOptMap.dbPath, lctagOptMap.query, srcList[ 1 ],
+      lctagOptMap.useGlobalFlag )
+   then
+      printUsage( "query is error" )
+   end
+   os.exit( 0 )
+end
+
+
+if not lctagOptMap.dbPath then
+   printUsage( "db is not found." )
+end
+
+local analyzer = Analyzer:new(
+   lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag )
 
 if lctagOptMap.mode == "build" then
    local src = srcList[1]
@@ -231,22 +264,14 @@ if lctagOptMap.mode == "build" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "query" then
-   if not Query:exec(
-      lctagOptMap.dbPath, lctagOptMap.query, srcList[ 1 ], lctagOptMap.abs )
-   then
-      printUsage( "query is error" )
-   end
-end
-
 if lctagOptMap.mode == "ref-at" then
-   analyzer:queryAt( true, lctagOptMap.file, lctagOptMap.line,
-		     lctagOptMap.column, lctagOptMap.abs )
+   analyzer:queryAt(
+      true, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ], lctagOptMap.abs )
    os.exit( 0 )
 end
 
 if lctagOptMap.mode == "def-at" then
-   analyzer:queryAt( false, lctagOptMap.file, lctagOptMap.line,
-		     lctagOptMap.column, lctagOptMap.abs )
+   analyzer:queryAt(
+      false, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ], lctagOptMap.abs )
    os.exit( 0 )
 end

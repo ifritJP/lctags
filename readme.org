@@ -20,24 +20,26 @@ lctags コマンドを使用します。
 #+BEGIN_SRC txt
 usage:
  - build DB
-   lctags init [--lctags-projDir dir] [--lctags-db path] [--lctags-log lv] 
+   lctags init projDir [--lctags-db path] [--lctags-log lv] 
    lctags build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] comp-op [...] src
    lctags shrink [--lctags-db path]
+   lctags chg-proj projDir [--lctags-db path]
  - query DB
    lctags dump
-   lctags ref-at[a] file line column
-   lctags def-at[a] file line column
-   lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] symbol
-   lctags -xP[a] [--lctags-db path] [--lctags-log lv] file
+   lctags ref-at[a] [--lctags-db path] file line column 
+   lctags def-at[a] [--lctags-db path] file line column 
+   lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
+   lctags -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
+   lctags -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
 
 
-     init: initialize DB file.
+     init: initialize DB file. "projDir" is a root directory of your project.
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
             "comp-op" is compiler option. This include source file path.
      shrink: shrink DB.
+     chg-proj: change project directory.
      dump: dump DB.
-     --lctags-projDir: set "dir" as project directory.
      --lctags-db: set DB file path.
      --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
      -x: query DB.
@@ -45,6 +47,8 @@ usage:
         -xs: symbol declaration
         -xr: symbol reference
         -xP: file list
+     -c: list symbol.
+     --use-global: use GNU global when db is not found.
 #+END_SRC
 
 *** DB の生成
@@ -52,24 +56,25 @@ usage:
 プロジェクトのルートディレクトリで次のコマンドを実行します。
 これは、一度だけ実行します。
 
-$ lctags init
+$ lctags init .
 
 *** ソースの解析
 
 $ lctags build compiler comp-op [...] src
 
-compiler には、使用しているコンパイラコマンドを指定します。
+compiler には、使用しているコンパイルコマンドを指定します。
 
-comp-op には、コンパイルに指定しているコンパイルオプションを指定します。
+comp-op には、コンパイラに指定しているコンパイルオプションを指定します。
 
 src には、コンパイル対象のソースファイルパスを指定します。オプションの最後に指定する必要はありません。
 src は、一つだけ指定してください。
 
 このコマンドは、コンパイルを実行しているディレクトリと同じディレクトリで実行してください。
 
-なお、lctags は gcc のコンパイルオプションに対応していますが、
-後述する方法で簡単にカスタマイズできます。
+基本的には通常のコンパイルと同じオプションを渡すだけです。
 
+なお、lctags はデフォルトで gcc のコンパイルオプションに対応していますが、
+後述する方法で簡単にカスタマイズできます。
 
 
 *** インデックス問い合わせ
@@ -114,6 +119,13 @@ emacs からアクセスする場合は、 lctags.el をロードしてくださ
          (local-set-key "\C-t" 'gtags-pop-stack)))
 #+END_SRC
 
+*** プロジェクトディレクトリの変更
+
+プロジェクトを別ディレクトリに移動したりコピーした場合、
+次のコマンドを実行する必要があります。
+
+$ lctags chg-proj .
+
 ** ビルド方法
 
 *** 必要なライブラリ等
@@ -128,8 +140,10 @@ lua, libclang, luasqlite3 の環境にあわせて変更してください。
 
 *** ビルド
 
+#+BEGIN_SRC txt
 $ make build
 $ make install
+#+END_SRC
 
 ** カスタマイズ
 

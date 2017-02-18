@@ -38,6 +38,22 @@ function Query:execWithDb( db, query, target )
    local absFlag = query:find( "a" )
    if query:find( "dump" ) then
       db:dump( 1 )
+   elseif query:find( "P" ) then
+      db:mapFile(
+	 target and string.format( "path like '%%%s%%'", target ),
+	 function( item )
+	    self:printLocate( db, "path", item.id, 1, absFlag, false )
+	    return true
+	 end
+      )
+   elseif query:find( "c" ) then
+      db:mapSimpleName(
+	 target and string.format( "name like '%s%%'", target ),
+	 function( item )
+	    print( item.name )
+	    return true
+	 end
+      )
    elseif query:find( "r" ) then
       if not target then
 	 return false
@@ -46,6 +62,7 @@ function Query:execWithDb( db, query, target )
 	 target,
 	 function( item )
 	    self:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    return true
 	 end
       )
    elseif query:find( "t" ) then
@@ -56,6 +73,7 @@ function Query:execWithDb( db, query, target )
 	 target,
 	 function( item )
 	    self:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    return true
 	 end
       )
    else
@@ -66,16 +84,26 @@ function Query:execWithDb( db, query, target )
 	 target,
 	 function( item )
 	    self:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    return true
 	 end
       )
    end
 end
 
-function Query:exec( dbPath, query, target )
-   local db = DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
+function Query:exec( dbPath, query, target, useGlogalFlag )
+   local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
-      log( 1, "db open error" )
-      os.exit( 1 )
+      if not useGlogalFlag then
+	 log( 1, "db open error" )
+	 os.exit( 1 )
+      end
+      local commad = string.format( "global %s %s", query, target or "" )
+      local success, endType, code = os.execute( commad )
+      if success then
+	 os.exit( 0 )
+      else
+	 os.exit( code )
+      end
    end
 
    self:execWithDb( db, query, target )

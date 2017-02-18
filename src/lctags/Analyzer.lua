@@ -32,11 +32,14 @@ local function isNamespaceDecl( cursorKind )
       isFuncDecl( cursorKind )
 end
 
-local function calcDigest( cursor, digest )
-   if not digest then
+local function calcDigest( cursor, spInfo )
+   if not spInfo.digest then
       return
    end
-   digest:write( cursor:getCursorSpelling() )
+   spInfo.digest:write( cursor:getCursorSpelling() )
+   if spInfo.recordDigest then
+      spInfo.recordDigest:write( cursor:getCursorSpelling() .. "\n" )
+   end
 end
 
 local function visitFuncMain( cursor, parent, analyzer )
@@ -81,7 +84,7 @@ local function visitFuncMain( cursor, parent, analyzer )
       table.insert( analyzer.nsList, cursor )
       table.insert( analyzer.nsLevelList, cursor )
       table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
 
    end
 
@@ -96,14 +99,14 @@ local function visitFuncMain( cursor, parent, analyzer )
       end
       
       table.insert( analyzer.incList, cursor )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
       return 1
    elseif cursorKind == clang.core.CXCursor_ClassDecl then
       table.insert( analyzer.nsLevelList, cursor )
       table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
 
       table.insert( analyzer.classList, cursor )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
       
    elseif cursorKind == clang.core.CXCursor_StructDecl or
       cursorKind == clang.core.CXCursor_UnionDecl or
@@ -126,28 +129,29 @@ local function visitFuncMain( cursor, parent, analyzer )
       end
 	 
       table.insert( list, { cursor, analyzer.currentSpInfo.anonymousCount } )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
    elseif cursorKind == clang.core.CXCursor_FunctionDecl then
       table.insert( analyzer.funcList, cursor )
       analyzer.currentFunc = cursor
       table.insert( endProcess, function() analyzer.currentFunc = nil end )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
       
    elseif cursorKind == clang.core.CXCursor_MacroDefinition then
       table.insert( analyzer.macroDefList, cursor )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
 
    elseif cursorKind == clang.core.CXCursor_MacroExpansion then
       local declCursor = cursor:getCursorReferenced()
       table.insert( analyzer.macroRefList,
 		    { cursor = cursor, declCursor = declCursor, namespace = nil } )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
-      
+      -- マクロ参照はヘッダの多重 include 抑止に利用していることが多い。
+      -- これを digest 計算に加えると、include 抑止
+      -- calcDigest( cursor, analyzer.currentSpInfo )
    elseif cursorKind == clang.core.CXCursor_CXXMethod then
       table.insert( analyzer.methodList, cursor )
       analyzer.currentFunc = cursor
       table.insert( endProcess, function() analyzer.currentFunc = nil end )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
       
    elseif clang.isReference( cursorKind ) then
       if cursorKind ~= clang.core.CXCursor_NamespaceRef then
@@ -157,8 +161,8 @@ local function visitFuncMain( cursor, parent, analyzer )
 	    analyzer.refList,
 	    { cursor = cursor, declCursor = declCursor,
 	      namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
-	 calcDigest( cursor, analyzer.currentSpInfo.digest )
-	 calcDigest( declCursor, analyzer.currentSpInfo.digest )
+	 calcDigest( cursor, analyzer.currentSpInfo )
+	 calcDigest( declCursor, analyzer.currentSpInfo )
       end
    elseif cursorKind == clang.core.CXCursor_DeclRefExpr or
       cursorKind == clang.core.CXCursor_MemberRefExpr
@@ -173,17 +177,17 @@ local function visitFuncMain( cursor, parent, analyzer )
 	       analyzer.refList,
 	       { cursor = cursor, declCursor = declCursor,
 		 namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
-	    calcDigest( cursor, analyzer.currentSpInfo.digest )
-	    calcDigest( declCursor, analyzer.currentSpInfo.digest )
+	    calcDigest( cursor, analyzer.currentSpInfo )
+	    calcDigest( declCursor, analyzer.currentSpInfo )
 	 end
       end
    elseif cursorKind == clang.core.CXCursor_TypedefDecl then
       table.insert( analyzer.typedefList, cursor )
-      calcDigest( cursor, analyzer.currentSpInfo.digest )
+      calcDigest( cursor, analyzer.currentSpInfo )
    elseif cursorKind == clang.core.CXCursor_VarDecl then
       if analyzer.currentFunc == nil then
 	 table.insert( analyzer.wideAreaValList, cursor )
-	 calcDigest( cursor, analyzer.currentSpInfo.digest )
+	 calcDigest( cursor, analyzer.currentSpInfo )
       end
    end
 
@@ -212,12 +216,14 @@ end
 
 local Analyzer = {}
 
-function Analyzer:new( dbPath )
+function Analyzer:new( dbPath, recordDigestSrcFlag )
    local obj = {
       clangIndex = clang.createIndex( 1, 1 ),
       currentDir = os.getenv( "PWD" ),
 
       dbPath = dbPath,
+
+      recordDigestSrcFlag = recordDigestSrcFlag,
       
       depth = 0,
       targetFile = nil,
@@ -265,6 +271,12 @@ function Analyzer:createSpInfo( path, uptodateFlag, cxfile )
    -- このファイルの宣言に影響を与えるファイルの spInfo の Set
    spInfo.dependFileSpInfoSet = {}
 
+   if self.recordDigestSrcFlag then
+      local target = self.targetFilePath
+      spInfo.recordDigest =
+	 io.open( string.gsub( path, ".*/", "digest." .. target .. "." ), "w" )
+   end
+
    return spInfo
 end
 
@@ -276,47 +288,62 @@ function Analyzer:openDBForWrite()
    return DBCtrl:open( self.dbPath, false, self.currentDir )
 end
 
-function Analyzer:isUptodate( unit )
+function Analyzer:isUptodate( filePath )
    local db = self:openDBForReadOnly()
    if not db then
       log( 2, "db open error" )
       return false
    end
-
-   list = {}
-
+   
    local success, result = pcall(
       function()
 	 -- 解析対象のファイル情報リストを取得
-	 local targetFileInfo =
-	    db:getFileInfo( nil, unit:getTranslationUnitSpelling() )
+	 local targetFileInfo = db:getFileInfo( nil, filePath )
 	 if not targetFileInfo then
 	    log( 2, "not found target in db" )
 	    return false
 	 end
-	 table.insert( list, targetFileInfo )
-	 local incFileList =
-	    db:getRowList( "incRef", "baseFileId == " .. targetFileInfo.id )
-	 for index, incFile in pairs( incFileList ) do
-	    local incFileInfo = db:getFileInfo( incFile.id )
-	    if not incFileInfo then
-	       log( 2, "not found incFile in db", incFile.id )
-	       return false
-	    end
-	    table.insert( list, incFileInfo )
-	 end
 
-	 -- ファイル情報リストから、ファイルが更新されているかどうかチェック
-	 local fileId2InfoMap = {}
+	 local fileId2FlieInfoMap = {}
+	 fileId2FlieInfoMap[ targetFileInfo.id ] = targetFileInfo
+
+	 -- filePath からインクルードしている全ファイルの情報を
+	 -- fileId2FlieInfoMap に設定
+	 local newIncFileIdList = { targetFileInfo.id }
+	 repeat
+	    local incFileIdList = {}
+	    for index, fileId in ipairs( newIncFileIdList ) do
+	       db:mapIncRefListFrom(
+		  fileId,
+		  function( incRefInfo )
+		     local incFileInfo = db:getFileInfo( incRefInfo.id )
+		     if not incFileInfo then
+			log( 2, "not found incFile in db", incRefInfo.id )
+			return false
+		     end
+		     if not fileId2FlieInfoMap[ incFileInfo.id ] then
+			fileId2FlieInfoMap[ incFileInfo.id ] = incFileInfo
+			table.insert( incFileIdList, incFileInfo.id )
+			log( 3, "inc file", incFileInfo.path )
+		     end
+		     return true
+		  end
+	       )
+	    end
+	    newIncFileIdList = incFileIdList
+	 until #newIncFileIdList == 0
+
+	 -- 取得した全ファイルの情報から、ファイルが更新されているかどうかチェック
+	 local fileId2SpInfoMap = {}
 	 local uptodateFlag = true
-	 for index, fileInfo in ipairs( list ) do
-	    local cxfile = unit:getFile( db:getSystemPath( fileInfo.path ) )
-	    if fileInfo.modTime ~= cxfile:getFileTime() then
+	 for fileId, fileInfo in pairs( fileId2FlieInfoMap ) do
+	    local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
+	    if fileInfo.path ~= "" and fileInfo.modTime ~= modTime then
 	       uptodateFlag = false
 	       log( 1, "detect modified", fileInfo.path,
-		    fileInfo.modTime, cxfile:getFileTime() )
+		    fileInfo.modTime, modTime )
 	    end
-	    fileId2InfoMap[ fileInfo.id ] =
+	    fileId2SpInfoMap[ fileInfo.id ] =
 	       self:createSpInfo(
 		  db:convFullpath( db:getSystemPath( fileInfo.path ) ),
 		  uptodateFlag, cxfile )
@@ -336,13 +363,13 @@ function Analyzer:isUptodate( unit )
 	    --    - class のメンバー、メソッド
 
 	    local changeFlag = false
-	    for index, fileInfo in ipairs( list ) do
-	       local spInfo = fileId2InfoMap[ fileInfo.id ]
+	    for fileId, fileInfo in ipairs( fileId2FlieInfoMap ) do
+	       local spInfo = fileId2SpInfoMap[ fileInfo.id ]
 	       local parentIdSet = {}
 	       db:mapRowList(
 		  "incBelong", "id = " .. tostring( fileInfo.id ), nil, "baseFileId",
 		  function ( item )
-		     local parentInfo = fileId2InfoMap[ item.baseFileId ]
+		     local parentInfo = fileId2SpInfoMap[ item.baseFileId ]
 		     spInfo.dependFileSpInfoSet[ parentInfo ] =  1
 		     if not spInfo.uptodateFlag then
 			if parentInfo.uptodateFlag then
@@ -357,7 +384,7 @@ function Analyzer:isUptodate( unit )
 
 	    while changeFlag do
 	       changeFlag = false
-	       for fileId, spInfo in pairs( fileId2InfoMap ) do
+	       for fileId, spInfo in pairs( fileId2SpInfoMap ) do
 		  if spInfo.uptodateFlag then
 		     for dependSpInfo in pairs( spInfo.dependFileSpInfoSet ) do
 			if not dependSpInfo.uptodateFlag then
@@ -388,13 +415,9 @@ end
 
 function Analyzer:analyzeUnit( transUnit, compileOp )
    local target = transUnit:getTranslationUnitSpelling()
-   log( -1, string.gsub( target, ".*/", "" ) )
+   log( -1, string.gsub( target, ".*/", "" ) .. ":" )
 
    log( 2, "start", compileOp, os.clock(), os.date() )
-   
-   if self:isUptodate( transUnit ) then
-      return
-   end
 
    log( transUnit )
 
@@ -547,6 +570,12 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
 end
 
 function Analyzer:analyzeSource( path, options )
+   self.targetFilePath = path
+   
+   if self:isUptodate( path ) then
+      return
+   end
+   
    local args = clang.mkCharArray( options )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
       path, args:getLength(), args:getPtr(), 0, nil )
@@ -564,23 +593,6 @@ function Analyzer:analyzeSourcePch( path )
 
    
    self:analyzeUnit( transUnit, nil )
-end
-
-function Analyzer:initDB( projDir )
-   if not projDir then
-      projDir = self.currentDir
-   end
-   if projDir ~= "/" and not string.find( projDir, "/$" ) then
-      projDir = projDir .. "/"
-   end
-   
-   
-   os.remove( self.dbPath )
-   DBCtrl:init( self.dbPath, os.getenv( "PWD" ), projDir )
-end
-
-function Analyzer:shrinkDB()
-   DBCtrl:shrinkDB( self.dbPath )
 end
 
 
@@ -623,6 +635,7 @@ function Analyzer:queryAt( refFlag, filePath, line, column, absFlag )
 	       local nsInfo = db:getNamespace( item.nsId )
 	       Query:printLocate(
 		  db, nsInfo.name, item.fileId, item.line, absFlag, true )
+	       return true
 	    end	 
 	 )
       else

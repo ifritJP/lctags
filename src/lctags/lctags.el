@@ -77,8 +77,8 @@
       (call-process lctags-command nil buffer t lctags-opt
 		    tag
 		    (number-to-string line) (number-to-string column)
-		    (when lctags-db "--lctags-db")
-		    (when lctags-db lctags-db))
+		    (if lctags-db "--lctags-db" "")
+		    (if lctags-db lctags-db ""))
       (goto-char 1)
       ;;(message (buffer-string))
       (setq lineNum (count-lines (point-min) (point-max)))
@@ -136,7 +136,24 @@
     (gtags-find-rtag)))
 
 
+(defun lctags-call-process-func (arg-list)
+  ""
+  (if (not (equal (car arg-list) "global"))
+      arg-list
+    (let (new-arg-list)
+      (setq new-arg-list
+	    (append (list lctags-command)
+		    (cdr arg-list)))
+      (when lctags-db
+	(setq new-arg-list
+	      (append new-arg-list
+		      (list "--lctags-db" lctags-db))))
+      new-arg-list)))
+
+(defadvice call-process (around lctags-call-process activate)
+  (let ((index 0))
+    (ad-set-args 0 (lctags-call-process-func (ad-get-args 0)))
+    ad-do-it))
 
 
-
-(provide 'clast)
+(provide 'lctags)

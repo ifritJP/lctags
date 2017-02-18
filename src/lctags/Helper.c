@@ -5,6 +5,8 @@
 #include <openssl/engine.h>
 #include <lauxlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 
 #define HELPER_ID ""
@@ -32,7 +34,9 @@ typedef struct {
 static int helper_openDigest( lua_State * pLua );
 static int helper_msleep( lua_State * pLua );
 static int helper_chdir( lua_State * pLua );
+static int helper_getFileModTime( lua_State * pLua );
 static int helper_tostring( lua_State * pLua );
+
 
 static int helper_digest_write( lua_State * pLua );
 static int helper_digest_get( lua_State * pLua );
@@ -51,6 +55,7 @@ static const luaL_Reg s_if_lib[] = {
     { "openDigest", helper_openDigest },
     { "msleep", helper_msleep },
     { "chdir", helper_chdir },
+    { "getFileModTime", helper_getFileModTime },
     {"__tostring", helper_tostring },
     {NULL, NULL}
 };
@@ -114,6 +119,18 @@ static int helper_chdir( lua_State * pLua )
 {
     lua_pushinteger( pLua, chdir( lua_tostring( pLua, 1 ) ) );
     return 1;
+}
+
+static int helper_getFileModTime( lua_State * pLua )
+{
+  const char * pPath = lua_tostring( pLua, 1 );
+  struct stat aStat;
+
+  if ( stat( pPath, &aStat ) != 0 ) {
+    return 0;
+  }
+  lua_pushinteger( pLua, aStat.st_mtime );
+  return 1;
 }
 
 
