@@ -16,13 +16,13 @@ local function printUsage( message )
 usage:
  - build DB
    %s init projDir [--lctags-db path] [--lctags-log lv] 
-   %s build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] comp-op [...] src
+   %s build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] comp-op [...] src
    %s shrink [--lctags-db path]
    %s chg-proj projDir [--lctags-db path]
  - query DB
    %s dump
-   %s ref-at[a] [--lctags-db path] file line column 
-   %s def-at[a] [--lctags-db path] file line column 
+   %s ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
+   %s def-at[a] [--lctags-db path] [--lctags-target target] file line column 
    %s -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
    %s -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
    %s -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
@@ -37,6 +37,8 @@ usage:
      dump: dump DB.
      --lctags-db: set DB file path.
      --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
+     --lctags-conf: confing file.
+     --lctags-target: set build target.
      -x: query DB.
         -xt: symbol declaration
         -xs: symbol declaration
@@ -100,6 +102,9 @@ local function analyzeOption( argList )
 	       elseif string.find( arg, "--lctags-db", 1, true ) then
 		  skipArgNum = 1
 		  lctagOptMap.dbPath = argList[ index + 1 ]
+	       elseif string.find( arg, "--lctags-target", 1, true ) then
+		  skipArgNum = 1
+		  lctagOptMap.target = argList[ index + 1 ]
 	       elseif string.find( arg, "--lctags-digestRec", 1, true ) then
 		  lctagOptMap.recordDigestSrcFlag = true
 	       elseif string.find( arg, "--use-global", 1, true ) then
@@ -229,7 +234,7 @@ if lctagOptMap.mode == "build" then
    for index, opt in ipairs( optList ) do
       option = option .. opt .. " "
    end
-   log( 2, "src:", src, "opt:", option )
+   log( 2, "src:", src, "target:", lctagOptMap.target, "opt:", option )
    
    
    if lctagOptMap.conf then
@@ -260,7 +265,7 @@ if lctagOptMap.mode == "build" then
    table.insert( optList, "-I" .. defInc )
 
 
-   analyzer:analyzeSource( src, optList )
+   analyzer:analyzeSource( src, optList, lctagOptMap.target )
    os.exit( 0 )
 end
 

@@ -88,9 +88,8 @@ function DBCtrl:changeProjDir( path, currentDir, projDir )
 
    projDir = obj:convFullpath( convProjPath( projDir, obj.currentDir ) )
 
-   obj:exec(
-      string.format(
-	 "UPDATE filePath SET path = '%s' WHERE id = %d", projDir, projDirId ) )
+   obj:update( "filePath", "path = '" ..  projDir .."'",
+	       "id = " .. tostring( projDirId ) )
 
    obj:mapRowList(
       "filePath", nil, nil, nil,
@@ -115,10 +114,10 @@ function DBCtrl:changeProjDir( path, currentDir, projDir )
 	 else
 	    log( 1, "detect modified", filePath )
 	 end
-	 obj:exec(
-	    string.format(
-	       "UPDATE filePath SET modTime = %d, digest = '%s' WHERE id = %d",
-	       modTime, fileDigest, row.id ) )
+	 obj:update(
+	    "filePath",
+	    string.format( "modTime = %d, digest = '%s'", modTime, fileDigest ),
+	    "id = " .. tostring( row.id ) )
 	 return true
       end
    )
@@ -202,10 +201,11 @@ CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEG
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE nocase);
-CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE nocase, modTime INTEGER, digest CHAR(32), updating INTEGER, compOp VARCHAR COLLATE nocase, currentDir VARCHAR COLLATE nocase);
-INSERT INTO filePath VALUES( NULL, '', 0, '', 0, '', '');
-INSERT INTO filePath VALUES( NULL, '%s', 0, '', 0, '', '');
+CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE nocase, modTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE nocase);
+INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '');
+INSERT INTO filePath VALUES( NULL, '%s', 0, 0, '', '');
 
+CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE nocase, compOp VARCHAR COLLATE nocase );
 CREATE TABLE symbolDecl ( nsId INTEGER, parentId INTEGER, snameId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE nocase, PRIMARY KEY( nsId, fileId, line ) );
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
@@ -214,6 +214,7 @@ CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId,
 CREATE INDEX index_ns ON namespace ( id, parentId, snameId, name, otherName );
 CREATE INDEX index_sName ON simpleName ( id, name );
 CREATE INDEX index_filePath ON filePath ( id, path );
+CREATE INDEX index_compOp ON compileOp ( fileId );
 CREATE INDEX index_symDecl ON symbolDecl ( nsId, parentId, snameId, fileId );
 CREATE INDEX index_symRef ON symbolRef ( nsId, snameId, fileId, belongNsId );
 CREATE INDEX index_incRef ON incRef ( id, baseFileId );
@@ -270,9 +271,7 @@ function DBCtrl:exists( tableName, condition )
 end
 
 function DBCtrl:delete( tableName, condition )
-   log( 2, "delete:", tableName, condition )
-   self.db:exec(
-      string.format( "DELETE FROM %s WHERE %s", tableName, condition ) )
+   self.db:delete( tableName, condition )
 end
 
 function DBCtrl:mapRowList( tableName, condition, limit, attrib, func, ... )
@@ -316,17 +315,31 @@ function DBCtrl:getSimpleName( id, name )
 end
 
 
-function DBCtrl:addFile( filePath, time, digest, compileOp, currentDir, isTarget )
+function DBCtrl:addFile(
+      filePath, time, digest, compileOp, currentDir, isTarget, target )
    if not compileOp then
       compileOp = ""
    end
    if not currentDir then
       currentDir = ""
    end
+   if not target then
+      target = ""
+   end
    local fileInfo, filePath = self:getFileInfo( nil, filePath )
    if fileInfo then
       if isTarget then
 	 self.targetFileInfo = fileInfo
+	 local targetInfo = self:getRow(
+	    "compileOp", "fileId = %d and target = '%s'" )
+	 if targetInfo then
+	    if targetInfo.compOp ~= compileOp then
+	       self:update(
+		  "compileOp", "compOp = '" .. compileOp .. "'",
+		  string.format( "fileId = %d AND target = '%s'",
+				 fileInfo.id, target ) )
+	    end
+	 end
       end
       if fileInfo.modTime == time then
 	 if isTarget then
@@ -342,14 +355,20 @@ function DBCtrl:addFile( filePath, time, digest, compileOp, currentDir, isTarget
       self:updateFile( fileInfo )
    end
 
-   self:insert( "filePath",
-		string.format(
-		   "NULL, '%s', %d, '%s', 1, '%s', '%s'",
-		   filePath, time, self:calcFileDigest( filePath ),
-		   compileOp, self:convPath( currentDir ) ) )
+   self:insert(
+      "filePath",
+      string.format(
+	 "NULL, '%s', %d, %d, '%s', '%s'", filePath, time, isTarget and 0 or 1,
+	 self:calcFileDigest( filePath ), self:convPath( currentDir ) ) )
 
    fileInfo = self:getFileInfo( nil, filePath )
-   self:addTokenDigest( fileInfo.id, digest )
+
+   if isTarget then
+      self:insert(
+	 "compileOp",
+	 string.format( "%d, '%s', '%s'", fileInfo.id, target, compileOp ) )
+      self:addTokenDigest( fileInfo.id, digest )
+   end
    
    if isTarget then
       self.targetFileInfo = fileInfo
@@ -525,10 +544,9 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
       local nsInfo = self:getNamespace( nil, fullname )
       if nsInfo then
 	 if nsInfo.digest == "" then
-	    self:exec(
-	       string.format(
-		  "UPDATE namespace SET digest = '%s' WHERE id == %d",
-		  digest, nsInfo.id ) )
+	    self:update(
+	       "namespace", "digest = '" .. digest .. "'",
+	       "id = " .. tostring( nsInfo.id ) )
 	    nsInfo.digest = digest
 	 elseif nsInfo.digest == digest then
 	    uptodate = true
@@ -814,7 +832,7 @@ end
 function DBCtrl:existsIncWithDigest( includeFileId, digest )
    return self:exists(
       "tokenDigest", string.format( "fileId = %d AND digest = '%s'",
-			       includeFileId, digest ) )
+				    includeFileId, digest ) )
 end
 
 function DBCtrl:addTokenDigest( fileId, digest )
@@ -843,7 +861,7 @@ function DBCtrl:addInclude( cursor, digest )
       if fileInfo.uptodate == nil then
 	 fileInfo.uptodate = true
       end
-      log( "uptodate some:", path )
+      log( "uptodate some:", fileInfo.id, path, digest )
    else
       log( 2, "detect new digest inc", fileInfo.path, digest )
       self:addTokenDigest( fileInfo.id, digest )
@@ -929,7 +947,6 @@ function DBCtrl:hasInc( fileInfo, cursor )
    return false
 end
 
-
 function DBCtrl:mapSymbolInfoList( tableName, symbol, func, ... )
    local nsInfo = self:getRow( "namespace", "otherName = '" .. symbol .. "'" )
    if nsInfo then
@@ -948,6 +965,11 @@ function DBCtrl:mapSymbolInfoList( tableName, symbol, func, ... )
       tableName,
       string.format( "snameId = %d", snameInfo.id ), nil, nil, func, ... )
 end
+
+function DBCtrl:mapCompInfo( condition, func )
+   return self:mapRowList( "compileOp", condition, nil, nil, func )
+end
+
 
 function DBCtrl:mapDeclInfoList( symbol, func, ... )
    return self:mapSymbolInfoList( "symbolDecl", symbol, func, ... )
@@ -1119,6 +1141,11 @@ function DBCtrl:insert( tableName, values )
    self.db:insert( tableName, values )
 end
 
+function DBCtrl:update( tableName, set, condition )
+   self.db:update( tableName, set, condition )
+end
+
+
 function DBCtrl:infoAt( tableName, path, line, column )
    local info = nil
    local fileInfo = self:getFileInfo( nil, path )
@@ -1175,18 +1202,28 @@ function DBCtrl:dump( level )
 
    log( level, "-- table filePath -- " )
    log( level, "id", "update", "mod.time", "digest" .. string.rep( ' ', 32 - 6 ),
-	"path", "compOp" )
-
+	"path" )
    self:mapRowList(
       "filePath", nil, nil, nil,
       function( row ) 
 	 log( level, row.id, row.updating,
 	      row.modTime, row.digest, row.path,
-	      row.currentDir, row.compOp, row.currentDir )
+	      row.currentDir, row.currentDir )
 	 return true
       end
    )
 
+   log( level, "-- table compileOp -- " )
+   log( level, "fileId", "target", "path", "compOp" )
+   self:mapRowList(
+      "compileOp", nil, nil, nil,
+      function( row )
+	 local fileInfo = self:getFileInfo( row.id )
+	 log( level, row.fileId, row.target, fileInfo.path, row.compOp )
+	 return true
+      end
+   )
+   
    log( level, "-- table incRef -- " )
    log( level, "incFile", "file", "line" )
    self:mapRowList(

@@ -21,13 +21,13 @@ lctags コマンドを使用します。
 usage:
  - build DB
    lctags init projDir [--lctags-db path] [--lctags-log lv] 
-   lctags build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] comp-op [...] src
+   lctags build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] comp-op [...] src
    lctags shrink [--lctags-db path]
    lctags chg-proj projDir [--lctags-db path]
  - query DB
    lctags dump
-   lctags ref-at[a] [--lctags-db path] file line column 
-   lctags def-at[a] [--lctags-db path] file line column 
+   lctags ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
+   lctags def-at[a] [--lctags-db path] [--lctags-target target] file line column 
    lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
    lctags -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
    lctags -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
@@ -42,6 +42,8 @@ usage:
      dump: dump DB.
      --lctags-db: set DB file path.
      --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
+     --lctags-conf: confing file.
+     --lctags-target: set build target.
      -x: query DB.
         -xt: symbol declaration
         -xs: symbol declaration
@@ -60,7 +62,7 @@ $ lctags init .
 
 *** ソースの解析
 
-$ lctags build compiler comp-op [...] src
+$ lctags build compiler [--lctags-target target] comp-op [...] src
 
 compiler には、使用しているコンパイルコマンドを指定します。
 
@@ -76,15 +78,22 @@ src は、一つだけ指定してください。
 なお、lctags はデフォルトで gcc のコンパイルオプションに対応していますが、
 後述する方法で簡単にカスタマイズできます。
 
+lctags は解析時に使用したコンパイルオプションを記憶し、
+後述するインデックス問い合わせ時に利用します。
+1 つのソースに対して、複数のコンパイルオプションを切り替えて
+異なるオブジェクトを生成するような場合、
+そのコンパイルオプションのセットを識別する必要があります。
+--lctags-target オプションを指定することで、
+コンパイルオプションを識別する名前を設定することができます。
 
 *** インデックス問い合わせ
 
 次のパターンを利用できます。
     
 #+BEGIN_SRC txt
-$ lctags -x[r|t][a] symbol
-$ lctags ref-at[a] file line column
-$ lctags def-at[a] file line column
+$ lctags -x[r|t][a] [--use-global] symbol
+$ lctags ref-at[a] [--lctags-target target] file line column
+$ lctags def-at[a] [--lctags-target target] file line column
 #+END_SRC txt
 
 -x は、 GNU global と互換のあるモードです。
@@ -97,12 +106,18 @@ a は、表示する場所のファイルパスをフルパスにします。
 このモードでは、シンボル名だけを使用して問い合わせするので、
 型を認識した検索には向きません。
 
+--use-global を指定することで、
+lctags の DB が存在しない場合に GNU global を実行します。
+
+
 ref-at[a] は、指定ファイルの場所のシンボルを使用している参照箇所をリストします。
 
 def-at[a] は、指定ファイルの場所のシンボルの定義箇所をリストします。
 
 指定のファイルにコンパイルエラーがあると、正常に動作しません。
 
+解析時に --lctags-target を指定している場合は、
+--lctags-target を指定する必要があります。
 
 *** emacs からアクセス
 

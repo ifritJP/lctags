@@ -28,8 +28,7 @@ end
 
 local function isNamespaceDecl( cursorKind )
    return cursorKind == clang.core.CXCursor_Namespace or
-      cursorKind == clang.core.CXCursor_ClassDecl or
-      isFuncDecl( cursorKind )
+      cursorKind == clang.core.CXCursor_ClassDecl
 end
 
 local function calcDigest( cursor, spInfo )
@@ -81,13 +80,14 @@ local function visitFuncMain( cursor, parent, analyzer )
    local endProcess = {}
 
    if isNamespaceDecl( cursorKind ) then
-      table.insert( analyzer.nsList, cursor )
       table.insert( analyzer.nsLevelList, cursor )
       table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
-      calcDigest( cursor, analyzer.currentSpInfo )
-
    end
 
+   if cursorKind == clang.core.CXCursor_Namespace then
+      table.insert( analyzer.nsList, cursor )
+      calcDigest( cursor, analyzer.currentSpInfo )
+   end
    
    if cursorKind == clang.core.CXCursor_InclusionDirective then
       local cxfile = cursor:getIncludedFile()
@@ -155,8 +155,7 @@ local function visitFuncMain( cursor, parent, analyzer )
       
    elseif clang.isReference( cursorKind ) then
       if cursorKind ~= clang.core.CXCursor_NamespaceRef then
-	 --local declCursor = cursor:getCursorReferenced()
-	 local declCursor = cursor:getCursorDefinition()
+	 local declCursor = cursor:getCursorReferenced()
 	 table.insert(
 	    analyzer.refList,
 	    { cursor = cursor, declCursor = declCursor,
@@ -167,7 +166,8 @@ local function visitFuncMain( cursor, parent, analyzer )
    elseif cursorKind == clang.core.CXCursor_DeclRefExpr or
       cursorKind == clang.core.CXCursor_MemberRefExpr
    then
-      local declCursor = cursor:getCursorDefinition()
+      -- local declCursor = cursor:getCursorDefinition()
+      local declCursor = cursor:getCursorReferenced()
       if declCursor:getCursorKind() ~= clang.core.CXCursor_ParmDecl then
 	 local storageClass = declCursor:getStorageClass()
 	 if storageClass ~= clang.core.CX_SC_Auto and
@@ -413,9 +413,9 @@ function Analyzer:isUptodate( filePath )
 end
 
 
-function Analyzer:analyzeUnit( transUnit, compileOp )
-   local target = transUnit:getTranslationUnitSpelling()
-   log( -1, string.gsub( target, ".*/", "" ) .. ":" )
+function Analyzer:analyzeUnit( transUnit, compileOp, target )
+   local targetPath = transUnit:getTranslationUnitSpelling()
+   log( -1, string.gsub( targetPath, ".*/", "" ) .. ":" )
 
    log( 2, "start", compileOp, os.clock(), os.date() )
 
@@ -451,7 +451,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
       db:addFile( filePath, cxfile and cxfile:getFileTime() or 0,
 		  spInfo.fixDigest,
 		  isTarget and compileOp, isTarget and self.currentDir,
-		  isTarget )
+		  isTarget, target )
    end
    
    log( 2, "-- nsList --", os.clock(), os.date() )
@@ -569,7 +569,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp )
    db:close()
 end
 
-function Analyzer:analyzeSource( path, options )
+function Analyzer:analyzeSource( path, options, target )
    self.targetFilePath = path
    
    if self:isUptodate( path ) then
@@ -585,29 +585,46 @@ function Analyzer:analyzeSource( path, options )
       compileOp = compileOp .. option .. " "
    end
 
-   self:analyzeUnit( transUnit, compileOp )
+   self:analyzeUnit( transUnit, compileOp, target )
 end
 
 function Analyzer:analyzeSourcePch( path )
    local transUnit = self.clangIndex:createTranslationUnit( path )
 
    
-   self:analyzeUnit( transUnit, nil )
+   self:analyzeUnit( transUnit, nil, nil )
 end
 
 
-function Analyzer:queryAt( refFlag, filePath, line, column, absFlag )
+function Analyzer:queryAt( refFlag, filePath, line, column, absFlag, target )
    local db = self:openDBForReadOnly()
 
+   -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo = db:getFileInfo( nil, filePath )
+   if not fileInfo then
+      log( 1, "not regist file", filePath )
+      os.exit( 1 )
+   end
+   if not target then
+      target = ""
+   end
    local compileOp = ""
+   local compInfo = db:mapCompInfo(
+      string.format( "target = '%s'", target ),
+      function( item )
+	 compileOp = item.compOp
+	 return false
+      end
+   )
 
+   -- コンパイルオプション文字列を、オプション配列に変換
    local optionList = {}
-   for option in string.gmatch( fileInfo.compOp, "([^ ]+)" ) do
+   for option in string.gmatch( compileOp, "([^ ]+)" ) do
       table.insert( optionList, option )
    end
 
-   if compileOp == "" then
+   if fileInfo.incFlag then
+      -- ヘッダの場合は解析せずに DB 登録されている情報を使用する
       local nsInfo = db:getNsInfoAt( filePath, line, column )
       if nsInfo then
 	 if refFlag then
@@ -617,6 +634,7 @@ function Analyzer:queryAt( refFlag, filePath, line, column, absFlag )
 	 end
       end
    else
+      -- ソースの場合は解析して、指定位置の情報を使用する
       Helper.chdir( db:getSystemPath( fileInfo.currentDir ) )
       
       local args = clang.mkCharArray( optionList )
