@@ -1169,8 +1169,9 @@ function DBCtrl:infoAt( tableName, path, line, column )
       	 fileInfo.id, line, line ),
       nil, nil,
       function( item )
-	 if not ( ( item.line == line and item.column > column ) or
-	       ( item.endLine == line and item.endColumn < column ) )
+	 if ( item.line < line and item.endLine > line ) or
+	    ( item.line == line and item.column <= column and
+		 item.endLine == line and item.endColumn >= column )
 	 then
 	    if not info then
 	       info = item

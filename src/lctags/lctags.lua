@@ -275,12 +275,14 @@ end
 
 if lctagOptMap.mode == "ref-at" then
    analyzer:queryAt(
-      true, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ], lctagOptMap.abs )
+      true, srcList[ 1 ], tonumber( srcList[ 2 ] ),
+      tonumber( srcList[ 3 ] ), lctagOptMap.abs )
    os.exit( 0 )
 end
 
 if lctagOptMap.mode == "def-at" then
    analyzer:queryAt(
-      false, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ], lctagOptMap.abs )
+      false, srcList[ 1 ], tonumber( srcList[ 2 ] ),
+      tonumber( srcList[ 3 ] ), lctagOptMap.abs )
    os.exit( 0 )
 end
