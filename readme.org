@@ -55,14 +55,16 @@ usage:
 
 *** DB の生成
 
+$ lctags init .
+
 プロジェクトのルートディレクトリで次のコマンドを実行します。
 これは、一度だけ実行します。
-
-$ lctags init .
 
 *** ソースの解析
 
 $ lctags build compiler [--lctags-target target] comp-op [...] src
+
+ソースの解析を行ないます。コンパイルは行ないません。
 
 compiler には、使用しているコンパイルコマンドを指定します。
 
@@ -74,6 +76,16 @@ src は、一つだけ指定してください。
 このコマンドは、コンパイルを実行しているディレクトリと同じディレクトリで実行してください。
 
 基本的には通常のコンパイルと同じオプションを渡すだけです。
+
+例えば、 次のソースようにコンパイルしているソースを解析する場合、
+
+$ gcc hoge.cpp -c -o hoge.o -Iinclude
+
+lctags は次のよう実行します。
+
+$ lctags build gcc hoge.cpp -c -o hoge.o -Iinclude
+
+
 
 なお、lctags はデフォルトで gcc のコンパイルオプションに対応していますが、
 後述する方法で簡単にカスタマイズできます。
@@ -214,7 +226,15 @@ convertCompileOption() は、コンパイルオプションの変換結果を返
 lctags の build で指定されたファイルの解析を無視するかどうかを判定する
 ファイルパスのパターンを指定します。
 
-パターンは、 2 つの文字列を持つ table を要素した table を返します。
+パターンは、 2 つの文字列を要素に持つ table の配列を返します。
+
+#+BEGIN_SRC Lua
+{
+      { "simple", "ignore.c" }, -- this is simple match. 
+      { "lua", "^ignore.c$" }, -- this is lua pattern match.
+}
+#+BEGIN_SRC
+
 1つ目の文字列は "simple" か "lua" です。
 2つ目の文字列は無視するファイルパスのパターンを指定します。
 
