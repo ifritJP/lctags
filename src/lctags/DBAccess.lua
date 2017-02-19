@@ -6,6 +6,11 @@ local Helper = require( 'lctags.Helper' )
 
 local DBAccess = {}
 
+local recordFile = nil
+function DBAccess:recordSql( fileHandle )
+   recordFile = fileHandle
+end
+   
 function DBAccess:errorExit( level, ... )
    local debugInfo = debug.getinfo( level )
    log( 1, "Sqlite ERROR:        ", self.db:errmsg(),
@@ -85,12 +90,15 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
    end
 end
 
-function DBAccess:exec( stmt )
-   self:execLow( stmt )
-end
+function DBAccess:exec( stmt, errHandle )
+   if recordFile then
+      recordFile:write( stmt .. "\n" )
+   end
    
-function DBAccess:execLow( stmt, errHandle )
    if self.db:exec( stmt ) ~= sqlite3.OK then
+      if recordFile then
+	 recordFile:write( self.db:errmsg() .. "\n" )
+      end
       if errHandle then
 	 errHandle( self, stmt, self.db:errmsg() )
 	 
@@ -111,13 +119,13 @@ function DBAccess:begin()
       end
    )
    --self:commit()
-   self:execLow( "BEGIN IMMEDIATE" )
+   self:exec( "BEGIN IMMEDIATE" )
    log( 2, "begin" )
 end
 
 function DBAccess:commit()
-   --self:execLow( [[ UPDATE lock SET locked = 0; ]] )
-   self:execLow(
+   --self:exec( [[ UPDATE lock SET locked = 0; ]] )
+   self:exec(
       "COMMIT",
       function( db, stmt, message )
 	 if not message:find( "no transaction is active" ) then
@@ -129,7 +137,7 @@ end
 
 function DBAccess:insert( tableName, values )
    self.insertCount = self.insertCount + 1
-   self:execLow(
+   self:exec(
       string.format( "INSERT INTO %s VALUES ( %s );", tableName, values ),
       function( db, stmt, message )
 	 if not message:find( "UNIQUE constraint failed" ) then
@@ -141,18 +149,18 @@ end
 
 function DBAccess:update( tableName, set, condition )
    self.updateCount = self.updateCount + 1
-   self:execLow( string.format( "UPDATE %s SET %s WHERE %s",
+   self:exec( string.format( "UPDATE %s SET %s WHERE %s",
 				tableName, set, condition ) )
 end
 
 function DBAccess:delete( tableName, condition )
    self.deleteCount = self.deleteCount + 1
    log( 2, "delete:", tableName, condition )
-   self:execLow( string.format( "DELETE FROM %s WHERE %s", tableName, condition ) )
+   self:exec( string.format( "DELETE FROM %s WHERE %s", tableName, condition ) )
 end
 
 function DBAccess:createTables( sqlTxt )
-   self:execLow(
+   self:exec(
       sqlTxt,
       function( db, stmt, message )
 	 if not message:find( "already exists" ) then

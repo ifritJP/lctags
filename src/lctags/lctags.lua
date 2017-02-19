@@ -6,6 +6,7 @@ local Analyzer = require( 'lctags.Analyzer' )
 local Query = require( 'lctags.Query' )
 local gcc = require( 'lctags.gcc' )
 local DBCtrl = require( 'lctags.DBCtrl' )
+local DBAccess = require( 'lctags.DBAccess' )
 
 local function printUsage( message )
    if message then
@@ -16,7 +17,7 @@ local function printUsage( message )
 usage:
  - build DB
    %s init projDir [--lctags-db path] [--lctags-log lv] 
-   %s build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] comp-op [...] src
+   %s build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    %s shrink [--lctags-db path]
    %s chg-proj projDir [--lctags-db path]
  - query DB
@@ -107,6 +108,9 @@ local function analyzeOption( argList )
 		  lctagOptMap.target = argList[ index + 1 ]
 	       elseif string.find( arg, "--lctags-digestRec", 1, true ) then
 		  lctagOptMap.recordDigestSrcFlag = true
+	       elseif string.find( arg, "--lctags-recSql", 1, true ) then
+		  skipArgNum = 1
+		  DBAccess:recordSql( io.open( argList[ index + 1 ], "w" ) )
 	       elseif string.find( arg, "--use-global", 1, true ) then
 		  lctagOptMap.useGlobalFlag = true
 	       elseif string.find( arg, "--lctags-conf", 1, true ) then

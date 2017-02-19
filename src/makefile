@@ -140,9 +140,10 @@ ifeq ($(shell which lctags),)
 endif
 	$(LUA_COMMAND) lctags/lctags.lua init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3 
 	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=clean
-	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) --lctags-log 2 --lctags-digestRec" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump
-	mkdir -p $(TEST_LUA_DIR)/digest
+	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) --lctags-log 3 --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	mkdir -p $(TEST_LUA_DIR)/digest $(TEST_LUA_DIR)/sql
 	mv $(TEST_LUA_DIR)/digest.* $(TEST_LUA_DIR)/digest
+	mv $(TEST_LUA_DIR)/*.sql $(TEST_LUA_DIR)/sql
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) lctags/lctags.lua shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3

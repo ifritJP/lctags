@@ -345,7 +345,7 @@ function DBCtrl:addFile(
 	 if isTarget then
 	    if self:existsIncWithDigest( fileInfo.id, digest ) then
 	       fileInfo.uptodate = true
-	       log( "uptodate:", filePath )
+	       log( 3, "uptodate:", filePath )
 	    else
 	       log( 2, "detect mismatch digest", filePath, digest )
 	    end
@@ -379,12 +379,13 @@ end
 function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
    self.hashCursor2FullnameMap[ cursor:hashCursor() ] = nsInfo.name
    self.hashCursor2NSMap[ cursor:hashCursor() ] = nsInfo
-   log( 3, "addSymbolDecl", nsInfo.name, cursor:hashCursor() )
+   local fileInfo = self:getFileInfo( fileId )
+   log( 3, "addSymbolDecl", fileId,
+	fileInfo.uptodate, nsInfo.name, cursor:hashCursor() )
    
    --local cxFile, line, column = getFileLocation( cursor )
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
    local line, column =  startInfo[2], startInfo[3]
-
 
    local item = {}
    item.nsId = nsInfo.id
@@ -400,13 +401,17 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
    item.comment = cursor:getRawCommentText()
 
 
-   self:insert(
-      "symbolDecl",
-      string.format( "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, '%s'",
-		     item.nsId, item.parentId, item.snameId, item.type,
-		     item.fileId, item.line, item.column,
-		     item.endLine, item.endColumn, item.charSize,
-		     item.comment and "has" or "none" ) )
+   if not fileInfo.uptodate then
+      self:insert(
+	 "symbolDecl",
+	 string.format( "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, '%s'",
+			item.nsId, item.parentId, item.snameId, item.type,
+			item.fileId, item.line, item.column,
+			item.endLine, item.endColumn, item.charSize,
+			item.comment and "has" or "none" ) )
+   else
+      log( 3, "skip addSymbolDecl", nsInfo.name )
+   end
    
    return item
 end
@@ -459,6 +464,10 @@ end
 
 function DBCtrl:addNamespace( cursor, digest, anonymousName, typedefName )
    local fileInfo = self:getFileFromCursor( cursor )
+   if fileInfo.id == systemFileId then
+      log( 3, "addNamespace skip for system", cursor:getCursorSpelling() )
+      return 
+   end
    if fileInfo.uptodate then
       local fullname = self:getFullname(
 	 cursor, fileInfo.id, anonymousName, typedefName )
@@ -755,7 +764,7 @@ function DBCtrl:addReference( refInfo )
    local parentNsInfo = self:getNamespaceFromCursor( refInfo.namespace )
    local nsInfo = self:getNamespaceFromCursor( declCursor )
    local kind = declCursor:getCursorKind()
-   if not nsInfo or nsInfo.id == rootNsId then
+   if not nsInfo then
       -- 宣言のないもの
       if kind == clang.core.CXCursor_VarDecl or
 	 kind == clang.core.CXCursor_ParmDecl 
@@ -784,6 +793,7 @@ function DBCtrl:addReference( refInfo )
       local declFileInfo = self:getFileFromCursor( declCursor )
       if declFileInfo.uptodate then
 	 log( 3, "uptodate ref", nsInfo.name )
+	 return
       end
    end
 
@@ -861,7 +871,7 @@ function DBCtrl:addInclude( cursor, digest )
       if fileInfo.uptodate == nil then
 	 fileInfo.uptodate = true
       end
-      log( "uptodate some:", fileInfo.id, path, digest )
+      log( "uptodate some:", fileInfo.id, path, fileInfo.uptodate, digest )
    else
       log( 2, "detect new digest inc", fileInfo.path, digest )
       self:addTokenDigest( fileInfo.id, digest )
