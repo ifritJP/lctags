@@ -221,13 +221,12 @@ local function visitFuncMain( cursor, parent, analyzer )
 	    analyzer.recursiveFlag = true
 	 end
 
-	 ---[[
-	 local ret = clang.visitChildrenFast(
-	    cursor, visitFuncMain, analyzer, targetKindList )
-	 --]]
-	 --[[
-	 local ret = cursor:visitChildren( visitFuncMain, analyzer )
-	 --]]
+	 if analyzer.recursiveFlag then
+	    clang.visitChildrenFast(
+	       cursor, visitFuncMain, analyzer, targetKindList )
+	 else
+	    cursor:visitChildren( visitFuncMain, analyzer )
+	 end
 
 	 
 	 if isFuncDecl( cursorKind ) then
