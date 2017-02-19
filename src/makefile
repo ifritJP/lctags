@@ -127,9 +127,9 @@ lctags-build:
 
 test: build
 	$(LUA_COMMAND) lctags/lctags.lua init .
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 --lctags-target hoge
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 5 --lctags-target hoge | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 
-	$(LUA_COMMAND) lctags/lctags.lua dump > dump
+	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
 	$(LUA_COMMAND) lctags/lctags.lua -xa sub
 	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 213 23 hoge
 

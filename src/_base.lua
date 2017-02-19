@@ -31,13 +31,63 @@ libs.visitChildrenLow = function( cursor, func, exInfo )
    return result
 end
 
-libs.clang_visitChildren = function( cursor, func, exInfo )
+libs.clang_visitChildren = function( cxCursor, func, exInfo )
    local wrapFunc = function( aCursor, aParent, aExInfo )
       return func( libs.CXCursor:new( aCursor ),
 		   libs.CXCursor:new( aParent ), aExInfo )
    end
-   return libs.visitChildrenLow( cursor, wrapFunc, exInfo )
+   return libs.visitChildrenLow( cxCursor, wrapFunc, exInfo )
 end
+
+
+libs.visitChildrenFast = function( cursor, func, exInfo, kindList )
+   if not kindList then
+      kindList = {}
+   end
+   local kindArray = libclangcore.new_intArray( #kindList + 1)
+   for index, kind in ipairs( kindList ) do
+      libclangcore.intArray_setitem( kindArray, index - 1, kind )
+   end
+   libclangcore.intArray_setitem(
+      kindArray, #kindList, libclangcore.CXCursor_InvalidFile )
+
+   local list = {}
+   local result = libs.visitChildrenLow( cursor.__ptr, list, kindArray )
+   libclangcore.delete_intArray( kindArray )
+   
+   for index, info in ipairs( list ) do
+      func( libs.CXCursor:new( info[ 1 ] ), libs.CXCursor:new( info[ 2 ] ),
+	    exInfo, index == 1 or info[ 3 ] )
+   end
+   return result
+end
+
+libs.getChildrenList = function( cursor, kindList )
+   if not kindList then
+      kindList = {}
+   end
+   local kindArray = libclangcore.new_intArray( #kindList + 1)
+   for index, kind in ipairs( kindList ) do
+      libclangcore.intArray_setitem( kindArray, index - 1, kind )
+   end
+   libclangcore.intArray_setitem(
+      kindArray, #kindList, libclangcore.CXCursor_InvalidFile )
+
+   local list = {}
+   local result = libs.visitChildrenLow( cursor.__ptr, list, kindArray )
+   libclangcore.delete_intArray( kindArray )
+
+   local cursorList = {}
+   for index, info in ipairs( list ) do
+      table.insert(
+	 cursorList,
+	 { libs.CXCursor:new( info[ 1 ] ),
+	   libs.CXCursor:new( info[ 2 ] ), 
+	   index == 1 or info[ 3 ] } )
+   end
+   return result, cursorList
+end
+
 
 
 libs.getInclusionsLow = function( unit, func, exInfo )

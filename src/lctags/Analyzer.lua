@@ -41,6 +41,23 @@ local function calcDigest( cursor, spInfo )
    end
 end
 
+local targetKindList = {
+   clang.core.CXCursor_CXXMethod,
+   clang.core.CXCursor_Destructor,
+   clang.core.CXCursor_FunctionDecl,
+   clang.core.CXCursor_Namespace,
+   clang.core.CXCursor_ClassDecl,
+   clang.core.CXCursor_StructDecl,
+   clang.core.CXCursor_UnionDecl,
+   clang.core.CXCursor_EnumDecl,
+   clang.core.CXCursor_MacroDefinition,
+   clang.core.CXCursor_DeclRefExpr,
+   clang.core.CXCursor_MemberRefExpr,
+   clang.core.CXCursor_ParmDecl,
+   clang.core.CXCursor_TypedefDecl,
+   clang.core.CXCursor_VarDecl
+}
+
 local function visitFuncMain( cursor, parent, analyzer )
    local cursorKind = cursor:getCursorKind()
 
@@ -203,9 +220,16 @@ local function visitFuncMain( cursor, parent, analyzer )
 	 if isFuncDecl( cursorKind ) then
 	    analyzer.recursiveFlag = true
 	 end
-	 
-	 local ret = cursor:visitChildren( visitFuncMain, analyzer )
 
+	 ---[[
+	 local ret = clang.visitChildrenFast(
+	    cursor, visitFuncMain, analyzer, targetKindList )
+	 --]]
+	 --[[
+	 local ret = cursor:visitChildren( visitFuncMain, analyzer )
+	 --]]
+
+	 
 	 if isFuncDecl( cursorKind ) then
 	    analyzer.recursiveFlag = false
 	 end

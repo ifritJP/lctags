@@ -36,6 +36,84 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
     lua_pushinteger( pLua, 1 );
     lua_gettable( pLua, -2 );
 
+    if ( lua_istable( pLua, -1 ) ) {
+      static CXFile prevFile = NULL;
+      if ( LUA_LEN( pLua, -1 ) == 0 ) {
+	prevFile = NULL;
+      }
+      
+      // exInfo = param[2]
+      lua_pushinteger( pLua, 2 );
+      lua_gettable( pLua, -3 );
+
+      int * pKindArray = NULL;
+      SWIG_ConvertPtr( pLua, -1, (void**)&pKindArray,SWIGTYPE_p_int,0);
+      lua_pop( pLua, 1 );
+
+      int index;
+      int findFlag = 0;
+      if ( pKindArray[ 0 ] == CXCursor_InvalidFile ) {
+	findFlag = 1;
+      }
+      else {
+	for ( index = 0; pKindArray[ index ] != CXCursor_InvalidFile; index++ ) {
+	  if ( cursor.kind == pKindArray[ index ] ) {
+	    findFlag = 1;
+	    break;
+	  }
+	}
+      }
+      
+      if ( findFlag ) {
+	CXSourceLocation loc = clang_getCursorLocation( cursor );
+	CXFile cxfile;
+	unsigned int line;
+	unsigned int column;
+	unsigned int offset;
+
+	clang_getFileLocation( loc,  &cxfile, &line, &column, &offset );
+
+	int equalsPrevFileFlag = clang_File_isEqual( prevFile, cxfile );
+	prevFile = cxfile;
+      
+      
+	lua_pushinteger( pLua, LUA_LEN( pLua, -1 ) + 1 );
+	lua_createtable( pLua, 2, 0 );
+
+	{
+	  CXCursor * resultptr;
+	
+	  lua_pushinteger( pLua, 1 );
+	
+	  resultptr = (CXCursor *) malloc(sizeof(CXCursor));
+	  memmove(resultptr, &cursor, sizeof(CXCursor));
+	  SWIG_NewPointerObj( pLua,(void *) resultptr,SWIGTYPE_p_CXCursor,1);
+
+	  lua_settable( pLua, -3 );
+	}
+
+	{
+	  CXCursor * resultptr;
+	
+	  lua_pushinteger( pLua, 2 );
+	
+	  resultptr = (CXCursor *) malloc(sizeof(CXCursor));
+	  memmove(resultptr, &parent, sizeof(CXCursor));
+	  SWIG_NewPointerObj( pLua,(void *) resultptr,SWIGTYPE_p_CXCursor,1);
+
+	  lua_settable( pLua, -3 );
+	}
+	
+	lua_pushinteger( pLua, 3 );
+	lua_pushboolean( pLua, !equalsPrevFileFlag );
+	lua_settable( pLua, -3 );
+
+	lua_settable( pLua, -3 );
+      }
+
+      lua_pop( pLua, 1 );
+      return 2;
+    }
     {
         CXCursor * resultptr;
         resultptr = (CXCursor *) malloc(sizeof(CXCursor));

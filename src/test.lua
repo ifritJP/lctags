@@ -10,8 +10,20 @@ local function getFileLocation( cursor )
 end
 
 
+local useFastFlag = false
 local prevFile = nil
-local function visitFuncMain( cursor, parent, exInfo )
+local function visitFuncMain( cursor, parent, exInfo, changeFileFlag )
+   -- if changeFileFlag == nil then
+   --    local cxfile, line, column, offset = getFileLocation( cursor )
+   -- end
+   -- local cursorKind = cursor:getCursorKind()
+   -- local txt = cursor:getCursorSpelling()
+   -- print( string.format(
+   -- 	     "%s %s %s(%d)",
+   -- 	     string.rep( " ", exInfo.depth ), txt, 
+   -- 	     clang.getCursorKindSpelling( cursorKind ), cursorKind ) )
+   -- return 2
+   
    local cursorKind = cursor:getCursorKind()
    local txt = cursor:getCursorSpelling()
 
@@ -20,12 +32,21 @@ local function visitFuncMain( cursor, parent, exInfo )
    	     string.rep( " ", exInfo.depth ), txt, 
    	     clang.getCursorKindSpelling( cursorKind ), cursorKind ) )
 
-   local cxfile, line = getFileLocation( cursor )
-   if (cxfile and prevFile and not prevFile:isEqual( cxfile ) ) or
-      (cxfile ~= prevFile and (not cxfile or not prevFile))
-   then
-      print( "change file:", cxfile and cxfile:getFileName() or "", line )
-      prevFile = cxfile
+   if not exInfo.curFunc then
+      if changeFileFlag ~= nil then
+   	 if changeFileFlag then
+   	    local cxfile, line = getFileLocation( cursor )
+   	    print( "change file 2:", cxfile and cxfile:getFileName() or "", line )
+   	 end
+      else
+   	 local cxfile, line = getFileLocation( cursor )
+   	 if (cxfile and prevFile and not prevFile:isEqual( cxfile ) ) or
+   	    (cxfile ~= prevFile and (not cxfile or not prevFile))
+   	 then
+   	    print( "change file:", cxfile and cxfile:getFileName() or "", line )
+   	    prevFile = cxfile
+   	 end
+      end
    end
 
    if cursorKind == clang.CXCursorKind.FunctionDecl.val or
@@ -33,7 +54,11 @@ local function visitFuncMain( cursor, parent, exInfo )
    then
       exInfo.curFunc = cursor
       exInfo.depth = exInfo.depth + 1
-      cursor:visitChildren( visitFuncMain, exInfo )
+      if useFastFlag then
+   	 clang.visitChildrenFast( cursor, visitFuncMain, exInfo, nil )
+      else
+   	 cursor:visitChildren( visitFuncMain, exInfo )
+      end
       exInfo.depth = exInfo.depth - 1
       exInfo.curFunc = nil
    elseif cursorKind == clang.CXCursorKind.Namespace.val or
@@ -42,10 +67,67 @@ local function visitFuncMain( cursor, parent, exInfo )
       clang.isStatement( cursorKind )
    then
       exInfo.depth = exInfo.depth + 1
-      cursor:visitChildren( visitFuncMain, exInfo )
+      if useFastFlag then
+   	 clang.visitChildrenFast( cursor, visitFuncMain, exInfo, nil )
+      else
+   	 cursor:visitChildren( visitFuncMain, exInfo )
+      end
       exInfo.depth = exInfo.depth - 1
    end
-   
+   return 1
+end
+
+
+local function visitFuncMainFast( cursor, parent, exInfo, changeFileFlag )
+   -- local cursorKind = cursor:getCursorKind()
+   -- local txt = cursor:getCursorSpelling()
+   -- print( string.format(
+   -- 	     "%s %s %s(%d)",
+   -- 	     string.rep( " ", exInfo.depth ), txt, 
+   -- 	     clang.getCursorKindSpelling( cursorKind ), cursorKind ) )
+   -- return 2
+   local cursorKind = cursor:getCursorKind()
+   local txt = cursor:getCursorSpelling()
+
+   print( string.format(
+   	     "%s %s %s(%d)",
+   	     string.rep( " ", exInfo.depth ), txt, 
+   	     clang.getCursorKindSpelling( cursorKind ), cursorKind ) )
+
+   if not exInfo.curFunc then
+      if changeFileFlag then
+   	 local cxfile, line = getFileLocation( cursor )
+   	 print( "change file 3:", cxfile and cxfile:getFileName() or "", line )
+      end
+   end
+
+   if cursorKind == clang.CXCursorKind.FunctionDecl.val or
+      cursorKind == clang.CXCursorKind.CXXMethod.val
+   then
+      exInfo.curFunc = cursor
+      exInfo.depth = exInfo.depth + 1
+
+      local result, list = clang.getChildrenList( cursor, nil )
+      for index, info in ipairs( list ) do
+   	 visitFuncMainFast( info[ 1 ], info[ 2 ], exInfo, info[ 3 ] )
+      end
+      
+      exInfo.depth = exInfo.depth - 1
+      exInfo.curFunc = nil
+   elseif cursorKind == clang.CXCursorKind.Namespace.val or
+      cursorKind == clang.CXCursorKind.ClassDecl.val or
+      cursorKind == clang.CXCursorKind.CompoundStmt.val or
+      clang.isStatement( cursorKind )
+   then
+      exInfo.depth = exInfo.depth + 1
+
+      local result, list = clang.getChildrenList( cursor, nil )
+      for index, info in ipairs( list ) do
+   	 visitFuncMainFast( info[ 1 ], info[ 2 ], exInfo, info[ 3 ] )
+      end
+      
+      exInfo.depth = exInfo.depth - 1
+   end
    return 1
 end
 
@@ -66,7 +148,16 @@ local function dumpCursorTU( transUnit )
 	     cursor:getCursorSemanticParent():getCursorKind() ) )
    
 
-   root:visitChildren( visitFuncMain, { depth = 0 } )
+   if useFastFlag then
+      --clang.visitChildrenFast( root, visitFuncMain, { depth = 0 }, nil )
+
+      local result, list = clang.getChildrenList( root, nil )
+      for index, info in ipairs( list ) do
+      	 visitFuncMainFast( info[ 1 ], info[ 2 ], { depth = 0 }, info[ 3 ] )
+      end
+   else
+      root:visitChildren( visitFuncMain, { depth = 0 } )
+   end
 end
 
 local function dumpCursor( clangIndex, path, options )
@@ -79,11 +170,17 @@ end
 
 local clangIndex = clang.createIndex( 0, 1 )
 
----[[
+print( "start", os.clock() )
 dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
---]]
+print( "end", os.clock() )
 
---[[
-dumpCursor( clangIndex, "swig/libClangLua_wrap.c",
-	    { "-I/usr/include/lua5.3", "-I/usr/lib/llvm-3.8/include" } )
---]]
+useFastFlag = true
+print( "start", os.clock() )
+dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
+print( "end", os.clock() )
+
+-- print( "start", os.clock() )
+-- dumpCursor( clangIndex, "swig/libClangLua_wrap.c",
+-- 	    { "-I/usr/lib/llvm-3.8/include", "-I/usr/include/lua5.3",
+-- 	      "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include" } )
+-- print( "end", os.clock() )
