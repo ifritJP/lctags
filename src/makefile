@@ -147,6 +147,7 @@ endif
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) lctags/lctags.lua shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
+	$(LUA_COMMAND) lctags/lctags.lua def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) lctags/lctags.lua dump --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 
 install: build

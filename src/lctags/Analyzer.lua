@@ -191,24 +191,35 @@ local function visitFuncMain( cursor, parent, analyzer )
       end
    end
 
-   if cursorKind == clang.core.CXCursor_Namespace or
-      cursorKind == clang.core.CXCursor_ClassDecl or
-      (not uptodateFlag and
-	  (isFuncDecl( cursorKind ) or
-	      cursorKind == clang.core.CXCursor_CompoundStmt or
-	      clang.core.clang_isStatement( cursorKind ) ) )
-   then
-      analyzer.depth = analyzer.depth + 1
-      
-      local ret = cursor:visitChildren( visitFuncMain, analyzer )
-      
-      analyzer.depth = analyzer.depth - 1
+   if not analyzer.recursiveFlag then
+      if cursorKind == clang.core.CXCursor_Namespace or
+	 cursorKind == clang.core.CXCursor_ClassDecl or
+	 (not uptodateFlag and
+	     (isFuncDecl( cursorKind ) or
+		 cursorKind == clang.core.CXCursor_CompoundStmt or
+		 clang.core.clang_isStatement( cursorKind ) ) )
+      then
+	 analyzer.depth = analyzer.depth + 1
+	 if isFuncDecl( cursorKind ) then
+	    analyzer.recursiveFlag = true
+	 end
+	 
+	 local ret = cursor:visitChildren( visitFuncMain, analyzer )
+
+	 if isFuncDecl( cursorKind ) then
+	    analyzer.recursiveFlag = false
+	 end
+	 analyzer.depth = analyzer.depth - 1
+      end
    end
    
    for index, process in ipairs( endProcess ) do
       process()
    end
-   
+
+   if analyzer.recursiveFlag  then
+      return 2
+   end
    return 1
 end
 
@@ -222,6 +233,7 @@ function Analyzer:new( dbPath, recordDigestSrcFlag )
       currentDir = os.getenv( "PWD" ),
 
       dbPath = dbPath,
+      recursiveFlag = false,
 
       recordDigestSrcFlag = recordDigestSrcFlag,
       
