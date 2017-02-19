@@ -233,7 +233,7 @@ lctags の build で指定されたファイルの解析を無視するかどう
       { "simple", "ignore.c" }, -- this is simple match. 
       { "lua", "^ignore.c$" }, -- this is lua pattern match.
 }
-#+BEGIN_SRC
+#+END_SRC
 
 1つ目の文字列は "simple" か "lua" です。
 2つ目の文字列は無視するファイルパスのパターンを指定します。
