@@ -24,7 +24,20 @@
   "lctags-mode Keymap.")
 
 (defvar lctags-db nil
-  "lcatags.sqlite's path. nil is default")
+  "lcatags.sqlite's path. nil is default.
+This parameter can set function and string.
+")
+
+(defvar lctags-target nil
+  "lcatags.sqlite's target. nil is default.
+This parameter can set function and string.
+")
+
+(defvar lctags-conf nil
+  "lcatags.sqlite's config. nil is default.
+This parameter can set function and string.
+")
+
 
 (setq lctags-hack-gtags nil)
 
@@ -49,6 +62,9 @@
 	(dir default-directory)
 	(line (1- (current-line)))
 	(column (1+ (current-column)))
+	(db-path lctags-db)
+	(target lctags-target)
+	(config lctags-conf)
 	buffer lineNum select-name lctags-opt)
     (cond
      ((equal mode "def-at")
@@ -72,13 +88,26 @@
      )
     (setq buffer (generate-new-buffer
 		  (concat "GTAGS SELECT* " select-name)))
+    (with-current-buffer save
+      (when (and lctags-db (functionp lctags-db))
+	(setq db-path (funcall lctags-db)))
+      (when (and lctags-target (functionp lctags-target))
+	(setq target (funcall lctags-target)))
+      (when (and lctags-conf (functionp lctags-conf))
+	(setq config (funcall lctags-conf))))
+    
     (with-current-buffer buffer
       (setq default-directory dir)
       (call-process lctags-command nil buffer t lctags-opt
 		    tag
 		    (number-to-string line) (number-to-string column)
-		    (if lctags-db "--lctags-db" "")
-		    (if lctags-db lctags-db ""))
+		    (if db-path "--lctags-db" "")
+		    (if db-path db-path "")
+		    (if target "--lctags-target" "")
+		    (if target target "" )
+		    (if config "--lctags-conf" "")
+		    (if config config "" )
+		    )
       (goto-char 1)
       ;;(message (buffer-string))
       (setq lineNum (count-lines (point-min) (point-max)))
@@ -140,14 +169,33 @@
   ""
   (if (not (equal (car arg-list) "global"))
       arg-list
-    (let (new-arg-list)
+    (let ((db-path lctags-db)
+	  (target lctags-target)
+	  (config lctags-conf)
+	  new-arg-list)
       (setq new-arg-list
 	    (append (list lctags-command)
 		    (cdr arg-list)))
-      (when lctags-db
+      (with-current-buffer save
+	(when (and lctags-db (functionp lctags-db))
+	  (setq db-path (funcall lctags-db)))
+	(when (and lctags-target (functionp lctags-target))
+	  (setq target (funcall lctags-target)))
+	(when (and lctags-conf (functionp lctags-conf))
+	  (setq config (funcall lctags-conf))))
+
+      (when db-path
 	(setq new-arg-list
 	      (append new-arg-list
-		      (list "--lctags-db" lctags-db))))
+		      (list "--lctags-db" db-path))))
+      (when target
+	(setq new-arg-list
+	      (append new-arg-list
+		      (list "--lctags-target" target))))
+      (when config
+	(setq new-arg-list
+	      (append new-arg-list
+		      (list "--lctags-conf" config))))
       new-arg-list)))
 
 (defadvice call-process (around lctags-call-process activate)

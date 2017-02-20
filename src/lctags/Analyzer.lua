@@ -42,15 +42,17 @@ local function calcDigest( cursor, spInfo )
 end
 
 local targetKindList = {
-   clang.core.CXCursor_CXXMethod,
-   clang.core.CXCursor_Destructor,
-   clang.core.CXCursor_FunctionDecl,
+   clang.core.CXCursor_MacroDefinition,
+   clang.core.CXCursor_MacroExpansion,
+   clang.core.CXCursor_InclusionDirective,
    clang.core.CXCursor_Namespace,
    clang.core.CXCursor_ClassDecl,
    clang.core.CXCursor_StructDecl,
    clang.core.CXCursor_UnionDecl,
    clang.core.CXCursor_EnumDecl,
-   clang.core.CXCursor_MacroDefinition,
+   clang.core.CXCursor_CXXMethod,
+   clang.core.CXCursor_Destructor,
+   clang.core.CXCursor_FunctionDecl,
    clang.core.CXCursor_DeclRefExpr,
    clang.core.CXCursor_MemberRefExpr,
    clang.core.CXCursor_ParmDecl,
@@ -58,14 +60,14 @@ local targetKindList = {
    clang.core.CXCursor_VarDecl
 }
 
-local function visitFuncMain( cursor, parent, analyzer )
+local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
    local cursorKind = cursor:getCursorKind()
 
    dumpCursorInfo( cursor, analyzer.depth )
 
    local uptodateFlag
-   
-   if not analyzer.currentFunc then
+
+   if changeFileFlag then
       local cxfile, line = clang.getFileLocation(
 	 cursor:getCursorLocation().__ptr, clang.core.clang_getFileLocation )
       if analyzer.currentFile ~= cxfile and
@@ -91,7 +93,6 @@ local function visitFuncMain( cursor, parent, analyzer )
 	 log( 3, "changeCurrentFile:", path, 
 	      analyzer.currentSpInfo.digest, uptodateFlag )
       end
-      
    end
 
    local endProcess = {}
@@ -221,13 +222,9 @@ local function visitFuncMain( cursor, parent, analyzer )
 	    analyzer.recursiveFlag = true
 	 end
 
-	 if analyzer.recursiveFlag then
-	    clang.visitChildrenFast(
-	       cursor, visitFuncMain, analyzer, targetKindList )
-	 else
-	    cursor:visitChildren( visitFuncMain, analyzer )
-	 end
-
+	 clang.visitChildrenFast(
+	    cursor, visitFuncMain, analyzer, targetKindList,
+	    analyzer.recursiveFlag and 2 or 1 )
 	 
 	 if isFuncDecl( cursorKind ) then
 	    analyzer.recursiveFlag = false
@@ -240,9 +237,6 @@ local function visitFuncMain( cursor, parent, analyzer )
       process()
    end
 
-   if analyzer.recursiveFlag  then
-      return 2
-   end
    return 1
 end
 
@@ -348,12 +342,14 @@ function Analyzer:isUptodate( filePath )
 	 repeat
 	    local incFileIdList = {}
 	    for index, fileId in ipairs( newIncFileIdList ) do
+	       local detectChange = false
 	       db:mapIncRefListFrom(
 		  fileId,
 		  function( incRefInfo )
 		     local incFileInfo = db:getFileInfo( incRefInfo.id )
 		     if not incFileInfo then
 			log( 2, "not found incFile in db", incRefInfo.id )
+			detectChange = true
 			return false
 		     end
 		     if not fileId2FlieInfoMap[ incFileInfo.id ] then
@@ -364,6 +360,9 @@ function Analyzer:isUptodate( filePath )
 		     return true
 		  end
 	       )
+	       if detectChange then
+		  return false
+	       end
 	    end
 	    newIncFileIdList = incFileIdList
 	 until #newIncFileIdList == 0
@@ -465,7 +464,9 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    self.currentFile = self.targetFile
 
    log( 2, "visitChildren", os.clock(), os.date() )
-   root:visitChildren( visitFuncMain, self )
+   clang.visitChildrenFast(
+      root, visitFuncMain, self, targetKindList,
+      self.recursiveFlag and 2 or 1 )
    log( 2, "visitChildren end", os.clock(), os.date() )
 
    local db = self:openDBForWrite()
@@ -604,6 +605,33 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    db:close()
 end
 
+
+function Analyzer:update( path, target )
+   self.targetFilePath = path
+   
+   if self:isUptodate( path ) then
+      return
+   end
+
+   local db = self:openDBForReadOnly()
+   -- filePath の target に対応するコンパイルオプションを取得
+   local fileInfo, optionList = db:getFileOpt( path, target )
+   db:close()
+
+   local args = clang.mkCharArray( optionList )
+   local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
+      path, args:getLength(), args:getPtr(), 0, nil )
+
+   local compileOp = ""
+   for index, option in ipairs( optionList ) do
+      compileOp = compileOp .. option .. " "
+   end
+
+   self:analyzeUnit( transUnit, compileOp, target )
+end
+
+
+
 function Analyzer:analyzeSource( path, options, target )
    self.targetFilePath = path
    
@@ -635,28 +663,7 @@ function Analyzer:queryAt( refFlag, filePath, line, column, absFlag, target )
    local db = self:openDBForReadOnly()
 
    -- filePath の target に対応するコンパイルオプションを取得
-   local fileInfo = db:getFileInfo( nil, filePath )
-   if not fileInfo then
-      log( 1, "not regist file", filePath )
-      os.exit( 1 )
-   end
-   if not target then
-      target = ""
-   end
-   local compileOp = ""
-   local compInfo = db:mapCompInfo(
-      string.format( "target = '%s'", target ),
-      function( item )
-	 compileOp = item.compOp
-	 return false
-      end
-   )
-
-   -- コンパイルオプション文字列を、オプション配列に変換
-   local optionList = {}
-   for option in string.gmatch( compileOp, "([^ ]+)" ) do
-      table.insert( optionList, option )
-   end
+   local fileInfo, optionList = db:getFileOpt( filePath, target )
 
    if fileInfo.incFlag then
       -- ヘッダの場合は解析せずに DB 登録されている情報を使用する

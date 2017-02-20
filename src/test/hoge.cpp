@@ -17,6 +17,14 @@ typedef int (Callback_t)(void);
 
 typedef enum { enum_val1, enum_val2 } enum_t;
 
+struct yyyy;
+
+typedef struct yyyy YYYY;
+
+struct yyyy {
+    int kkkk;
+};
+
 typedef struct zzzz ZZZZ;
 struct zzzz {
     int aaaa;
@@ -143,6 +151,9 @@ namespace ns1 {
 
     typedef struct {
         Callback_t * pCallback;
+        struct {
+	  int efgh;
+	} abcd;
     } struct_func_t;
 
     namespace ns2 {
@@ -231,6 +242,8 @@ namespace ns1 {
     }
 
     void sub2() {
+        YYYY aYYYY;
+        aYYYY.kkkk = 0;
     }
 }
 

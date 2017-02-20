@@ -13,17 +13,14 @@ local function getFileLocation( cursor )
 end
 
 local rootNsId = 1
+local enumNsId = 2
+local structNsId = 3
+local unionNsId = 4
+local userNsId = 5
 local systemFileId = 1
 local projDirId = 2
 
 local DBCtrl = {}
-
-function DBCtrl:errorExit( level, ... )
-   local debugInfo = debug.getinfo( level )
-   log( 1, "Sqlite ERROR:        ", self.db:errmsg(),
-	debugInfo.short_src, debugInfo.currentline, ... )
-   os.exit()
-end
 
 function convProjPath( projDir, currentDir )
    if not projDir then
@@ -62,6 +59,27 @@ function DBCtrl:init( path, currentDir, projDir )
 
    return true
 end
+
+
+function DBCtrl:forceUpdate( path )
+   local db = DBAccess:open( path, false )
+   if not db then
+      log( 1, "open error." )
+      return false
+   end
+
+   local obj = {
+      db = db,
+   }
+   setmetatable( obj, { __index = DBCtrl } )
+
+   obj:update( "filePath", "modTime = 0", "incFlag = 0" )
+
+   obj:close()
+
+   return true
+end
+
 
 function DBCtrl:calcFileDigest( path )
    local path = self:getSystemPath( path )
@@ -130,13 +148,92 @@ end
 
 
 function DBCtrl:shrinkDB( path )
-   local db = DBAccess:open( path, false )
-   if not db then
+   local obj = DBCtrl:open( path, false, os.getenv( "PWD" ) )
+   
+   if not obj then
       return false
    end
 
-   db:exec( "VACUUM" )
-   db:close()
+   -- 存在しないファイルを削除
+   local deleteFileList = {}
+   obj:mapRowList(
+      "filePath", nil, nil, nil,
+      function( item )
+	 if not Helper.getFileModTime( obj:getSystemPath( item.path ) ) then
+	    table.insert( deleteFileList, item )
+	 end
+	 return true
+      end
+   )
+   for index, fileInfo in ipairs( deleteFileList ) do
+      obj:updateFile( fileInfo, true )
+   end
+
+   
+   --- 存在しない名前空間、単純名を削除
+   -- まずは全名前空間、全単純名の ID セットを取得
+   
+   local nsId2InfoMap = {}
+   local snameIdSet = {}
+   obj:mapRowList(
+      "namespace", nil, nil, nil,
+      function( item )
+	 if item.id >= userNsId then
+	    nsId2InfoMap[ item.id ] = item
+	    snameIdSet[ item.snameId ] = 1
+	 end
+	 return true
+      end
+   )
+   -- 定義されている名前空間の親 ID のセットを登録
+   local usingNsIdSet = {}
+   obj:mapRowList(
+      "symbolDecl", nil, nil, nil,
+      function( item )
+	 usingNsIdSet[ item.nsId ] = 1
+	 snameIdSet[ item.snameId ] = nil
+	 return true
+      end
+   )
+
+   -- 定義されている名前空間の親を辿って、親の定義状況を更新する
+   local checkSet = usingNsIdSet
+   repeat
+      local noneFlag = true
+      local workSet = {}
+      for nsId in pairs( checkSet ) do
+	 local nsInfo = nsId2InfoMap[ nsId ]
+	 if nsInfo and nsId ~= rootNsId then
+	    if not usingNsIdSet[ nsInfo.parentId ] then
+	       usingNsIdSet[ nsInfo.parentId ] = 1
+	       noneFlag = false
+	       workSet[ nsInfo.parentId ] = 1
+	    end
+	 end
+      end
+      checkSet = workSet
+   until noneFlag
+   -- 定義されている名前空間 ID を usingNsIdSet から除外する
+   for usingNsId in pairs( usingNsIdSet ) do
+      nsId2InfoMap[ usingNsId ] = nil
+   end
+   
+   -- 残りのセットは定義されていない名前空間、単純名なので削除
+   for nsId, nsInfo in pairs( nsId2InfoMap ) do
+      log( 2, "delete:", nsId, nsInfo.id, nsInfo.name )
+      obj:deleteNamespace( nsId )
+   end
+   for snameId in pairs( snameIdSet ) do
+      if snameId ~= 0 then
+	 obj:delete( "simpleName", "id = " .. tostring( snameId ) )
+      end
+   end
+   
+
+   obj.db:commit()
+
+   obj.db:exec( "VACUUM" )
+   obj.db:close()
    return true
 end
 
@@ -168,6 +265,19 @@ function DBCtrl:open( path, readonly, currentDir )
    }
    setmetatable( obj, { __index = DBCtrl } )
 
+   local item = obj:getRow( "etc", "keyName = 'version'" )
+   if not item then
+      log( 1, "unknown version" )
+      db:close()
+      return nil
+   end
+   if tonumber( item.val ) > 1 then
+      log( 1, "not support version", item.val )
+      db:close()
+      return nil
+   end
+
+   
    if not readonly then
       db:begin()
    end
@@ -197,8 +307,13 @@ function DBCtrl:createTables( projDir )
       string.format(
 	 [[
 BEGIN;
+CREATE TABLE etc ( keyName VARCHAR UNIQUE COLLATE nocase PRIMARY KEY, val VARCHAR);
+INSERT INTO etc VALUES( 'version', '1' );
 CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE nocase, otherName VARCHAR COLLATE nocase);
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
+INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@enum', '::@enum' );
+INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@struct', '::@struct' );
+INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@union', '::@union' );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE nocase);
 CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE nocase, modTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE nocase);
@@ -224,7 +339,7 @@ COMMIT;
 ]], projDir ) )
 end
 
-function DBCtrl:updateFile( fileInfo )
+function DBCtrl:updateFile( fileInfo, removeFlag )
    if not fileInfo then
       return
    end
@@ -240,9 +355,13 @@ function DBCtrl:updateFile( fileInfo )
    self:delete( "incRef", string.format( "baseFileId = %d", fileId ) )
    self:delete( "incBelong", string.format( "baseFileId = %d", fileId ) )
    self:delete( "tokenDigest", string.format( "fileId = %d", fileId ) )
-   
-   self:delete( "filePath", "id = " .. fileId )
 
+   if removeFlag then
+      self:delete( "filePath", string.format( "id = %d", fileId ) )
+      self:delete( "incRef", string.format( "id = %d", fileId ) )
+      self:delete( "incBelong", string.format( "id = %d", fileId ) )
+   end
+   
    self.fileId2fileInfoMap[ fileId ] = nil
    self.path2fileInfoMap[ fileInfo.path ] = nil
 end
@@ -331,7 +450,9 @@ function DBCtrl:addFile(
       if isTarget then
 	 self.targetFileInfo = fileInfo
 	 local targetInfo = self:getRow(
-	    "compileOp", "fileId = %d and target = '%s'" )
+	    "compileOp",
+	    string.format(
+	       "fileId = %d and target = '%s'", fileInfo.id, target ) )
 	 if targetInfo then
 	    if targetInfo.compOp ~= compileOp then
 	       self:update(
@@ -352,6 +473,9 @@ function DBCtrl:addFile(
 	 end
 	 return
       end
+      self:update(
+	 "filePath", "modTime = " .. tostring( time ),
+	 "id = " .. tostring( fileInfo.id ) )
       self:updateFile( fileInfo )
    end
 
@@ -549,8 +673,9 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
       cursor, fileId, anonymousName, typedefName )
 
    local uptodate = false
+   local nsInfo
    if digest ~= "" then
-      local nsInfo = self:getNamespace( nil, fullname )
+      nsInfo = self:getNamespace( nil, fullname )
       if nsInfo then
 	 if nsInfo.digest == "" then
 	    self:update(
@@ -559,6 +684,7 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
 	    nsInfo.digest = digest
 	 elseif nsInfo.digest == digest then
 	    uptodate = true
+	    log( 3, "addNamespaceSub uptodate digest", fullname, digest, nsInfo.name )
 	 else
 	    log( 2, "addNamespaceSub mismatch digest", fullname, digest, nsInfo.digest )
 	    -- self:deleteNamespace( nsInfo.id )
@@ -596,6 +722,9 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
 end
 
 function DBCtrl:deleteNamespace( nsId, targetIdList )
+   if nsId == rootNsId then
+      return
+   end
    local deleteFlag = false
    if not targetIdList then
       targetIdList = {}
@@ -629,20 +758,26 @@ function DBCtrl:calcEnumStructDigest( decl, kind, digest )
 
    local hasChild = false
    digest:write( decl:getCursorSpelling() )
-   decl:visitChildren(
-      function( cursor, parent, exInfo )
-	 local cursorKind = cursor:getCursorKind()
-	 if cursorKind == clang.core.CXCursor_StructDecl then
-	    hasChild = true
-	    self:calcEnumStructDigest( cursor, digest )
-	 elseif cursorKind == kind then
-	    hasChild = true
-	    local cxtype = cursor:getCursorType()
-	    digest:write( cxtype:getTypeSpelling() )
-	    digest:write( cursor:getCursorSpelling() )
-	 end
-	 return clang.CXChildVisitResult.Continue.val
-      end, nil )
+   clang.visitChildrenFast(
+      decl,
+      function( cursor, parent, exInfo, changeFileFlag )
+   	 local cursorKind = cursor:getCursorKind()
+   	 if cursorKind == clang.core.CXCursor_StructDecl or
+   	    cursorKind == clang.core.CXCursor_UnionDecl
+   	 then
+   	    hasChild = true
+   	    self:calcEnumStructDigest( cursor, kind, digest )
+   	 elseif cursorKind == kind then
+   	    hasChild = true
+   	    local cxtype = cursor:getCursorType()
+   	    digest:write( cxtype:getTypeSpelling() )
+   	    digest:write( cursor:getCursorSpelling() )
+   	 end
+      end,
+      nil,
+      { kind, clang.core.CXCursor_StructDecl,
+   	clang.core.CXCursor_UnionDecl }, 1 )
+	 
 
    if needFix then
       if not hasChild then
@@ -659,6 +794,8 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
    local fullnameBase
    local baseNsId
 
+   local structUptodate = false
+   
    if fileInfo.uptodate then
       fullnameBase = self:getFullname(
 	 decl, fileInfo.id, anonymousName, typedefName )
@@ -667,50 +804,56 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
       log( 3, "addEnumStructDecl start",
 	   decl:getCursorSpelling(), typedefName, os.clock(), os.date() )
       local digest = self:calcEnumStructDigest( decl, kind )
-      
-      local declNs, symbolDecl, uptodate = self:addNamespaceSub(
+
+      local declNs, symbolDecl
+      declNs, symbolDecl, structUptodate = self:addNamespaceSub(
 	 decl, fileInfo, digest, anonymousName, typedefName )
       fullnameBase = declNs.name
       otherNameBase = declNs.otherName
       baseNsId = declNs.id
 
-      if uptodate then
-	 log( 3, "addEnumStructDecl", "uptodate" )
-	 return
+      if structUptodate then
+	 log( 3, "addEnumStructDecl", "uptodate", fullnameBase )
       end
    end
 
    local hasIncFlag = self:hasInc( fileInfo, decl )
    local count = 0
-   decl:visitChildren(
-      function( cursor, parent, exInfo )
-	 local cursorKind = cursor:getCursorKind()
-	 if hasIncFlag then
-	    fileInfo = self:getFileFromCursor( cursor )
-	 end
+   local workFileInfo = fileInfo
+   clang.visitChildrenFast(
+      decl,
+      function( cursor, parent, exInfo, changeFileFlag )
+   	 local cursorKind = cursor:getCursorKind()
+   	 if hasIncFlag and changeFileFlag then
+   	    workFileInfo = self:getFileFromCursor( cursor )
+   	 end
 	 
-	 if cursorKind == clang.core.CXCursor_StructDecl or
-	    cursorKind == clang.core.CXCursor_UnionDecl
-	 then
-	    self:addStructDecl(
-	       cursor, anonymousName .. "@" .. tostring( count ), "" )
-	    count = count + 1
-	 elseif cursorKind == kind then
-	    local name = cursor:getCursorSpelling()
-	    local fullname = fullnameBase .. "::" .. name
-	    log( 3, "addEnumStructDecl process", fullname, os.clock() )
+   	 if cursorKind == clang.core.CXCursor_StructDecl or
+   	    cursorKind == clang.core.CXCursor_UnionDecl
+   	 then
+   	    self:addStructDecl(
+   	       cursor, anonymousName .. "@" .. tostring( count ), "" )
+   	    count = count + 1
+   	 elseif cursorKind == kind then
+   	    local name = cursor:getCursorSpelling()
+   	    local fullname = fullnameBase .. "::" .. name
+   	    log( 3, "addEnumStructDecl process", fullname, os.clock() )
 	    
-	    if fileInfo.uptodate then
-	       self.hashCursor2FullnameMap[ cursor:hashCursor() ] = fullname
-	    else
-	       local otherName = otherNameBase .. "::" .. name
-	       local nsInfo = self:addNamespaceOne(
-		  cursor, "", fileInfo.id,
-		  baseNsId, name, fullname, otherName )
-	    end
-	 end
-	 return clang.CXChildVisitResult.Continue.val
-      end, nil )
+   	    if workFileInfo.uptodate or structUptodate then
+   	       self.hashCursor2FullnameMap[ cursor:hashCursor() ] = fullname
+   	    else
+   	       local otherName = otherNameBase .. "::" .. name
+   	       local nsInfo = self:addNamespaceOne(
+   		  cursor, "", workFileInfo.id,
+   		  baseNsId, name, fullname, otherName )
+   	    end
+   	 end
+   	 return clang.CXChildVisitResult.Continue.val
+      end,
+      nil,
+      { kind, clang.core.CXCursor_StructDecl,
+   	clang.core.CXCursor_UnionDecl }, 1 )
+   
    log( 3, "addEnumStructDecl end", os.clock() )
 end
 
@@ -786,7 +929,7 @@ function DBCtrl:addReference( refInfo )
 	   clang.getCursorKindSpelling( kind ),
 	   declCursor:getCursorSpelling())
       nsInfo = self:addNamespaceOne(
-	 declCursor, "", systemFileId, 0, name, "::" .. name )
+	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
    end
 
    if fileInfo.uptodate then
@@ -1155,6 +1298,34 @@ function DBCtrl:update( tableName, set, condition )
    self.db:update( tableName, set, condition )
 end
 
+function DBCtrl:getFileOpt( filePath, target )
+   -- filePath の target に対応するコンパイルオプションを取得
+   local fileInfo = self:getFileInfo( nil, filePath )
+   if not fileInfo then
+      log( 1, "not regist file", filePath )
+      os.exit( 1 )
+   end
+   if not target then
+      target = ""
+   end
+   local compileOp = ""
+   local compInfo = self:mapCompInfo(
+      string.format( "target = '%s'", target ),
+      function( item )
+	 compileOp = item.compOp
+	 return false
+      end
+   )
+
+   -- コンパイルオプション文字列を、オプション配列に変換
+   local optionList = {}
+   for option in string.gmatch( compileOp, "([^ ]+)" ) do
+      table.insert( optionList, option )
+   end
+
+   return fileInfo, optionList
+end
+
 
 function DBCtrl:infoAt( tableName, path, line, column )
    local info = nil
@@ -1212,12 +1383,12 @@ function DBCtrl:dump( level )
    log( level, "-- comp db --", os.clock(), os.date()  )
 
    log( level, "-- table filePath -- " )
-   log( level, "id", "update", "mod.time", "digest" .. string.rep( ' ', 32 - 6 ),
+   log( level, "id", "incFlag", "mod.time", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
    self:mapRowList(
       "filePath", nil, nil, nil,
       function( row ) 
-	 log( level, row.id, row.updating,
+	 log( level, row.id, row.incFlag,
 	      row.modTime, row.digest, row.path,
 	      row.currentDir, row.currentDir )
 	 return true

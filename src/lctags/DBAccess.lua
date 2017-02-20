@@ -13,8 +13,16 @@ end
    
 function DBAccess:errorExit( level, ... )
    local debugInfo = debug.getinfo( level )
-   log( 1, "Sqlite ERROR:        ", self.db:errmsg(),
-	debugInfo.short_src, debugInfo.currentline, ... )
+   local debugInfo2 = debug.getinfo( level + 1 )
+   local debugInfo3 = debug.getinfo( level + 2 )
+   local debugInfo4 = debug.getinfo( level + 3 )
+   log( 1, "Sqlite ERROR:", self.db:errmsg(),
+	"\n", debugInfo.short_src, debugInfo.currentline,
+	"\n", debugInfo2.short_src, debugInfo2.currentline,
+	"\n", debugInfo3.short_src, debugInfo3.currentline,
+	"\n", debugInfo4.short_src, debugInfo4.currentline,
+	"\n", ... )
+
    os.exit()
 end
 
@@ -43,10 +51,6 @@ function DBAccess:open( path, readonly, onMemoryFlag )
    }
    setmetatable( obj, { __index = DBAccess } )
 
-   if not readonly then
-      obj:exec( "PRAGMA journal_mode = MEMORY" )
-   end
-   
    return obj
 end
 
@@ -78,7 +82,7 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
 	    local continue = func( item, table.unpack( params ) )
 	    if not continue then
 	       if continue == nil then
-		  errorExit( 3, "func returned nil" )
+		  self:errorExit( 3, "func returned nil" )
 	       end
 	       break
 	    end
@@ -120,6 +124,8 @@ function DBAccess:begin()
    )
    --self:commit()
    self:exec( "BEGIN IMMEDIATE" )
+   self:exec( "PRAGMA journal_mode = MEMORY" )
+   
    log( 2, "begin" )
 end
 
@@ -149,8 +155,11 @@ end
 
 function DBAccess:update( tableName, set, condition )
    self.updateCount = self.updateCount + 1
-   self:exec( string.format( "UPDATE %s SET %s WHERE %s",
-				tableName, set, condition ) )
+   local sql = string.format( "UPDATE %s SET %s", tableName, set )
+   if condition then
+      sql = string.format( "%s WHERE %s", sql, condition )
+   end
+   self:exec( sql )
 end
 
 function DBAccess:delete( tableName, condition )

@@ -127,11 +127,13 @@ lctags-build:
 
 test: build
 	$(LUA_COMMAND) lctags/lctags.lua init .
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 5 --lctags-target hoge | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 --lctags-target hoge | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 
 	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
 	$(LUA_COMMAND) lctags/lctags.lua -xa sub
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 213 23 hoge
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 224 23 hoge
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 246 15 hoge
+	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 192 18 hoge
 
 test-at-lua:
 ifeq ($(shell which lctags),)
@@ -172,8 +174,8 @@ uninstall-lib:
 ifeq ($(LUA_LIB_DIR),)
 	$(error LUA_LIB_DIR is empty)
 endif
-	rm -f $(LUA_LIB_DIR)/libclanglua/*
-	rmdir $(LUA_LIB_DIR)/libclanglua
-	rm -f $(LUA_LIB_DIR)/lctags/*
-	rmdir $(LUA_LIB_DIR)/lctags
-	if [ -f lsqlite3.so  ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.so; fi
+	-rm -f $(LUA_LIB_DIR)/libclanglua/*
+	-rmdir $(LUA_LIB_DIR)/libclanglua
+	-rm -f $(LUA_LIB_DIR)/lctags/*
+	-rmdir $(LUA_LIB_DIR)/lctags
+	-if [ -f lsqlite3.so  ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.so; fi

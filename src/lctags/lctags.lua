@@ -20,6 +20,7 @@ usage:
    %s build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    %s shrink [--lctags-db path]
    %s chg-proj projDir [--lctags-db path]
+   %s update [--lctags-db path] pattrn
  - query DB
    %s dump
    %s ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
@@ -48,7 +49,7 @@ usage:
      -c: list symbol.
      --use-global: use GNU global when db is not found.
    ]],
-	     command, command, command, command, command,
+	     command, command, command, command, command, command,
 	     command, command, command, command, command ) )
    os.exit( 1 )
 end
@@ -71,10 +72,14 @@ local function analyzeOption( argList )
 	    skipArgNum = 1
 	 elseif string.find( arg, "shrink", 1, true ) then
 	    lctagOptMap.mode = "shrink"
+	 elseif string.find( arg, "forceUpdate", 1, true ) then
+	    lctagOptMap.mode = "forceUpdate"
 	 elseif string.find( arg, "chg-proj", 1, true ) then
 	    lctagOptMap.mode = "chg-proj"
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    skipArgNum = 1
+	 elseif string.find( arg, "update", 1, true ) then
+	    lctagOptMap.mode = "update"
 	 elseif string.find( arg, "ref-at", 1, true ) then
 	    lctagOptMap.mode = "ref-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
@@ -208,6 +213,11 @@ if lctagOptMap.mode == "shrink" then
    os.exit( 0 )
 end
 
+if lctagOptMap.mode == "forceUpdate" then
+   DBCtrl:forceUpdate( lctagOptMap.dbPath )
+   os.exit( 0 )
+end
+
 if lctagOptMap.mode == "chg-proj" then
    DBCtrl:changeProjDir( lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
    os.exit( 0 )
@@ -270,6 +280,15 @@ if lctagOptMap.mode == "build" then
 
 
    analyzer:analyzeSource( src, optList, lctagOptMap.target )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "update" then
+   local src = srcList[1]
+
+   log( 2, "src:", src, "target:", lctagOptMap.target )
+   
+   analyzer:update( src, lctagOptMap.target )
    os.exit( 0 )
 end
 

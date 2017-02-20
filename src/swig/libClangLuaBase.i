@@ -48,6 +48,13 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 
       int * pKindArray = NULL;
       SWIG_ConvertPtr( pLua, -1, (void**)&pKindArray,SWIGTYPE_p_int,0);
+      if ( pKindArray == NULL ) {
+	printf( "illegal pointer\n" );
+	exit( 1 );
+      }
+      int result = pKindArray[ 0 ];
+      pKindArray = pKindArray + 1;
+
       lua_pop( pLua, 1 );
 
       int index;
@@ -112,7 +119,7 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
       }
 
       lua_pop( pLua, 1 );
-      return 2;
+      return result;
     }
     {
         CXCursor * resultptr;
