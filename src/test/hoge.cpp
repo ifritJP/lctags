@@ -23,6 +23,7 @@ typedef struct yyyy YYYY;
 
 struct yyyy {
     int kkkk;
+  Callback_t * pCallback;
 };
 
 typedef struct zzzz ZZZZ;
@@ -138,6 +139,10 @@ void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] )
 
 
 class TestClass {
+
+public:
+    TestClass() { }
+    
 public:
     int func() {
         return 0; 
@@ -207,7 +212,7 @@ namespace ns1 {
             {
                 char buf[10];
                 func2();
-                pCallback();
+                (*pCallback)();
                 func0( func2 );
             }
             return 0;
@@ -222,6 +227,8 @@ namespace ns1 {
         int func5( struct_func_t * pClass ) {
             char buf[5];
             pClass->   pCallback();
+
+            TestClass  aaa;
             return 0;
         }
 
@@ -244,6 +251,7 @@ namespace ns1 {
     void sub2() {
         YYYY aYYYY;
         aYYYY.kkkk = 0;
+	aYYYY.pCallback();
     }
 }
 

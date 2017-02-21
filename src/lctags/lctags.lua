@@ -25,6 +25,7 @@ usage:
    %s dump
    %s ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
    %s def-at[a] [--lctags-db path] [--lctags-target target] file line column 
+   %s call-at[a] [--lctags-db path] [--lctags-target target] file line column 
    %s -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
    %s -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
    %s -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
@@ -54,12 +55,62 @@ usage:
    os.exit( 1 )
 end
 
+local function loadConfig( path, exitOnErr )
+   local fileHandle = io.open( path, "r" )
+   if fileHandle then
+      fileHandle:close()
+      local chunk, err = loadfile( path )
+      if chunk then
+	 return chunk()
+      end
+   end
+   if exitOnErr then
+      print( "loadfile error", err )
+      os.exit( 1 )
+   end
+   return nil
+end
+
 
 local function analyzeOption( argList )
    local srcList = {}
    local optList = {}
    local skipArgNum = 0
    local lctagOptMap = {}
+
+   for index, arg in ipairs( argList ) do
+      if skipArgNum > 0 then
+	 skipArgNum = skipArgNum - 1
+      elseif string.find( arg, "--lctags-conf", 1, true ) then
+	 skipArgNum = 1
+	 lctagOptMap.conf = loadConfig( argList[ index + 1 ], true )
+      elseif string.find( arg, "--lctags-db", 1, true ) then
+	 skipArgNum = 1
+	 lctagOptMap.dbPath = argList[ index + 1 ]
+	 confPath = string.gsub( lctagOptMap.dbPath, "(.*/)", "%1ctags.conf" )
+	 lctagOptMap.conf = loadConfig( confPath, false )
+      end
+   end
+
+   if not lctagOptMap.dbPath then
+      local dir = os.getenv( "PWD" )
+      repeat
+	 local dbPath = dir .. "/" .. "lctags.sqlite3"
+	 local dbFile = io.open( dbPath, "r" )
+	 if dbFile then
+	    dbFile:close()
+	    lctagOptMap.dbPath = dbPath
+	    break
+	 end
+	 dir = string.gsub( dir, "/[^/]*$", "" )
+      until dir == ""
+      if not lctagOptMap.dbPath then
+	 if lctagOptMap.mode == "init" then
+	 end
+      end
+   end
+   
+   skipArgNum = 0
    for index, arg in ipairs( argList ) do
       if index == 1 then
 	 if string.find( arg, "build", 1, true ) then
@@ -69,6 +120,10 @@ local function analyzeOption( argList )
 	 elseif string.find( arg, "init", 1, true ) then
 	    lctagOptMap.mode = "init"
 	    lctagOptMap.projDir = argList[ index + 1 ]
+	    if not lctagOptMap.dbPath then
+	       lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
+	    end
+	    
 	    skipArgNum = 1
 	 elseif string.find( arg, "shrink", 1, true ) then
 	    lctagOptMap.mode = "shrink"
@@ -85,6 +140,9 @@ local function analyzeOption( argList )
 	    lctagOptMap.abs = string.find( arg, "a$" )
 	 elseif string.find( arg, "def-at", 1, true ) then
 	    lctagOptMap.mode = "def-at"
+	    lctagOptMap.abs = string.find( arg, "a$" )
+	 elseif string.find( arg, "call-at", 1, true ) then
+	    lctagOptMap.mode = "call-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
 	 elseif string.find( arg, "dump", 1, true ) then
 	    lctagOptMap.mode = "query"
@@ -107,7 +165,8 @@ local function analyzeOption( argList )
 		  log( 0, tonumber( argList[ index + 1 ] ) )
 	       elseif string.find( arg, "--lctags-db", 1, true ) then
 		  skipArgNum = 1
-		  lctagOptMap.dbPath = argList[ index + 1 ]
+	       elseif string.find( arg, "--lctags-conf", 1, true ) then
+		  skipArgNum = 1
 	       elseif string.find( arg, "--lctags-target", 1, true ) then
 		  skipArgNum = 1
 		  lctagOptMap.target = argList[ index + 1 ]
@@ -118,14 +177,6 @@ local function analyzeOption( argList )
 		  DBAccess:recordSql( io.open( argList[ index + 1 ], "w" ) )
 	       elseif string.find( arg, "--use-global", 1, true ) then
 		  lctagOptMap.useGlobalFlag = true
-	       elseif string.find( arg, "--lctags-conf", 1, true ) then
-		  skipArgNum = 1
-		  local chunk, err = loadfile( argList[ index + 1 ] )
-		  if not chunk then
-		     print( "loadfile error", err )
-		     os.exit( 1 )
-		  end
-		  lctagOptMap.conf = chunk()
 	       else
 		  if lctagOptMap.mode == "build" then
 		     processMode = "conv"
@@ -292,16 +343,11 @@ if lctagOptMap.mode == "update" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "ref-at" then
+if lctagOptMap.mode == "ref-at" or
+   lctagOptMap.mode == "def-at" or lctagOptMap.mode == "call-at"
+then
    analyzer:queryAt(
-      true, srcList[ 1 ], tonumber( srcList[ 2 ] ),
-      tonumber( srcList[ 3 ] ), lctagOptMap.abs )
-   os.exit( 0 )
-end
-
-if lctagOptMap.mode == "def-at" then
-   analyzer:queryAt(
-      false, srcList[ 1 ], tonumber( srcList[ 2 ] ),
+      lctagOptMap.mode, srcList[ 1 ], tonumber( srcList[ 2 ] ),
       tonumber( srcList[ 3 ] ), lctagOptMap.abs )
    os.exit( 0 )
 end

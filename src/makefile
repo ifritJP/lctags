@@ -131,9 +131,10 @@ test: build
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 
 	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
 	$(LUA_COMMAND) lctags/lctags.lua -xa sub
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 224 23 hoge
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 246 15 hoge
-	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 192 18 hoge
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 229 23 hoge
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 253 15 hoge
+	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 197 18 hoge
+	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 254 18 hoge
 
 test-at-lua:
 ifeq ($(shell which lctags),)

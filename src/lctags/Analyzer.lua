@@ -28,7 +28,13 @@ end
 
 local function isNamespaceDecl( cursorKind )
    return cursorKind == clang.core.CXCursor_Namespace or
-      cursorKind == clang.core.CXCursor_ClassDecl
+      cursorKind == clang.core.CXCursor_ClassDecl or
+      cursorKind == clang.core.CXCursor_CXXMethod or
+      cursorKind == clang.core.CXCursor_FunctionDecl or
+      cursorKind == clang.core.CXCursor_Constructor or
+      cursorKind == clang.core.CXCursor_StructDecl or
+      cursorKind == clang.core.CXCursor_UnionDecl or
+      cursorKind == clang.core.CXCursor_EnumDecl
 end
 
 local function calcDigest( cursor, spInfo )
@@ -53,11 +59,13 @@ local targetKindList = {
    clang.core.CXCursor_CXXMethod,
    clang.core.CXCursor_Destructor,
    clang.core.CXCursor_FunctionDecl,
+   clang.core.CXCursor_Constructor,
    clang.core.CXCursor_DeclRefExpr,
    clang.core.CXCursor_MemberRefExpr,
    clang.core.CXCursor_ParmDecl,
    clang.core.CXCursor_TypedefDecl,
-   clang.core.CXCursor_VarDecl
+   clang.core.CXCursor_VarDecl,
+   clang.core.CXCursor_CallExpr,
 }
 
 local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
@@ -99,7 +107,8 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
 
    if isNamespaceDecl( cursorKind ) then
       table.insert( analyzer.nsLevelList, cursor )
-      table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
+      table.insert( endProcess,
+		    function() table.remove( analyzer.nsLevelList ) end )
    end
 
    if cursorKind == clang.core.CXCursor_Namespace then
@@ -120,9 +129,6 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
       calcDigest( cursor, analyzer.currentSpInfo )
       return 1
    elseif cursorKind == clang.core.CXCursor_ClassDecl then
-      table.insert( analyzer.nsLevelList, cursor )
-      table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
-
       table.insert( analyzer.classList, cursor )
       calcDigest( cursor, analyzer.currentSpInfo )
       
@@ -130,9 +136,6 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
       cursorKind == clang.core.CXCursor_UnionDecl or
       cursorKind == clang.core.CXCursor_EnumDecl
    then
-      table.insert( analyzer.nsLevelList, cursor )
-      table.insert( endProcess, function() table.remove( analyzer.nsLevelList ) end )
-      
       if cursor:getCursorSpelling() == "" then
 	 analyzer.currentSpInfo.anonymousCount =
 	    analyzer.currentSpInfo.anonymousCount + 1
@@ -165,7 +168,9 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
       -- マクロ参照はヘッダの多重 include 抑止に利用していることが多い。
       -- これを digest 計算に加えると、include 抑止
       -- calcDigest( cursor, analyzer.currentSpInfo )
-   elseif cursorKind == clang.core.CXCursor_CXXMethod then
+   elseif cursorKind == clang.core.CXCursor_CXXMethod or
+      cursorKind == clang.core.CXCursor_Constructor
+   then
       table.insert( analyzer.methodList, cursor )
       analyzer.currentFunc = cursor
       table.insert( endProcess, function() analyzer.currentFunc = nil end )
@@ -174,12 +179,14 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
    elseif clang.isReference( cursorKind ) then
       if cursorKind ~= clang.core.CXCursor_NamespaceRef then
 	 local declCursor = cursor:getCursorReferenced()
+	 local namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ]
 	 table.insert(
 	    analyzer.refList,
 	    { cursor = cursor, declCursor = declCursor,
-	      namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
+	      namespace = namespace } )
 	 calcDigest( cursor, analyzer.currentSpInfo )
 	 calcDigest( declCursor, analyzer.currentSpInfo )
+	 calcDigest( namespace, analyzer.currentSpInfo )
       end
    elseif cursorKind == clang.core.CXCursor_DeclRefExpr or
       cursorKind == clang.core.CXCursor_MemberRefExpr
@@ -191,14 +198,22 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
 	 if storageClass ~= clang.core.CX_SC_Auto and
 	    storageClass ~= clang.core.CX_SC_Register
 	 then
+	    local namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ]
 	    table.insert(
 	       analyzer.refList,
 	       { cursor = cursor, declCursor = declCursor,
-		 namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
+		 namespace = namespace } )
 	    calcDigest( cursor, analyzer.currentSpInfo )
 	    calcDigest( declCursor, analyzer.currentSpInfo )
+	    calcDigest( namespace, analyzer.currentSpInfo )
 	 end
       end
+   elseif cursorKind == clang.core.CXCursor_CallExpr then
+      local namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ]
+      table.insert( analyzer.callList,
+		    { cursor = cursor, namespace = namespace } )
+      calcDigest( cursor, analyzer.currentSpInfo )
+      calcDigest( namespace, analyzer.currentSpInfo )
    elseif cursorKind == clang.core.CXCursor_TypedefDecl then
       table.insert( analyzer.typedefList, cursor )
       calcDigest( cursor, analyzer.currentSpInfo )
@@ -273,6 +288,7 @@ function Analyzer:new( dbPath, recordDigestSrcFlag )
       incBelongList = {},
       macroDefList = {},
       macroRefList = {},
+      callList = {},
 
       -- 解析中関数のカーソル
       currentFunc = nil,
@@ -601,6 +617,12 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       db:addReference( refInfo )
    end
 
+   log( 2, "-- callList --", os.clock(), os.date()  )
+   for index, info in ipairs( self.callList ) do
+      log( info.cursor:getCursorSpelling() )
+      db:addCall( info.cursor, info.namespace )
+   end
+   
    log( 2, "close", os.clock(), os.date()  )
    db:close()
 end
@@ -659,20 +681,22 @@ function Analyzer:analyzeSourcePch( path )
 end
 
 
-function Analyzer:queryAt( refFlag, filePath, line, column, absFlag, target )
+function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
    local db = self:openDBForReadOnly()
 
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList = db:getFileOpt( filePath, target )
 
-   if fileInfo.incFlag then
+   if fileInfo.incFlag == 1 then
       -- ヘッダの場合は解析せずに DB 登録されている情報を使用する
       local nsInfo = db:getNsInfoAt( filePath, line, column )
-      if nsInfo then
-	 if refFlag then
+      if nsInfo  then
+	 if mode == "ref-at" then
 	    Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name )
-	 else
+	 elseif mode == "def-at" then
 	    Query:execWithDb( db, "t" .. (absFlag and "a" or ""), nsInfo.name )
+	 else
+	    Query:execWithDb( db, "C" .. (absFlag and "a" or ""), nsInfo.name )
 	 end
       end
    else
@@ -681,14 +705,20 @@ function Analyzer:queryAt( refFlag, filePath, line, column, absFlag, target )
       
       local args = clang.mkCharArray( optionList )
       local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
-	 filePath, args:getLength(), args:getPtr(), 0, nil )
+	 db:getSystemPath( filePath ), args:getLength(), args:getPtr(), 0, nil )
 
       local location = transUnit:getLocation(
 	 transUnit:getFile( db:getSystemPath( fileInfo.path ) ), line, column )
       local cursor = transUnit:getCursor( location )
 
       local declCursor = cursor:getCursorReferenced()
-      if refFlag then
+      if clang.isDeclaration( cursor:getCursorKind() ) then
+	 declCursor = cursor
+      end
+
+      log( 2, "cursor", clang.getCursorKindSpelling( cursor:getCursorKind() ) )
+      
+      if mode == "ref-at" then
 	 db:SymbolRefInfoListForCursor(
 	    declCursor,
 	    function( item )
@@ -698,9 +728,19 @@ function Analyzer:queryAt( refFlag, filePath, line, column, absFlag, target )
 	       return true
 	    end	 
 	 )
-      else
+      elseif mode == "def-at" then
 	 local fileId, line = db:getFileIdLocation( declCursor )
 	 Query:printLocate( db, cursor:getCursorSpelling(), fileId, line, absFlag, true )
+      else
+	 db:mapCallForCursor(
+	    declCursor,
+	    function( item )
+	       local nsInfo = db:getNamespace( item.nsId )
+	       Query:printLocate(
+		  db, nsInfo.name, item.fileId, item.line, absFlag, true )
+	       return true
+	    end	 
+	 )
       end
    end
 

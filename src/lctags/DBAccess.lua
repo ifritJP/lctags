@@ -23,7 +23,7 @@ function DBAccess:errorExit( level, ... )
 	"\n", debugInfo4.short_src, debugInfo4.currentline,
 	"\n", ... )
 
-   os.exit()
+   os.exit( 1 )
 end
 
 function DBAccess:open( path, readonly, onMemoryFlag )
@@ -41,6 +41,14 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       log( 1, "open error." )
       return nil
    end
+
+   db:busy_handler(
+      function()
+	 Helper.msleep( 100 )
+	 return true
+      end
+   )
+   
 
    local obj = {
       db = db,
@@ -116,12 +124,6 @@ function DBAccess:exec( stmt, errHandle )
 end
 
 function DBAccess:begin()
-   self.db:busy_handler(
-      function()
-	 Helper.msleep( 100 )
-	 return true
-      end
-   )
    --self:commit()
    self:exec( "BEGIN IMMEDIATE" )
    self:exec( "PRAGMA journal_mode = MEMORY" )

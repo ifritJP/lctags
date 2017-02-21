@@ -61,23 +61,29 @@ This parameter can set function and string.
   (let ((save (current-buffer))
 	(dir default-directory)
 	(line (1- (current-line)))
-	(column (1+ (current-column)))
+	(column (+ (- (point) (point-at-bol))))
 	(db-path lctags-db)
 	(target lctags-target)
 	(config lctags-conf)
 	buffer lineNum select-name lctags-opt)
     (cond
      ((equal mode "def-at")
-      (setq lctags-opt "-def-ata")
+      (setq lctags-opt "def-ata")
       (setq tag buffer-file-name)
       (setq select-name
 	    (format "(D)%s:%d:%d"
 		    (file-name-nondirectory buffer-file-name) line column)))
      ((equal mode "ref-at")
-      (setq lctags-opt "-ref-ata")
+      (setq lctags-opt "ref-ata")
       (setq tag buffer-file-name)
       (setq select-name
 	    (format "(R)%s:%d:%d"
+		    (file-name-nondirectory buffer-file-name) line column)))
+     ((equal mode "call-at")
+      (setq lctags-opt "call-ata")
+      (setq tag buffer-file-name)
+      (setq select-name
+	    (format "(C)%s:%d:%d"
 		    (file-name-nondirectory buffer-file-name) line column)))
      ((equal mode "def")
       (setq lctags-opt "-xta")
@@ -136,6 +142,11 @@ This parameter can set function and string.
   (gtags-push-context)
   (lctags-pos-at "def-at"))
 
+(defun lctags-call-at ()
+  (interactive)
+  (gtags-push-context)
+  (lctags-pos-at "call-at"))
+
 
 (defun lctags-gtags-goto-tag-func (tag flag)
   (let (flag-char)
@@ -167,7 +178,8 @@ This parameter can set function and string.
 
 (defun lctags-call-process-func (arg-list)
   ""
-  (if (not (equal (car arg-list) "global"))
+  (if (or (not (equal (car arg-list) "global"))
+	  (not lctags-mode))
       arg-list
     (let ((db-path lctags-db)
 	  (target lctags-target)

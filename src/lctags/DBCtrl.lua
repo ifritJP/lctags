@@ -13,12 +13,8 @@ local function getFileLocation( cursor )
 end
 
 local rootNsId = 1
-local enumNsId = 2
-local structNsId = 3
-local unionNsId = 4
-local userNsId = 5
+local userNsId = 2
 local systemFileId = 1
-local projDirId = 2
 
 local DBCtrl = {}
 
@@ -32,6 +28,27 @@ function convProjPath( projDir, currentDir )
    return projDir
 end
 
+function newObj( db, currentDir )
+   local obj = {
+      db = db,
+      currentDir = currentDir,
+      -- カーソルハッシュ -> fullname 情報 のマップ
+      hashCursor2FullnameMap = {},
+      hashCursor2NSMap = {},
+      -- path -> info マップ
+      path2fileInfoMap = {},
+      fileId2fileInfoMap = {},
+      -- sname -> sname マップ
+      name2snameInfoMap = {},
+      -- path -> converted path マップ
+      convPathCache = {},
+      targetFileInfo = nil,
+   }
+   setmetatable( obj, { __index = DBCtrl } )
+   
+   return obj
+end
+
 function DBCtrl:init( path, currentDir, projDir )
    os.remove( path )
 
@@ -40,20 +57,18 @@ function DBCtrl:init( path, currentDir, projDir )
       return nil
    end
 
-   projDir = convProjPath( projDir, currentDir )
    local db = DBAccess:open( path, false )
    if not db then
       log( 1, "open error." )
       return false
    end
 
-   local obj = {
-      db = db,
-      currentDir = currentDir,
-   }
-   setmetatable( obj, { __index = DBCtrl } )
+   local obj = newObj( db, currentDir )
 
-   obj:createTables( obj:convFullpath( projDir ) )
+   obj:createTables()
+
+   local projDir = obj:convFullpath( convProjPath( projDir, currentDir ) )
+   obj:setEtc( "projDir", projDir )
 
    obj:close()
 
@@ -80,6 +95,19 @@ function DBCtrl:forceUpdate( path )
    return true
 end
 
+function DBCtrl:getEtc( key )
+   return self:getRow( "etc", "keyName = '" .. key .. "'" )
+end
+
+function DBCtrl:setEtc( key, val )
+   local keyTxt = "keyName = '" .. key .. "'"
+   local valTxt = "val = '" .. val .. "'"
+   if not self:getEtc( key ) then
+      self:insert( "etc", keyTxt .. ", " .. valTxt )
+   else
+      self:update( "etc", valTxt, keyTxt )
+   end
+end
 
 function DBCtrl:calcFileDigest( path )
    local path = self:getSystemPath( path )
@@ -106,13 +134,13 @@ function DBCtrl:changeProjDir( path, currentDir, projDir )
 
    projDir = obj:convFullpath( convProjPath( projDir, obj.currentDir ) )
 
-   obj:update( "filePath", "path = '" ..  projDir .."'",
-	       "id = " .. tostring( projDirId ) )
+   obj:setEtc( "projDir", projDir )
+   obj.projDir = projDir
 
    obj:mapRowList(
       "filePath", nil, nil, nil,
       function( row )
-	 if row.id == systemFileId or row.id == projDirId then
+	 if row.id == systemFileId then
 	    return true
 	 end
 	 
@@ -248,22 +276,7 @@ function DBCtrl:open( path, readonly, currentDir )
       return nil
    end
    
-   local obj = {
-      db = db,
-      currentDir = currentDir,
-      -- カーソルハッシュ -> fullname 情報 のマップ
-      hashCursor2FullnameMap = {},
-      hashCursor2NSMap = {},
-      -- path -> info マップ
-      path2fileInfoMap = {},
-      fileId2fileInfoMap = {},
-      -- sname -> sname マップ
-      name2snameInfoMap = {},
-      -- path -> converted path マップ
-      convPathCache = {},
-      targetFileInfo = nil,
-   }
-   setmetatable( obj, { __index = DBCtrl } )
+   local obj = newObj( db, currentDir )
 
    local item = obj:getRow( "etc", "keyName = 'version'" )
    if not item then
@@ -277,20 +290,31 @@ function DBCtrl:open( path, readonly, currentDir )
       return nil
    end
 
-   
+   local item = obj:getRow( "etc", "keyName = 'version'" )
+   if not item then
+      log( 1, "unknown version" )
+      db:close()
+      return nil
+   end
+   if tonumber( item.val ) > 1 then
+      log( 1, "not support version", item.val )
+      db:close()
+      return nil
+   end
+
    if not readonly then
       db:begin()
    end
 
-   local projDirInfo = obj:getFileInfo( projDirId )
+   local projDirInfo = obj:getEtc( "projDir" )
 
-   if not projDirInfo or projDirInfo.path == "" then
+   if not projDirInfo or projDirInfo.val == "" then
       log( 1, "db is not initialized" )
       obj:close()
       return nil
    end
 
-   obj.projDir = projDirInfo.path
+   obj.projDir = projDirInfo.val
 
    return obj
 end
@@ -302,13 +326,14 @@ function DBCtrl:close()
 end
 
 
-function DBCtrl:createTables( projDir )
+function DBCtrl:createTables()
    self.db:createTables(
       string.format(
 	 [[
 BEGIN;
 CREATE TABLE etc ( keyName VARCHAR UNIQUE COLLATE nocase PRIMARY KEY, val VARCHAR);
 INSERT INTO etc VALUES( 'version', '1' );
+INSERT INTO etc VALUES( 'projDir', '' );
 CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE nocase, otherName VARCHAR COLLATE nocase);
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@enum', '::@enum' );
@@ -318,11 +343,11 @@ INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@union', '::@union' );
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE nocase);
 CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE nocase, modTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE nocase);
 INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '');
-INSERT INTO filePath VALUES( NULL, '%s', 0, 0, '', '');
 
 CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE nocase, compOp VARCHAR COLLATE nocase );
 CREATE TABLE symbolDecl ( nsId INTEGER, parentId INTEGER, snameId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE nocase, PRIMARY KEY( nsId, fileId, line ) );
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line ) );
+CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize, PRIMARY KEY( nsId, belongNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER );
 CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
@@ -336,7 +361,7 @@ CREATE INDEX index_incRef ON incRef ( id, baseFileId );
 CREATE INDEX index_incBelong ON incBelong ( id, baseFileId );
 CREATE INDEX index_digest ON tokenDigest ( fileId, digest );
 COMMIT;
-]], projDir ) )
+]] ) )
 end
 
 function DBCtrl:updateFile( fileInfo, removeFlag )
@@ -483,7 +508,8 @@ function DBCtrl:addFile(
       "filePath",
       string.format(
 	 "NULL, '%s', %d, %d, '%s', '%s'", filePath, time, isTarget and 0 or 1,
-	 self:calcFileDigest( filePath ), self:convPath( currentDir ) ) )
+	 self:calcFileDigest( filePath ),
+	 isTarget and self:convPath( currentDir ) or "" ) )
 
    fileInfo = self:getFileInfo( nil, filePath )
 
@@ -620,6 +646,7 @@ function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
    local cursorKind = cursor:getCursorKind()
    if ( cursorKind ~= clang.core.CXCursor_FunctionDecl and
 	   cursorKind ~= clang.core.CXCursor_CXXMethod and
+	   cursorKind ~= clang.core.CXCursor_Constructor and
 	   cursorKind ~= clang.core.CXCursor_Namespace ) or
       cursor:getStorageClass() == clang.core.CX_SC_Static
    then
@@ -868,6 +895,21 @@ function DBCtrl:addStructDecl( structDecl, anonymousName, typedefName )
 			   clang.CXCursorKind.FieldDecl.val )
 end
 
+function DBCtrl:getDeclCursorFromType( cxtype )
+   while true do
+      local baseType = cxtype and cxtype:getPointeeType()
+      if baseType.__ptr.kind == clang.core.CXType_Invalid then
+	 break
+      end
+      cxtype = baseType
+   end
+   if not cxtype then
+      return nil
+   end
+   return cxtype:getTypeDeclaration()
+end
+
+
 function DBCtrl:getNamespaceFromCursor( cursor )
    if not cursor or cursor:getCursorKind() == clang.core.CXCursor_InvalidFile then
       return self:getNamespace( rootNsId, nil )
@@ -960,6 +1002,98 @@ function DBCtrl:addReference( refInfo )
    --    end
    -- end
 end
+
+
+
+function DBCtrl:addCall( cursor, namespace )
+   local declCursor = cursor:getCursorReferenced()
+   if declCursor:isNull() then
+      -- 演算で関数ポインタを取得しているような場合、
+      -- getCursorReferenced() は無効になるので、
+      -- 演算結果から関数ポインタの情報を取得する
+      local result, childList = clang.getChildrenList( cursor, nil, 2 )
+      for index, info in ipairs( childList ) do
+	 local child = info[ 1 ]
+	 declCursor = self:getDeclCursorFromType( child:getCursorType() )
+	 if declCursor then
+	    local nsInfo = self:getNamespaceFromCursor( declCursor )
+	    if nsInfo then
+	       break
+	    end
+	 end
+      end
+   end
+   
+   -- local fileId, line = self:getFileIdLocation( cursor )
+   local startInfo, endInfo = self:getRangeFromCursor( cursor )
+   local line = startInfo and startInfo[ 2 ] or 0
+   local fileInfo = startInfo and self:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
+   local fileId = fileInfo and fileInfo.id or systemFileId
+   
+
+   local parentNsInfo = self:getNamespaceFromCursor( namespace )
+   local kind = declCursor:getCursorKind()
+
+   local nsInfo = self:getNamespaceFromCursor( declCursor )
+
+   log( 3, "addCallDecl:", cursor:getCursorSpelling(),
+	declCursor:getCursorSpelling(),
+	clang.getCursorKindSpelling( kind ) )
+
+   if kind == clang.core.CXCursor_VarDecl or
+      kind == clang.core.CXCursor_ParmDecl or
+      kind == clang.core.CXCursor_FieldDecl
+   then
+      declCursor = self:getDeclCursorFromType( declCursor:getCursorType() )
+      kind = declCursor:getCursorKind()
+      nsInfo = self:getNamespaceFromCursor( declCursor )
+      if not nsInfo then
+	 -- 関数ポインタ型の呼び出しで、
+	 -- 名前空間の指定がないものは処理しない。
+	 log( 3, "addCallDecl not found ns:" )
+	 return
+      end
+   end
+
+   log( 3, "addCall:", cursor:getCursorSpelling(),
+	declCursor:getCursorSpelling(),
+	clang.getCursorKindSpelling( kind ) )
+   
+   if not nsInfo then
+      -- 宣言のないもの
+      if kind == clang.core.CXCursor_Constructor then
+	 -- コンストラクタで宣言がないものは、
+	 -- デフォルトコンストラクタなので、あえて登録しない。
+	 return
+      end
+      local name = cursor:getCursorSpelling()
+      log( 3, "regist none call namespace",
+	   name, declCursor:hashCursor(),
+	   clang.getCursorKindSpelling( kind ),
+	   declCursor:getCursorSpelling())
+      nsInfo = self:addNamespaceOne(
+	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
+   end
+
+   if fileInfo.uptodate then
+      local declFileInfo = self:getFileFromCursor( declCursor )
+      if declFileInfo.uptodate then
+	 log( 3, "uptodate call", nsInfo.name )
+	 return
+      end
+   end
+
+   self:insert(
+      "funcCall",
+      string.format(
+	 "%d, %d, %d, %d, %d, %d, %d, %d, %d",
+	 nsInfo.id, nsInfo.snameId, parentNsInfo and parentNsInfo.id or 0,
+	 fileId, line, startInfo and startInfo[ 3 ] or 0,
+	 endInfo and endInfo[ 2 ] or 0,
+	 endInfo and endInfo[ 3 ] or 0,
+	 startInfo and endInfo and endInfo[ 4 ] - startInfo[ 4 ] ) )
+end
+
 
 function DBCtrl:mapSimpleName( condition, func )
    self.db:mapRowList( "simpleName", condition, nil, nil, func )
@@ -1152,6 +1286,37 @@ function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
 	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func, ... )
    end
 end
+
+
+function DBCtrl:mapCallForCursor( cursor, func, ... )
+   local kind = cursor:getCursorKind()
+   if kind == clang.core.CXCursor_ParmDecl or
+      kind == clang.core.CXCursor_VarDecl or
+      kind == clang.core.CXCursor_FieldDecl
+   then
+      cursor = self:getDeclCursorFromType( cursor:getCursorType() )
+   end
+   
+   local fileId, line = self:getFileIdLocation( cursor )
+   local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
+
+   -- cursor の symbolDecl を次の条件で検索する。
+   --    単純名ID, ファイルID、行番号、列が等しい
+   -- 同じ単純名のメンバーを持つ構造体をマクロ内で複数宣言した場合、
+   -- symbolDecl が複数ヒットしてしまうが、
+   -- レアケースなのでここではすべて対象とする
+   local symbolDeclInfoList = self:getRowList(
+      "symbolDecl",
+      string.format( "fileId = %d AND line = %d AND snameId = %d",
+		     fileId, line, snameInfo.id ) )
+
+   for index, symbolDecl in ipairs( symbolDeclInfoList ) do
+      self:mapRowList(
+	 "funcCall",
+	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func, ... )
+   end
+end
+
 
 function DBCtrl:getSystemPath( path, baseDir )
    local cache = self.convPathCache[ path ]
@@ -1453,7 +1618,7 @@ function DBCtrl:dump( level )
    )
    
    log( level, "-- table symbolRef -- " )
-   log( level, "callee", "snameId", "fileId", "line", "colum",
+   log( level, "refed", "snameId", "fileId", "line", "colum",
 	"eLine", "eColumn", "belong", "belong", "callee" )
    self:mapRowList(
       "symbolRef", nil, nil, nil,
@@ -1468,6 +1633,22 @@ function DBCtrl:dump( level )
       end
    )
 
+
+   log( level, "-- table funcCall -- " )
+   log( level, "callee", "snameId", "caller", "fileId", "line", "CALLEE", "CALLER" )
+   self:mapRowList(
+      "funcCall", nil, nil, nil,
+      function( row )
+	 local nsInfo = self:getNamespace( row.nsId )
+	 local belongNsInfo = self:getNamespace( row.belongNsId )
+	 log( level, row.nsId, row.snameId, row.belongNsId,
+	      row.fileId, row.line, nsInfo and nsInfo.otherName, 
+	      belongNsInfo and belongNsInfo.name or "<none>" )
+	 return true
+      end
+   )
+
+   
    log( level, "-- table incBelong -- " )
    log( level, "incFile", "baseFileId", "belong", "belongNs", "file" )
    self:mapRowList(
