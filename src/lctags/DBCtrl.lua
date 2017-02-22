@@ -135,7 +135,8 @@ function DBCtrl:setProjDir( dbPath, projDir )
    self.projDir = projDir
 end
 
-function DBCtrl:changeProjDir( path, currentDir, projDir )
+function DBCtrl:changeProjDir(
+      path, currentDir, projDir, currentTime )
    local obj = DBCtrl:open( path, false, currentDir )
 
    if not obj then
@@ -144,37 +145,6 @@ function DBCtrl:changeProjDir( path, currentDir, projDir )
 
    obj:setProjDir( path, projDir )
 
-   obj:mapRowList(
-      "filePath", nil, nil, nil,
-      function( row )
-	 if row.id == systemFileId then
-	    return true
-	 end
-	 
-	 local filePath = obj:getSystemPath( row.path )
-	 local fileDigest = obj:calcFileDigest( filePath )
-	 if not fileDigest then
-	    return false
-	 end
-	 -- DB の modTime を更新する
-	 local modTime = 0
-	 if row.digest == fileDigest then
-	    -- digest が同じファイルは解析済みとし、
-	    -- ローカルファイルの更新時間を DB に登録する
-	    if filePath ~= "" then
-	       modTime = Helper.getFileModTime( filePath )
-	    end
-	 else
-	    log( 1, "detect modified", filePath )
-	 end
-	 obj:update(
-	    "filePath",
-	    string.format( "modTime = %d, digest = '%s'", modTime, fileDigest ),
-	    "id = " .. tostring( row.id ) )
-	 return true
-      end
-   )
-
    obj:close()
 
    return true
@@ -182,7 +152,7 @@ end
 
 
 
-function DBCtrl:shrinkDB( path )
+function DBCtrl:shrinkDB( path, full )
    local obj = DBCtrl:open( path, false, os.getenv( "PWD" ) )
    
    if not obj then
@@ -204,69 +174,84 @@ function DBCtrl:shrinkDB( path )
       obj:updateFile( fileInfo, true )
    end
 
-   
-   --- 存在しない名前空間、単純名を削除
-   -- まずは全名前空間、全単純名の ID セットを取得
-   
-   local nsId2InfoMap = {}
-   local snameIdSet = {}
-   obj:mapRowList(
-      "namespace", nil, nil, nil,
-      function( item )
-	 if item.id >= userNsId then
-	    nsId2InfoMap[ item.id ] = item
-	    snameIdSet[ item.snameId ] = 1
-	 end
-	 return true
-      end
-   )
-   -- 定義されている名前空間の親 ID のセットを登録
-   local usingNsIdSet = {}
-   obj:mapRowList(
-      "symbolDecl", nil, nil, nil,
-      function( item )
-	 usingNsIdSet[ item.nsId ] = 1
-	 snameIdSet[ item.snameId ] = nil
-	 return true
-      end
-   )
 
-   -- 定義されている名前空間の親を辿って、親の定義状況を更新する
-   local checkSet = usingNsIdSet
-   repeat
-      local noneFlag = true
-      local workSet = {}
-      for nsId in pairs( checkSet ) do
-	 local nsInfo = nsId2InfoMap[ nsId ]
-	 if nsInfo and nsId ~= rootNsId then
-	    if not usingNsIdSet[ nsInfo.parentId ] then
-	       usingNsIdSet[ nsInfo.parentId ] = 1
-	       noneFlag = false
-	       workSet[ nsInfo.parentId ] = 1
+   if full then
+      --- 存在しない名前空間、単純名を削除
+      -- まずは全名前空間、全単純名の ID セットを取得
+
+      log( 1, "step1" )
+      local nsId2InfoMap = {}
+      local snameIdSet = {}
+      local count = 0
+      obj:mapRowList(
+	 "namespace", nil, nil, nil,
+	 function( item )
+	    if item.id >= userNsId then
+	       nsId2InfoMap[ item.id ] = item
+	       snameIdSet[ item.snameId ] = 1
+	       count = count + 1
+	    end
+	    return true
+	 end
+      )
+      log( 1, "namespace = ", count )
+      
+      -- 定義されている名前空間の親 ID のセットを登録
+      log( 1, "step2" )
+      local usingNsIdSet = {}
+      count = 0
+      obj:mapRowList(
+	 "symbolDecl", nil, nil, nil,
+	 function( item )
+	    usingNsIdSet[ item.nsId ] = 1
+	    snameIdSet[ item.snameId ] = nil
+	    count = count + 1
+	    return true
+	 end
+      )
+      log( 1, "symbolDecl = ", count )
+      
+      -- 定義されている名前空間の親を辿って、親の定義状況を更新する
+      log( 1, "step3" )
+      local checkSet = usingNsIdSet
+      repeat
+	 local noneFlag = true
+	 local workSet = {}
+	 for nsId in pairs( checkSet ) do
+	    local nsInfo = nsId2InfoMap[ nsId ]
+	    if nsInfo and nsId ~= rootNsId then
+	       if not usingNsIdSet[ nsInfo.parentId ] then
+		  usingNsIdSet[ nsInfo.parentId ] = 1
+		  noneFlag = false
+		  workSet[ nsInfo.parentId ] = 1
+	       end
 	    end
 	 end
+	 checkSet = workSet
+      until noneFlag
+      -- 定義されている名前空間 ID を usingNsIdSet から除外する
+      log( 1, "step4" )
+      for usingNsId in pairs( usingNsIdSet ) do
+	 nsId2InfoMap[ usingNsId ] = nil
       end
-      checkSet = workSet
-   until noneFlag
-   -- 定義されている名前空間 ID を usingNsIdSet から除外する
-   for usingNsId in pairs( usingNsIdSet ) do
-      nsId2InfoMap[ usingNsId ] = nil
-   end
-   
-   -- 残りのセットは定義されていない名前空間、単純名なので削除
-   for nsId, nsInfo in pairs( nsId2InfoMap ) do
-      log( 2, "delete:", nsId, nsInfo.id, nsInfo.name )
-      obj:deleteNamespace( nsId )
-   end
-   for snameId in pairs( snameIdSet ) do
-      if snameId ~= 0 then
-	 obj:delete( "simpleName", "id = " .. tostring( snameId ) )
+      
+      -- 残りのセットは定義されていない名前空間、単純名なので削除
+      log( 1, "step5" )
+      for nsId, nsInfo in pairs( nsId2InfoMap ) do
+	 log( 2, "delete:", nsId, nsInfo.id, nsInfo.name )
+	 obj:deleteNamespace( nsId )
+      end
+      for snameId in pairs( snameIdSet ) do
+	 if snameId ~= 0 then
+	    obj:delete( "simpleName", "id = " .. tostring( snameId ) )
+	 end
       end
    end
-   
 
+   log( 1, "step6" )
    obj.db:commit()
 
+   log( 1, "step7" )
    obj.db:exec( "VACUUM" )
    obj.db:close()
    return true
@@ -384,6 +369,7 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
       return
    end
 
+   fileInfo.uptodate = false
    
    log( 1, "updateFile", fileInfo.path, fileId )
    self:delete( "symbolDecl", "fileId = " .. tostring( fileId ) )
@@ -410,7 +396,7 @@ function DBCtrl:getFileIdLocation( cursor )
    end
    local fileInfo = self:getFileInfo( nil, cxfile:getFileName() )
    if not fileInfo then
-      error( "not found file", cxfile:getFileName() )
+      error( "not found file: " .. cxfile:getFileName() )
    end
    return fileInfo.id, line, column
 end
@@ -469,6 +455,27 @@ function DBCtrl:getSimpleName( id, name )
    return item
 end
 
+function DBCtrl:equalsCompOp( fileInfo, compileOp, target )
+   local targetInfo = self:getRow(
+      "compileOp",
+      string.format(
+	 "fileId = %d and target = '%s'", fileInfo.id, target ) )
+   if not targetInfo then
+      log( 2, "not found:", fileInfo.id, target or "nil" )
+      return false
+   end
+
+   log( 2, "equalsCompOp:", compileOp, targetInfo.compOp )
+   
+   return targetInfo.compOp == compileOp
+end
+
+function DBCtrl:setUpdateTime( fileId, time )
+   self:update(
+      "filePath", "updateTime = " .. tostring( time ),
+      "id = " .. tostring( fileId ) )
+end
+      
 
 function DBCtrl:addFile(
       filePath, time, digest, compileOp, currentDir, isTarget, target )
@@ -481,41 +488,40 @@ function DBCtrl:addFile(
    if not target then
       target = ""
    end
+
    local fileInfo, filePath = self:getFileInfo( nil, filePath )
+   log( 3, "addFile:", filePath )
    if fileInfo then
       if fileInfo.id == systemFileId then
 	 return
       end
       if isTarget then
 	 self.targetFileInfo = fileInfo
-	 local targetInfo = self:getRow(
-	    "compileOp",
-	    string.format(
-	       "fileId = %d and target = '%s'", fileInfo.id, target ) )
-	 if targetInfo then
-	    if targetInfo.compOp ~= compileOp then
-	       self:update(
-		  "compileOp", "compOp = '" .. compileOp .. "'",
-		  string.format( "fileId = %d AND target = '%s'",
-				 fileInfo.id, target ) )
-	    end
-	 end
-	 self:update(
-	    "filePath", "updateTime = " .. tostring( time ),
-	    "id = " .. tostring( fileInfo.id ) )
-	 self:updateFile( fileInfo )
-      else
-	 if Helper.getFileModTime( self:getSystemPath( fileInfo.path ) ) <
-	    self.targetFileInfo.updateTime
-	 then
-	    if self:existsIncWithDigest( fileInfo.id, digest ) then
-	       fileInfo.uptodate = true
-	       log( 3, "uptodate:", filePath )
-	    else
-	       log( 2, "detect mismatch digest", filePath, digest )
-	    end
+	 if not self:equalsCompOp( fileInfo, compileOp, target ) then
+	    self:update(
+	       "compileOp", "compOp = '" .. compileOp .. "'",
+	       string.format( "fileId = %d AND target = '%s'",
+			      fileInfo.id, target ) )
 	 end
       end
+      
+      local modTime = Helper.getFileModTime( self:getSystemPath( fileInfo.path ) )
+      if modTime > fileInfo.updateTime or
+	 modTime > self.targetFileInfo.updateTime 
+      then
+	 -- ファイルの更新日時が違う
+	 local fileDigest = self:calcFileDigest( filePath )
+	 if fileDigest ~= fileInfo.digest then
+	    -- ファイルの digest も違う場合は、登録情報を全て更新
+	    log( 2, "detect mismatch digest", filePath, digest )
+	    self:updateFile( fileInfo )
+	    self:update(
+	       "filePath", "digest = '" .. fileDigest .. "'",
+	       string.format( "fileId = %d", fileInfo.id ) )
+	 end
+      end
+      self:setUpdateTime( fileInfo.id, time )
+      return fileInfo
    end
 
    self:insert(
@@ -1113,6 +1119,10 @@ function DBCtrl:mapSimpleName( condition, func )
    self.db:mapRowList( "simpleName", condition, nil, nil, func )
 end
 
+function DBCtrl:mapNamespace( condition, func )
+   self.db:mapRowList( "namespace", condition, nil, nil, func )
+end
+
 function DBCtrl:mapFile( condition, func )
    self.db:mapRowList( "filePath", condition, nil, nil, func )
 end
@@ -1154,16 +1164,9 @@ function DBCtrl:addInclude( cursor, digest )
 
    local incInfo = self:getIncRef( currentFileInfo.id, fileInfo.id )
 
-   local existsIncWithDigestFlag = self:existsIncWithDigest( fileInfo.id, digest )
-
    table.insert( currentFileInfo.incPosList, line )
 
-   if existsIncWithDigestFlag then
-      if fileInfo.uptodate == nil then
-	 fileInfo.uptodate = true
-      end
-      log( "uptodate some:", fileInfo.id, path, fileInfo.uptodate, digest )
-   else
+   if not self:existsIncWithDigest( fileInfo.id, digest ) then
       log( 2, "detect new digest inc", fileInfo.path, digest )
       self:addTokenDigest( fileInfo.id, digest )
       fileInfo.uptodate = false
@@ -1359,13 +1362,20 @@ function DBCtrl:convFullpath( path, currentDir )
    if not currentDir then
       currentDir = self.currentDir
    end
-   path = string.gsub( path, ".*//", "/" )
-   if string.find( path, "^[^/%.]" ) then
-      path = currentDir .. "/" .. path
-   else
+   -- foo//bar を foo/bar に変換
+   path = string.gsub( path, "(.*)//", "%1/" )
+
+   if string.find( path, "^./" ) then
+      -- ./foo -> PWD/foo
       path = string.gsub( path, "^./", currentDir .. "/" )
+   elseif string.find( path, "^../" ) then
+      -- ../foo -> PWD/../foo
       path = string.gsub( path, "^../", currentDir .. "/../" )
+   elseif string.find( path, "^[^/]" ) then
+      -- / 以外で始まっているパスを、カレントからの絶対パスに変換
+      path = currentDir .. "/" .. path
    end
+   -- ./, ../ の除去
    local nameList = {}
    for name in string.gmatch( path, "[^/]+" ) do
       if name == "." then
@@ -1374,7 +1384,8 @@ function DBCtrl:convFullpath( path, currentDir )
 	 end
       elseif name == ".." then
 	 if #nameList == 0 or nameList[ #nameList ] == ".." then
-	    table.insert( nameList, ".." )
+	    log( 1, "illegal path", path )
+	    os.exit( 1 )
 	 else
 	    table.remove( nameList )
 	 end
@@ -1416,7 +1427,7 @@ function DBCtrl:getFileInfo( id, path )
    if id then
       fileInfo = self.fileId2fileInfoMap[ id ]
       if fileInfo then
-	 return fileInfo
+	 return fileInfo, fileInfo.path
       end
       fileInfo = self:getRow( "filePath", string.format( "id = %d", id ) )
       if not fileInfo then
@@ -1425,7 +1436,7 @@ function DBCtrl:getFileInfo( id, path )
       self.path2fileInfoMap[ fileInfo.path ] = fileInfo
       self.fileId2fileInfoMap[ id ] = fileInfo
       fileInfo.incPosList = {}
-      return fileInfo
+      return fileInfo, fileInfo.path
    end
 
    if not path then

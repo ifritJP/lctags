@@ -30,7 +30,6 @@ usage:
    %s -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
    %s -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
 
-
      init: initialize DB file. "projDir" is a root directory of your project.
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
@@ -48,7 +47,15 @@ usage:
         -xr: symbol reference
         -xP: file list
      -c: list symbol.
+     def-at: symbol declaration at position
+     ref-at: symbol reference at position
+     call:at: function call at position
      --use-global: use GNU global when db is not found.
+
+   common option:
+     --lctags-quiet: discard clang diagnostic.
+
+
    ]],
 	     command, command, command, command, command, command,
 	     command, command, command, command, command, command) )
@@ -113,11 +120,11 @@ local function analyzeOption( argList )
    skipArgNum = 0
    for index, arg in ipairs( argList ) do
       if index == 1 then
-	 if string.find( arg, "build", 1, true ) then
+	 if arg == "build" then
 	    lctagOptMap.mode = "build"
 	    lctagOptMap.cc = argList[ index + 1 ]
 	    skipArgNum = 1
-	 elseif string.find( arg, "init", 1, true ) then
+	 elseif arg == "init" then
 	    lctagOptMap.mode = "init"
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    if not lctagOptMap.dbPath then
@@ -125,15 +132,17 @@ local function analyzeOption( argList )
 	    end
 	    
 	    skipArgNum = 1
-	 elseif string.find( arg, "shrink", 1, true ) then
+	 elseif arg == "shrink" then
 	    lctagOptMap.mode = "shrink"
-	 elseif string.find( arg, "forceUpdate", 1, true ) then
+	 elseif arg == "shrinkFull" then
+	    lctagOptMap.mode = "shrinkFull"
+	 elseif arg == "forceUpdate" then
 	    lctagOptMap.mode = "forceUpdate"
-	 elseif string.find( arg, "chg-proj", 1, true ) then
+	 elseif arg == "chg-proj" then
 	    lctagOptMap.mode = "chg-proj"
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    skipArgNum = 1
-	 elseif string.find( arg, "update", 1, true ) then
+	 elseif arg == "update" then
 	    lctagOptMap.mode = "update"
 	 elseif string.find( arg, "ref-at", 1, true ) then
 	    lctagOptMap.mode = "ref-at"
@@ -144,7 +153,7 @@ local function analyzeOption( argList )
 	 elseif string.find( arg, "call-at", 1, true ) then
 	    lctagOptMap.mode = "call-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "dump", 1, true ) then
+	 elseif arg == "dump" then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = "dump"
 	 elseif string.find( arg, "-x", 1, true ) then
@@ -160,23 +169,25 @@ local function analyzeOption( argList )
 	 else
 	    local processMode = "skip"
 	    if string.find( arg, "^-" ) then
-	       if string.find( arg, "--lctags-log", 1, true ) then
+	       if arg == "--lctags-log" then
 		  skipArgNum = 1
 		  log( 0, tonumber( argList[ index + 1 ] ) )
-	       elseif string.find( arg, "--lctags-db", 1, true ) then
+	       elseif arg == "--lctags-db" then
 		  skipArgNum = 1
-	       elseif string.find( arg, "--lctags-conf", 1, true ) then
+	       elseif arg == "--lctags-conf" then
 		  skipArgNum = 1
-	       elseif string.find( arg, "--lctags-target", 1, true ) then
+	       elseif arg == "--lctags-target" then
 		  skipArgNum = 1
 		  lctagOptMap.target = argList[ index + 1 ]
-	       elseif string.find( arg, "--lctags-digestRec", 1, true ) then
+	       elseif arg == "--lctags-digestRec" then
 		  lctagOptMap.recordDigestSrcFlag = true
-	       elseif string.find( arg, "--lctags-recSql", 1, true ) then
+	       elseif arg == "--lctags-recSql" then
 		  skipArgNum = 1
 		  DBAccess:recordSql( io.open( argList[ index + 1 ], "w" ) )
-	       elseif string.find( arg, "--use-global", 1, true ) then
+	       elseif arg == "--use-global" then
 		  lctagOptMap.useGlobalFlag = true
+	       elseif arg == "--lctags-quiet" then
+		  lctagOptMap.quiet = true
 	       else
 		  if lctagOptMap.mode == "build" then
 		     processMode = "conv"
@@ -260,7 +271,12 @@ end
 
 
 if lctagOptMap.mode == "shrink" then
-   DBCtrl:shrinkDB( lctagOptMap.dbPath )
+   DBCtrl:shrinkDB( lctagOptMap.dbPath, false )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "shrinkFull" then
+   DBCtrl:shrinkDB( lctagOptMap.dbPath, true )
    os.exit( 0 )
 end
 
@@ -270,7 +286,9 @@ if lctagOptMap.mode == "forceUpdate" then
 end
 
 if lctagOptMap.mode == "chg-proj" then
-   DBCtrl:changeProjDir( lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
+   DBCtrl:changeProjDir(
+      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
+      Helper.getCurrentTime() )
    os.exit( 0 )
 end
 
@@ -290,7 +308,7 @@ if not lctagOptMap.dbPath then
 end
 
 local analyzer = Analyzer:new(
-   lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag )
+   lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
 if lctagOptMap.mode == "build" then
    local src = srcList[1]

@@ -106,7 +106,9 @@ This parameter can set function and string.
       (setq default-directory dir)
       (call-process lctags-command nil buffer t lctags-opt
 		    tag
-		    (number-to-string line) (number-to-string column)
+		    (number-to-string line)
+		    (number-to-string column)
+		    "--lctags-quiet"
 		    (if db-path "--lctags-db" "")
 		    (if db-path db-path "")
 		    (if target "--lctags-target" "")

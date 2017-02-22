@@ -259,15 +259,16 @@ end
 
 local Analyzer = {}
 
-function Analyzer:new( dbPath, recordDigestSrcFlag )
+function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
    local obj = {
-      clangIndex = clang.createIndex( 1, 1 ),
+      clangIndex = clang.createIndex( 1, displayDiagnostics and 1 or 0 ),
       currentDir = os.getenv( "PWD" ),
 
       dbPath = dbPath,
       recursiveFlag = false,
 
       recordDigestSrcFlag = recordDigestSrcFlag,
+      displayDiagnostics = displayDiagnostics,
       
       depth = 0,
       targetFile = nil,
@@ -325,35 +326,57 @@ function Analyzer:createSpInfo( path, uptodateFlag, cxfile )
    return spInfo
 end
 
-function Analyzer:openDBForReadOnly()
-   return DBCtrl:open( self.dbPath, true, self.currentDir )
+--[[
+   readonly で DB を開く。
+
+   @param currentDir カレントディレクトリ。
+     nil の場合は、 Analyzer の currentDir を使用。
+   @return DBCtrl
+--]]
+function Analyzer:openDBForReadOnly( currentDir )
+   return DBCtrl:open( self.dbPath, true, currentDir or self.currentDir )
 end
 
 function Analyzer:openDBForWrite()
    return DBCtrl:open( self.dbPath, false, self.currentDir )
 end
 
-function Analyzer:isUptodate( filePath )
+function Analyzer:isUptodate( filePath, compileOp, target )
    local db = self:openDBForReadOnly()
    if not db then
       log( 2, "db open error" )
       return false
    end
+
+   local targetFileInfo
+   local needUpdateFlag = false
    
    local success, result = pcall(
       function()
 	 -- 解析対象のファイル情報リストを取得
-	 local targetFileInfo = db:getFileInfo( nil, filePath )
+	 targetFileInfo = db:getFileInfo( nil, filePath )
 	 if not targetFileInfo then
 	    log( 2, "not found target in db" )
 	    return false
 	 end
 
-	 if targetFileInfo.updateTime <
-	    Helper.getFileModTime( db:getSystemPath( targetFileInfo.path ) )
-	 then
-	    log( 2, "target is modified" )
+
+	 if compileOp and not db:equalsCompOp( targetFileInfo, compileOp, target ) then
+	    log( 2, "change compile option" )
 	    return false
+	 end
+
+	 local targetSystemPath = db:getSystemPath( targetFileInfo.path )
+	 if targetFileInfo.updateTime < Helper.getFileModTime( targetSystemPath )
+	 then
+	    local digest = db:calcFileDigest( targetSystemPath )
+	    if targetFileInfo.digest ~= digest then
+	       log( 2, "target is modified" )
+	       return false
+	    else
+	       log( 2, "target is modified but digest is equal" )
+	       needUpdateFlag = true
+	    end
 	 end
 
 	 local fileId2FlieInfoMap = {}
@@ -394,11 +417,19 @@ function Analyzer:isUptodate( filePath )
 	 local fileId2SpInfoMap = {}
 	 local uptodateFlag = true
 	 for fileId, fileInfo in pairs( fileId2FlieInfoMap ) do
-	    local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
-	    if fileInfo.path ~= "" and targetFileInfo.updateTime < modTime then
-	       uptodateFlag = false
-	       log( 1, "detect modified", fileInfo.path,
-		    targetFileInfo.updateTime, modTime )
+	    local systemPath = db:getSystemPath( fileInfo.path )
+	    local modTime = Helper.getFileModTime( systemPath )
+	    if fileInfo.path ~= "" and
+	       ( not modTime or targetFileInfo.updateTime < modTime )
+	    then
+	       local digest = db:calcFileDigest( systemPath )
+	       if not modTime or fileInfo.digest ~= digest then
+		  uptodateFlag = false
+		  log( 1, "detect modified", fileInfo.path,
+		       targetFileInfo.updateTime, modTime )
+	       elseif fileInfo.digest == digest then
+		  needUpdateFlag = true
+	       end
 	    end
 	    fileId2SpInfoMap[ fileInfo.id ] =
 	       self:createSpInfo(
@@ -466,6 +497,15 @@ function Analyzer:isUptodate( filePath )
    if not success then
       log( 1, result )
    end
+
+   if result and needUpdateFlag then
+      -- uptodate で needUpdateFlag の場合、ファイルの更新日時だけ違う。
+      -- 次回のチェック時間を短縮するため、updateTime を更新する。
+      db = self:openDBForWrite()
+      db:setUpdateTime( targetFileInfo.id, Helper.getCurrentTime() )
+      db:close()
+   end
+   
    return result
 end
 
@@ -643,8 +683,12 @@ end
 
 function Analyzer:update( path, target )
    self.targetFilePath = path
+
+   if not target then
+      target = ""
+   end
    
-   if self:isUptodate( path ) then
+   if self:isUptodate( path, nil, target ) then
       return
    end
 
@@ -669,19 +713,23 @@ end
 
 function Analyzer:analyzeSource( path, options, target )
    self.targetFilePath = path
+
+   if not target then
+      target = ""
+   end
+
+   local compileOp = ""
+   for index, option in ipairs( options ) do
+      compileOp = compileOp .. option .. " "
+   end
    
-   if self:isUptodate( path ) then
+   if self:isUptodate( path, compileOp, target ) then
       return
    end
    
    local args = clang.mkCharArray( options )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
       path, args:getLength(), args:getPtr(), 0, nil )
-
-   local compileOp = ""
-   for index, option in ipairs( options ) do
-      compileOp = compileOp .. option .. " "
-   end
 
    self:analyzeUnit( transUnit, compileOp, target )
 end
@@ -691,6 +739,59 @@ function Analyzer:analyzeSourcePch( path )
 
    
    self:analyzeUnit( transUnit, nil, nil )
+end
+
+
+function Analyzer:analyzeSourceAt(
+      mode, currentDir, targetFullPath, line, column, optionList, absFlag, target )
+   
+   Helper.chdir( currentDir )
+   log( 2, "currentDir", currentDir, targetFullPath )
+
+
+   local db = self:openDBForReadOnly( currentDir )
+
+   local args = clang.mkCharArray( optionList )
+   local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
+      targetFullPath, args:getLength(), args:getPtr(), 0, nil )
+
+   local location = transUnit:getLocation(
+      transUnit:getFile( targetFullPath ), line, column )
+   local cursor = transUnit:getCursor( location )
+
+   local declCursor = cursor:getCursorReferenced()
+   if clang.isDeclaration( cursor:getCursorKind() ) then
+      declCursor = cursor
+   end
+
+   log( 2, "cursor", clang.getCursorKindSpelling( cursor:getCursorKind() ) )
+   
+   if mode == "ref-at" then
+      db:SymbolRefInfoListForCursor(
+	 declCursor,
+	 function( item )
+	    local nsInfo = db:getNamespace( item.nsId )
+	    Query:printLocate(
+	       db, nsInfo.name, item.fileId, item.line, absFlag, true )
+	    return true
+	 end	 
+      )
+   elseif mode == "def-at" then
+      local fileId, line = db:getFileIdLocation( declCursor )
+      Query:printLocate( db, cursor:getCursorSpelling(), fileId, line, absFlag, true )
+   else
+      db:mapCallForCursor(
+	 declCursor,
+	 function( item )
+	    local nsInfo = db:getNamespace( item.nsId )
+	    Query:printLocate(
+	       db, nsInfo.name, item.fileId, item.line, absFlag, true )
+	    return true
+	 end	 
+      )
+   end
+
+   db:close()
 end
 
 
@@ -720,48 +821,14 @@ function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
 	 end
       end
    else
-      -- ソースの場合は解析して、指定位置の情報を使用する
-      Helper.chdir( db:getSystemPath( fileInfo.currentDir ) )
+      local analyzer = Analyzer:new(
+	 db:getSystemPath( db:convFullpath( self.dbPath ) ),
+	 self.recordDigestSrcFlag, self.displayDiagnostics )
       
-      local args = clang.mkCharArray( optionList )
-      local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
-	 db:getSystemPath( filePath ), args:getLength(), args:getPtr(), 0, nil )
-
-      local location = transUnit:getLocation(
-	 transUnit:getFile( db:getSystemPath( fileInfo.path ) ), line, column )
-      local cursor = transUnit:getCursor( location )
-
-      local declCursor = cursor:getCursorReferenced()
-      if clang.isDeclaration( cursor:getCursorKind() ) then
-	 declCursor = cursor
-      end
-
-      log( 2, "cursor", clang.getCursorKindSpelling( cursor:getCursorKind() ) )
-      
-      if mode == "ref-at" then
-	 db:SymbolRefInfoListForCursor(
-	    declCursor,
-	    function( item )
-	       local nsInfo = db:getNamespace( item.nsId )
-	       Query:printLocate(
-		  db, nsInfo.name, item.fileId, item.line, absFlag, true )
-	       return true
-	    end	 
-	 )
-      elseif mode == "def-at" then
-	 local fileId, line = db:getFileIdLocation( declCursor )
-	 Query:printLocate( db, cursor:getCursorSpelling(), fileId, line, absFlag, true )
-      else
-	 db:mapCallForCursor(
-	    declCursor,
-	    function( item )
-	       local nsInfo = db:getNamespace( item.nsId )
-	       Query:printLocate(
-		  db, nsInfo.name, item.fileId, item.line, absFlag, true )
-	       return true
-	    end	 
-	 )
-      end
+      analyzer:analyzeSourceAt(
+	 mode, db:getSystemPath( fileInfo.currentDir ),
+	 db:getSystemPath( fileInfo.path ), line, column,
+	 optionList, absFlag, target )
    end
 
    db:close()

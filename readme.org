@@ -28,6 +28,7 @@ usage:
    lctags dump
    lctags ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
    lctags def-at[a] [--lctags-db path] [--lctags-target target] file line column 
+   lctags call-at[a] [--lctags-db path] [--lctags-target target] file line column 
    lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
    lctags -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
    lctags -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
@@ -46,10 +47,12 @@ usage:
      --lctags-target: set build target.
      -x: query DB.
         -xt: symbol declaration
-        -xs: symbol declaration
         -xr: symbol reference
         -xP: file list
      -c: list symbol.
+     def-at: symbol declaration at position
+     ref-at: symbol reference at position
+     call:at: function call at position
      --use-global: use GNU global when db is not found.
 #+END_SRC
 
@@ -77,14 +80,13 @@ src は、一つだけ指定してください。
 
 基本的には通常のコンパイルと同じオプションを渡すだけです。
 
-例えば、 次のソースようにコンパイルしているソースを解析する場合、
+例えば、 次のようにコンパイルしているソースを解析する場合、
 
 $ gcc hoge.cpp -c -o hoge.o -Iinclude
 
-lctags は次のよう実行します。
+次のように lctags を実行します。
 
 $ lctags build gcc hoge.cpp -c -o hoge.o -Iinclude
-
 
 
 なお、lctags はデフォルトで gcc のコンパイルオプションに対応していますが、
@@ -133,6 +135,8 @@ def-at[a] は、指定ファイルの場所のシンボルの定義箇所をリ�
 
 *** emacs からアクセス
 
+**** 設定
+    
 emacs からアクセスする場合は、 lctags.el をロードしてください。
 
 #+BEGIN_SRC lisp
@@ -141,10 +145,45 @@ emacs からアクセスする場合は、 lctags.el をロードしてくださ
       '(lambda ()
          (local-set-key "\M-t" 'lctags-def)
          (local-set-key "\M-r" 'lctags-ref)
-         (local-set-key "\C-\M-t" 'lctags-def-at)
-         (local-set-key "\C-\M-r" 'lctags-ref-at)
+         (local-set-key "\C-z\C-lt" 'lctags-def-at)
+         (local-set-key "\C-z\C-lr" 'lctags-ref-at)
+	 (local-set-key "\C-z\C-lc" 'lctags-call-at)
          (local-set-key "\C-t" 'gtags-pop-stack)))
+
+(add-hook 'c-mode-common-hook
+          '(lambda()
+	     (lctags-mode 1)))
 #+END_SRC
+
+なお、 lctags.el は gtags.el が利用できることが前提になっています。
+
+**** 機能
+
+lctags.el は、マイナーモードの機能を提供します。
+
+以下の説明では、上記キーバイドが設定されていることを前提としています。
+
+- lctags-def (M-t)
+  - 指定シンボルの定義場所をリストします。
+  - gtags-find-tag と互換の動作です。
+  - C-u M-t とすることで、 lctags ではなく GNU global を利用します。
+- lctags-ref
+  - 指定のシンボルの参照場所をリストします。
+  - gtags-find-rtag と互換の動作です。
+  - C-u M-r とすることで、 lctags ではなく GNU global を利用します。
+- lctags-def-at
+  - lctags コマンドの def-at オプションを呼び出します。
+  - カーソル位置のシンボルの定義位置をリストします。
+  - その対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-ref-at
+  - lctags コマンドの ref-at オプションを呼び出します。
+  - カーソル位置のシンボルの参照位置をリストします。
+  - その対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-call-at
+  - lctags コマンドの call-at オプションを呼び出します。
+  - カーソル位置の関数の呼び出し位置をリストします。
+  - その対象ファイルを事前に lctags で解析しておく必要があります。
+
 
 *** プロジェクトディレクトリの変更
 
