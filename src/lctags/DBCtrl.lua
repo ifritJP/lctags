@@ -67,8 +67,7 @@ function DBCtrl:init( path, currentDir, projDir )
 
    obj:createTables()
 
-   local projDir = obj:convFullpath( convProjPath( projDir, currentDir ) )
-   obj:setEtc( "projDir", projDir )
+   obj:setProjDir( path, projDir )
 
    obj:close()
 
@@ -125,6 +124,17 @@ function DBCtrl:calcFileDigest( path )
    return digestObj:fix()
 end
 
+function DBCtrl:setProjDir( dbPath, projDir )
+   projDir = self:convFullpath( convProjPath( projDir, self.currentDir ) )
+   local dbFullPath = self:convFullpath( dbPath )
+   local registProjDir = projDir
+   if string.gsub( dbFullPath, '/[^/]+$', "" ) == projDir then
+      registProjDir = "./"
+   end
+   self:setEtc( "projDir", registProjDir )
+   self.projDir = projDir
+end
+
 function DBCtrl:changeProjDir( path, currentDir, projDir )
    local obj = DBCtrl:open( path, false, currentDir )
 
@@ -132,10 +142,7 @@ function DBCtrl:changeProjDir( path, currentDir, projDir )
       return
    end
 
-   projDir = obj:convFullpath( convProjPath( projDir, obj.currentDir ) )
-
-   obj:setEtc( "projDir", projDir )
-   obj.projDir = projDir
+   obj:setProjDir( path, projDir )
 
    obj:mapRowList(
       "filePath", nil, nil, nil,
@@ -314,7 +321,11 @@ function DBCtrl:open( path, readonly, currentDir )
       return nil
    end
 
-   obj.projDir = projDirInfo.val
+   if projDirInfo.val == "./" then
+      obj.projDir = string.gsub( obj:convFullpath( path ), '/[^/]+$', "" )
+   else
+      obj.projDir = projDirInfo.val
+   end
 
    return obj
 end
@@ -341,7 +352,7 @@ INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@struct', '::@struct' );
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@union', '::@union' );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE nocase);
-CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE nocase, modTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE nocase);
+CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE nocase, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE nocase);
 INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '');
 
 CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE nocase, compOp VARCHAR COLLATE nocase );
@@ -472,6 +483,9 @@ function DBCtrl:addFile(
    end
    local fileInfo, filePath = self:getFileInfo( nil, filePath )
    if fileInfo then
+      if fileInfo.id == systemFileId then
+	 return
+      end
       if isTarget then
 	 self.targetFileInfo = fileInfo
 	 local targetInfo = self:getRow(
@@ -486,9 +500,14 @@ function DBCtrl:addFile(
 				 fileInfo.id, target ) )
 	    end
 	 end
-      end
-      if fileInfo.modTime == time then
-	 if isTarget then
+	 self:update(
+	    "filePath", "updateTime = " .. tostring( time ),
+	    "id = " .. tostring( fileInfo.id ) )
+	 self:updateFile( fileInfo )
+      else
+	 if Helper.getFileModTime( self:getSystemPath( fileInfo.path ) ) <
+	    self.targetFileInfo.updateTime
+	 then
 	    if self:existsIncWithDigest( fileInfo.id, digest ) then
 	       fileInfo.uptodate = true
 	       log( 3, "uptodate:", filePath )
@@ -496,12 +515,7 @@ function DBCtrl:addFile(
 	       log( 2, "detect mismatch digest", filePath, digest )
 	    end
 	 end
-	 return
       end
-      self:update(
-	 "filePath", "modTime = " .. tostring( time ),
-	 "id = " .. tostring( fileInfo.id ) )
-      self:updateFile( fileInfo )
    end
 
    self:insert(
@@ -1545,16 +1559,25 @@ function DBCtrl:dump( level )
       level = 3
    end
 
-   log( level, "-- comp db --", os.clock(), os.date()  )
+   log( level, "-- dump db --", os.clock(), os.date()  )
 
+   self:mapRowList(
+      "etc", nil, nil, nil,
+      function( row ) 
+	 log( level, row.keyName, row.val )
+	 return true
+      end
+   )
+   
+   
    log( level, "-- table filePath -- " )
-   log( level, "id", "incFlag", "mod.time", "digest" .. string.rep( ' ', 32 - 6 ),
+   log( level, "id", "incFlag", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
    self:mapRowList(
       "filePath", nil, nil, nil,
       function( row ) 
 	 log( level, row.id, row.incFlag,
-	      row.modTime, row.digest, row.path,
+	      row.updateTime, row.digest, row.path,
 	      row.currentDir, row.currentDir )
 	 return true
       end
@@ -1565,7 +1588,7 @@ function DBCtrl:dump( level )
    self:mapRowList(
       "compileOp", nil, nil, nil,
       function( row )
-	 local fileInfo = self:getFileInfo( row.id )
+	 local fileInfo = self:getFileInfo( row.fileId )
 	 log( level, row.fileId, row.target, fileInfo.path, row.compOp )
 	 return true
       end

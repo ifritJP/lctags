@@ -35,6 +35,7 @@ static int helper_openDigest( lua_State * pLua );
 static int helper_msleep( lua_State * pLua );
 static int helper_chdir( lua_State * pLua );
 static int helper_getFileModTime( lua_State * pLua );
+static int helper_getCurrentTime( lua_State * pLua );
 static int helper_tostring( lua_State * pLua );
 
 
@@ -56,6 +57,7 @@ static const luaL_Reg s_if_lib[] = {
     { "msleep", helper_msleep },
     { "chdir", helper_chdir },
     { "getFileModTime", helper_getFileModTime },
+    { "getCurrentTime", helper_getCurrentTime },
     {"__tostring", helper_tostring },
     {NULL, NULL}
 };
@@ -132,6 +134,13 @@ static int helper_getFileModTime( lua_State * pLua )
   lua_pushinteger( pLua, aStat.st_mtime );
   return 1;
 }
+
+static int helper_getCurrentTime( lua_State * pLua )
+{
+  lua_pushinteger( pLua, time( NULL ) );
+  return 1;
+}
+
 
 
 static int helper_openDigest( lua_State * pLua )

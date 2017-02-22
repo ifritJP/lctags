@@ -1,3 +1,5 @@
+PWD=$(shell pwd)
+
 ####### customize Lua environment ######
 
 LUA_COMMAND=lua5.3

@@ -38,7 +38,7 @@ local function isNamespaceDecl( cursorKind )
 end
 
 local function calcDigest( cursor, spInfo )
-   if not spInfo.digest then
+   if not spInfo.digest or not cursor then
       return
    end
    spInfo.digest:write( cursor:getCursorSpelling() )
@@ -349,6 +349,13 @@ function Analyzer:isUptodate( filePath )
 	    return false
 	 end
 
+	 if targetFileInfo.updateTime <
+	    Helper.getFileModTime( db:getSystemPath( targetFileInfo.path ) )
+	 then
+	    log( 2, "target is modified" )
+	    return false
+	 end
+
 	 local fileId2FlieInfoMap = {}
 	 fileId2FlieInfoMap[ targetFileInfo.id ] = targetFileInfo
 
@@ -388,10 +395,10 @@ function Analyzer:isUptodate( filePath )
 	 local uptodateFlag = true
 	 for fileId, fileInfo in pairs( fileId2FlieInfoMap ) do
 	    local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
-	    if fileInfo.path ~= "" and fileInfo.modTime ~= modTime then
+	    if fileInfo.path ~= "" and targetFileInfo.updateTime < modTime then
 	       uptodateFlag = false
 	       log( 1, "detect modified", fileInfo.path,
-		    fileInfo.modTime, modTime )
+		    targetFileInfo.updateTime, modTime )
 	    end
 	    fileId2SpInfoMap[ fileInfo.id ] =
 	       self:createSpInfo(
@@ -495,15 +502,21 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
 
    
    log( 2, "-- file --", os.clock(), os.date() )
+   -- 最初にターゲットファイルを登録
+   local targetPath = 
+      DBCtrl:convFullpath( self.targetFile:getFileName(), self.currentDir )	 
+   local targetSpInfo = self.path2InfoMap[ targetPath ]
+   db:addFile( targetPath, Helper.getCurrentTime(), targetSpInfo.fixDigest,
+	       compileOp, self.currentDir, true, target )
+   -- 残りのヘッダファイルを登録
    for filePath, spInfo in pairs( self.path2InfoMap ) do
       log( filePath )
       local cxfile = transUnit:getFile( db:getSystemPath( filePath ) )
-      local isTarget = cxfile and cxfile:isEqual( self.targetFile )
-      spInfo.fixDigest = spInfo.digest:fix()
-      db:addFile( filePath, cxfile and cxfile:getFileTime() or 0,
-		  spInfo.fixDigest,
-		  isTarget and compileOp, isTarget and self.currentDir,
-		  isTarget, target )
+      if not cxfile or not cxfile:isEqual( self.targetFile ) then
+	 spInfo.fixDigest = spInfo.digest:fix()
+	 db:addFile( filePath, Helper.getCurrentTime(), spInfo.fixDigest,
+		     nil, nil, false, target )
+      end
    end
    
    log( 2, "-- nsList --", os.clock(), os.date() )
@@ -686,6 +699,13 @@ function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
 
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList = db:getFileOpt( filePath, target )
+
+   local compileOp = ""
+   for index, option in ipairs( optionList ) do
+      compileOp = compileOp .. option .. " "
+   end
+   log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
+   
 
    if fileInfo.incFlag == 1 then
       -- ヘッダの場合は解析せずに DB 登録されている情報を使用する

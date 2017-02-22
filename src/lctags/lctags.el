@@ -1,4 +1,4 @@
-;;-*-emacs-lisp-*-
+;;-*- coding:utf-8; mode:emacs-lisp-*-
 ;;
 ;; Copyright (C) 2017 ifritJP
 ;;
@@ -165,14 +165,14 @@ This parameter can set function and string.
 	ad-do-it)
     ad-do-it))
 
-(defun lctags-def ()
-  (interactive)
-  (let ((lctags-hack-gtags 1))
+(defun lctags-def (&optional use-gtags)
+  (interactive "P")
+  (let ((lctags-hack-gtags (if use-gtags nil 1)))
     (gtags-find-tag)))
 
-(defun lctags-ref ()
-  (interactive)
-  (let ((lctags-hack-gtags 1))
+(defun lctags-ref (&optional use-gtags)
+  (interactive "P")
+  (let ((lctags-hack-gtags (if use-gtags nil 1)))
     (gtags-find-rtag)))
 
 

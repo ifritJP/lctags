@@ -51,7 +51,7 @@ usage:
      --use-global: use GNU global when db is not found.
    ]],
 	     command, command, command, command, command, command,
-	     command, command, command, command, command ) )
+	     command, command, command, command, command, command) )
    os.exit( 1 )
 end
 
@@ -299,7 +299,7 @@ if lctagOptMap.mode == "build" then
    for index, opt in ipairs( optList ) do
       option = option .. opt .. " "
    end
-   log( 2, "src:", src, "target:", lctagOptMap.target, "opt:", option )
+   log( 3, "src:", src, "target:", lctagOptMap.target, "opt:", option )
    
    
    if lctagOptMap.conf then
@@ -337,7 +337,7 @@ end
 if lctagOptMap.mode == "update" then
    local src = srcList[1]
 
-   log( 2, "src:", src, "target:", lctagOptMap.target )
+   log( 3, "src:", src, "target:", lctagOptMap.target )
    
    analyzer:update( src, lctagOptMap.target )
    os.exit( 0 )
@@ -348,6 +348,6 @@ if lctagOptMap.mode == "ref-at" or
 then
    analyzer:queryAt(
       lctagOptMap.mode, srcList[ 1 ], tonumber( srcList[ 2 ] ),
-      tonumber( srcList[ 3 ] ), lctagOptMap.abs )
+      tonumber( srcList[ 3 ] ), lctagOptMap.abs, lctagOptMap.target )
    os.exit( 0 )
 end
