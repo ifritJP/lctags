@@ -327,21 +327,21 @@ function DBCtrl:createTables()
       string.format(
 	 [[
 BEGIN;
-CREATE TABLE etc ( keyName VARCHAR UNIQUE COLLATE nocase PRIMARY KEY, val VARCHAR);
+CREATE TABLE etc ( keyName VARCHAR UNIQUE COLLATE binary PRIMARY KEY, val VARCHAR);
 INSERT INTO etc VALUES( 'version', '1' );
 INSERT INTO etc VALUES( 'projDir', '' );
-CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE nocase, otherName VARCHAR COLLATE nocase);
+CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary);
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@enum', '::@enum' );
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@struct', '::@struct' );
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@union', '::@union' );
 
-CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE nocase);
-CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE nocase, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE nocase);
+CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE binary);
+CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary);
 INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '');
 
-CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE nocase, compOp VARCHAR COLLATE nocase );
-CREATE TABLE symbolDecl ( nsId INTEGER, parentId INTEGER, snameId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE nocase, PRIMARY KEY( nsId, fileId, line ) );
+CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary );
+CREATE TABLE symbolDecl ( nsId INTEGER, parentId INTEGER, snameId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, PRIMARY KEY( nsId, fileId, line ) );
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line ) );
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize, PRIMARY KEY( nsId, belongNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
@@ -465,7 +465,7 @@ function DBCtrl:equalsCompOp( fileInfo, compileOp, target )
       return false
    end
 
-   log( 2, "equalsCompOp:", compileOp, targetInfo.compOp )
+   log( 3, "equalsCompOp:", compileOp, targetInfo.compOp )
    
    return targetInfo.compOp == compileOp
 end
@@ -502,6 +502,10 @@ function DBCtrl:addFile(
 	       "compileOp", "compOp = '" .. compileOp .. "'",
 	       string.format( "fileId = %d AND target = '%s'",
 			      fileInfo.id, target ) )
+	 else
+	    local systemFIleInfo = self:getFileInfo( systemFileId, nil )
+	    systemFIleInfo.uptodate = true
+	    log( 2, "systemFIle is uptodate" )
 	 end
       end
       
@@ -517,7 +521,7 @@ function DBCtrl:addFile(
 	    self:updateFile( fileInfo )
 	    self:update(
 	       "filePath", "digest = '" .. fileDigest .. "'",
-	       string.format( "fileId = %d", fileInfo.id ) )
+	       string.format( "id = %d", fileInfo.id ) )
 	 end
       end
       self:setUpdateTime( fileInfo.id, time )
@@ -667,6 +671,7 @@ function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
    if ( cursorKind ~= clang.core.CXCursor_FunctionDecl and
 	   cursorKind ~= clang.core.CXCursor_CXXMethod and
 	   cursorKind ~= clang.core.CXCursor_Constructor and
+	   cursorKind ~= clang.core.CXCursor_VarDecl and
 	   cursorKind ~= clang.core.CXCursor_Namespace ) or
       cursor:getStorageClass() == clang.core.CX_SC_Static
    then
@@ -995,11 +1000,8 @@ function DBCtrl:addReference( refInfo )
    end
 
    if fileInfo.uptodate then
-      local declFileInfo = self:getFileFromCursor( declCursor )
-      if declFileInfo.uptodate then
-	 log( 3, "uptodate ref", nsInfo.name )
-	 return
-      end
+      log( 3, "uptodate ref", nsInfo.name )
+      return
    end
 
 
@@ -1139,6 +1141,11 @@ function DBCtrl:mapIncRefListFrom( parentFileId, func )
       "incRef", string.format( "baseFileId = %d", parentFileId ), nil, nil, func )
 end
 
+function DBCtrl:mapIncRefFor( fileId, func )
+   self:mapRowList(
+      "incRef", string.format( "id = %d", fileId ), nil, nil, func )
+end
+
 
 function DBCtrl:existsIncWithDigest( includeFileId, digest )
    return self:exists(
@@ -1170,6 +1177,9 @@ function DBCtrl:addInclude( cursor, digest )
       log( 2, "detect new digest inc", fileInfo.path, digest )
       self:addTokenDigest( fileInfo.id, digest )
       fileInfo.uptodate = false
+   elseif fileInfo.uptodate == nil then
+      log( 2, "uptodate inc", fileInfo.path )
+      fileInfo.uptodate = true
    end
 
    if incInfo then 
@@ -1283,6 +1293,17 @@ function DBCtrl:mapSymbolRefInfoList( symbol, func, ... )
    return self:mapSymbolInfoList( "symbolRef", symbol, func, ... )
 end
 
+function DBCtrl:mapSymbolRef( nsId, func, ... )
+   return self:mapRowList(
+      "symbolRef", "nsId = " .. tostring( nsId ), nil, nil, func, ... )
+end
+
+function DBCtrl:mapSymbolRefFrom( nsId, func, ... )
+   return self:mapRowList(
+      "symbolRef", "belongNsId = " .. tostring( nsId ), nil, nil, func, ... )
+end
+
+
 function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
    local fileId, line = self:getFileIdLocation( cursor )
    local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
@@ -1301,6 +1322,29 @@ function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
       self:mapRowList(
 	 "symbolRef",
 	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func, ... )
+   end
+end
+
+function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
+   local nsInfo = self:getNamespaceFromCursor( cursor )
+   if nsInfo then
+      self:mapRowList(
+	 "symbolDecl",
+	 string.format( "nsId = %d", nsInfo.id ), nil, nil, func, ... )
+   end
+      
+   if cursor:getCursorKind() == clang.core.CXCursor_FunctionDecl then
+      self:mapDeclInfoList( cursor:getCursorSpelling(), func, ... )
+      return
+   end
+
+   local fileId, line = self:getFileIdLocation( cursor )
+   local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
+   if snameInfo then
+      self:mapRowList(
+	 "symbolDecl",
+	 string.format( "fileId = %d AND line = %d AND snameId = %d",
+			fileId, line, snameInfo.id ), nil, nil, func, ... )
    end
 end
 
@@ -1335,6 +1379,13 @@ function DBCtrl:mapCallForCursor( cursor, func, ... )
 end
 
 
+function DBCtrl:mapCall( condition, func, ... )
+   self:mapRowList(
+      "funcCall", condition, nil, nil, func, ... )
+end
+
+
+
 function DBCtrl:getSystemPath( path, baseDir )
    local cache = self.convPathCache[ path ]
    if cache then
@@ -1348,8 +1399,8 @@ function DBCtrl:getSystemPath( path, baseDir )
       return path
    end
 
-   if string.find( path, self.projDir, 1, true ) == 1 then
-      path = "." .. path:sub( #self.projDir + 1 )
+   if string.find( path, baseDir, 1, true ) == 1 then
+      path = "." .. path:sub( #baseDir + 1 )
    end
 
    return path
@@ -1365,12 +1416,12 @@ function DBCtrl:convFullpath( path, currentDir )
    -- foo//bar を foo/bar に変換
    path = string.gsub( path, "(.*)//", "%1/" )
 
-   if string.find( path, "^./" ) then
+   if string.find( path, "^%./" ) then
       -- ./foo -> PWD/foo
-      path = string.gsub( path, "^./", currentDir .. "/" )
-   elseif string.find( path, "^../" ) then
+      path = string.gsub( path, "^%./", currentDir .. "/" )
+   elseif string.find( path, "^%.%./" ) then
       -- ../foo -> PWD/../foo
-      path = string.gsub( path, "^../", currentDir .. "/../" )
+      path = string.gsub( path, "^%.%./", currentDir .. "/../" )
    elseif string.find( path, "^[^/]" ) then
       -- / 以外で始まっているパスを、カレントからの絶対パスに変換
       path = currentDir .. "/" .. path
@@ -1500,7 +1551,7 @@ function DBCtrl:getFileOpt( filePath, target )
    end
    local compileOp = ""
    local compInfo = self:mapCompInfo(
-      string.format( "target = '%s'", target ),
+      string.format( "fileId = %d AND target = '%s'", fileInfo.id, target ),
       function( item )
 	 compileOp = item.compOp
 	 return false

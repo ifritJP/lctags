@@ -29,7 +29,10 @@ usage:
    %s -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
    %s -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
    %s -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
+ - graph
+   %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] 
 
+  option:
      init: initialize DB file. "projDir" is a root directory of your project.
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
@@ -51,14 +54,20 @@ usage:
      ref-at: symbol reference at position
      call:at: function call at position
      --use-global: use GNU global when db is not found.
+     graph: draw graph.
+         inc: include relation.
+         caller: caller graph.
+         callee: callee graph.
+         -d: depth.
+         -b: browse graph.
+         -o: output image file.
 
    common option:
      --lctags-quiet: discard clang diagnostic.
-
-
    ]],
 	     command, command, command, command, command, command,
-	     command, command, command, command, command, command) )
+	     command, command, command, command, command, command,
+	     command ) )
    os.exit( 1 )
 end
 
@@ -153,6 +162,10 @@ local function analyzeOption( argList )
 	 elseif string.find( arg, "call-at", 1, true ) then
 	    lctagOptMap.mode = "call-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
+	 elseif string.find( arg, "graph", 1, true ) then
+	    lctagOptMap.mode = "graph"
+	    lctagOptMap.graph = argList[ index + 1 ]
+	    skipArgNum = 1
 	 elseif arg == "dump" then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = "dump"
@@ -191,6 +204,14 @@ local function analyzeOption( argList )
 	       else
 		  if lctagOptMap.mode == "build" then
 		     processMode = "conv"
+		  elseif arg == "-b" then
+		     lctagOptMap.browse = true
+		  elseif arg == "-d" then
+		     lctagOptMap.depth = tonumber( argList[ index + 1 ] )
+		     skipArgNum = 1
+		  elseif arg == "-o" then
+		     lctagOptMap.outputFile = argList[ index + 1 ]
+		     skipArgNum = 1
 		  else
 		     processMode = nil
 		  end
@@ -198,6 +219,7 @@ local function analyzeOption( argList )
 	    else
 	       if lctagOptMap.mode == "build" then
 		  processMode = "conv"
+		  
 	       else
 		  processMode = nil
 	       end
@@ -302,6 +324,25 @@ if lctagOptMap.mode == "query" then
    os.exit( 0 )
 end
 
+if lctagOptMap.mode == "graph" then
+   if lctagOptMap.graph == "inc" or lctagOptMap.graph == "incSrc" then
+      Query:outputIncRelation(
+	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "inc",
+	 lctagOptMap.depth, lctagOptMap.browse, lctagOptMap.outputFile )
+   elseif lctagOptMap.graph == "caller" or lctagOptMap.graph == "callee" then
+      Query:outputCallRelation(
+	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "caller",
+	 lctagOptMap.depth, lctagOptMap.browse, lctagOptMap.outputFile )
+   elseif lctagOptMap.graph == "symbol" then
+      Query:outputSymbolRefRelation(
+	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.depth,
+	 lctagOptMap.browse, lctagOptMap.outputFile )
+   else
+      printUsage( "unknown graph" )
+   end
+   os.exit( 0 )
+end
+
 
 if not lctagOptMap.dbPath then
    printUsage( "db is not found." )
@@ -317,7 +358,8 @@ if lctagOptMap.mode == "build" then
    for index, opt in ipairs( optList ) do
       option = option .. opt .. " "
    end
-   log( 3, "src:", src, "target:", lctagOptMap.target, "opt:", option )
+   log( 2, "src:", src, "target:", lctagOptMap.target )
+   log( 3, "opt:", option )
    
    
    if lctagOptMap.conf then

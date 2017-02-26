@@ -137,6 +137,12 @@ test: build
 	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 253 15 hoge
 	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 197 18 hoge
 	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 254 18 hoge
+	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t::2 -o graph.sample/caller.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
+
 
 test-at-lua:
 ifeq ($(shell which lctags),)

@@ -39,7 +39,7 @@ This parameter can set function and string.
 ")
 
 
-(setq lctags-hack-gtags nil)
+(setq lctags-target-buf nil)
 
 
 (define-minor-mode lctags-mode
@@ -61,7 +61,7 @@ This parameter can set function and string.
   (let ((save (current-buffer))
 	(dir default-directory)
 	(line (1- (current-line)))
-	(column (+ (- (point) (point-at-bol))))
+	(column (+ (- (point) (point-at-bol)) 1))
 	(db-path lctags-db)
 	(target lctags-target)
 	(config lctags-conf)
@@ -162,26 +162,44 @@ This parameter can set function and string.
       (lctags-pos-at "def" tag)))))
 
 (defadvice gtags-goto-tag (around lctags-gtags-goto-tag activate)
-  (if lctags-hack-gtags
+  (if lctags-target-buf
       (when (not (lctags-gtags-goto-tag-func (ad-get-arg 0) (ad-get-arg 1)))
 	ad-do-it)
     ad-do-it))
 
-(defun lctags-def (&optional use-gtags)
-  (interactive "P")
-  (let ((lctags-hack-gtags (if use-gtags nil 1)))
-    (gtags-find-tag)))
 
-(defun lctags-ref (&optional use-gtags)
+(defun lctags-def (&optional mode)
   (interactive "P")
-  (let ((lctags-hack-gtags (if use-gtags nil 1)))
-    (gtags-find-rtag)))
+  (let ((gtags-symbol-regexp "[:A-Za-z_][@:A-Za-z_0-9]*"))
+    (cond
+     ((equal mode '(4))
+      (lctags-def-at))
+     ((equal mode '(16))
+      (let ((lctags-target-buf nil))
+	(gtags-find-tag)))
+     (t
+      (let ((lctags-target-buf (current-buffer)))
+	(gtags-find-tag)))
+     )))
+
+(defun lctags-ref (&optional mode)
+  (interactive "P")
+  (cond
+   ((equal mode '(4))
+    (lctags-ref-at))
+   ((equal mode '(16))
+    (let ((lctags-target-buf nil))
+      (gtags-find-rtag)))
+   (t
+    (let ((lctags-target-buf (current-buffer)))
+      (gtags-find-rtag)))
+   ))
 
 
 (defun lctags-call-process-func (arg-list)
   ""
   (if (or (not (equal (car arg-list) "global"))
-	  (not lctags-mode))
+	  (not lctags-target-buf))
       arg-list
     (let ((db-path lctags-db)
 	  (target lctags-target)
@@ -190,7 +208,7 @@ This parameter can set function and string.
       (setq new-arg-list
 	    (append (list lctags-command)
 		    (cdr arg-list)))
-      (with-current-buffer save
+      (with-current-buffer lctags-target-buf
 	(when (and lctags-db (functionp lctags-db))
 	  (setq db-path (funcall lctags-db)))
 	(when (and lctags-target (functionp lctags-target))

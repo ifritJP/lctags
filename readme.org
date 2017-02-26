@@ -20,20 +20,23 @@ lctags コマンドを使用します。
 #+BEGIN_SRC txt
 usage:
  - build DB
-   lctags init projDir [--lctags-db path] [--lctags-log lv] 
-   lctags build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] comp-op [...] src
+   lctags init projDir [--lctags-log lv] 
+   lctags build compiler [--lctags-log lv] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    lctags shrink [--lctags-db path]
    lctags chg-proj projDir [--lctags-db path]
+   lctags update pattrn
  - query DB
    lctags dump
-   lctags ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   lctags def-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   lctags call-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
-   lctags -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
-   lctags -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
+   lctags ref-at[a] [--lctags-target target] file line column 
+   lctags def-at[a] [--lctags-target target] file line column 
+   lctags call-at[a] [--lctags-target target] file line column 
+   lctags -x[t|s|r][a] [--lctags-log lv] [--use-global] symbol
+   lctags -xP[a] [--lctags-log lv] [--use-global] file
+   lctags -c [--lctags-log lv] [--use-global] symbol
+ - graph
+   lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] 
 
-
+  option:
      init: initialize DB file. "projDir" is a root directory of your project.
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
@@ -47,6 +50,7 @@ usage:
      --lctags-target: set build target.
      -x: query DB.
         -xt: symbol declaration
+        -xs: symbol declaration
         -xr: symbol reference
         -xP: file list
      -c: list symbol.
@@ -54,6 +58,17 @@ usage:
      ref-at: symbol reference at position
      call:at: function call at position
      --use-global: use GNU global when db is not found.
+     graph: draw graph.
+         inc: include relation.
+         caller: caller graph.
+         callee: callee graph.
+         -d: depth.
+         -b: browse graph.
+         -o: output image file.
+
+   common option:
+     --lctags-quiet: discard clang diagnostic.
+     --lctags-db path: set path of the lctags db file.
 #+END_SRC
 
 *** DB の生成
@@ -184,10 +199,47 @@ lctags.el は、マイナーモードの機能を提供します。
   - カーソル位置の関数の呼び出し位置をリストします。
   - その対象ファイルを事前に lctags で解析しておく必要があります。
 
+*** グラフ
+
+include、関数の関係を示すグラフを作成することができます。
+この機能は graphviz の dot を利用します。
+グラフは svg フォーマットで作成します。
+
+**** サンプル
+
+#+CAPTION: サンプル
+[[./src/graph.sample/inc.svg]]
+
+**** オプション
+
+$ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] target
+
+次のグラフを作成します。
+
+- include 元  (incSrc)
+- include 先  (inc)
+- 関数呼び出し元 (caller)
+- 関数呼び出し先 (callee)
+- シンボル参照元 (symbol)
+
+target には、関数名あるいはファイル名あるいはシンボル名、
+あるいはそれらを示す ID を指定します。
+target を省略した場合、ID 一覧をリストします。
+関数名、シンボル名は完全限定名で指定する必要があります。
+ファイル名は、カレントディレクトリからの相対パスか、フルパスで指定します。
+
+-d は、表示するグラフの階層を指定します。
+デフォルトでは、5 階層までのグラフを作成します。
+
+-o は、作成するグラフのファイル名を指定します。
+
+-b は、作成したグラフを表示します。
+
 
 *** プロジェクトディレクトリの変更
 
-プロジェクトを別ディレクトリに移動したりコピーした場合、
+DB ファイルをプロジェクトのルートディレクトリとは別のディレクトリに作成している場合、
+プロジェクトを別のディレクトリに移動したりコピーした際、
 次のコマンドを実行する必要があります。
 
 $ lctags chg-proj .

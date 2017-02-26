@@ -308,6 +308,7 @@ end
 
 function Analyzer:createSpInfo( path, uptodateFlag, cxfile )
    local spInfo = {}
+
    self.path2InfoMap[ path ] = spInfo
    spInfo.path = path
    spInfo.digest = Helper.openDigest( "md5" )
@@ -359,7 +360,6 @@ function Analyzer:isUptodate( filePath, compileOp, target )
 	    log( 2, "not found target in db" )
 	    return false
 	 end
-
 
 	 if compileOp and not db:equalsCompOp( targetFileInfo, compileOp, target ) then
 	    log( 2, "change compile option" )
@@ -514,7 +514,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    local targetPath = transUnit:getTranslationUnitSpelling()
    log( -1, string.gsub( targetPath, ".*/", "" ) .. ":" )
 
-   log( 2, "start", compileOp, os.clock(), os.date() )
+   log( 3, "start", compileOp, os.clock(), os.date() )
 
    log( transUnit )
 
@@ -525,7 +525,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    self.targetFile =
       transUnit:getFile( transUnit:getTranslationUnitSpelling() )
    self.currentFile = self.targetFile
-
+   
    log( 2, "visitChildren", os.clock(), os.date() )
    clang.visitChildrenFast(
       root, visitFuncMain, self, targetKindList,
@@ -543,9 +543,12 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    
    log( 2, "-- file --", os.clock(), os.date() )
    -- 最初にターゲットファイルを登録
-   local targetPath = 
-      DBCtrl:convFullpath( self.targetFile:getFileName(), self.currentDir )	 
+   targetPath = DBCtrl:convFullpath(
+      self.targetFile:getFileName(), self.currentDir )
    local targetSpInfo = self.path2InfoMap[ targetPath ]
+   if not targetSpInfo then
+      targetSpInfo = self:createSpInfo( targetPath, false, self.targetFile )
+   end
    db:addFile( targetPath, Helper.getCurrentTime(), targetSpInfo.fixDigest,
 	       compileOp, self.currentDir, true, target )
    -- 残りのヘッダファイルを登録
@@ -748,7 +751,6 @@ function Analyzer:analyzeSourceAt(
    Helper.chdir( currentDir )
    log( 2, "currentDir", currentDir, targetFullPath )
 
-
    local db = self:openDBForReadOnly( currentDir )
 
    local args = clang.mkCharArray( optionList )
@@ -764,7 +766,11 @@ function Analyzer:analyzeSourceAt(
       declCursor = cursor
    end
 
-   log( 2, "cursor", clang.getCursorKindSpelling( cursor:getCursorKind() ) )
+   local kind = declCursor:getCursorKind()
+
+   log( 2, "cursor",
+	clang.getCursorKindSpelling( cursor:getCursorKind() ),
+	clang.getCursorKindSpelling( declCursor:getCursorKind() ))
    
    if mode == "ref-at" then
       db:SymbolRefInfoListForCursor(
@@ -777,8 +783,27 @@ function Analyzer:analyzeSourceAt(
 	 end	 
       )
    elseif mode == "def-at" then
-      local fileId, line = db:getFileIdLocation( declCursor )
-      Query:printLocate( db, cursor:getCursorSpelling(), fileId, line, absFlag, true )
+      if kind == clang.core.CXCursor_VarDecl or
+	 kind == clang.core.CXCursor_ParmDecl
+      then
+	 local startInfo, endInfo = db:getRangeFromCursor( declCursor )
+	 local fileInfo = db:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
+	 Query:printLocate(
+	    db, declCursor:getCursorSpelling(), fileInfo.id,
+	    startInfo[ 2 ], absFlag, true )
+	 return
+      end
+   
+      
+      db:SymbolDefInfoListForCursor(
+	 declCursor,
+	 function( item )
+	    local nsInfo = db:getNamespace( item.nsId )
+	    Query:printLocate(
+	       db, nsInfo.name, item.fileId, item.line, absFlag, true )
+	    return true
+	 end	 
+      )
    else
       db:mapCallForCursor(
 	 declCursor,
