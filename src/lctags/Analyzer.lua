@@ -50,6 +50,7 @@ end
 local targetKindList = {
    clang.core.CXCursor_MacroDefinition,
    clang.core.CXCursor_MacroExpansion,
+   clang.core.CXCursor_UnexposedDecl,
    clang.core.CXCursor_InclusionDirective,
    clang.core.CXCursor_Namespace,
    clang.core.CXCursor_ClassDecl,
@@ -191,7 +192,6 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
    elseif cursorKind == clang.core.CXCursor_DeclRefExpr or
       cursorKind == clang.core.CXCursor_MemberRefExpr
    then
-      -- local declCursor = cursor:getCursorDefinition()
       local declCursor = cursor:getCursorReferenced()
       if declCursor:getCursorKind() ~= clang.core.CXCursor_ParmDecl then
 	 local storageClass = declCursor:getStorageClass()
@@ -227,6 +227,7 @@ local function visitFuncMain( cursor, parent, analyzer, changeFileFlag )
    if not analyzer.recursiveFlag then
       if cursorKind == clang.core.CXCursor_Namespace or
 	 cursorKind == clang.core.CXCursor_ClassDecl or
+	 cursorKind == clang.core.CXCursor_UnexposedDecl or
 	 (not uptodateFlag and
 	     (isFuncDecl( cursorKind ) or
 		 cursorKind == clang.core.CXCursor_CompoundStmt or
@@ -745,8 +746,8 @@ function Analyzer:analyzeSourcePch( path )
 end
 
 
-function Analyzer:analyzeSourceAt(
-      mode, currentDir, targetFullPath, line, column, optionList, absFlag, target )
+function Analyzer:analyzeSourceAtWithFunc(
+      currentDir, targetFullPath, line, column, optionList, func )
    
    Helper.chdir( currentDir )
    log( 2, "currentDir", currentDir, targetFullPath )
@@ -766,61 +767,18 @@ function Analyzer:analyzeSourceAt(
       declCursor = cursor
    end
 
-   local kind = declCursor:getCursorKind()
-
    log( 2, "cursor",
 	clang.getCursorKindSpelling( cursor:getCursorKind() ),
 	clang.getCursorKindSpelling( declCursor:getCursorKind() ))
-   
-   if mode == "ref-at" then
-      db:SymbolRefInfoListForCursor(
-	 declCursor,
-	 function( item )
-	    local nsInfo = db:getNamespace( item.nsId )
-	    Query:printLocate(
-	       db, nsInfo.name, item.fileId, item.line, absFlag, true )
-	    return true
-	 end	 
-      )
-   elseif mode == "def-at" then
-      if kind == clang.core.CXCursor_VarDecl or
-	 kind == clang.core.CXCursor_ParmDecl
-      then
-	 local startInfo, endInfo = db:getRangeFromCursor( declCursor )
-	 local fileInfo = db:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
-	 Query:printLocate(
-	    db, declCursor:getCursorSpelling(), fileInfo.id,
-	    startInfo[ 2 ], absFlag, true )
-	 return
-      end
-   
-      
-      db:SymbolDefInfoListForCursor(
-	 declCursor,
-	 function( item )
-	    local nsInfo = db:getNamespace( item.nsId )
-	    Query:printLocate(
-	       db, nsInfo.name, item.fileId, item.line, absFlag, true )
-	    return true
-	 end	 
-      )
-   else
-      db:mapCallForCursor(
-	 declCursor,
-	 function( item )
-	    local nsInfo = db:getNamespace( item.nsId )
-	    Query:printLocate(
-	       db, nsInfo.name, item.fileId, item.line, absFlag, true )
-	    return true
-	 end	 
-      )
-   end
 
+   func( db, nil, declCursor )
+   
    db:close()
 end
 
 
-function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
+function Analyzer:queryAtFunc(
+      filePath, line, column, target, func )
    local db = self:openDBForReadOnly()
 
    -- filePath の target に対応するコンパイルオプションを取得
@@ -836,27 +794,171 @@ function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
    if fileInfo.incFlag == 1 then
       -- ヘッダの場合は解析せずに DB 登録されている情報を使用する
       local nsInfo = db:getNsInfoAt( filePath, line, column )
-      if nsInfo  then
-	 if mode == "ref-at" then
-	    Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name )
-	 elseif mode == "def-at" then
-	    Query:execWithDb( db, "t" .. (absFlag and "a" or ""), nsInfo.name )
-	 else
-	    Query:execWithDb( db, "C" .. (absFlag and "a" or ""), nsInfo.name )
-	 end
+      if nsInfo then
+	 func( db, nsInfo, nil )
+      else
+	 log( 1, "not found namespace" )
+	 os.exit( 1 )
       end
    else
       local analyzer = Analyzer:new(
 	 db:getSystemPath( db:convFullpath( self.dbPath ) ),
 	 self.recordDigestSrcFlag, self.displayDiagnostics )
       
-      analyzer:analyzeSourceAt(
-	 mode, db:getSystemPath( fileInfo.currentDir ),
+      analyzer:analyzeSourceAtWithFunc(
+	 db:getSystemPath( fileInfo.currentDir ),
 	 db:getSystemPath( fileInfo.path ), line, column,
-	 optionList, absFlag, target )
+	 optionList, func )
    end
 
    db:close()
+end
+
+
+
+
+function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
+   self:queryAtFunc(
+      filePath, line, column, target,
+      function( db, nsInfo, declCursor )
+	 if nsInfo then
+	    if mode == "ref-at" then
+	       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name )
+	    elseif mode == "def-at" then
+	       Query:execWithDb( db, "t" .. (absFlag and "a" or ""), nsInfo.name )
+	    elseif mode == "call-at" then
+	       Query:execWithDb( db, "C" .. (absFlag and "a" or ""), nsInfo.name )
+	    elseif mode == "call-at" then
+	       print( nsInfo.id, nsInfo.name )
+	    else
+	       log( 1, "illegal mode", mode )
+	       os.exit( 1 )
+	    end
+	 else
+	    local kind = declCursor:getCursorKind()
+	    if mode == "ref-at" then
+	       db:SymbolRefInfoListForCursor(
+		  declCursor,
+		  function( item )
+		     local nsInfo = db:getNamespace( item.nsId )
+		     Query:printLocate(
+			db, nsInfo.name, item.fileId, item.line, absFlag, true )
+		     return true
+		  end	 
+	       )
+	    elseif mode == "def-at" then
+	       if kind == clang.core.CXCursor_VarDecl or
+		  kind == clang.core.CXCursor_ParmDecl
+	       then
+		  local startInfo, endInfo = db:getRangeFromCursor( declCursor )
+		  local fileInfo =
+		     db:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
+		  Query:printLocate(
+		     db, declCursor:getCursorSpelling(), fileInfo.id,
+		     startInfo[ 2 ], absFlag, true )
+		  return
+	       end
+	       
+	       
+	       db:SymbolDefInfoListForCursor(
+		  declCursor,
+		  function( item )
+		     local nsInfo = db:getNamespace( item.nsId )
+		     Query:printLocate(
+			db, nsInfo.name, item.fileId, item.line, absFlag, true )
+		     return true
+		  end	 
+	       )
+	    elseif mode == "call-at" then
+	       db:mapCallForCursor(
+		  declCursor,
+		  function( item )
+		     local nsInfo = db:getNamespace( item.nsId )
+		     Query:printLocate(
+			db, nsInfo.name, item.fileId, item.line, absFlag, true )
+		     return true
+		  end	 
+	       )
+	    elseif mode == "ns-at" then
+	       local nsIdSet = {}
+	       db:SymbolDefInfoListForCursor(
+		  declCursor,
+		  function( item )
+		     if not nsIdSet[ item.nsId ] then
+			local nsInfo = db:getNamespace( item.nsId )
+			nsIdSet[ nsInfo.id ] = 1
+			print( nsInfo.id, nsInfo.name )
+		     end
+		     return true
+		  end
+	       )
+	    else
+	       log( 1, "illegal mode", mode )
+	       os.exit( 1 )
+	    end
+	 end
+      end
+   )
+end
+
+
+
+
+function Analyzer:graphAt(
+      graph, filePath, line, column, target,
+      depthLimit, browseFlag, outputFile, imageFormat )
+
+   self:queryAtFunc(
+      filePath, line, column, target,
+      function( db, nsInfo, declCursor )
+	 if nsInfo then
+	    if graph == "caller" or graph == "callee" then
+	       Query:outputCallRelation(
+		  self.dbPath, nsInfo.name, graph == "caller",
+		  depthLimit, browseFlag, outputFile, imageFormat )
+	    elseif graph == "systemPath" then
+	       Query:outputSymbolRefRelation(
+		  self.dbPath, nsInfo.name, depthLimit,
+		  browseFlag, outputFile, imageFormat )
+	    else
+	       log( 1, "illegal graph", graph )
+	       os.exit( 1 )
+	    end
+	 else
+	    if graph == "caller" or graph == "callee" then
+	       local kind = declCursor:getCursorKind()
+	       if kind == clang.core.CXCursor_FieldDecl or
+		  kind == clang.core.CXCursor_ParmDecl or
+		  kind == clang.core.CXCursor_VarDecl
+	       then
+		  local cxtype = declCursor:getCursorType()
+		  declCursor = db:getDeclCursorFromType( cxtype )
+		  nsInfo = db:getNamespaceFromCursor( declCursor )
+	       else
+		  nsInfo = db:getNamespaceFromCursor( declCursor )
+	       end
+	       
+	       Query:outputCallRelation(
+		  self.dbPath, nsInfo.name, graph == "caller",
+		  depthLimit, browseFlag, outputFile, imageFormat )
+	    elseif graph == "symbol" then
+	       db:SymbolRefInfoListForCursor(
+		  declCursor,
+		  function( item )
+		     local nsInfo = db:getNamespace( item.nsId )
+		     Query:outputSymbolRefRelation(
+			self.dbPath, nsInfo.name,
+			depthLimit, browseFlag, outputFile, imageFormat )
+		     return false
+		  end
+	       )
+	    else
+	       log( 1, "illegal graph", mode )
+	       os.exit( 1 )
+	    end
+	 end
+      end
+   )
 end
 
 

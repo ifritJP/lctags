@@ -5,7 +5,7 @@
 
 libclanglua (https://github.com/ifritJP/libclanglua) を利用した c/c++ インデックスツール
 
-libclang を利用することで、異なる構造体、クラスで同じメンバーがあるような場合でも、
+libclang を利用することで、異なる構造体、クラスで同名のメンバーがあるような場合でも、
 型を認識して正確に参照箇所をリストできます。
 
 libclang を利用したインデックスツールは RTags がメジャーですが、
@@ -20,21 +20,23 @@ lctags コマンドを使用します。
 #+BEGIN_SRC txt
 usage:
  - build DB
-   lctags init projDir [--lctags-db path] [--lctags-log lv] 
-   lctags build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
+   lctags init projDir  
+   lctags build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    lctags shrink [--lctags-db path]
    lctags chg-proj projDir [--lctags-db path]
-   lctags update [--lctags-db path] pattrn
+   lctags update pattrn
  - query DB
    lctags dump
-   lctags ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   lctags def-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   lctags call-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
-   lctags -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
-   lctags -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
+   lctags ref-at[a] [--lctags-target target] file line column 
+   lctags def-at[a] [--lctags-target target] file line column 
+   lctags call-at[a] [--lctags-target target] file line column 
+   lctags ns-at [--lctags-target target] file line column 
+   lctags -x[t|s|r][a]  [--use-global] symbol
+   lctags -xP[a]  [--use-global] file
+   lctags -c  [--use-global] symbol
  - graph
    lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type]
+   lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -44,8 +46,6 @@ usage:
      shrink: shrink DB.
      chg-proj: change project directory.
      dump: dump DB.
-     --lctags-db: set DB file path.
-     --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
      --lctags-conf: confing file.
      --lctags-target: set build target.
      -x: query DB.
@@ -59,6 +59,7 @@ usage:
      call:at: function call at position
      --use-global: use GNU global when db is not found.
      graph: draw graph.
+     graph-at: draw graph at position.
          inc: include relation.
          caller: caller graph.
          callee: callee graph.
@@ -69,6 +70,8 @@ usage:
 
    common option:
      --lctags-quiet: discard clang diagnostic.
+     --lctags-db: set DB file path.
+     --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
 #+END_SRC
 
 *** DB の生成
@@ -181,11 +184,13 @@ lctags.el は、マイナーモードの機能を提供します。
 - lctags-def (M-t)
   - 指定シンボルの定義場所をリストします。
   - gtags-find-tag と互換の動作です。
-  - C-u M-t とすることで、 lctags ではなく GNU global を利用します。
+  - C-u M-t とすることで、 lctags-def-at を実行します。
+  - C-u C-u M-t とすることで、 lctags ではなく GNU global を利用します。
 - lctags-ref
   - 指定のシンボルの参照場所をリストします。
   - gtags-find-rtag と互換の動作です。
-  - C-u M-r とすることで、 lctags ではなく GNU global を利用します。
+  - C-u M-t とすることで、 lctags-ref-at を実行します。
+  - C-u C-u M-r とすることで、 lctags ではなく GNU global を利用します。
 - lctags-def-at
   - lctags コマンドの def-at オプションを呼び出します。
   - カーソル位置のシンボルの定義位置をリストします。
@@ -213,6 +218,8 @@ include、関数の関係を示すグラフを作成することができます�
 **** オプション
 
 $ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] target
+$ lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
+
 
 次のグラフを作成します。
 

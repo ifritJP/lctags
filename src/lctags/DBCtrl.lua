@@ -1303,7 +1303,6 @@ function DBCtrl:mapSymbolRefFrom( nsId, func, ... )
       "symbolRef", "belongNsId = " .. tostring( nsId ), nil, nil, func, ... )
 end
 
-
 function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
    local fileId, line = self:getFileIdLocation( cursor )
    local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )

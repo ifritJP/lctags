@@ -3,7 +3,10 @@
 
 LUA_CMD=lua5.3
 #LUA_CMD=$(dirname $0)/../clanglua
-#zecho $@ > $(dirname $0)/dump
 SCRIPT=$(${LUA_CMD} -e 'print( package.searchpath( "lctags.lctags", package.path ) )')
 
-${LUA_CMD} ${SCRIPT} $@ || exit 1
+
+
+echo ${PWD} ':' ${LUA_CMD} ${SCRIPT} $@ > $(dirname $0)/dump
+
+${LUA_CMD} ${SCRIPT} $@ | tee $(dirname $0)/dump2 || exit 1

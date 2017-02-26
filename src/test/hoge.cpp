@@ -198,6 +198,14 @@ namespace ns1 {
             return 0;
         }
 
+        int func5( struct_func_t * pClass ) {
+            char buf[5];
+            pClass->   pCallback();
+
+            TestClass  aaa;
+            return 0;
+        }
+      
         /** func3 comment */
         int func3( Callback_t * pCallback ) {
             char buf[50];
@@ -214,6 +222,7 @@ namespace ns1 {
                 func2();
                 (*pCallback)();
                 func0( func2 );
+		func5( NULL );
             }
             return 0;
         }
@@ -224,13 +233,6 @@ namespace ns1 {
             return 0;
         }
 
-        int func5( struct_func_t * pClass ) {
-            char buf[5];
-            pClass->   pCallback();
-
-            TestClass  aaa;
-            return 0;
-        }
 
     }
 
@@ -249,9 +251,9 @@ namespace ns1 {
     }
 
     void sub2() {
-        YYYY aYYYY;
-        aYYYY.kkkk = 0;
-	aYYYY.pCallback();
+        YYYY aYYYYY;
+        aYYYYY.kkkk = 0;
+	aYYYYY.pCallback();
     }
 }
 

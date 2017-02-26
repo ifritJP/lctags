@@ -98,6 +98,7 @@ function Query:execWithDb( db, query, target )
       if not target then
 	 return false
       end
+
       db:mapDeclInfoList(
 	 target,
 	 function( item )
@@ -121,6 +122,7 @@ end
 
 function Query:exec( dbPath, query, target, useGlogalFlag )
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
+
    if not db then
       if not useGlogalFlag then
 	 log( 1, "db open error" )
@@ -143,14 +145,14 @@ function Query:exec( dbPath, query, target, useGlogalFlag )
 end
 
 function Query:outputRelation(
-      src, depthLimit, relIf, browseFlag, outputFile, imageFormat )
+      target, depthLimit, relIf, browseFlag, outputFile, imageFormat )
    if not depthLimit then
       depthLimit = 5
    elseif string.find( depthLimit, "^[0-9]+$" ) then
       depthLimit = tonumber( depthLimit )
    end
    
-   if not src then
+   if not target then
       relIf:displayItems()
       os.exit( 0 )
    end
@@ -161,12 +163,12 @@ function Query:outputRelation(
    
 
    local targetId
-   if string.find( src, "^[0-9]+$" ) then
-      targetId = tonumber( src )
+   if string.find( target, "^[0-9]+$" ) then
+      targetId = tonumber( target )
    else
-      targetId = relIf:getId( src )
+      targetId = relIf:getId( target )
       if not targetId then
-	 log( 1, "not found", src )
+	 log( 1, "not found", target )
 	 os.exit( 1 )
       end
    end
@@ -263,11 +265,12 @@ function Query:outputRelation(
 
    if browseFlag then
       os.execute( "firefox " .. outputFile )
+      os.remove( outputFile )
    end
 end
 
 function Query:outputCallRelation(
-      dbPath, incFilePath, callerMode, depthLimit,
+      dbPath, namespace, callerMode, depthLimit,
       browseFlag, outputFile, imageFormat )
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
@@ -317,7 +320,7 @@ function Query:outputCallRelation(
    }
 
    self:outputRelation(
-      incFilePath, depthLimit, refIf, browseFlag, outputFile, imageFormat )
+      namespace, depthLimit, refIf, browseFlag, outputFile, imageFormat )
 end
 
 

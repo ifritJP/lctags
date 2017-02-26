@@ -16,21 +16,23 @@ local function printUsage( message )
    print( string.format( [[
 usage:
  - build DB
-   %s init projDir [--lctags-db path] [--lctags-log lv] 
-   %s build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
+   %s init projDir  
+   %s build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    %s shrink [--lctags-db path]
    %s chg-proj projDir [--lctags-db path]
-   %s update [--lctags-db path] pattrn
+   %s update pattrn
  - query DB
    %s dump
-   %s ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   %s def-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   %s call-at[a] [--lctags-db path] [--lctags-target target] file line column 
-   %s -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
-   %s -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
-   %s -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
+   %s ref-at[a] [--lctags-target target] file line column 
+   %s def-at[a] [--lctags-target target] file line column 
+   %s call-at[a] [--lctags-target target] file line column 
+   %s ns-at [--lctags-target target] file line column 
+   %s -x[t|s|r][a]  [--use-global] symbol
+   %s -xP[a]  [--use-global] file
+   %s -c  [--use-global] symbol
  - graph
    %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type]
+   %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -40,8 +42,6 @@ usage:
      shrink: shrink DB.
      chg-proj: change project directory.
      dump: dump DB.
-     --lctags-db: set DB file path.
-     --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
      --lctags-conf: confing file.
      --lctags-target: set build target.
      -x: query DB.
@@ -55,6 +55,7 @@ usage:
      call:at: function call at position
      --use-global: use GNU global when db is not found.
      graph: draw graph.
+     graph-at: draw graph at position.
          inc: include relation.
          caller: caller graph.
          callee: callee graph.
@@ -65,10 +66,12 @@ usage:
 
    common option:
      --lctags-quiet: discard clang diagnostic.
+     --lctags-db: set DB file path.
+     --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
    ]],
 	     command, command, command, command, command, command,
 	     command, command, command, command, command, command,
-	     command ) )
+	     command, command, command ) )
    os.exit( 1 )
 end
 
@@ -163,8 +166,14 @@ local function analyzeOption( argList )
 	 elseif string.find( arg, "call-at", 1, true ) then
 	    lctagOptMap.mode = "call-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "graph", 1, true ) then
+	 elseif arg == "ns-at" then
+	    lctagOptMap.mode = "ns-at"
+	 elseif arg == "graph" then
 	    lctagOptMap.mode = "graph"
+	    lctagOptMap.graph = argList[ index + 1 ]
+	    skipArgNum = 1
+	 elseif arg == "graph-at" then
+	    lctagOptMap.mode = "graph-at"
 	    lctagOptMap.graph = argList[ index + 1 ]
 	    skipArgNum = 1
 	 elseif arg == "dump" then
@@ -289,7 +298,6 @@ if not lctagOptMap.dbPath then
    end
 end
 
-
 if lctagOptMap.mode == "init" then
    DBCtrl:init( lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
    os.exit( 0 )
@@ -409,11 +417,22 @@ if lctagOptMap.mode == "update" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "ref-at" or
-   lctagOptMap.mode == "def-at" or lctagOptMap.mode == "call-at"
+if lctagOptMap.mode == "ref-at" or lctagOptMap.mode == "def-at" or
+   lctagOptMap.mode == "call-at" or lctagOptMap.mode == "ns-at"
 then
    analyzer:queryAt(
       lctagOptMap.mode, srcList[ 1 ], tonumber( srcList[ 2 ] ),
       tonumber( srcList[ 3 ] ), lctagOptMap.abs, lctagOptMap.target )
    os.exit( 0 )
 end
+
+if lctagOptMap.mode == "graph-at" then
+   analyzer:graphAt(
+      lctagOptMap.graph, srcList[ 1 ], tonumber( srcList[ 2 ] ),
+      tonumber( srcList[ 3 ] ), lctagOptMap.target,
+      lctagOptMap.depth, lctagOptMap.browse,
+      lctagOptMap.outputFile, lctagOptMap.imageFormat )
+   os.exit( 0 )
+end
+
+

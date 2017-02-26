@@ -8,8 +8,12 @@
 ;;       '(lambda ()
 ;;          (local-set-key "\M-t" 'lctags-def)
 ;;          (local-set-key "\M-r" 'lctags-ref)
-;;          (local-set-key "\C-\M-t" 'lctags-def-at)
-;;          (local-set-key "\C-\M-r" 'lctags-ref-at)
+;;          (local-set-key "\C-cld" 'lctags-def-at)
+;;          (local-set-key "\C-clr" 'lctags-ref-at)
+;;          (local-set-key "\C-clc" 'lctags-ref-at)
+;;          (local-set-key "\C-clgr" 'lctags-graph-caller-at)
+;;          (local-set-key "\C-clge" 'lctags-graph-callee-at)
+;;          (local-set-key "\C-clgs" 'lctags-graph-symbol-at)
 ;;          (local-set-key "\C-t" 'gtags-pop-stack)))
 
 
@@ -55,16 +59,42 @@ This parameter can set function and string.
   (run-hooks 'lctags-mode-hook)
   )
 
+(defun execute-lctags (src-buf lctags-buf &rest lctags-opts)
+  (let ((db-path lctags-db)
+	(target lctags-target)
+	(config lctags-conf)
+	command dir)
+    (with-current-buffer src-buf
+      (when (and lctags-db (functionp lctags-db))
+	(setq db-path (funcall lctags-db)))
+      (when (and lctags-target (functionp lctags-target))
+	(setq target (funcall lctags-target)))
+      (when (and lctags-conf (functionp lctags-conf))
+	(setq config (funcall lctags-conf)))
+      (setq dir default-directory))
+    
+    (with-current-buffer lctags-buf
+      (setq default-directory dir)
+      (setq command
+	    (append (list lctags-command nil lctags-buf t )
+		    lctags-opts
+		    (list "--lctags-quiet")
+		    (when db-path
+		      (list "--lctags-db" db-path))
+		    (when target
+		      (list "--lctags-target" target))
+		    (when config
+		      (list "--lctags-conf" config))
+		    ))
+      (apply 'call-process command)
+      (goto-char 1))))
+
 
 
 (defun lctags-pos-at ( mode &optional tag )
   (let ((save (current-buffer))
-	(dir default-directory)
 	(line (1- (current-line)))
 	(column (+ (- (point) (point-at-bol)) 1))
-	(db-path lctags-db)
-	(target lctags-target)
-	(config lctags-conf)
 	buffer lineNum select-name lctags-opt)
     (cond
      ((equal mode "def-at")
@@ -94,29 +124,12 @@ This parameter can set function and string.
      )
     (setq buffer (generate-new-buffer
 		  (concat "GTAGS SELECT* " select-name)))
-    (with-current-buffer save
-      (when (and lctags-db (functionp lctags-db))
-	(setq db-path (funcall lctags-db)))
-      (when (and lctags-target (functionp lctags-target))
-	(setq target (funcall lctags-target)))
-      (when (and lctags-conf (functionp lctags-conf))
-	(setq config (funcall lctags-conf))))
-    
-    (with-current-buffer buffer
-      (setq default-directory dir)
-      (call-process lctags-command nil buffer t lctags-opt
-		    tag
+    (execute-lctags save buffer
+		    lctags-opt tag
 		    (number-to-string line)
-		    (number-to-string column)
-		    "--lctags-quiet"
-		    (if db-path "--lctags-db" "")
-		    (if db-path db-path "")
-		    (if target "--lctags-target" "")
-		    (if target target "" )
-		    (if config "--lctags-conf" "")
-		    (if config config "" )
-		    )
-      (goto-char 1)
+		    (number-to-string column))
+
+    (with-current-buffer buffer
       ;;(message (buffer-string))
       (setq lineNum (count-lines (point-min) (point-max)))
       (cond
@@ -148,6 +161,54 @@ This parameter can set function and string.
   (interactive)
   (gtags-push-context)
   (lctags-pos-at "call-at"))
+
+(defun lctags-graph-caller-at ()
+  (interactive)
+  (lctags-graph-at "caller"))
+
+(defun lctags-graph-callee-at ()
+  (interactive)
+  (lctags-graph-at "callee"))
+
+(defun lctags-graph-symbol-at ()
+  (interactive)
+  (lctags-graph-at "symbol"))
+
+(defun lctags-graph-at ( graph )
+  (let ((org-buf (current-buffer))
+	(nsId (lctags-namespaceId-at))
+	(line (1- (current-line)))
+	(column (+ (- (point) (point-at-bol)) 1))
+	)
+    
+    (with-temp-buffer
+      (execute-lctags org-buf (current-buffer)
+		      "graph-at" graph (buffer-file-name org-buf)
+		      (number-to-string line) (number-to-string column) "-b"))))
+
+(defun lctags-get-namespace-at ()
+  (let ((line (1- (current-line)))
+	(column (+ (- (point) (point-at-bol)) 1))
+	buffer namespace )
+    (setq buffer (generate-new-buffer "lctags temp"))
+    (execute-lctags (current-buffer) buffer
+		    "ns-at" (buffer-file-name)
+		    (number-to-string line)
+		    (number-to-string column))
+    (setq namespace (with-current-buffer buffer
+		      (string-match "\n$" (buffer-string))
+		      (replace-match ""  t nil (buffer-string))))
+    (kill-buffer buffer)
+    namespace))
+
+(defun lctags-namespaceId-at ()
+  (let ((namespace (lctags-get-namespace-at)))
+    (car (split-string namespace))))
+  
+
+(defun lctags-namespace-at ()
+  (interactive)
+  (message (lctags-get-namespace-at)))
 
 
 (defun lctags-gtags-goto-tag-func (tag flag)
