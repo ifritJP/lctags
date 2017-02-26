@@ -142,7 +142,8 @@ function Query:exec( dbPath, query, target, useGlogalFlag )
    return true
 end
 
-function Query:outputRelation( src, depthLimit, relIf, browseFlag, outputFile )
+function Query:outputRelation(
+      src, depthLimit, relIf, browseFlag, outputFile, imageFormat )
    if not depthLimit then
       depthLimit = 5
    elseif string.find( depthLimit, "^[0-9]+$" ) then
@@ -153,6 +154,11 @@ function Query:outputRelation( src, depthLimit, relIf, browseFlag, outputFile )
       relIf:displayItems()
       os.exit( 0 )
    end
+
+   if not imageFormat then
+      imageFormat = "svg"
+   end
+   
 
    local targetId
    if string.find( src, "^[0-9]+$" ) then
@@ -213,7 +219,7 @@ function Query:outputRelation( src, depthLimit, relIf, browseFlag, outputFile )
 	 end
 	 outputFile = outputFile .. "/lctags" .. os.clock()
       else
-	 outputFile = "lctags_graph.svg"
+	 outputFile = "lctags_graph." .. imageFormat
       end
    end
    local dotFile = outputFile .. ".dot"
@@ -252,7 +258,7 @@ function Query:outputRelation( src, depthLimit, relIf, browseFlag, outputFile )
    fileHandle:close()
 
    os.execute( string.format(
-		  "dot -Tsvg -o %s %s", outputFile, dotFile ) )
+		  "dot -T%s -o %s %s", imageFormat, outputFile, dotFile ) )
    os.remove( dotFile )
 
    if browseFlag then
@@ -261,7 +267,8 @@ function Query:outputRelation( src, depthLimit, relIf, browseFlag, outputFile )
 end
 
 function Query:outputCallRelation(
-      dbPath, incFilePath, callerMode, depthLimit, browseFlag, outputFile )
+      dbPath, incFilePath, callerMode, depthLimit,
+      browseFlag, outputFile, imageFormat )
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
       log( 1, "db open error" )
@@ -309,12 +316,14 @@ function Query:outputCallRelation(
       end,
    }
 
-   self:outputRelation( incFilePath, depthLimit, refIf, browseFlag, outputFile )
+   self:outputRelation(
+      incFilePath, depthLimit, refIf, browseFlag, outputFile, imageFormat )
 end
 
 
 function Query:outputIncRelation(
-      dbPath, incFilePath, incFlag, depthLimit, browseFlag, outputFile )
+      dbPath, incFilePath, incFlag,
+      depthLimit, browseFlag, outputFile, imageFormat )
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
       log( 1, "db open error" )
@@ -356,12 +365,13 @@ function Query:outputIncRelation(
       end
    }
 
-   self:outputRelation( incFilePath, depthLimit, refIf, browseFlag, outputFile )
+   self:outputRelation(
+      incFilePath, depthLimit, refIf, browseFlag, outputFile, imageFormat )
 end
 
 
 function Query:outputSymbolRefRelation(
-      dbPath, symbol, depthLimit, browseFlag, outputFile )
+      dbPath, symbol, depthLimit, browseFlag, outputFile, imageFormat )
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
       log( 1, "db open error" )
@@ -396,7 +406,8 @@ function Query:outputSymbolRefRelation(
       end
    }
 
-   self:outputRelation( symbol, depthLimit, refIf, browseFlag, outputFile )
+   self:outputRelation(
+      symbol, depthLimit, refIf, browseFlag, outputFile, imageFormat )
 end
 
 

@@ -20,21 +20,21 @@ lctags コマンドを使用します。
 #+BEGIN_SRC txt
 usage:
  - build DB
-   lctags init projDir [--lctags-log lv] 
-   lctags build compiler [--lctags-log lv] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
+   lctags init projDir [--lctags-db path] [--lctags-log lv] 
+   lctags build compiler [--lctags-log lv] [--lctags-db path] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    lctags shrink [--lctags-db path]
    lctags chg-proj projDir [--lctags-db path]
-   lctags update pattrn
+   lctags update [--lctags-db path] pattrn
  - query DB
    lctags dump
-   lctags ref-at[a] [--lctags-target target] file line column 
-   lctags def-at[a] [--lctags-target target] file line column 
-   lctags call-at[a] [--lctags-target target] file line column 
-   lctags -x[t|s|r][a] [--lctags-log lv] [--use-global] symbol
-   lctags -xP[a] [--lctags-log lv] [--use-global] file
-   lctags -c [--lctags-log lv] [--use-global] symbol
+   lctags ref-at[a] [--lctags-db path] [--lctags-target target] file line column 
+   lctags def-at[a] [--lctags-db path] [--lctags-target target] file line column 
+   lctags call-at[a] [--lctags-db path] [--lctags-target target] file line column 
+   lctags -x[t|s|r][a] [--lctags-db path] [--lctags-log lv] [--use-global] symbol
+   lctags -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
+   lctags -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
  - graph
-   lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] 
+   lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type]
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -65,10 +65,10 @@ usage:
          -d: depth.
          -b: browse graph.
          -o: output image file.
+         -f: image type. (svg, png)
 
    common option:
      --lctags-quiet: discard clang diagnostic.
-     --lctags-db path: set path of the lctags db file.
 #+END_SRC
 
 *** DB の生成
@@ -208,11 +208,11 @@ include、関数の関係を示すグラフを作成することができます�
 **** サンプル
 
 #+CAPTION: サンプル
-[[./src/graph.sample/inc.svg]]
+[[./src/graph.sample/inc.png]]
 
 **** オプション
 
-$ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] target
+$ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] target
 
 次のグラフを作成します。
 
@@ -234,6 +234,8 @@ target を省略した場合、ID 一覧をリストします。
 -o は、作成するグラフのファイル名を指定します。
 
 -b は、作成したグラフを表示します。
+
+-f は、作成するグラフの画像フォーマットを指定します。
 
 
 *** プロジェクトディレクトリの変更

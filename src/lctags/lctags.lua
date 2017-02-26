@@ -30,7 +30,7 @@ usage:
    %s -xP[a] [--lctags-db path] [--lctags-log lv] [--use-global] file
    %s -c [--lctags-db path] [--lctags-log lv] [--use-global] symbol
  - graph
-   %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] 
+   %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type]
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -61,6 +61,7 @@ usage:
          -d: depth.
          -b: browse graph.
          -o: output image file.
+         -f: image type. (svg, png)
 
    common option:
      --lctags-quiet: discard clang diagnostic.
@@ -212,6 +213,9 @@ local function analyzeOption( argList )
 		  elseif arg == "-o" then
 		     lctagOptMap.outputFile = argList[ index + 1 ]
 		     skipArgNum = 1
+		  elseif arg == "-f" then
+		     lctagOptMap.imageFormat = argList[ index + 1 ]
+		     skipArgNum = 1
 		  else
 		     processMode = nil
 		  end
@@ -328,15 +332,17 @@ if lctagOptMap.mode == "graph" then
    if lctagOptMap.graph == "inc" or lctagOptMap.graph == "incSrc" then
       Query:outputIncRelation(
 	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "inc",
-	 lctagOptMap.depth, lctagOptMap.browse, lctagOptMap.outputFile )
+	 lctagOptMap.depth, lctagOptMap.browse,
+	 lctagOptMap.outputFile, lctagOptMap.imageFormat )
    elseif lctagOptMap.graph == "caller" or lctagOptMap.graph == "callee" then
       Query:outputCallRelation(
 	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "caller",
-	 lctagOptMap.depth, lctagOptMap.browse, lctagOptMap.outputFile )
+	 lctagOptMap.depth, lctagOptMap.browse,
+	 lctagOptMap.outputFile, lctagOptMap.imageFormat )
    elseif lctagOptMap.graph == "symbol" then
       Query:outputSymbolRefRelation(
 	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.depth,
-	 lctagOptMap.browse, lctagOptMap.outputFile )
+	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    else
       printUsage( "unknown graph" )
    end
