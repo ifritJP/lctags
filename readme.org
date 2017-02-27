@@ -217,9 +217,10 @@ include、関数の関係を示すグラフを作成することができます�
 
 **** オプション
 
+#+BEGIN_SRC txt
 $ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] target
 $ lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
-
+#+END_SRC
 
 次のグラフを作成します。
 

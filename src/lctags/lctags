@@ -7,6 +7,6 @@ SCRIPT=$(${LUA_CMD} -e 'print( package.searchpath( "lctags.lctags", package.path
 
 
 
-echo ${PWD} ':' ${LUA_CMD} ${SCRIPT} $@ > $(dirname $0)/dump
+#echo ${PWD} ':' ${LUA_CMD} ${SCRIPT} $@ > $(dirname $0)/dump
 
-${LUA_CMD} ${SCRIPT} $@ | tee $(dirname $0)/dump2 || exit 1
+${LUA_CMD} ${SCRIPT} $@ || exit 1

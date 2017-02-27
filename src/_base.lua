@@ -71,8 +71,9 @@ libs.getChildrenList = function( cursor, kindList, callbackResult )
       table.insert(
 	 cursorList,
 	 { libs.CXCursor:new( info[ 1 ] ),
-	   libs.CXCursor:new( info[ 2 ] ), 
-	   index == 1 or info[ 3 ] } )
+	   libs.CXCursor:new( info[ 2 ] ),
+	   table.pack( index == 1 or info[ 3 ],
+		       table.unpack( info, 4 ) ) } )
    end
    return result, cursorList
 end

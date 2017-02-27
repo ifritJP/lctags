@@ -6,3 +6,5 @@ extern int func33();
 #ifdef NNNN
 extern int func44();
 #endif
+
+#define VVVVVVV

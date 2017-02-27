@@ -12,10 +12,8 @@ end
 
 local useFastFlag = false
 local prevFile = nil
-local function visitFuncMain( cursor, parent, exInfo, changeFileFlag )
-   if changeFileFlag == nil then
-      local cxfile, line, column, offset = getFileLocation( cursor )
-   end
+local function visitFuncMain( cursor, parent, exInfo )
+   local cxfile, line, column, offset = getFileLocation( cursor )
    local cursorKind = cursor:getCursorKind()
    local txt = cursor:getCursorSpelling()
    print( string.format(
@@ -78,7 +76,8 @@ local function visitFuncMain( cursor, parent, exInfo, changeFileFlag )
 end
 
 
-local function visitFuncMainFast( cursor, parent, exInfo, changeFileFlag )
+local function visitFuncMainFast( cursor, parent, exInfo, appendInfo )
+   local changeFileFlag = appendInfo[ 1 ]
    -- local cursorKind = cursor:getCursorKind()
    -- local txt = cursor:getCursorSpelling()
    -- print( string.format(

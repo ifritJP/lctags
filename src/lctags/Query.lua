@@ -147,7 +147,7 @@ end
 function Query:outputRelation(
       target, depthLimit, relIf, browseFlag, outputFile, imageFormat )
    if not depthLimit then
-      depthLimit = 5
+      depthLimit = 4
    elseif string.find( depthLimit, "^[0-9]+$" ) then
       depthLimit = tonumber( depthLimit )
    end

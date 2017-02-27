@@ -258,4 +258,7 @@ namespace ns1 {
 }
 
 namespace ns4 {
+  int values[] = {
+    ns1::g_global
+  };
 }

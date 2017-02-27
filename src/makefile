@@ -128,15 +128,18 @@ lctags-build:
 
 
 test: build
+ifndef NO_INIT
 	$(LUA_COMMAND) lctags/lctags.lua init .
+endif
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 --lctags-target hoge | tee dump | grep -e ':[[:space:]][12][[:space:]]'
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 >> dump
 	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
 	$(LUA_COMMAND) lctags/lctags.lua -xa sub
 	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 232 23 --lctags-target hoge
 	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 243 18 --lctags-target hoge
 	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 197 18 --lctags-target hoge
 	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 256 15 --lctags-target hoge
+	-rm -f graph.sample/*
 	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t::2 -o graph.sample/caller.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -152,12 +155,14 @@ ifeq ($(shell which lctags),)
 	@echo please make install
 	@exit 1
 endif
-	$(LUA_COMMAND) lctags/lctags.lua init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3 
+ifndef NO_INIT
+	$(LUA_COMMAND) lctags/lctags.lua init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3
+endif
 	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=clean
-	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) --lctags-log 3 --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	-$(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) --lctags-log 4 --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	mkdir -p $(TEST_LUA_DIR)/digest $(TEST_LUA_DIR)/sql
-	mv $(TEST_LUA_DIR)/digest.* $(TEST_LUA_DIR)/digest
-	mv $(TEST_LUA_DIR)/*.sql $(TEST_LUA_DIR)/sql
+	-mv $(TEST_LUA_DIR)/digest.* $(TEST_LUA_DIR)/digest
+	-mv $(TEST_LUA_DIR)/*.sql $(TEST_LUA_DIR)/sql
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) lctags/lctags.lua shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3

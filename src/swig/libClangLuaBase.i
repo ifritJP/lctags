@@ -115,6 +115,10 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 	lua_pushboolean( pLua, !equalsPrevFileFlag );
 	lua_settable( pLua, -3 );
 
+	lua_pushinteger( pLua, 4 );
+	lua_pushinteger( pLua, offset );
+	lua_settable( pLua, -3 );
+        
 	lua_settable( pLua, -3 );
       }
 

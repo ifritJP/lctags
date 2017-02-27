@@ -456,13 +456,19 @@ function DBCtrl:getSimpleName( id, name )
 end
 
 function DBCtrl:equalsCompOp( fileInfo, compileOp, target )
-   local targetInfo = self:getRow(
-      "compileOp",
-      string.format(
-	 "fileId = %d and target = '%s'", fileInfo.id, target ) )
+   local condition
+   if target then
+      condition = string.format(
+	 "fileId = %d and target = '%s'", fileInfo.id, target )
+   else
+      condition = string.format( "fileId = %d and compOp = '%s'",
+				 fileInfo.id, compileOp )
+   end
+   
+   local targetInfo = self:getRow( "compileOp", condition )
    if not targetInfo then
       log( 2, "not found:", fileInfo.id, target or "nil" )
-      return false
+      return nil
    end
 
    log( 3, "equalsCompOp:", compileOp, targetInfo.compOp )
@@ -474,6 +480,13 @@ function DBCtrl:setUpdateTime( fileId, time )
    self:update(
       "filePath", "updateTime = " .. tostring( time ),
       "id = " .. tostring( fileId ) )
+end
+
+function DBCtrl:updateCompileOp( fileInfo, target, compileOp )
+   self:update(
+      "compileOp", "compOp = '" .. compileOp .. "'",
+      string.format( "fileId = %d AND target = '%s'",
+		     fileInfo.id, target ) )
 end
       
 
@@ -493,16 +506,21 @@ function DBCtrl:addFile(
    log( 3, "addFile:", filePath )
    if fileInfo then
       if fileInfo.id == systemFileId then
-	 return
+	 return fileInfo
       end
       if isTarget then
 	 self.targetFileInfo = fileInfo
-	 if not self:equalsCompOp( fileInfo, compileOp, target ) then
-	    self:update(
-	       "compileOp", "compOp = '" .. compileOp .. "'",
-	       string.format( "fileId = %d AND target = '%s'",
-			      fileInfo.id, target ) )
+	 local equalsCompOpResult = self:equalsCompOp( fileInfo, compileOp, target )
+	 if equalsCompOpResult == nil then
+	    self:insert(
+	       "compileOp",
+	       string.format( "%d, '%s', '%s'", fileInfo.id, target, compileOp ) )
+	    log( 2, "new compileOp" )
+	 elseif not equalsCompOpResult then
+	    self:updateCompileOp( fileInfo, target, compileOp )
 	 else
+	    -- コンパイルオプションが等しいので、
+	    -- コンパイルオプションを含む systemFile は uptodate
 	    local systemFIleInfo = self:getFileInfo( systemFileId, nil )
 	    systemFIleInfo.uptodate = true
 	    log( 2, "systemFIle is uptodate" )
@@ -524,6 +542,18 @@ function DBCtrl:addFile(
 	       string.format( "id = %d", fileInfo.id ) )
 	 end
       end
+
+      if self:existsFileWithTokenDigest( fileInfo.id, digest ) then
+	 if fileInfo.uptodate == nil then
+	    log( 3, "uptodate target", fileInfo.path )
+	    fileInfo.uptodate = true
+	 end
+      else
+	 log( 2, "detect new digest file", fileInfo.path, digest )
+	 fileInfo.uptodate = false
+	 self:addTokenDigest( fileInfo.id, digest )
+      end
+      
       self:setUpdateTime( fileInfo.id, time )
       return fileInfo
    end
@@ -812,7 +842,7 @@ function DBCtrl:calcEnumStructDigest( decl, kind, digest )
    digest:write( decl:getCursorSpelling() )
    clang.visitChildrenFast(
       decl,
-      function( cursor, parent, exInfo, changeFileFlag )
+      function( cursor, parent, exInfo, appendInfo )
    	 local cursorKind = cursor:getCursorKind()
    	 if cursorKind == clang.core.CXCursor_StructDecl or
    	    cursorKind == clang.core.CXCursor_UnionDecl
@@ -822,6 +852,7 @@ function DBCtrl:calcEnumStructDigest( decl, kind, digest )
    	 elseif cursorKind == kind then
    	    hasChild = true
    	    local cxtype = cursor:getCursorType()
+	    digest:write( tostring( appendInfo[ 2 ] ) )
    	    digest:write( cxtype:getTypeSpelling() )
    	    digest:write( cursor:getCursorSpelling() )
    	 end
@@ -874,9 +905,9 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
    local workFileInfo = fileInfo
    clang.visitChildrenFast(
       decl,
-      function( cursor, parent, exInfo, changeFileFlag )
+      function( cursor, parent, exInfo, appendInfo )
    	 local cursorKind = cursor:getCursorKind()
-   	 if hasIncFlag and changeFileFlag then
+   	 if hasIncFlag and appendInfo[ 1 ] then
    	    workFileInfo = self:getFileFromCursor( cursor )
    	 end
 	 
@@ -1147,10 +1178,10 @@ function DBCtrl:mapIncRefFor( fileId, func )
 end
 
 
-function DBCtrl:existsIncWithDigest( includeFileId, digest )
+function DBCtrl:existsFileWithTokenDigest( fileId, digest )
    return self:exists(
       "tokenDigest", string.format( "fileId = %d AND digest = '%s'",
-				    includeFileId, digest ) )
+				    fileId, digest ) )
 end
 
 function DBCtrl:addTokenDigest( fileId, digest )
@@ -1173,12 +1204,11 @@ function DBCtrl:addInclude( cursor, digest )
 
    table.insert( currentFileInfo.incPosList, line )
 
-   if not self:existsIncWithDigest( fileInfo.id, digest ) then
+   if not self:existsFileWithTokenDigest( fileInfo.id, digest ) then
       log( 2, "detect new digest inc", fileInfo.path, digest )
       self:addTokenDigest( fileInfo.id, digest )
       fileInfo.uptodate = false
    elseif fileInfo.uptodate == nil then
-      log( 2, "uptodate inc", fileInfo.path )
       fileInfo.uptodate = true
    end
 
