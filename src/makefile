@@ -129,7 +129,7 @@ lctags-build:
 
 test: build
 ifndef NO_INIT
-	$(LUA_COMMAND) lctags/lctags.lua init .
+	$(LUA_COMMAND) lctags/lctags.lua init . $(IT_OP) $(IS_OP) $(IM_OP)
 endif
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 --lctags-target hoge | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 >> dump
@@ -140,7 +140,7 @@ endif
 	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 197 18 --lctags-target hoge
 	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 256 15 --lctags-target hoge
 	-rm -f graph.sample/*
-	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t::2 -o graph.sample/caller.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
 	$(LUA_COMMAND) lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
@@ -156,7 +156,7 @@ ifeq ($(shell which lctags),)
 	@exit 1
 endif
 ifndef NO_INIT
-	$(LUA_COMMAND) lctags/lctags.lua init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3
+	$(LUA_COMMAND) lctags/lctags.lua init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
 endif
 	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=clean
 	-$(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) --lctags-log 4 --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'

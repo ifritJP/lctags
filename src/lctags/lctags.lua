@@ -16,7 +16,7 @@ local function printUsage( message )
    print( string.format( [[
 usage:
  - build DB
-   %s init projDir  
+   %s init projDir [-it] [-is] [-im]
    %s build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    %s shrink [--lctags-db path]
    %s chg-proj projDir [--lctags-db path]
@@ -36,6 +36,9 @@ usage:
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
+       -it: enable individual type mode.
+       -is: enable individual struct mode.
+       -is: enable individual macro mode.
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
             "comp-op" is compiler option. This include source file path.
@@ -220,17 +223,29 @@ local function analyzeOption( argList )
 	       else
 		  if lctagOptMap.mode == "build" then
 		     processMode = "conv"
-		  elseif arg == "-b" then
-		     lctagOptMap.browse = true
-		  elseif arg == "-d" then
-		     lctagOptMap.depth = tonumber( argList[ index + 1 ] )
-		     skipArgNum = 1
-		  elseif arg == "-o" then
-		     lctagOptMap.outputFile = argList[ index + 1 ]
-		     skipArgNum = 1
-		  elseif arg == "-f" then
-		     lctagOptMap.imageFormat = argList[ index + 1 ]
-		     skipArgNum = 1
+		  elseif lctagOptMap.mode == "graph" or
+		     lctagOptMap.mode == "graph-at"
+		  then
+		     if arg == "-b" then
+			lctagOptMap.browse = true
+		     elseif arg == "-d" then
+			lctagOptMap.depth = tonumber( argList[ index + 1 ] )
+			skipArgNum = 1
+		     elseif arg == "-o" then
+			lctagOptMap.outputFile = argList[ index + 1 ]
+			skipArgNum = 1
+		     elseif arg == "-f" then
+			lctagOptMap.imageFormat = argList[ index + 1 ]
+			skipArgNum = 1
+		     end
+		  elseif lctagOptMap.mode == "init" then
+		     if arg == "-it" then
+			lctagOptMap.individualTypeFlag = true
+		     elseif arg == "-is" then
+			lctagOptMap.individualStructFlag = true
+		     elseif arg == "-im" then
+			lctagOptMap.individualMacroFlag = true
+		     end
 		  else
 		     processMode = nil
 		  end
@@ -311,7 +326,10 @@ if not lctagOptMap.dbPath then
 end
 
 if lctagOptMap.mode == "init" then
-   DBCtrl:init( lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
+   DBCtrl:init(
+      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
+      lctagOptMap.individualTypeFlag, lctagOptMap.individualStructFlag,
+      lctagOptMap.individualMacroFlag )
    os.exit( 0 )
 end
 

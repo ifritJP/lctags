@@ -43,13 +43,21 @@ function newObj( db, currentDir )
       -- path -> converted path マップ
       convPathCache = {},
       targetFileInfo = nil,
+      -- true の場合、同名の構造体情報を個々に扱う
+      individualStructFlag = false,
+      -- true の場合、同名の型情報(enum,typedef,etc...)を個々に扱う
+      individualTypeFlag = false,
+      --true の場合、同名のマクロシンボルを個々に扱う
+      individualMacroFlag = false,
    }
    setmetatable( obj, { __index = DBCtrl } )
    
    return obj
 end
 
-function DBCtrl:init( path, currentDir, projDir )
+function DBCtrl:init(
+      path, currentDir, projDir,
+      individualTypeFlag, individualStructFlag, individualMacroFlag )
    os.remove( path )
 
    if not currentDir then
@@ -68,12 +76,18 @@ function DBCtrl:init( path, currentDir, projDir )
    obj:createTables()
 
    obj:setProjDir( path, projDir )
+   
+   obj:setEtc( "individualTypeFlag",
+	       individualTypeFlag and "1" or "0" )
+   obj:setEtc( "individualStructFlag",
+	       individualStructFlag and "1" or "0" )
+   obj:setEtc( "individualMacroFlag",
+	       individualMacroFlag and "1" or "0" )
 
    obj:close()
 
    return true
 end
-
 
 function DBCtrl:forceUpdate( path )
    local db = DBAccess:open( path, false )
@@ -276,20 +290,8 @@ function DBCtrl:open( path, readonly, currentDir )
       db:close()
       return nil
    end
-   if tonumber( item.val ) > 1 then
-      log( 1, "not support version", item.val )
-      db:close()
-      return nil
-   end
-
-   local item = obj:getRow( "etc", "keyName = 'version'" )
-   if not item then
-      log( 1, "unknown version" )
-      db:close()
-      return nil
-   end
-   if tonumber( item.val ) > 1 then
-      log( 1, "not support version", item.val )
+   if tonumber( item.val ) ~= 2 then
+      log( 1, "not support version (not 2).", item.val )
       db:close()
       return nil
    end
@@ -299,6 +301,10 @@ function DBCtrl:open( path, readonly, currentDir )
    end
 
    local projDirInfo = obj:getEtc( "projDir" )
+
+   obj.individualTypeFlag = obj:getEtc( "individualTypeFlag" ).val ~= '0'
+   obj.individualStructFlag = obj:getEtc( "individualStructFlag" ).val ~= '0'
+   obj.individualMacroFlag = obj:getEtc( "individualMacroFlag" ).val ~= '0'
 
    if not projDirInfo or projDirInfo.val == "" then
       log( 1, "db is not initialized" )
@@ -328,8 +334,11 @@ function DBCtrl:createTables()
 	 [[
 BEGIN;
 CREATE TABLE etc ( keyName VARCHAR UNIQUE COLLATE binary PRIMARY KEY, val VARCHAR);
-INSERT INTO etc VALUES( 'version', '1' );
+INSERT INTO etc VALUES( 'version', '2' );
 INSERT INTO etc VALUES( 'projDir', '' );
+INSERT INTO etc VALUES( 'individualStructFlag', '0' );
+INSERT INTO etc VALUES( 'individualTypeFlag', '0' );
+INSERT INTO etc VALUES( 'individualMacroFlag', '0' );
 CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary);
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@enum', '::@enum' );
@@ -703,13 +712,21 @@ function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
 
 
    local cursorKind = cursor:getCursorKind()
-   if ( cursorKind ~= clang.core.CXCursor_FunctionDecl and
-	   cursorKind ~= clang.core.CXCursor_CXXMethod and
-	   cursorKind ~= clang.core.CXCursor_Constructor and
-	   cursorKind ~= clang.core.CXCursor_VarDecl and
-	   cursorKind ~= clang.core.CXCursor_Namespace ) or
-      cursor:getStorageClass() == clang.core.CX_SC_Static
+
+   if ( cursor:getStorageClass() == clang.core.CX_SC_Static and
+	   ( cursorKind == clang.core.CXCursor_FunctionDecl or
+		cursorKind == clang.core.CXCursor_VarDecl ) ) or
+      (self.individualMacroFlag and
+	  cursorKind == clang.core.CXCursor_MacroDefinition ) or
+      (self.individualStructFlag and
+	  cursorKind == clang.core.CXCursor_StructDecl ) or
+      (self.individualTypeFlag and
+	  ( cursorKind == clang.core.CXCursor_EnumDecl or
+	       cursorKind == clang.core.CXCursor_UnionDecl or
+	       cursorKind == clang.core.CXCursor_UnionDecl or
+	       cursorKind == clang.core.CXCursor_TypedefDecl ) )
    then
+      -- 同名が存在する名前空間は、識別子としてファイル ID を付加する
       table.insert( nsList, string.format( "%d", fileId ) )
    end
 
@@ -1365,6 +1382,7 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
       self:mapRowList(
 	 "symbolDecl",
 	 string.format( "nsId = %d", nsInfo.id ), nil, nil, func, ... )
+      return
    end
       
    if cursor:getCursorKind() == clang.core.CXCursor_FunctionDecl then
