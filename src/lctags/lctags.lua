@@ -31,7 +31,7 @@ usage:
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
  - graph
-   %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type]
+   %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
    %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
 
   option:
@@ -107,7 +107,8 @@ local function analyzeOption( argList )
       elseif string.find( arg, "--lctags-db", 1, true ) then
 	 skipArgNum = 1
 	 lctagOptMap.dbPath = argList[ index + 1 ]
-	 confPath = string.gsub( lctagOptMap.dbPath, "(.*/)", "%1ctags.conf" )
+	 local confPath = string.gsub(
+	    lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
 	 lctagOptMap.conf = loadConfig( confPath, false )
       end
    end
@@ -120,6 +121,11 @@ local function analyzeOption( argList )
 	 if dbFile then
 	    dbFile:close()
 	    lctagOptMap.dbPath = dbPath
+	    if not lctagOptMap.conf then
+	       local confPath = string.gsub(
+		  lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
+	       lctagOptMap.conf = loadConfig( confPath, false )
+	    end
 	    break
 	 end
 	 dir = string.gsub( dir, "/[^/]*$", "" )
@@ -264,6 +270,12 @@ if not arg[1] then
 end
 
 local srcList, optList, lctagOptMap = analyzeOption( arg )
+if lctagOptMap.conf and lctagOptMap.conf.getDefaultOptionList then
+   local list = lctagOptMap.conf:getDefaultOptionList( lctagOptMap.cc )
+   for index, opt in ipairs( list ) do
+      table.insert( optList, opt )
+   end
+end
 
 for key, val in pairs( lctagOptMap ) do
    log( 3, key, val )
@@ -367,6 +379,12 @@ local analyzer = Analyzer:new(
 
 if lctagOptMap.mode == "build" then
    local src = srcList[1]
+   if not src then
+      log( 1, "src is nil" )
+      os.exit( 1 )
+   end
+   
+   
 
    local option = ""
    for index, opt in ipairs( optList ) do

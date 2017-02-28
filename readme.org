@@ -35,7 +35,7 @@ usage:
    lctags -xP[a]  [--use-global] file
    lctags -c  [--use-global] symbol
  - graph
-   lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type]
+   lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
    lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
 
   option:
@@ -163,9 +163,12 @@ emacs からアクセスする場合は、 lctags.el をロードしてくださ
       '(lambda ()
          (local-set-key "\M-t" 'lctags-def)
          (local-set-key "\M-r" 'lctags-ref)
-         (local-set-key "\C-z\C-lt" 'lctags-def-at)
-         (local-set-key "\C-z\C-lr" 'lctags-ref-at)
-	 (local-set-key "\C-z\C-lc" 'lctags-call-at)
+         (local-set-key "\C-cld" 'lctags-def-at)
+         (local-set-key "\C-clr" 'lctags-ref-at)
+         (local-set-key "\C-clc" 'lctags-ref-at)
+         (local-set-key "\C-clgr" 'lctags-graph-caller-at)
+         (local-set-key "\C-clge" 'lctags-graph-callee-at)
+         (local-set-key "\C-clgs" 'lctags-graph-symbol-at)
          (local-set-key "\C-t" 'gtags-pop-stack)))
 
 (add-hook 'c-mode-common-hook
@@ -186,23 +189,36 @@ lctags.el は、マイナーモードの機能を提供します。
   - gtags-find-tag と互換の動作です。
   - C-u M-t とすることで、 lctags-def-at を実行します。
   - C-u C-u M-t とすることで、 lctags ではなく GNU global を利用します。
-- lctags-ref
+- lctags-ref (M-r)
   - 指定のシンボルの参照場所をリストします。
   - gtags-find-rtag と互換の動作です。
-  - C-u M-t とすることで、 lctags-ref-at を実行します。
+  - C-u M-r とすることで、 lctags-ref-at を実行します。
   - C-u C-u M-r とすることで、 lctags ではなく GNU global を利用します。
-- lctags-def-at
+- lctags-def-at (C-c l d)
   - lctags コマンドの def-at オプションを呼び出します。
   - カーソル位置のシンボルの定義位置をリストします。
-  - その対象ファイルを事前に lctags で解析しておく必要があります。
-- lctags-ref-at
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-ref-at (C-c l r)
   - lctags コマンドの ref-at オプションを呼び出します。
   - カーソル位置のシンボルの参照位置をリストします。
-  - その対象ファイルを事前に lctags で解析しておく必要があります。
-- lctags-call-at
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-call-at (C-c l c)
   - lctags コマンドの call-at オプションを呼び出します。
   - カーソル位置の関数の呼び出し位置をリストします。
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-graph-caller-at (C-c l g r)
+  - lctags コマンドの graph-at caller オプションを呼び出します。
+  - カーソル位置の関数の呼び出し元を辿るコールグラフを表示します。
   - その対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-graph-callee-at (C-c l g r)
+  - lctags コマンドの graph-at callee オプションを呼び出します。
+  - カーソル位置の関数の呼び出し先を辿るコールグラフを表示します。
+  - その対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-graph-callee-at (C-c l g r)
+  - lctags コマンドの graph-at symbol オプションを呼び出します。
+  - カーソル位置のシンボルの呼び出し元を辿るコールグラフを表示します。
+  - その対象ファイルを事前に lctags で解析しておく必要があります。
+
 
 *** グラフ
 
@@ -218,7 +234,7 @@ include、関数の関係を示すグラフを作成することができます�
 **** オプション
 
 #+BEGIN_SRC txt
-$ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] target
+$ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] [name]
 $ lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
 #+END_SRC
 
@@ -230,14 +246,14 @@ $ lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lc
 - 関数呼び出し先 (callee)
 - シンボル参照元 (symbol)
 
-target には、関数名あるいはファイル名あるいはシンボル名、
+name には、関数名あるいはファイル名あるいはシンボル名、
 あるいはそれらを示す ID を指定します。
-target を省略した場合、ID 一覧をリストします。
+name を省略した場合、ID をリストします。
 関数名、シンボル名は完全限定名で指定する必要があります。
 ファイル名は、カレントディレクトリからの相対パスか、フルパスで指定します。
 
 -d は、表示するグラフの階層を指定します。
-デフォルトでは、5 階層までのグラフを作成します。
+デフォルトでは、4 階層までのグラフを作成します。
 
 -o は、作成するグラフのファイル名を指定します。
 
@@ -261,6 +277,7 @@ $ lctags chg-proj .
 + lua, lua-dev(5.2 or 5.3)
 + libclang-dev (r380, r390)
 + luasqlite3 (0.9.4)
++ openssl
 
 *** makefile の編集
 
@@ -320,6 +337,9 @@ convertCompileOption() は、コンパイルオプションの変換結果を返
 このとき、"src" に続けてソースファイルパス返します。
 
 "skip" は、arg が無視すべきオプションであることを示します。
+
+getDefaultOptionList() は、
+libclang に追加で指定するコンパイルオプションのリストを返します。
 
 
 **** 解析無視のファイルパターン指定

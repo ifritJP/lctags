@@ -125,16 +125,31 @@ libs.isBuiltInTypeKind = function( typeKind )
       typeKind <= libclangcore.CXType_LastBuiltin
 end
 
-libs.getNamespaceList = function( cursor, includeCurrent )
+libs.getNamespaceList = function( cursor, includeCurrent, cursorHash2NSFunc )
    local nsList = {}
    local target = cursor
 
    if includeCurrent then
       table.insert( nsList, target:getCursorSpelling() )
    end
-   
+
+   local findHashFlag = false
    while true do
       local parent = target:getCursorSemanticParent()
+
+      if cursorHash2NSFunc then
+	 local fullname = cursorHash2NSFunc( parent )
+	 if fullname then
+	    findHashFlag = true
+	    local index = 1
+	    for name in string.gmatch( fullname, "[^:]+" ) do
+	       table.insert( nsList, index, name )
+	       index = index + 1
+	    end
+	    break
+	 end
+      end
+      
       target = parent
       local cursorKind = parent:getCursorKind()
       if cursorKind == libclangcore.CXCursor_InvalidFile then
@@ -148,12 +163,14 @@ libs.getNamespaceList = function( cursor, includeCurrent )
       end
    end
 
-   if cursor:getCursorKind() == libclangcore.CXCursor_StructDecl then
-      table.insert( nsList, 1, "@struct" )
-   elseif cursor:getCursorKind() == libclangcore.CXCursor_EnumDecl then
-      table.insert( nsList, 1, "@enum" )
-   elseif cursor:getCursorKind() == libclangcore.CXCursor_UnionDecl then
-      table.insert( nsList, 1, "@union" )
+   if not findHashFlag then
+      if cursor:getCursorKind() == libclangcore.CXCursor_StructDecl then
+	 table.insert( nsList, 1, "@struct" )
+      elseif cursor:getCursorKind() == libclangcore.CXCursor_EnumDecl then
+	 table.insert( nsList, 1, "@enum" )
+      elseif cursor:getCursorKind() == libclangcore.CXCursor_UnionDecl then
+	 table.insert( nsList, 1, "@union" )
+      end
    end
 
    local namespace = ""

@@ -87,7 +87,7 @@ function DBCtrl:forceUpdate( path )
    }
    setmetatable( obj, { __index = DBCtrl } )
 
-   obj:update( "filePath", "modTime = 0", "incFlag = 0" )
+   obj:update( "filePath", "updateTime = 0", "incFlag = 0" )
 
    obj:close()
 
@@ -467,7 +467,7 @@ function DBCtrl:equalsCompOp( fileInfo, compileOp, target )
    
    local targetInfo = self:getRow( "compileOp", condition )
    if not targetInfo then
-      log( 2, "not found:", fileInfo.id, target or "nil" )
+      log( 2, "not found compileOp:", fileInfo.id, target or "nil" )
       return nil
    end
 
@@ -685,7 +685,12 @@ end
 function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
    local spell = cursor:getCursorSpelling()
    local simpleName = spell
-   local nsList = clang.getNamespaceList( cursor )
+   local nsList = clang.getNamespaceList(
+      cursor, nil,
+      function( aCursor )
+	 return self.hashCursor2FullnameMap[ aCursor:hashCursor() ]
+      end
+   )
    if spell == "" then
       if typedefName and typedefName ~= "" then
 	 simpleName = typedefName

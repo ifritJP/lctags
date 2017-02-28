@@ -1,8 +1,8 @@
 LUA_COMMAND=lua5.3
 LUA_INC=../../external/lua/lua-5.3.4/src/
-LUA_LIB=-llua5.3
+LUA_LIB=
 LUA_CFLAGS=
-LUA_LDFLAGS=
+LUA_LDFLAGS=-llua5.3
 
 all: Helper.so
 

@@ -683,8 +683,11 @@ function Analyzer:retisterToDB( db )
       log( cursor:getCursorSpelling(),
 	   clang.getCursorKindSpelling( cursor:getCursorKind() ) )
       local typedefInfo = self.hashCursor2TypedefMap[ cursor:hashCursor() ]
-      db:addEnumDecl( info[1], string.format( "<anonymous_enum_%d>", info[2] ),
-		      typedefInfo and typedefInfo.typedef:getCursorSpelling() or "" )
+      local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
+      local anonymousId = typedefInfo and typedefName or info[2]
+      
+      db:addStructDecl( cursor, string.format( "<anonymous_enum_%s>", anonymousId ),
+			typedefName )
    end
    
    log( 2, "-- struct -- ", os.clock(), os.date()  )
@@ -694,8 +697,11 @@ function Analyzer:retisterToDB( db )
 	   clang.getCursorKindSpelling( cursor:getCursorKind() ) )
 
       local typedefInfo = self.hashCursor2TypedefMap[ cursor:hashCursor() ]
-      db:addStructDecl( cursor, string.format( "<anonymous_struct_%d>", info[2] ),
-			typedefInfo and typedefInfo.typedef:getCursorSpelling() or "" )
+      local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
+      local anonymousId = typedefInfo and typedefName or info[2]
+      
+      db:addStructDecl( cursor, string.format( "<anonymous_struct_%s>", anonymousId ),
+			typedefName )
    end
 
    log( 2, "-- union -- ", os.clock(), os.date()  )
