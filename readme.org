@@ -20,7 +20,7 @@ lctags コマンドを使用します。
 #+BEGIN_SRC txt
 usage:
  - build DB
-   lctags init projDir  
+   lctags init projDir [-it] [-is] [-im]
    lctags build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    lctags shrink [--lctags-db path]
    lctags chg-proj projDir [--lctags-db path]
@@ -29,8 +29,9 @@ usage:
    lctags dump
    lctags ref-at[a] [--lctags-target target] file line column 
    lctags def-at[a] [--lctags-target target] file line column 
-   lctags call-at[a] [--lctags-target target] file line column 
-   lctags ns-at [--lctags-target target] file line column 
+   lctags call-at[a] [--lctags-target target] file line column
+   lctags list <incSrc|inc> [-d depth] name
+   lctags ns-at [--lctags-target target] file line column
    lctags -x[t|s|r][a]  [--use-global] symbol
    lctags -xP[a]  [--use-global] file
    lctags -c  [--use-global] symbol
@@ -40,6 +41,9 @@ usage:
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
+       -it: enable individual type mode.
+       -is: enable individual struct mode.
+       -is: enable individual macro mode.
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
             "comp-op" is compiler option. This include source file path.
@@ -166,9 +170,12 @@ emacs からアクセスする場合は、 lctags.el をロードしてくださ
          (local-set-key "\C-cld" 'lctags-def-at)
          (local-set-key "\C-clr" 'lctags-ref-at)
          (local-set-key "\C-clc" 'lctags-ref-at)
+         (local-set-key "\C-clli" 'lctags-list-inc-this-file)
+         (local-set-key "\C-cllI" 'lctags-list-incSrc-this-file)
          (local-set-key "\C-clgr" 'lctags-graph-caller-at)
          (local-set-key "\C-clge" 'lctags-graph-callee-at)
          (local-set-key "\C-clgs" 'lctags-graph-symbol-at)
+         (local-set-key "\C-clu" 'lctags-update-this-file)
          (local-set-key "\C-t" 'gtags-pop-stack)))
 
 (add-hook 'c-mode-common-hook
@@ -218,7 +225,17 @@ lctags.el は、マイナーモードの機能を提供します。
   - lctags コマンドの graph-at symbol オプションを呼び出します。
   - カーソル位置のシンボルの呼び出し元を辿るコールグラフを表示します。
   - その対象ファイルを事前に lctags で解析しておく必要があります。
-
+- lctags-list-incSrc-this-file (C-c l l I)
+  - 現在のバッファで開いているファイルをインクルードしているファイル一覧をリストします。
+  - デフォルトは、4 階層までの結果をリストします。
+  - C-u N C-c l l I で、解析する階層として N を指定できます。 N は数字キーです。
+- lctags-list-inc-this-file (C-c l l i)
+  - 現在のバッファで開いているファイルがインクルードしているファイル一覧をリストします。
+  - デフォルトは、100 階層までの結果をリストします。
+  - C-u N C-c l l I で、解析する階層として N を指定できます。 N は数字キーです。
+- lctags-update-this-file (C-c l u)
+  - 現在のバッファで開いているファイルを解析しなおします。
+  - バッファで開いているファイルがヘッダファイルの場合は動作しません。
 
 *** グラフ
 

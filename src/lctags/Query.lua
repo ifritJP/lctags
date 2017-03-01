@@ -34,14 +34,20 @@ function Query:printLocate( db, symbol, fileId, line, absFlag, printLine )
    
    local baseDir = absFlag and "" or os.getenv( "PWD" )
    local path = db:getSystemPath( fileInfo.path, baseDir )
-   -- GNU globalフォーマット
-   print( string.format( "%-16s %4d %-16s %s", symbol, line, path,
-			 printLine and self:getFileLineText( path, line ) or "" ) )
+   self:printLocateDirect( io.stdout, symbol, path, line, printLine )
 end
+
+function Query:printLocateDirect( outputHandle, symbol, path, line, printLine )
+   -- GNU globalフォーマット
+   outputHandle:write(
+      string.format( "%-16s %4d %-16s %s\n", symbol, line, path,
+		     printLine and self:getFileLineText( path, line ) or "" ) )
+end
+
 
 function Query:execWithDb( db, query, target )
    local absFlag = query:find( "a" )
-   if query:find( "dump" ) then
+   if query == "dump" then
       db:dump( 1 )
    elseif query:find( "P" ) then
       db:mapFile(
@@ -144,8 +150,8 @@ function Query:exec( dbPath, query, target, useGlogalFlag )
    return true
 end
 
-function Query:outputRelation(
-      target, depthLimit, relIf, browseFlag, outputFile, imageFormat )
+
+function Query:outputRelation( target, depthLimit, relIf, outputFunc, ... )
    if not depthLimit then
       depthLimit = 4
    elseif string.find( depthLimit, "^[0-9]+$" ) then
@@ -157,10 +163,6 @@ function Query:outputRelation(
       os.exit( 0 )
    end
 
-   if not imageFormat then
-      imageFormat = "svg"
-   end
-   
 
    local targetId
    if string.find( target, "^[0-9]+$" ) then
@@ -176,14 +178,19 @@ function Query:outputRelation(
 
    local id2BaseIdSetMap = {}
    local allIdList = {}
+   local allIdSet = {}
 
    local newIdList = { { 1, targetId } }
+   allIdSet[ targetId ] = 1
    repeat
       local workList = {}
       for index, info in ipairs( newIdList ) do
 	 local dstId = info[ 2 ]
 	 local depth = info[ 1 ]
-	 table.insert( allIdList, dstId )
+	 if not allIdSet[ dstId ] then
+	    table.insert( allIdList, dstId )
+	    allIdSet[ dstId ] = 1
+	 end
 	 if depth < depthLimit then
 	    relIf:mapBaseFor(
 	       dstId, 
@@ -206,72 +213,13 @@ function Query:outputRelation(
       newIdList = workList
    until #workList == 0
 
-   local fileHandle
-   if not outputFile then
-      if browseFlag then
-	 outputFile = os.getenv( "TMP" )
-	 if not outputFile then
-	    outputFile = os.getenv( "TEMP" )
-	 end
-	 if not outputFile then
-	    outputFile = os.getenv( "TEMPDIR" )
-	 end
-	 if not outputFile then
-	    outputFile = "/tmp"
-	 end
-	 outputFile = outputFile .. "/lctags" .. os.clock()
-      else
-	 outputFile = "lctags_graph." .. imageFormat
-      end
-   end
-   local dotFile = outputFile .. ".dot"
-   fileHandle = io.open( dotFile, "w" )
 
-   if not fileHandle then
-      log( 1, "failed to open image file" )
-      os.exit( 1 )
-   end
-      
-   local handle = io
-   
-   fileHandle:write( "digraph relation {\n" )
-   fileHandle:write(
-      'rankdir = "' .. (relIf.reverseFlag and "RL" or "LR") .. '";\n' )
-
-   for index, id in ipairs( allIdList ) do
-      fileHandle:write( string.format(
-			   '"%d:%s" [tooltip="%s" %s];\n',
-			   id, relIf:getName( id ), relIf:getTooltip( id ),
-			   targetId == id and "color = red" or "" ) )
-   end
-   
-   for id, baseIdSet in pairs( id2BaseIdSetMap ) do
-      for baseId in pairs( baseIdSet ) do
-	 local baseTxt = tonumber( baseId ) .. ':' .. relIf:getName( baseId )
-	 local dstTxt = tonumber( id ) .. ':' .. relIf:getName( id )
-	 fileHandle:write(
-	    string.format(
-	       '"%s" -> "%s";\n',
-	       relIf.reverseFlag and baseTxt or dstTxt,
-	       relIf.reverseFlag and dstTxt or baseTxt ) )
-      end
-   end
-   fileHandle:write( "}\n" )
-   fileHandle:close()
-
-   os.execute( string.format(
-		  "dot -T%s -o %s %s", imageFormat, outputFile, dotFile ) )
-   os.remove( dotFile )
-
-   if browseFlag then
-      os.execute( "firefox " .. outputFile )
-      os.remove( outputFile )
-   end
+   outputFunc( targetId, allIdList, id2BaseIdSetMap, relIf, ... )
 end
 
 function Query:outputCallRelation(
-      dbPath, namespace, callerMode, depthLimit,
-      browseFlag, outputFile, imageFormat )
+      dbPath, namespace, callerMode, depthLimit, outputFunc, ... )
+   
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
       log( 1, "db open error" )
@@ -319,14 +267,12 @@ function Query:outputCallRelation(
       end,
    }
 
-   self:outputRelation(
-      namespace, depthLimit, refIf, browseFlag, outputFile, imageFormat )
+   self:outputRelation( namespace, depthLimit, refIf, outputFunc, ... )
 end
 
 
 function Query:outputIncRelation(
-      dbPath, incFilePath, incFlag,
-      depthLimit, browseFlag, outputFile, imageFormat )
+      dbPath, incFilePath, incFlag, depthLimit, outputFunc, ... )
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
       log( 1, "db open error" )
@@ -348,7 +294,7 @@ function Query:outputIncRelation(
 	 return string.gsub( db:getFileInfo( id ).path,  ".*/", "" )
       end,
       getTooltip = function( self, id )
-	 return db:getFileInfo( id ).path
+	 return db:getSystemPath( db:getFileInfo( id ).path )
       end,
       convItem = function( self, item )
 	 if incFlag then
@@ -369,12 +315,13 @@ function Query:outputIncRelation(
    }
 
    self:outputRelation(
-      incFilePath, depthLimit, refIf, browseFlag, outputFile, imageFormat )
+      incFilePath, depthLimit, refIf, outputFunc, ... )
+
 end
 
 
 function Query:outputSymbolRefRelation(
-      dbPath, symbol, depthLimit, browseFlag, outputFile, imageFormat )
+      dbPath, symbol, depthLimit, outputFunc, ... )
    local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    if not db then
       log( 1, "db open error" )
@@ -409,8 +356,7 @@ function Query:outputSymbolRefRelation(
       end
    }
 
-   self:outputRelation(
-      symbol, depthLimit, refIf, browseFlag, outputFile, imageFormat )
+   self:outputRelation( symbol, depthLimit, refIf, outputFunc, ... )
 end
 
 

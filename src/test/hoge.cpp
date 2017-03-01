@@ -224,6 +224,8 @@ namespace ns1 {
                 func0( func2 );
 		func5( NULL );
             }
+	    ::ns1::struct_func_t val;
+            val.abcd.efgh = 1;
             return 0;
         }
 

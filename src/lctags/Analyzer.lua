@@ -5,6 +5,7 @@ local DBCtrl = require( 'lctags.DBCtrl' )
 local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
 local Query = require( 'lctags.Query' )
+local OutputCtrl = require( 'lctags.OutputCtrl' )
 
 
 local function dumpCursorInfo( cursor, depth, prefix )
@@ -123,26 +124,28 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
    if cursorKind == clang.core.CXCursor_Namespace then
       table.insert( analyzer.nsList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
    end
    
    if cursorKind == clang.core.CXCursor_InclusionDirective then
       local cxfile = cursor:getIncludedFile()
-      local path = cxfile and cxfile:getFileName() or ""
+      local path = ""
+      if cxfile then
+	 path = DBCtrl:convFullpath( cxfile:getFileName(),analyzer.currentDir )
+      end
       local spInfo = analyzer.path2InfoMap[ path ]
       if not spInfo then
-	 path = DBCtrl:convFullpath( path, analyzer.currentDir )	 
 	 spInfo = analyzer:createSpInfo( path, true, cxfile )
       end
       
       table.insert( analyzer.incList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
       return 1
    elseif cursorKind == clang.core.CXCursor_ClassDecl then
       table.insert( analyzer.classList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
       
    elseif cursorKind == clang.core.CXCursor_StructDecl or
       cursorKind == clang.core.CXCursor_UnionDecl or
@@ -163,26 +166,26 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 
       table.insert( list, { cursor, analyzer.currentSpInfo.anonymousCount } )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
    elseif cursorKind == clang.core.CXCursor_FunctionDecl then
       table.insert( analyzer.funcList, cursor )
       analyzer.currentFunc = cursor
       table.insert( endProcess, function() analyzer.currentFunc = nil end )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
-      
+      analyzer:registCursor( cursor )
    elseif cursorKind == clang.core.CXCursor_MacroDefinition then
       table.insert( analyzer.macroDefList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
-
+      analyzer:registCursor( cursor )
    elseif cursorKind == clang.core.CXCursor_MacroExpansion then
       local declCursor = cursor:getCursorReferenced()
       table.insert( analyzer.macroRefList,
 		    { cursor = cursor, declCursor = declCursor, namespace = nil } )
       -- マクロ参照はヘッダの多重 include 抑止に利用していることが多い。
-      -- これを digest 計算に加えると、include 抑止
-      -- calcDigest( cursor, analyzer.currentSpInfo )
+      -- これを digest 計算に加えると、include 抑止の ifdef が差分で引っかかるので
+      -- digest には加えずに、ハッシュだけ登録する
+      -- analyzer:registCursor( cursor )
+      analyzer.cursorHash2SpInfoMap[ cursor:hashCursor() ] = analyzer.currentSpInfo
    elseif cursorKind == clang.core.CXCursor_CXXMethod or
       cursorKind == clang.core.CXCursor_Constructor
    then
@@ -190,7 +193,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       analyzer.currentFunc = cursor
       table.insert( endProcess, function() analyzer.currentFunc = nil end )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
       
    elseif clang.isReference( cursorKind ) then
       if cursorKind ~= clang.core.CXCursor_NamespaceRef then
@@ -201,7 +204,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	    { cursor = cursor, declCursor = declCursor,
 	      namespace = namespace } )
 	 calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-	 calcDigest( cursor, analyzer.currentSpInfo )
+	 analyzer:registCursor( cursor )
 	 calcDigest( declCursor, analyzer.currentSpInfo )
 	 calcDigest( namespace, analyzer.currentSpInfo )
       end
@@ -220,7 +223,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	       { cursor = cursor, declCursor = declCursor,
 		 namespace = namespace } )
 	    calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-	    calcDigest( cursor, analyzer.currentSpInfo )
+	    analyzer:registCursor( cursor )
 	    calcDigest( declCursor, analyzer.currentSpInfo )
 	    calcDigest( namespace, analyzer.currentSpInfo )
 	 end
@@ -230,17 +233,17 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       table.insert( analyzer.callList,
 		    { cursor = cursor, namespace = namespace } )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
       calcDigest( namespace, analyzer.currentSpInfo )
    elseif cursorKind == clang.core.CXCursor_TypedefDecl then
       table.insert( analyzer.typedefList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      calcDigest( cursor, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
    elseif cursorKind == clang.core.CXCursor_VarDecl then
       if analyzer.currentFunc == nil then
 	 table.insert( analyzer.wideAreaValList, cursor )
 	 calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-	 calcDigest( cursor, analyzer.currentSpInfo )
+	 analyzer:registCursor( cursor )
       end
    end
 
@@ -252,7 +255,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 (not uptodateFlag and
 	     (isFuncDecl( cursorKind ) or
 		 cursorKind == clang.core.CXCursor_CompoundStmt or
-		 clang.core.clang_isStatement( cursorKind ) ) )
+		 clang.core.clang_isStatement( cursorKind ) ~= 0 ) )
       then
 	 analyzer.depth = analyzer.depth + 1
 
@@ -327,6 +330,9 @@ function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
       -- typedef の元定義カーソル -> typedef 定義カーソル
       hashCursor2TypedefMap = {},
 
+      -- cursor -> spInfo のマップ
+      cursorHash2SpInfoMap = {},
+
       -- ファイルパス -> ファイル毎の解析情報
       path2InfoMap = {},
       currentSpInfo = nil,
@@ -354,6 +360,12 @@ function Analyzer:createSpInfo( path, uptodateFlag, cxfile )
 
    return spInfo
 end
+
+function Analyzer:registCursor( cursor )
+   self.cursorHash2SpInfoMap[ cursor:hashCursor() ] = self.currentSpInfo
+   calcDigest( cursor, self.currentSpInfo )
+end
+
 
 --[[
    readonly で DB を開く。
@@ -583,16 +595,19 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       targetSpInfo = self:createSpInfo( targetPath, false, self.targetFile )
    end
    targetSpInfo.fixDigest = targetSpInfo.digest:fix()
-   db:addFile( targetPath, Helper.getCurrentTime(), targetSpInfo.fixDigest,
-	       compileOp, self.currentDir, true, target )
+   targetSpInfo.fileInfo = db:addFile(
+      targetPath, Helper.getCurrentTime(), targetSpInfo.fixDigest,
+      compileOp, self.currentDir, true, target )
+   
    -- 残りのヘッダファイルを登録
    for filePath, spInfo in pairs( self.path2InfoMap ) do
       log( filePath )
       local cxfile = transUnit:getFile( db:getSystemPath( filePath ) )
       if not cxfile or not cxfile:isEqual( self.targetFile ) then
 	 spInfo.fixDigest = spInfo.digest:fix()
-	 db:addFile( filePath, Helper.getCurrentTime(), spInfo.fixDigest,
-		     nil, nil, false, target )
+	 spInfo.fileInfo = db:addFile(
+	    filePath, Helper.getCurrentTime(), spInfo.fixDigest,
+	    nil, nil, false, target )
       end
    end
    
@@ -607,13 +622,14 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       local path = cxfile and cxfile:getFileName() or ""
       path = db:convFullpath( path )
       local spInfo = self.path2InfoMap[ path ]
-      db:addInclude( inclusion, spInfo.fixDigest )
+      spInfo.fileInfo = db:addInclude( inclusion, spInfo.fixDigest )
    end
+
 
    -- ファイル登録の後で、更新チェックをかける
    local uptodateFlag = true
    for filePath, spInfo in pairs( self.path2InfoMap ) do
-      if filePath ~= "" and not db:getFileInfo( nil, filePath ).uptodate then
+      if filePath ~= "" and not spInfo.fileInfo.uptodate then
 	 log( 1, "need update", filePath )
 	 uptodateFlag = false
 	 break
@@ -631,6 +647,27 @@ end
 
 
 function Analyzer:retisterToDB( db )
+
+   db:setFuncToGetFileInfoFromCursor(
+      function( db, cursor )
+	 local spInfo = self.cursorHash2SpInfoMap[ cursor:hashCursor() ]
+	 if not spInfo then
+	    print( "notfound", cursor:getCursorSpelling(),
+		   clang.getCursorKindSpelling( cursor:getCursorKind() ) )
+
+	    local cxfile = clang.getFileLocation(
+	       cursor:getCursorLocation().__ptr, clang.core.clang_getFileLocation )
+	    local path = ""
+	    if cxfile ~= nil then
+	       path = DBCtrl:convFullpath( cxfile:getFileName(), self.currentDir )
+	    end
+	    spInfo = self.path2InfoMap[ path ]
+	    self.cursorHash2SpInfoMap[ cursor:hashCursor() ] = spInfo
+	 end
+	 return spInfo.fileInfo
+      end
+   )
+   
    log( 2, "-- macroDefList --", os.clock(), os.date()  )
    for index, macroDef in ipairs( self.macroDefList ) do
       db:addNamespace( macroDef )
@@ -686,7 +723,7 @@ function Analyzer:retisterToDB( db )
       local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
       local anonymousId = typedefInfo and typedefName or info[2]
       
-      db:addStructDecl( cursor, string.format( "<anonymous_enum_%s>", anonymousId ),
+      db:addStructDecl( cursor, string.format( "<enum_%s>", anonymousId ),
 			typedefName )
    end
    
@@ -700,7 +737,7 @@ function Analyzer:retisterToDB( db )
       local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
       local anonymousId = typedefInfo and typedefName or info[2]
       
-      db:addStructDecl( cursor, string.format( "<anonymous_struct_%s>", anonymousId ),
+      db:addStructDecl( cursor, string.format( "<struct_%s>", anonymousId ),
 			typedefName )
    end
 
@@ -757,6 +794,11 @@ function Analyzer:update( path, target )
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList = db:getFileOpt( path, target )
    db:close()
+
+   if fileInfo.incFlag ~= 0 then
+      log( 1, "this file is include file!!" )
+      os.exit( 1 )
+   end
 
    local args = clang.mkCharArray( optionList )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
@@ -825,6 +867,7 @@ function Analyzer:analyzeSourceAtWithFunc(
    end
 
    log( 2, "cursor",
+	cursor:getCursorSpelling(),
 	clang.getCursorKindSpelling( cursor:getCursorKind() ),
 	clang.getCursorKindSpelling( declCursor:getCursorKind() ))
 
@@ -915,8 +958,7 @@ function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
 		     startInfo[ 2 ], absFlag, true )
 		  return
 	       end
-	       
-	       
+
 	       db:SymbolDefInfoListForCursor(
 		  declCursor,
 		  function( item )
@@ -971,12 +1013,12 @@ function Analyzer:graphAt(
 	 if nsInfo then
 	    if graph == "caller" or graph == "callee" then
 	       Query:outputCallRelation(
-		  self.dbPath, nsInfo.name, graph == "caller",
-		  depthLimit, browseFlag, outputFile, imageFormat )
+		  self.dbPath, nsInfo.name, graph == "caller", depthLimit,
+		  OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 	    elseif graph == "systemPath" then
 	       Query:outputSymbolRefRelation(
 		  self.dbPath, nsInfo.name, depthLimit,
-		  browseFlag, outputFile, imageFormat )
+		  OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 	    else
 	       log( 1, "illegal graph", graph )
 	       os.exit( 1 )
@@ -994,18 +1036,23 @@ function Analyzer:graphAt(
 	       else
 		  nsInfo = db:getNamespaceFromCursor( declCursor )
 	       end
+
+	       if not nsInfo then
+		  log( 1, "not found namespace", declCursor:getCursorSpelling() )
+		  os.exit( 1 )
+	       end
 	       
 	       Query:outputCallRelation(
-		  self.dbPath, nsInfo.name, graph == "caller",
-		  depthLimit, browseFlag, outputFile, imageFormat )
+		  self.dbPath, nsInfo.name, graph == "caller", depthLimit,
+		  OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 	    elseif graph == "symbol" then
 	       db:SymbolRefInfoListForCursor(
 		  declCursor,
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Query:outputSymbolRefRelation(
-			self.dbPath, nsInfo.name,
-			depthLimit, browseFlag, outputFile, imageFormat )
+			self.dbPath, nsInfo.name, depthLimit,
+			OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 		     return false
 		  end
 	       )

@@ -135,10 +135,11 @@ endif
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 >> dump
 	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
 	$(LUA_COMMAND) lctags/lctags.lua -xa sub
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 232 23 --lctags-target hoge
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 243 18 --lctags-target hoge
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 234 23 --lctags-target hoge
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 245 18 --lctags-target hoge
 	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 197 18 --lctags-target hoge
-	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 256 15 --lctags-target hoge
+	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 258 15 --lctags-target hoge
+	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 228 18 --lctags-target hoge
 	-rm -f graph.sample/*
 	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
@@ -148,6 +149,7 @@ endif
 	$(LUA_COMMAND) lctags/lctags.lua graph-at callee test/hoge.cpp 210 14 -o graph.sample/at-callee.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph-at caller test/hoge.cpp 223 21 -o graph.sample/at-caller.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph-at symbol test/hoge.cpp 197 18 -o graph.sample/at-symbol.svg
+	$(LUA_COMMAND) lctags/lctags.lua list inc test/hoge.cpp -d 2
 
 
 test-at-lua:

@@ -7,6 +7,7 @@ local Query = require( 'lctags.Query' )
 local gcc = require( 'lctags.gcc' )
 local DBCtrl = require( 'lctags.DBCtrl' )
 local DBAccess = require( 'lctags.DBAccess' )
+local OutputCtrl = require( 'lctags.OutputCtrl' )
 
 local function printUsage( message )
    if message then
@@ -25,8 +26,9 @@ usage:
    %s dump
    %s ref-at[a] [--lctags-target target] file line column 
    %s def-at[a] [--lctags-target target] file line column 
-   %s call-at[a] [--lctags-target target] file line column 
-   %s ns-at [--lctags-target target] file line column 
+   %s call-at[a] [--lctags-target target] file line column
+   %s list <incSrc|inc> [-d depth] name
+   %s ns-at [--lctags-target target] file line column
    %s -x[t|s|r][a]  [--use-global] symbol
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
@@ -74,7 +76,7 @@ usage:
    ]],
 	     command, command, command, command, command, command,
 	     command, command, command, command, command, command,
-	     command, command, command ) )
+	     command, command, command, command ) )
    os.exit( 1 )
 end
 
@@ -86,6 +88,7 @@ local function loadConfig( path, exitOnErr )
       if chunk then
 	 return chunk()
       end
+      print( err )
    end
    if exitOnErr then
       print( "loadfile error", err )
@@ -194,6 +197,13 @@ local function analyzeOption( argList )
 	 elseif string.find( arg, "-c", 1, true ) then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = arg
+	 elseif string.find( arg, "list", 1, true ) then
+	    lctagOptMap.mode = "list"
+	    lctagOptMap.query = argList[ index + 1 ]
+	    if lctagOptMap.query == "inc" then
+	       lctagOptMap.depth = 100
+	    end
+	    skipArgNum = 1
 	 end
       else
 	 if skipArgNum > 0 then
@@ -224,7 +234,8 @@ local function analyzeOption( argList )
 		  if lctagOptMap.mode == "build" then
 		     processMode = "conv"
 		  elseif lctagOptMap.mode == "graph" or
-		     lctagOptMap.mode == "graph-at"
+		     lctagOptMap.mode == "graph-at" or
+		     lctagOptMap.mode == "list"
 		  then
 		     if arg == "-b" then
 			lctagOptMap.browse = true
@@ -366,20 +377,29 @@ if lctagOptMap.mode == "query" then
    os.exit( 0 )
 end
 
+if lctagOptMap.mode == "list" then
+   if lctagOptMap.query == "inc" or lctagOptMap.query == "incSrc" then
+      Query:outputIncRelation(
+	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.query == "inc",
+	 lctagOptMap.depth, OutputCtrl.txt, io.stdout )
+   end
+   os.exit( 0 )
+end
+
 if lctagOptMap.mode == "graph" then
    if lctagOptMap.graph == "inc" or lctagOptMap.graph == "incSrc" then
       Query:outputIncRelation(
 	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "inc",
-	 lctagOptMap.depth, lctagOptMap.browse,
-	 lctagOptMap.outputFile, lctagOptMap.imageFormat )
+	 lctagOptMap.depth, OutputCtrl.dot,
+	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    elseif lctagOptMap.graph == "caller" or lctagOptMap.graph == "callee" then
       Query:outputCallRelation(
 	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "caller",
-	 lctagOptMap.depth, lctagOptMap.browse,
-	 lctagOptMap.outputFile, lctagOptMap.imageFormat )
+	 lctagOptMap.depth, OutputCtrl.dot,
+	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    elseif lctagOptMap.graph == "symbol" then
       Query:outputSymbolRefRelation(
-	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.depth,
+	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.depth, OutputCtrl.dot,
 	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    else
       printUsage( "unknown graph" )
@@ -470,5 +490,3 @@ if lctagOptMap.mode == "graph-at" then
       lctagOptMap.outputFile, lctagOptMap.imageFormat )
    os.exit( 0 )
 end
-
-

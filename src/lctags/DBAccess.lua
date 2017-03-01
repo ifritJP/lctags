@@ -56,6 +56,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       updateCount = 0,
       deleteCount = 0,
       selectCount = 0,
+      uniqueCount = 0,
    }
    setmetatable( obj, { __index = DBAccess } )
 
@@ -65,8 +66,9 @@ end
 function DBAccess:close()
    self.db:close()
    log( 2, string.format(
-	   "insert:%d, update:%d, delete:%d, select:%d",
-	   self.insertCount, self.updateCount, self.deleteCount, self.selectCount ) )
+	   "insert:%d, unique:%d, update:%d, delete:%d, select:%d",
+	   self.insertCount, self.uniqueCount,
+	   self.updateCount, self.deleteCount, self.selectCount ) )
 end
 
 function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
@@ -150,6 +152,8 @@ function DBAccess:insert( tableName, values )
       function( db, stmt, message )
 	 if not message:find( "UNIQUE constraint failed" ) then
 	    self:errorExit( 5, message )
+	 else
+	    self.uniqueCount = self.uniqueCount + 1
 	 end
       end
    )

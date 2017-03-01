@@ -49,7 +49,7 @@ function config:convertCompileOption( compiler, arg )
 	 return "opt", arg
       end
       if string.find( arg, "^-" ) then
-	 if string.find( arg, "^-[JDo]" ) then
+	 if string.find( arg, "^-[JDoI]" ) then
 	    if string.find( arg, "^-D" ) then
 	       macroParen = processParen( arg, macroParen )
 	       if macroParen > 0 then

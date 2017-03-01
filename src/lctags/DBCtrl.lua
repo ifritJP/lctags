@@ -15,6 +15,7 @@ end
 local rootNsId = 1
 local userNsId = 2
 local systemFileId = 1
+local DB_VERSION = 3
 
 local DBCtrl = {}
 
@@ -47,8 +48,9 @@ function newObj( db, currentDir )
       individualStructFlag = false,
       -- true の場合、同名の型情報(enum,typedef,etc...)を個々に扱う
       individualTypeFlag = false,
-      --true の場合、同名のマクロシンボルを個々に扱う
+      -- true の場合、同名のマクロシンボルを個々に扱う
       individualMacroFlag = false,
+      getFileInfoFromCursor = function() return nil end
    }
    setmetatable( obj, { __index = DBCtrl } )
    
@@ -290,8 +292,8 @@ function DBCtrl:open( path, readonly, currentDir )
       db:close()
       return nil
    end
-   if tonumber( item.val ) ~= 2 then
-      log( 1, "not support version (not 2).", item.val )
+   if tonumber( item.val ) ~= DB_VERSION then
+      log( 1, "not support version.", item.val )
       db:close()
       return nil
    end
@@ -334,16 +336,13 @@ function DBCtrl:createTables()
 	 [[
 BEGIN;
 CREATE TABLE etc ( keyName VARCHAR UNIQUE COLLATE binary PRIMARY KEY, val VARCHAR);
-INSERT INTO etc VALUES( 'version', '2' );
+INSERT INTO etc VALUES( 'version', '%d' );
 INSERT INTO etc VALUES( 'projDir', '' );
 INSERT INTO etc VALUES( 'individualStructFlag', '0' );
 INSERT INTO etc VALUES( 'individualTypeFlag', '0' );
 INSERT INTO etc VALUES( 'individualMacroFlag', '0' );
 CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary);
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
-INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@enum', '::@enum' );
-INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@struct', '::@struct' );
-INSERT INTO namespace VALUES( NULL, 1, 0, '', '::@union', '::@union' );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE binary);
 CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary);
@@ -351,7 +350,7 @@ INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '');
 
 CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary );
 CREATE TABLE symbolDecl ( nsId INTEGER, parentId INTEGER, snameId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, PRIMARY KEY( nsId, fileId, line ) );
-CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line ) );
+CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize, PRIMARY KEY( nsId, belongNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER );
@@ -366,7 +365,11 @@ CREATE INDEX index_incRef ON incRef ( id, baseFileId );
 CREATE INDEX index_incBelong ON incBelong ( id, baseFileId );
 CREATE INDEX index_digest ON tokenDigest ( fileId, digest );
 COMMIT;
-]] ) )
+]], DB_VERSION ) )
+end
+
+function DBCtrl:setFuncToGetFileInfoFromCursor( func )
+   self.getFileInfoFromCursor = func
 end
 
 function DBCtrl:updateFile( fileInfo, removeFlag )
@@ -391,10 +394,10 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
       self:delete( "filePath", string.format( "id = %d", fileId ) )
       self:delete( "incRef", string.format( "id = %d", fileId ) )
       self:delete( "incBelong", string.format( "id = %d", fileId ) )
+      self.path2fileInfoMap[ fileInfo.path ] = nil
+      self.fileId2fileInfoMap[ fileId ] = nil
    end
    
-   self.fileId2fileInfoMap[ fileId ] = nil
-   self.path2fileInfoMap[ fileInfo.path ] = nil
 end
 
 
@@ -451,6 +454,9 @@ function DBCtrl:getNamespace( id, canonicalName )
 end
 
 function DBCtrl:getSimpleName( id, name )
+   if not name then
+      name = "@@@"
+   end
    if id then
       return self:getRow( "simpleName", string.format( "id == %d", id ) )
    end
@@ -667,6 +673,11 @@ function DBCtrl:addNamespaceOne(
 end
 
 function DBCtrl:getFileFromCursor( cursor )
+   local fileInfo = self:getFileInfoFromCursor( cursor )
+   if fileInfo then
+      return fileInfo
+   end
+   
    local cxfile = getFileLocation( cursor )
    if not cxfile then
       return self:getFileInfo( systemFileId, nil )
@@ -734,11 +745,11 @@ function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
    for index, name in ipairs( nsList ) do
       local workNS
       if type( name ) == 'table' then
-	 workNS = fullname .. "::" .. name[2]
+	 workNS = fullname .. "::" .. ( name[2] or "@@@" )
 	 name = name[1]
-	 fullname = fullname .. "::" .. name
+	 fullname = fullname .. "::" .. ( name or "@@@" )
       else
-	 fullname = fullname .. "::" .. name
+	 fullname = fullname .. "::" .. ( name or "@@@" )
 	 workNS = fullname
       end
       if index ~= #nsList then
@@ -805,11 +816,11 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
       for index, name in ipairs( nsList ) do
 	 local workNS
 	 if type( name ) == 'table' then
-	    workNS = namespace .. "::" .. name[2]
+	    workNS = namespace .. "::" .. (name[2] or "@@@")
 	    name = name[1]
-	    namespace = namespace .. "::" .. name
+	    namespace = namespace .. "::" .. (name or "@@@")
 	 else
-	    namespace = namespace .. "::" .. name
+	    namespace = namespace .. "::" .. (name or "@@@")
 	    workNS = namespace
 	 end
 	 local isLastName = index == #nsList
@@ -1017,6 +1028,15 @@ end
 function DBCtrl:addReference( refInfo )
    local cursor = refInfo.cursor
    local declCursor = refInfo.declCursor
+
+   local srcFileInfo = self:getFileInfoFromCursor( cursor )
+   if srcFileInfo then
+      if srcFileInfo.uptodate then
+	 log( 3, "uptodate ref", cursor:getCursorSpelling() )
+	 return
+      end
+   end
+
    -- local fileId, line = self:getFileIdLocation( cursor )
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
    local line = startInfo and startInfo[ 2 ] or 0
@@ -1050,11 +1070,6 @@ function DBCtrl:addReference( refInfo )
 	   declCursor:getCursorSpelling())
       nsInfo = self:addNamespaceOne(
 	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
-   end
-
-   if fileInfo.uptodate then
-      log( 3, "uptodate ref", nsInfo.name )
-      return
    end
 
 
@@ -1235,12 +1250,13 @@ function DBCtrl:addInclude( cursor, digest )
    end
 
    if incInfo then 
-      return
+      return fileInfo
    end
 
    self:insert( "incRef",
 		string.format( "%d, %d, %d",
 			       fileInfo.id, currentFileInfo.id, line ) )
+   return fileInfo
 end
 
 
@@ -1366,8 +1382,8 @@ function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
    -- レアケースなのでここではすべて対象とする
    local symbolDeclInfoList = self:getRowList(
       "symbolDecl",
-      string.format( "fileId = %d AND line = %d AND snameId = %d",
-		     fileId, line, snameInfo.id ) )
+      string.format( "fileId = %d AND (line = %d OR endLine = %d) AND snameId = %d",
+		     fileId, line, line, snameInfo.id ) )
 
    for index, symbolDecl in ipairs( symbolDeclInfoList ) do
       self:mapRowList(
@@ -1392,11 +1408,12 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
 
    local fileId, line = self:getFileIdLocation( cursor )
    local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
+   log( 2, "SymbolDefInfoListForCursor", fileId, line, snameInfo.name, snameInfo.id )
    if snameInfo then
       self:mapRowList(
 	 "symbolDecl",
-	 string.format( "fileId = %d AND line = %d AND snameId = %d",
-			fileId, line, snameInfo.id ), nil, nil, func, ... )
+	 string.format( "fileId = %d AND (line = %d OR endLine = %d) AND snameId = %d",
+			fileId, line, line, snameInfo.id ), nil, nil, func, ... )
    end
 end
 
@@ -1420,8 +1437,8 @@ function DBCtrl:mapCallForCursor( cursor, func, ... )
    -- レアケースなのでここではすべて対象とする
    local symbolDeclInfoList = self:getRowList(
       "symbolDecl",
-      string.format( "fileId = %d AND line = %d AND snameId = %d",
-		     fileId, line, snameInfo.id ) )
+      string.format( "fileId = %d AND (line = %d OR endLine = %d) AND snameId = %d",
+		     fileId, line, line, snameInfo.id ) )
 
    for index, symbolDecl in ipairs( symbolDeclInfoList ) do
       self:mapRowList(
@@ -1536,6 +1553,11 @@ function DBCtrl:getFileInfo( id, path )
       if not fileInfo then
 	 return nil
       end
+      local work = self.path2fileInfoMap[ fileInfo.path ]
+      if work then
+	 return work
+      end
+      log( 3, "getFileInfo: id", fileInfo.path )
       self.path2fileInfoMap[ fileInfo.path ] = fileInfo
       self.fileId2fileInfoMap[ id ] = fileInfo
       fileInfo.incPosList = {}
@@ -1572,11 +1594,16 @@ function DBCtrl:getFileInfo( id, path )
    if fileInfo then
       return fileInfo, path
    end
+   log( 3, "getFileInfo: path", path )
    fileInfo = self:getRow( "filePath", "path == '" .. path .. "'" )
    if not fileInfo then
       return nil, path
    end
 
+   local work = self.fileId2fileInfoMap[ fileInfo.id ]
+   if work then
+      return work
+   end
    self.path2fileInfoMap[ path ] = fileInfo
    self.fileId2fileInfoMap[ fileInfo.id ] = fileInfo
    fileInfo.incPosList = {}

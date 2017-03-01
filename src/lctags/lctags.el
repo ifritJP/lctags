@@ -11,14 +11,19 @@
 ;;          (local-set-key "\C-cld" 'lctags-def-at)
 ;;          (local-set-key "\C-clr" 'lctags-ref-at)
 ;;          (local-set-key "\C-clc" 'lctags-ref-at)
+;;          (local-set-key "\C-clli" 'lctags-list-inc-this-file)
+;;          (local-set-key "\C-cllI" 'lctags-list-incSrc-this-file)
 ;;          (local-set-key "\C-clgr" 'lctags-graph-caller-at)
 ;;          (local-set-key "\C-clge" 'lctags-graph-callee-at)
 ;;          (local-set-key "\C-clgs" 'lctags-graph-symbol-at)
+;;          (local-set-key "\C-clu" 'lctags-update-this-file)
 ;;          (local-set-key "\C-t" 'gtags-pop-stack)))
 
 
 (require 'gtags)
 
+(defvar lctags-process-buf-name "*lctags-process*"
+  "")
 
 (defvar lctags-command
   (expand-file-name "lctags")
@@ -76,26 +81,30 @@ This parameter can set function and string.
     (with-current-buffer lctags-buf
       (setq default-directory dir)
       (setq command
+	    (delq nil
+		  (append lctags-opts
+			  (list "--lctags-quiet")
+			  (when db-path
+			    (list "--lctags-db" db-path))
+			  (when target
+			    (list "--lctags-target" target))
+			  (when config
+			    (list "--lctags-conf" config))
+			  )))
+      (setq command
 	    (append (list lctags-command nil lctags-buf t )
-		    lctags-opts
-		    (list "--lctags-quiet")
-		    (when db-path
-		      (list "--lctags-db" db-path))
-		    (when target
-		      (list "--lctags-target" target))
-		    (when config
-		      (list "--lctags-conf" config))
-		    ))
+		    command))
+	    
       (apply 'call-process command)
       (goto-char 1))))
 
 
 
-(defun lctags-pos-at ( mode &optional tag )
+(defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
   (let ((save (current-buffer))
 	(line (1- (current-line)))
 	(column (+ (- (point) (point-at-bol)) 1))
-	buffer lineNum select-name lctags-opt)
+	buffer lineNum select-name lctags-opt lctags-opt2 opt-list)
     (cond
      ((equal mode "def-at")
       (setq lctags-opt "def-ata")
@@ -121,13 +130,26 @@ This parameter can set function and string.
      ((equal mode "ref")
       (setq lctags-opt "-xra")
       (setq select-name (format "(R)%s" tag)))
+     ((equal mode "inc")
+      (setq lctags-opt "list")
+      (setq lctags-opt2 "inc")
+      (setq tag buffer-file-name)
+      (setq select-name (format "(i)%s" tag)))
+     ((equal mode "incSrc")
+      (setq lctags-opt "list")
+      (setq lctags-opt2 "incSrc")
+      (setq tag buffer-file-name)
+      (setq select-name (format "(I)%s" tag)))
      )
     (setq buffer (generate-new-buffer
 		  (concat "GTAGS SELECT* " select-name)))
-    (execute-lctags save buffer
-		    lctags-opt tag
-		    (number-to-string line)
-		    (number-to-string column))
+    (setq opt-list
+	  (append (list save buffer lctags-opt lctags-opt2)
+		  lctags-opt-list
+		  (list tag
+			(number-to-string line)
+			(number-to-string column))))
+    (apply 'execute-lctags opt-list)
 
     (with-current-buffer buffer
       ;;(message (buffer-string))
@@ -162,6 +184,21 @@ This parameter can set function and string.
   (gtags-push-context)
   (lctags-pos-at "call-at"))
 
+(defun lctags-list-inc-this-file (&optional depth)
+  (interactive "P")
+  (gtags-push-context)
+  (lctags-pos-at "inc" nil
+		 (when depth "-d")
+		 (when depth (number-to-string depth))))
+
+(defun lctags-list-incSrc-this-file (&optional depth)
+  (interactive)
+  (gtags-push-context)
+  (lctags-pos-at "incSrc" nil
+		 (when depth "-d")
+		 (when depth (number-to-string depth))))
+
+
 (defun lctags-graph-caller-at ()
   (interactive)
   (lctags-graph-at "caller"))
@@ -185,6 +222,16 @@ This parameter can set function and string.
       (execute-lctags org-buf (current-buffer)
 		      "graph-at" graph (buffer-file-name org-buf)
 		      (number-to-string line) (number-to-string column) "-b"))))
+
+
+(defun lctags-update-this-file ()
+  (interactive)
+  (let ((buffer (get-buffer-create lctags-process-buf-name))
+	(org-buf (current-buffer))
+	(file-name (buffer-file-name)))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (execute-lctags org-buf buffer "update" file-name "--lctags-log" "2" ))))
 
 (defun lctags-get-namespace-at ()
   (let ((line (1- (current-line)))
