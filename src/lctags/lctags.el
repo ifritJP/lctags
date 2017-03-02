@@ -64,7 +64,7 @@ This parameter can set function and string.
   (run-hooks 'lctags-mode-hook)
   )
 
-(defun execute-lctags (src-buf lctags-buf &rest lctags-opts)
+(defun lctags-execute (src-buf lctags-buf input &rest lctags-opts)
   (let ((db-path lctags-db)
 	(target lctags-target)
 	(config lctags-conf)
@@ -78,7 +78,7 @@ This parameter can set function and string.
 	(setq config (funcall lctags-conf)))
       (setq dir default-directory))
     
-    (with-current-buffer lctags-buf
+    (with-temp-buffer
       (setq default-directory dir)
       (setq command
 	    (delq nil
@@ -91,36 +91,51 @@ This parameter can set function and string.
 			  (when config
 			    (list "--lctags-conf" config))
 			  )))
+      (when input
+	(insert input))
       (setq command
-	    (append (list lctags-command nil lctags-buf t )
+	    (append (list (point-min) (point-max) lctags-command
+			  nil lctags-buf nil )
 		    command))
 	    
-      (apply 'call-process command)
+      (apply 'call-process-region command))
+    (with-current-buffer lctags-buf
       (goto-char 1))))
 
-
+(let ((buf (current-buffer)))
+  (with-temp-buffer
+    (insert "hoge")
+    (call-process-region 1 5 "cat" nil buf nil)))
+      
+  
 
 (defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
   (let ((save (current-buffer))
 	(line (1- (current-line)))
 	(column (+ (- (point) (point-at-bol)) 1))
-	buffer lineNum select-name lctags-opt lctags-opt2 opt-list)
+	buffer lineNum select-name lctags-opt lctags-opt2 opt-list input )
     (cond
      ((equal mode "def-at")
       (setq lctags-opt "def-ata")
       (setq tag buffer-file-name)
+      (setq input (buffer-string))
+      (setq lctags-opt2 '( "-i" ))
       (setq select-name
 	    (format "(D)%s:%d:%d"
 		    (file-name-nondirectory buffer-file-name) line column)))
      ((equal mode "ref-at")
       (setq lctags-opt "ref-ata")
       (setq tag buffer-file-name)
+      (setq input (buffer-string))
+      (setq lctags-opt2 '( "-i" ))
       (setq select-name
 	    (format "(R)%s:%d:%d"
 		    (file-name-nondirectory buffer-file-name) line column)))
      ((equal mode "call-at")
       (setq lctags-opt "call-ata")
       (setq tag buffer-file-name)
+      (setq input (buffer-string))
+      (setq lctags-opt2 '( "-i" ))
       (setq select-name
 	    (format "(C)%s:%d:%d"
 		    (file-name-nondirectory buffer-file-name) line column)))
@@ -132,24 +147,25 @@ This parameter can set function and string.
       (setq select-name (format "(R)%s" tag)))
      ((equal mode "inc")
       (setq lctags-opt "list")
-      (setq lctags-opt2 "inc")
+      (setq lctags-opt2 '( "inc" ))
       (setq tag buffer-file-name)
       (setq select-name (format "(i)%s" tag)))
      ((equal mode "incSrc")
       (setq lctags-opt "list")
-      (setq lctags-opt2 "incSrc")
+      (setq lctags-opt2 '( "incSrc" ))
       (setq tag buffer-file-name)
       (setq select-name (format "(I)%s" tag)))
      )
     (setq buffer (generate-new-buffer
 		  (concat "GTAGS SELECT* " select-name)))
     (setq opt-list
-	  (append (list save buffer lctags-opt lctags-opt2)
+	  (append (list save buffer input lctags-opt)
+		  lctags-opt2
 		  lctags-opt-list
 		  (list tag
 			(number-to-string line)
 			(number-to-string column))))
-    (apply 'execute-lctags opt-list)
+    (apply 'lctags-execute opt-list)
 
     (with-current-buffer buffer
       ;;(message (buffer-string))
@@ -219,7 +235,7 @@ This parameter can set function and string.
 	)
     
     (with-temp-buffer
-      (execute-lctags org-buf (current-buffer)
+      (lctags-execute org-buf (current-buffer) nil
 		      "graph-at" graph (buffer-file-name org-buf)
 		      (number-to-string line) (number-to-string column) "-b"))))
 
@@ -231,20 +247,22 @@ This parameter can set function and string.
 	(file-name (buffer-file-name)))
     (with-current-buffer buffer
       (erase-buffer)
-      (execute-lctags org-buf buffer "update" file-name "--lctags-log" "2" ))))
+      (lctags-execute org-buf buffer nil "update" file-name "--lctags-log" "2" ))))
 
 (defun lctags-get-namespace-at ()
   (let ((line (1- (current-line)))
 	(column (+ (- (point) (point-at-bol)) 1))
 	buffer namespace )
     (setq buffer (generate-new-buffer "lctags temp"))
-    (execute-lctags (current-buffer) buffer
+    (lctags-execute (current-buffer) buffer nil
 		    "ns-at" (buffer-file-name)
 		    (number-to-string line)
 		    (number-to-string column))
     (setq namespace (with-current-buffer buffer
-		      (string-match "\n$" (buffer-string))
-		      (replace-match ""  t nil (buffer-string))))
+		      (if (equal (buffer-string) "" )
+			  "nothing"
+			(string-match "\n$" (buffer-string))
+			(replace-match ""  t nil (buffer-string)))))
     (kill-buffer buffer)
     namespace))
 
@@ -278,7 +296,7 @@ This parameter can set function and string.
 
 (defun lctags-def (&optional mode)
   (interactive "P")
-  (let ((gtags-symbol-regexp "[:A-Za-z_][@:A-Za-z_0-9]*"))
+  (let ((gtags-symbol-regexp "[:A-Za-z_][@:A-Za-z_0-9]*[A-Za-z_0-9]"))
     (cond
      ((equal mode '(4))
       (lctags-def-at))

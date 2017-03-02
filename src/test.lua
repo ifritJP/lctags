@@ -159,10 +159,12 @@ local function dumpCursorTU( transUnit )
    end
 end
 
-local function dumpCursor( clangIndex, path, options )
+local function dumpCursor( clangIndex, path, options, unsavedFileTable )
    local args = clang.mkcharPArray( options )
+   local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = clangIndex:createTranslationUnitFromSourceFile(
-      path, args:getLength(), args:getPtr(), 0, nil );
+      path, args:getLength(), args:getPtr(),
+      unsavedFileArray:getLength(), unsavedFileArray:getPtr() );
 
    dumpCursorTU( transUnit )
 end
@@ -183,3 +185,17 @@ print( "end", os.clock() )
 -- 	    { "-I/usr/lib/llvm-3.8/include", "-I/usr/include/lua5.3",
 -- 	      "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include" } )
 -- print( "end", os.clock() )
+
+local unsavedFile = clang.core.CXUnsavedFile()
+unsavedFile.Filename = "test/hoge.cpp"
+unsavedFile.Contents = [[
+int func() {
+  return 1;
+}
+]]
+unsavedFile.Length = #unsavedFile.Contents
+
+print( "start", os.clock() )
+dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" }, { unsavedFile } )
+print( "end", os.clock() )
+   

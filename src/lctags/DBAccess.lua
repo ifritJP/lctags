@@ -27,6 +27,7 @@ function DBAccess:errorExit( level, ... )
 end
 
 function DBAccess:open( path, readonly, onMemoryFlag )
+   log(3, "DBAccess:open" )
    local flag = nil
    if readonly then
       flag = sqlite3.OPEN_READONLY
@@ -134,7 +135,6 @@ function DBAccess:begin()
 end
 
 function DBAccess:commit()
-   --self:exec( [[ UPDATE lock SET locked = 0; ]] )
    self:exec(
       "COMMIT",
       function( db, stmt, message )

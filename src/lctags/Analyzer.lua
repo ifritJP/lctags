@@ -20,6 +20,10 @@ local function dumpCursorInfo( cursor, depth, prefix )
    	   cursor:hashCursor(), cursor:getRawCommentText() or "" ) )
 end
 
+local function getFileLoc( cursor )
+   return clang.getFileLocation(
+      cursor:getCursorLocation().__ptr, clang.core.clang_getFileLocation )
+end
 
 local function isFuncDecl( cursorKind )
    return cursorKind == clang.core.CXCursor_CXXMethod or
@@ -86,8 +90,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
    local cursorOffset = tostring( exInfo[ 2 ] )
    
    if exInfo[ 1 ] then
-      local cxfile, line = clang.getFileLocation(
-	 cursor:getCursorLocation().__ptr, clang.core.clang_getFileLocation )
+      local cxfile, line = getFileLoc( cursor )
       if analyzer.currentFile ~= cxfile and
 	 ( not analyzer.currentFile or not cxfile or
 	      not analyzer.currentFile:isEqual( cxfile ) )
@@ -382,7 +385,7 @@ function Analyzer:openDBForWrite()
    return DBCtrl:open( self.dbPath, false, self.currentDir )
 end
 
-function Analyzer:isUptodate( filePath, compileOp, target )
+function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
    local db = self:openDBForReadOnly()
    if not db then
       log( 2, "db open error" )
@@ -416,9 +419,15 @@ function Analyzer:isUptodate( filePath, compileOp, target )
 	 end
 
 	 local targetSystemPath = db:getSystemPath( targetFileInfo.path )
-	 if targetFileInfo.updateTime < Helper.getFileModTime( targetSystemPath )
+	 if unsavedFile or
+	    targetFileInfo.updateTime < Helper.getFileModTime( targetSystemPath )
 	 then
-	    local digest = db:calcFileDigest( targetSystemPath )
+	    local digest
+	    if unsavedFile then
+	       digest = db:calcTextDigest( unsavedFile.Contents )
+	    else
+	       digest = db:calcFileDigest( targetSystemPath )
+	    end
 	    if targetFileInfo.digest ~= digest then
 	       log( 2, "target is modified" )
 	       return false
@@ -643,6 +652,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    
    log( 2, "close", os.clock(), os.date()  )
    db:close()
+   log( 2, "end", os.clock(), os.date()  )
 end
 
 
@@ -652,11 +662,10 @@ function Analyzer:retisterToDB( db )
       function( db, cursor )
 	 local spInfo = self.cursorHash2SpInfoMap[ cursor:hashCursor() ]
 	 if not spInfo then
-	    print( "notfound", cursor:getCursorSpelling(),
-		   clang.getCursorKindSpelling( cursor:getCursorKind() ) )
+	    log( 3, "notfound", cursor:getCursorSpelling(),
+		 clang.getCursorKindSpelling( cursor:getCursorKind() ) )
 
-	    local cxfile = clang.getFileLocation(
-	       cursor:getCursorLocation().__ptr, clang.core.clang_getFileLocation )
+	    local cxfile = getFileLoc( cursor )
 	    local path = ""
 	    if cxfile ~= nil then
 	       path = DBCtrl:convFullpath( cxfile:getFileName(), self.currentDir )
@@ -723,8 +732,8 @@ function Analyzer:retisterToDB( db )
       local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
       local anonymousId = typedefInfo and typedefName or info[2]
       
-      db:addStructDecl( cursor, string.format( "<enum_%s>", anonymousId ),
-			typedefName )
+      db:addEnumDecl( cursor, string.format( "<enum_%s>", anonymousId ),
+		      typedefName )
    end
    
    log( 2, "-- struct -- ", os.clock(), os.date()  )
@@ -814,7 +823,7 @@ end
 
 
 
-function Analyzer:analyzeSource( path, options, target )
+function Analyzer:analyzeSource( path, options, target, unsavedFileTable )
    self.targetFilePath = path
 
    if not target then
@@ -826,13 +835,17 @@ function Analyzer:analyzeSource( path, options, target )
       compileOp = compileOp .. option .. " "
    end
    
-   if self:isUptodate( path, compileOp, target ) then
+   if self:isUptodate( path, compileOp, target,
+		       unsavedFileTable and unsavedFileTable[1] )
+   then
       return
    end
    
    local args = clang.mkCharArray( options )
+   local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
-      path, args:getLength(), args:getPtr(), 0, nil )
+      path, args:getLength(), args:getPtr(),
+      unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
 
    self:analyzeUnit( transUnit, compileOp, target )
 end
@@ -846,19 +859,34 @@ end
 
 
 function Analyzer:analyzeSourceAtWithFunc(
-      currentDir, targetFullPath, line, column, optionList, func )
+      currentDir, targetFullPath, line, column,
+      optionList, target, fileContents, func )
    
    Helper.chdir( currentDir )
    log( 2, "currentDir", currentDir, targetFullPath )
 
-   local db = self:openDBForReadOnly( currentDir )
-
    local args = clang.mkCharArray( optionList )
-   local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
-      targetFullPath, args:getLength(), args:getPtr(), 0, nil )
+   local unsavedFileTable
+   if fileContents then
+      unsavedFileTable = {}
+      local unsavedFile = clang.core.CXUnsavedFile()
+      unsavedFile.Filename = targetFullPath
+      unsavedFile.Contents = fileContents
+      unsavedFile.Length = #unsavedFile.Contents
+      table.insert( unsavedFileTable, unsavedFile )
+   end
 
-   local location = transUnit:getLocation(
-      transUnit:getFile( targetFullPath ), line, column )
+   local prev = log( 0, 0 )
+   self:analyzeSource( targetFullPath, optionList, target, unsavedFileTable )
+   log( 0, prev )
+   
+   local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
+   local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
+      targetFullPath, args:getLength(), args:getPtr(),
+      unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
+
+   local cxfile = transUnit:getFile( targetFullPath )
+   local location = transUnit:getLocation( cxfile, line, column )
    local cursor = transUnit:getCursor( location )
 
    local declCursor = cursor:getCursorReferenced()
@@ -871,6 +899,8 @@ function Analyzer:analyzeSourceAtWithFunc(
 	clang.getCursorKindSpelling( cursor:getCursorKind() ),
 	clang.getCursorKindSpelling( declCursor:getCursorKind() ))
 
+   local db = self:openDBForReadOnly( currentDir )
+   
    func( db, nil, declCursor )
    
    db:close()
@@ -878,7 +908,7 @@ end
 
 
 function Analyzer:queryAtFunc(
-      filePath, line, column, target, func )
+      filePath, line, column, target, fileContents, func )
    local db = self:openDBForReadOnly()
 
    -- filePath の target に対応するコンパイルオプションを取得
@@ -900,26 +930,31 @@ function Analyzer:queryAtFunc(
 	 log( 1, "not found namespace" )
 	 os.exit( 1 )
       end
-   else
-      local analyzer = Analyzer:new(
-	 db:getSystemPath( db:convFullpath( self.dbPath ) ),
-	 self.recordDigestSrcFlag, self.displayDiagnostics )
-      
-      analyzer:analyzeSourceAtWithFunc(
-	 db:getSystemPath( fileInfo.currentDir ),
-	 db:getSystemPath( fileInfo.path ), line, column,
-	 optionList, func )
+      db:close()
+      return
    end
+      
+   local analyzer = Analyzer:new(
+      db:getSystemPath( db:convFullpath( self.dbPath ) ),
+      self.recordDigestSrcFlag, self.displayDiagnostics )
+
+   local currentDir = db:getSystemPath( fileInfo.currentDir )
+   local targetFilePath = db:getSystemPath( fileInfo.path )
 
    db:close()
+   
+   analyzer:analyzeSourceAtWithFunc(
+      currentDir, targetFilePath, line, column,
+      optionList, target, fileContents, func )
 end
 
 
 
 
-function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
+function Analyzer:queryAt(
+      mode, filePath, line, column, absFlag, target, fileContents )
    self:queryAtFunc(
-      filePath, line, column, target,
+      filePath, line, column, target, fileContents,
       function( db, nsInfo, declCursor )
 	 if nsInfo then
 	    if mode == "ref-at" then
@@ -942,29 +977,19 @@ function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Query:printLocate(
-			db, nsInfo.name, item.fileId, item.line, absFlag, true )
+			db, nsInfo.name, item.fileId, item.line,
+			absFlag, true, fileContents )
 		     return true
 		  end	 
 	       )
 	    elseif mode == "def-at" then
-	       if kind == clang.core.CXCursor_VarDecl or
-		  kind == clang.core.CXCursor_ParmDecl
-	       then
-		  local startInfo, endInfo = db:getRangeFromCursor( declCursor )
-		  local fileInfo =
-		     db:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
-		  Query:printLocate(
-		     db, declCursor:getCursorSpelling(), fileInfo.id,
-		     startInfo[ 2 ], absFlag, true )
-		  return
-	       end
-
 	       db:SymbolDefInfoListForCursor(
 		  declCursor,
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Query:printLocate(
-			db, nsInfo.name, item.fileId, item.line, absFlag, true )
+			db, nsInfo.name, item.fileId, item.line,
+			absFlag, true, fileContents )
 		     return true
 		  end	 
 	       )
@@ -974,7 +999,8 @@ function Analyzer:queryAt( mode, filePath, line, column, absFlag, target )
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Query:printLocate(
-			db, nsInfo.name, item.fileId, item.line, absFlag, true )
+			db, nsInfo.name, item.fileId, item.line,
+			absFlag, true, fileContents )
 		     return true
 		  end	 
 	       )
@@ -1008,7 +1034,7 @@ function Analyzer:graphAt(
       depthLimit, browseFlag, outputFile, imageFormat )
 
    self:queryAtFunc(
-      filePath, line, column, target,
+      filePath, line, column, target, nil,
       function( db, nsInfo, declCursor )
 	 if nsInfo then
 	    if graph == "caller" or graph == "callee" then

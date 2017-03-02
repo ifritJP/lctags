@@ -599,11 +599,15 @@ libs.mk%s = function( tbl, length )
    local typeId = type( tbl )
    if typeId == "table" then
       len = #tbl
-   elseif typeId == "userdata" then
-      len = length
+   else
+      if length == nil then
+         len = 0
+      else
+         len = length
+      end
    end
    local array = {
-      __length = #tbl,
+      __length = len,
       __ptr = libclangcore.new_%s( len ),
       getLength = function( self )
 	 return self.__length

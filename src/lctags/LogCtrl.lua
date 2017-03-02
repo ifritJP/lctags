@@ -16,8 +16,9 @@ local log = function( level, ... )
       table.insert( param, 1, level )
    end
    if logLevel == 0 then
+      local prev = displayLevel
       displayLevel = ...
-      return
+      return prev
    elseif logLevel == -1 then
       prefix = ...
       return

@@ -1,4 +1,5 @@
 local Query = require( 'lctags.Query' )
+local log = require( 'lctags.LogCtrl' )
 
 local obj = {}
 
@@ -42,7 +43,7 @@ function obj.dot(
 
    for index, id in ipairs( allIdList ) do
       fileHandle:write( string.format(
-			   '"%d:%s" [tooltip="%s" %s];\n',
+			   '"%d:%s" [tooltip="%s", %s];\n',
 			   id, relIf:getName( id ), relIf:getTooltip( id ),
 			   targetId == id and "color = red" or "" ) )
    end

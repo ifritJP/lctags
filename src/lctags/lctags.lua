@@ -24,11 +24,11 @@ usage:
    %s update pattrn
  - query DB
    %s dump
-   %s ref-at[a] [--lctags-target target] file line column 
-   %s def-at[a] [--lctags-target target] file line column 
-   %s call-at[a] [--lctags-target target] file line column
+   %s ref-at[a] [--lctags-target target] [-i] file line column 
+   %s def-at[a] [--lctags-target target] [-i] file line column 
+   %s call-at[a] [--lctags-target target] [-i] file line column
+   %s ns-at [--lctags-target target] [-i] file line column
    %s list <incSrc|inc> [-d depth] name
-   %s ns-at [--lctags-target target] file line column
    %s -x[t|s|r][a]  [--use-global] symbol
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
@@ -58,6 +58,7 @@ usage:
      def-at: symbol declaration at position
      ref-at: symbol reference at position
      call:at: function call at position
+     -i: input from stdin for source file contents.
      --use-global: use GNU global when db is not found.
      graph: draw graph.
      graph-at: draw graph at position.
@@ -258,7 +259,10 @@ local function analyzeOption( argList )
 			lctagOptMap.individualMacroFlag = true
 		     end
 		  else
-		     processMode = nil
+		     if arg == "-i" then
+			lctagOptMap.inputFromStdin = true
+		     end
+		     processMode = "skip"
 		  end
 	       end
 	    else
@@ -476,9 +480,15 @@ end
 if lctagOptMap.mode == "ref-at" or lctagOptMap.mode == "def-at" or
    lctagOptMap.mode == "call-at" or lctagOptMap.mode == "ns-at"
 then
-   analyzer:queryAt(
-      lctagOptMap.mode, srcList[ 1 ], tonumber( srcList[ 2 ] ),
-      tonumber( srcList[ 3 ] ), lctagOptMap.abs, lctagOptMap.target )
+   local filePath = srcList[ 1 ]
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+
+   analyzer:queryAt( lctagOptMap.mode, filePath, tonumber( srcList[ 2 ] ),
+		     tonumber( srcList[ 3 ] ), lctagOptMap.abs,
+		     lctagOptMap.target, fileContents )
    os.exit( 0 )
 end
 

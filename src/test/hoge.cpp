@@ -225,8 +225,8 @@ namespace ns1 {
 		func5( NULL );
             }
 	    ::ns1::struct_func_t val;
-            val.abcd.efgh = 1;
-            return 0;
+	    val.abcd.efgh = 1;
+            return enum_val1;
         }
 
         int func4( TestClass * pTest ) {

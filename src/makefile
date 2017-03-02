@@ -140,6 +140,7 @@ endif
 	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 197 18 --lctags-target hoge
 	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 258 15 --lctags-target hoge
 	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 228 18 --lctags-target hoge
+	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 229 20 --lctags-target hoge
 	-rm -f graph.sample/*
 	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg

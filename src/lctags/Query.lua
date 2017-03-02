@@ -6,7 +6,7 @@ local DBCtrl = require( 'lctags.DBCtrl' )
 
 local Query = {}
 
-function Query:getFileLineText( filePath, line )
+function Query:getFileLineText( filePath, line, fileContents )
    if line < 0 then
       return ""
    end
@@ -15,17 +15,27 @@ function Query:getFileLineText( filePath, line )
       return "<not found>"
    end
    local lineNo = 1
-   repeat
-      local text = handle:read( '*l' )
-      if lineNo == line then
-	 return text
+   if fileContents then
+      for text in string.gmatch( fileContents, "[^\n]+" ) do
+	 if lineNo == line then
+	    return text
+	 end
+	 lineNo = lineNo + 1
       end
-      lineNo = lineNo + 1
-   until not text
+   else
+      repeat
+	 local text = handle:read( '*l' )
+	 if lineNo == line then
+	    return text
+	 end
+	 lineNo = lineNo + 1
+      until not text
+   end
    return ""
 end
 
-function Query:printLocate( db, symbol, fileId, line, absFlag, printLine )
+function Query:printLocate(
+      db, symbol, fileId, line, absFlag, printLine, fileContents )
    local fileInfo = db:getFileInfo( fileId )
    if fileInfo.path == "" then
       log( 2, "skip system file" )
@@ -34,14 +44,16 @@ function Query:printLocate( db, symbol, fileId, line, absFlag, printLine )
    
    local baseDir = absFlag and "" or os.getenv( "PWD" )
    local path = db:getSystemPath( fileInfo.path, baseDir )
-   self:printLocateDirect( io.stdout, symbol, path, line, printLine )
+   self:printLocateDirect( io.stdout, symbol, path, line, printLine, fileContents )
 end
 
-function Query:printLocateDirect( outputHandle, symbol, path, line, printLine )
+function Query:printLocateDirect(
+      outputHandle, symbol, path, line, printLine, fileContents )
    -- GNU globalフォーマット
    outputHandle:write(
-      string.format( "%-16s %4d %-16s %s\n", symbol, line, path,
-		     printLine and self:getFileLineText( path, line ) or "" ) )
+      string.format(
+	 "%-16s %4d %-16s %s\n", symbol, line, path,
+	 printLine and self:getFileLineText( path, line, fileContents ) or "" ) )
 end
 
 
@@ -181,7 +193,6 @@ function Query:outputRelation( target, depthLimit, relIf, outputFunc, ... )
    local allIdSet = {}
 
    local newIdList = { { 1, targetId } }
-   allIdSet[ targetId ] = 1
    repeat
       local workList = {}
       for index, info in ipairs( newIdList ) do

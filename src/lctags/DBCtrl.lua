@@ -134,11 +134,17 @@ function DBCtrl:calcFileDigest( path )
       log( 1, "file open error", path )
       return nil
    end
-   local digestObj = Helper.openDigest( "md5" )
-   digestObj:write( fileHandle:read( "*a" ) )
+   local text = fileHandle:read( "*a" )
    fileHandle:close()
+   return self:calcTextDigest( text )
+end
+
+function DBCtrl:calcTextDigest( text )
+   local digestObj = Helper.openDigest( "md5" )
+   digestObj:write( text )
    return digestObj:fix()
 end
+
 
 function DBCtrl:setProjDir( dbPath, projDir )
    projDir = self:convFullpath( convProjPath( projDir, self.currentDir ) )
@@ -382,6 +388,7 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
    end
 
    fileInfo.uptodate = false
+   fileInfo.renew = true
    
    log( 1, "updateFile", fileInfo.path, fileId )
    self:delete( "symbolDecl", "fileId = " .. tostring( fileId ) )
@@ -595,14 +602,8 @@ function DBCtrl:addFile(
    return fileInfo
 end
 
-function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
-   self.hashCursor2FullnameMap[ cursor:hashCursor() ] = nsInfo.name
-   self.hashCursor2NSMap[ cursor:hashCursor() ] = nsInfo
-   local fileInfo = self:getFileInfo( fileId )
-   log( 3, "addSymbolDecl", fileId,
-	fileInfo.uptodate, nsInfo.name, cursor:hashCursor() )
+function DBCtrl:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
    
-   --local cxFile, line, column = getFileLocation( cursor )
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
    local line, column =  startInfo[2], startInfo[3]
 
@@ -611,7 +612,7 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
    item.parentId = nsInfo.parentId
    item.snameId = nsInfo.snameId
    item.type = cursor:getCursorKind()
-   item.fileId = fileId
+   item.fileId = fileInfo.id
    item.line = line
    item.column = column
    item.endLine = endInfo[2]
@@ -619,6 +620,18 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
    item.charSize = endInfo[4] - startInfo[4]
    item.comment = cursor:getRawCommentText()
 
+   return item
+end
+
+function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
+   self.hashCursor2FullnameMap[ cursor:hashCursor() ] = nsInfo.name
+   self.hashCursor2NSMap[ cursor:hashCursor() ] = nsInfo
+
+   local fileInfo = self:getFileInfo( fileId )
+   local item = self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
+
+   log( 3, "addSymbolDecl", fileInfo.id,
+	fileInfo.uptodate, nsInfo.name, cursor:hashCursor() )
 
    if not fileInfo.uptodate then
       self:insert(
@@ -686,7 +699,7 @@ function DBCtrl:getFileFromCursor( cursor )
    return self:getFileInfo( nil, fileName )
 end
 
-function DBCtrl:addNamespace( cursor, digest, anonymousName, typedefName )
+function DBCtrl:addNamespace( cursor )
    local fileInfo = self:getFileFromCursor( cursor )
    if fileInfo.id == systemFileId then
       log( 3, "addNamespace skip for system", cursor:getCursorSpelling() )
@@ -699,7 +712,7 @@ function DBCtrl:addNamespace( cursor, digest, anonymousName, typedefName )
       log( "update namespace:", fullname, cursor:hashCursor() )
       return
    end
-   self:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typedefName )
+   self:addNamespaceSub( cursor, fileInfo )
 end
 
 function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
@@ -950,12 +963,18 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
    	    self:addStructDecl(
    	       cursor, anonymousName .. "@" .. tostring( count ), "" )
    	    count = count + 1
+	 elseif cursorKind == clang.core.CXCursor_EnumDecl then
+   	    self:addEnumDecl(
+   	       cursor, anonymousName .. "@" .. tostring( count ), "" )
+   	    count = count + 1
    	 elseif cursorKind == kind then
    	    local name = cursor:getCursorSpelling()
    	    local fullname = fullnameBase .. "::" .. name
    	    log( 3, "addEnumStructDecl process", fullname, os.clock() )
 	    
-   	    if workFileInfo.uptodate or structUptodate then
+   	    if not workFileInfo.renew and
+	       (workFileInfo.uptodate or structUptodate )
+	    then
    	       self.hashCursor2FullnameMap[ cursor:hashCursor() ] = fullname
    	    else
    	       local otherName = otherNameBase .. "::" .. name
@@ -968,7 +987,9 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
       end,
       nil,
       { kind, clang.core.CXCursor_StructDecl,
-   	clang.core.CXCursor_UnionDecl }, 1 )
+   	clang.core.CXCursor_UnionDecl,
+	clang.core.CXCursor_EnumDecl },
+      1 )
    
    log( 3, "addEnumStructDecl end", os.clock() )
 end
@@ -1375,6 +1396,10 @@ function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
    local fileId, line = self:getFileIdLocation( cursor )
    local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
 
+   if not snameInfo then
+      return
+   end
+
    -- cursor の symbolDecl を次の条件で検索する。
    --    単純名ID, ファイルID、行番号、列が等しい
    -- 同じ単純名のメンバーを持つ構造体をマクロ内で複数宣言した場合、
@@ -1400,16 +1425,32 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
 	 string.format( "nsId = %d", nsInfo.id ), nil, nil, func, ... )
       return
    end
-      
-   if cursor:getCursorKind() == clang.core.CXCursor_FunctionDecl then
+
+   local kind = cursor:getCursorKind()
+   if kind == clang.core.CXCursor_FunctionDecl then
       self:mapDeclInfoList( cursor:getCursorSpelling(), func, ... )
+      return
+   elseif kind == clang.core.CXCursor_VarDecl or
+      kind == clang.core.CXCursor_ParmDecl
+   then
+      local startInfo, endInfo = self:getRangeFromCursor( cursor )
+      local fileInfo = self:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
+      local typeCursor = self:getDeclCursorFromType( cursor:getCursorType() )
+      local nsInfo = self:getNamespaceFromCursor( typeCursor )
+
+      if nsInfo then
+	 func( self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo ), ... )
+      end
       return
    end
 
+   
+   
+
    local fileId, line = self:getFileIdLocation( cursor )
    local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
-   log( 2, "SymbolDefInfoListForCursor", fileId, line, snameInfo.name, snameInfo.id )
    if snameInfo then
+      log( 2, "SymbolDefInfoListForCursor", fileId, line, snameInfo.name, snameInfo.id )
       self:mapRowList(
 	 "symbolDecl",
 	 string.format( "fileId = %d AND (line = %d OR endLine = %d) AND snameId = %d",

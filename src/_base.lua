@@ -150,7 +150,6 @@ libs.getNamespaceList = function( cursor, includeCurrent, cursorHash2NSFunc )
 		     table.insert( nsList, index, name )
 		     index = index + 1
 		  end
-		  print( "namespace exit:", fullname )
 		  break
 	       end
 	    end
