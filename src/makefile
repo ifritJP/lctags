@@ -131,25 +131,27 @@ test: build
 ifndef NO_INIT
 	$(LUA_COMMAND) lctags/lctags.lua init . $(IT_OP) $(IS_OP) $(IM_OP)
 endif
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 --lctags-target hoge | tee dump | grep -e ':[[:space:]][12][[:space:]]'
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2 >> dump
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge >> dump
 	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
 	$(LUA_COMMAND) lctags/lctags.lua -xa sub
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 234 23 --lctags-target hoge
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 245 18 --lctags-target hoge
-	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 197 18 --lctags-target hoge
-	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 258 15 --lctags-target hoge
-	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 228 18 --lctags-target hoge
-	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 229 20 --lctags-target hoge
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 26 8
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 236 23
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 253 18
+	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 205 18
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 169 15
+	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 267 15
+	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 230 18
+	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 231 20
 	-rm -f graph.sample/*
 	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
 	$(LUA_COMMAND) lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph-at callee test/hoge.cpp 210 14 -o graph.sample/at-callee.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph-at caller test/hoge.cpp 223 21 -o graph.sample/at-caller.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph-at symbol test/hoge.cpp 197 18 -o graph.sample/at-symbol.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
+	$(LUA_COMMAND) lctags/lctags.lua graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
 	$(LUA_COMMAND) lctags/lctags.lua list inc test/hoge.cpp -d 2
 
 

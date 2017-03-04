@@ -18,6 +18,9 @@ local log = function( level, ... )
    if logLevel == 0 then
       local prev = displayLevel
       displayLevel = ...
+      if displayLevel < 0 then
+	 displayLevel = prev
+      end
       return prev
    elseif logLevel == -1 then
       prefix = ...
@@ -30,6 +33,18 @@ local log = function( level, ... )
       print( prefix, logLevel, table.unpack( param ) )
    else
       print( logLevel, table.unpack( param ) )
+   end
+   if logLevel == -2 then
+      local debugInfo = debug.getinfo( 2 )
+      local debugInfo2 = debug.getinfo( 3 )
+      local debugInfo3 = debug.getinfo( 4 )
+      local debugInfo4 = debug.getinfo( 5 )
+      local debugInfo5 = debug.getinfo( 6 )
+      print( debugInfo.short_src, debugInfo.currentline,
+	     "\n", debugInfo2.short_src, debugInfo2.currentline,
+	     "\n", debugInfo3.short_src, debugInfo3.currentline,
+	     "\n", debugInfo4.short_src, debugInfo4.currentline,
+	     "\n", debugInfo5.short_src, debugInfo5.currentline )
    end
 end
 --[[

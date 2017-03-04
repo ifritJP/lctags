@@ -157,13 +157,21 @@ namespace ns1 {
     typedef struct {
         Callback_t * pCallback;
         struct {
-	  int efgh;
-	} abcd;
+          int efgh;
+        } abcd;
     } struct_func_t;
 
     namespace ns2 {
       typedef struct {
         Callback_t * pCallback;
+        struct {
+          int z1;
+          int z2;
+        };
+        union {
+          int z3;
+          int z4;
+        };
       } struct_func_t;
       
       
@@ -201,7 +209,7 @@ namespace ns1 {
         int func5( struct_func_t * pClass ) {
             char buf[5];
             pClass->   pCallback();
-
+            pClass->z2 = 1;
             TestClass  aaa;
             return 0;
         }
@@ -222,10 +230,10 @@ namespace ns1 {
                 func2();
                 (*pCallback)();
                 func0( func2 );
-		func5( NULL );
+                func5( NULL );
             }
-	    ::ns1::struct_func_t val;
-	    val.abcd.efgh = 1;
+            ::ns1::struct_func_t val;
+            val.abcd.efgh = 1;
             return enum_val1;
         }
 
@@ -243,7 +251,8 @@ namespace ns1 {
         void sub( char ** ppArg ) {
             for ( ; *ppArg != NULL; ppArg++ ) {
                 printf( "%s\n", *ppArg );
-                int a;
+                int aa;
+                aa = 0;
             }
         }
 
@@ -252,11 +261,12 @@ namespace ns1 {
         }
     }
 
-    void sub2() {
-        YYYY aYYYYY;
-        aYYYYY.kkkk = 0;
-	aYYYYY.pCallback();
-    }
+  struct yyyy sub2() {
+    YYYY aYYYYY;
+    aYYYYY.kkkk = 0;
+    aYYYYY.pCallback();
+    return aYYYYY;
+  }
 }
 
 namespace ns4 {

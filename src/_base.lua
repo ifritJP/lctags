@@ -224,3 +224,22 @@ libs.mapCurosrPlainText = function( cursor, func, ... )
    libclangcore.clang_disposeTokens( unit, tokenArray, tokenNum )
    libclangcore.delete_CXTokenPArray( tokenPBuf )
 end
+
+libs.getDeclCursorFromType = function( cxtype )
+   while true do
+      local baseType = cxtype and cxtype:getPointeeType()
+      if baseType.__ptr.kind == libs.core.CXType_Invalid then
+	 if cxtype then
+	    baseType = cxtype:getElementType()
+	 end
+	 if baseType.__ptr.kind == libs.core.CXType_Invalid then
+	    break
+	 end
+      end
+      cxtype = baseType
+   end
+   if not cxtype then
+      return nil
+   end
+   return cxtype:getTypeDeclaration()
+end

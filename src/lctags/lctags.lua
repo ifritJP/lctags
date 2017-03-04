@@ -8,6 +8,7 @@ local gcc = require( 'lctags.gcc' )
 local DBCtrl = require( 'lctags.DBCtrl' )
 local DBAccess = require( 'lctags.DBAccess' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
+local Make = require( 'lctags.Make' )
 
 local function printUsage( message )
    if message then
@@ -170,6 +171,8 @@ local function analyzeOption( argList )
 	    skipArgNum = 1
 	 elseif arg == "update" then
 	    lctagOptMap.mode = "update"
+	 elseif arg == "updateForMake" then
+	    lctagOptMap.mode = "updateForMake"
 	 elseif string.find( arg, "ref-at", 1, true ) then
 	    lctagOptMap.mode = "ref-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
@@ -261,6 +264,9 @@ local function analyzeOption( argList )
 		  else
 		     if arg == "-i" then
 			lctagOptMap.inputFromStdin = true
+		     elseif arg == "-j" then
+			lctagOptMap.jobs = tonumber( argList[ index + 1 ] )
+			skipArgNum = 1
 		     end
 		     processMode = "skip"
 		  end
@@ -416,6 +422,19 @@ if not lctagOptMap.dbPath then
    printUsage( "db is not found." )
 end
 
+
+if lctagOptMap.mode == "update" then
+   local src = srcList[1]
+   if not src then
+      printUsage( "" )
+   end
+
+   Make:updateFor( lctagOptMap.dbPath, lctagOptMap.target, lctagOptMap.jobs, src )
+   os.exit( 0 )
+end
+
+
+
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
@@ -468,8 +487,11 @@ if lctagOptMap.mode == "build" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "update" then
+if lctagOptMap.mode == "updateForMake" then
    local src = srcList[1]
+   if not src then
+      printUsage( "" )
+   end
 
    log( 3, "src:", src, "target:", lctagOptMap.target )
    

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 
 #define HELPER_ID ""
@@ -36,6 +37,7 @@ static int helper_msleep( lua_State * pLua );
 static int helper_chdir( lua_State * pLua );
 static int helper_getFileModTime( lua_State * pLua );
 static int helper_getCurrentTime( lua_State * pLua );
+static int helper_getTempFilename( lua_State * pLua );
 static int helper_tostring( lua_State * pLua );
 
 
@@ -58,6 +60,7 @@ static const luaL_Reg s_if_lib[] = {
     { "chdir", helper_chdir },
     { "getFileModTime", helper_getFileModTime },
     { "getCurrentTime", helper_getCurrentTime },
+    { "getTempFilename", helper_getTempFilename },
     {"__tostring", helper_tostring },
     {NULL, NULL}
 };
@@ -183,6 +186,33 @@ static int helper_openDigest( lua_State * pLua )
     return 1;
 }
 
+static int helper_getTempFilename( lua_State * pLua )
+{
+  char * pBuf;
+  const char * pPrefix = lua_tostring( pLua, 1 );
+  static const char * pForm = "12345678FFFF";
+  static int number = 0;
+  const char * pTmpDir = getenv( "TMP" );
+  if ( pTmpDir == NULL ) {
+    pTmpDir = "/tmp";
+  }
+
+  if ( pPrefix == NULL ) {
+    return 0;
+  }
+  int length = strlen( pTmpDir ) + strlen( pPrefix ) + strlen( pForm ) + 1;
+  pBuf = malloc( length );
+  if ( pBuf == NULL ) {
+    return 0;
+  }
+  snprintf( pBuf, length, "%s/%s%08x%04x", pTmpDir, pPrefix, getpid(), number );
+  number++;
+
+  lua_pushstring( pLua, pBuf );
+
+  free( pBuf );
+  return 1;
+}
 
 
 static int helper_tostring( lua_State * pLua )

@@ -1,5 +1,6 @@
-local Query = require( 'lctags.Query' )
+local Util = require( 'lctags.Util' )
 local log = require( 'lctags.LogCtrl' )
+local Helper = require( 'lctags.Helper' )
 
 local obj = {}
 
@@ -14,17 +15,7 @@ function obj.dot(
    local fileHandle
    if not outputFile then
       if browseFlag then
-	 outputFile = os.getenv( "TMP" )
-	 if not outputFile then
-	    outputFile = os.getenv( "TEMP" )
-	 end
-	 if not outputFile then
-	    outputFile = os.getenv( "TEMPDIR" )
-	 end
-	 if not outputFile then
-	    outputFile = "/tmp"
-	 end
-	 outputFile = outputFile .. "/lctags" .. os.clock()
+	 outputFile = Helper.getTempFilename( "lctags" )
       else
 	 outputFile = "lctags_graph." .. imageFormat
       end
@@ -90,7 +81,7 @@ function obj.txt(
    table.sort( pathList )
    for index, path in pairs( pathList ) do
       if path ~= "" then
-	 Query:printLocateDirect( fileHandle, "path", path, 1, false )
+	 Util:printLocateDirect( fileHandle, "path", path, 1, false )
       end
    end
 end

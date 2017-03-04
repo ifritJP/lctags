@@ -19,7 +19,8 @@ local function visitFuncMain( cursor, parent, exInfo )
    print( string.format(
    	     "%s %s %s(%d)",
    	     string.rep( " ", exInfo.depth ), txt, 
-   	     clang.getCursorKindSpelling( cursorKind ), cursorKind ) )
+   	     clang.getCursorKindSpelling( cursorKind ), cursorKind ),
+	  cursor:hashCursor() )
    return 2
    
    -- local cursorKind = cursor:getCursorKind()

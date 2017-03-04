@@ -12,17 +12,7 @@ function DBAccess:recordSql( fileHandle )
 end
    
 function DBAccess:errorExit( level, ... )
-   local debugInfo = debug.getinfo( level )
-   local debugInfo2 = debug.getinfo( level + 1 )
-   local debugInfo3 = debug.getinfo( level + 2 )
-   local debugInfo4 = debug.getinfo( level + 3 )
-   log( 1, "Sqlite ERROR:", self.db:errmsg(),
-	"\n", debugInfo.short_src, debugInfo.currentline,
-	"\n", debugInfo2.short_src, debugInfo2.currentline,
-	"\n", debugInfo3.short_src, debugInfo3.currentline,
-	"\n", debugInfo4.short_src, debugInfo4.currentline,
-	"\n", ... )
-
+   log( -2, "Sqlite ERROR:", self.db:errmsg(), ... )
    os.exit( 1 )
 end
 
@@ -31,6 +21,8 @@ function DBAccess:open( path, readonly, onMemoryFlag )
    local flag = nil
    if readonly then
       flag = sqlite3.OPEN_READONLY
+   else
+      flag = sqlite3.OPEN_READWRITE + sqlite3.OPEN_CREATE
    end
    local db
    if onMemoryFlag then
@@ -43,23 +35,29 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       return nil
    end
 
-   db:busy_handler(
-      function()
-	 Helper.msleep( 100 )
-	 return true
-      end
-   )
-   
-
    local obj = {
       db = db,
+      readonly = readonly,
       insertCount = 0,
       updateCount = 0,
       deleteCount = 0,
       selectCount = 0,
       uniqueCount = 0,
+      lockLogFlag = true,
+      time = 0,
    }
    setmetatable( obj, { __index = DBAccess } )
+
+   db:busy_handler(
+      function()
+	 if obj.lockLogFlag then
+	    obj.lockLogFlag = false
+	    log( 2, "db is busy" )
+	 end
+	 Helper.msleep( 50 )
+	 return true
+      end
+   )
 
    return obj
 end
@@ -67,8 +65,8 @@ end
 function DBAccess:close()
    self.db:close()
    log( 2, string.format(
-	   "insert:%d, unique:%d, update:%d, delete:%d, select:%d",
-	   self.insertCount, self.uniqueCount,
+	   "time: %f, insert:%d, unique:%d, update:%d, delete:%d, select:%d",
+	   self.time, self.insertCount, self.uniqueCount,
 	   self.updateCount, self.deleteCount, self.selectCount ) )
 end
 
@@ -106,6 +104,7 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
 end
 
 function DBAccess:exec( stmt, errHandle )
+   local prev = os.clock()
    if recordFile then
       recordFile:write( stmt .. "\n" )
    end
@@ -123,18 +122,30 @@ function DBAccess:exec( stmt, errHandle )
       else
 	 self:errorExit( 3, stmt )
       end
-  end
+   end
+
+   self.time = self.time + (os.clock() - prev)
 end
 
 function DBAccess:begin()
+   if self.readonly then
+      log( 1, "db mode is read only" )
+      return
+   end
+
+   self.lockLogFlag = true
    --self:commit()
-   self:exec( "BEGIN IMMEDIATE" )
    self:exec( "PRAGMA journal_mode = MEMORY" )
+   self:exec( "BEGIN IMMEDIATE" )
    
    log( 2, "begin" )
 end
 
 function DBAccess:commit()
+   log( 2, "commit" )
+   if self.readonly then
+      return
+   end
    self:exec(
       "COMMIT",
       function( db, stmt, message )

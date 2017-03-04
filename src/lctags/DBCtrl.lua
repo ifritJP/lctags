@@ -5,6 +5,7 @@ local clang = require( 'libclanglua.if' )
 local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
 local DBAccess = require( 'lctags.DBAccess' )
+local Util = require( 'lctags.Util' )
 
 local function getFileLocation( cursor )
    local location = cursor:getCursorLocation()
@@ -15,7 +16,7 @@ end
 local rootNsId = 1
 local userNsId = 2
 local systemFileId = 1
-local DB_VERSION = 3
+local DB_VERSION = 4
 
 local DBCtrl = {}
 
@@ -32,6 +33,7 @@ end
 function newObj( db, currentDir )
    local obj = {
       db = db,
+      writeDb = db,
       currentDir = currentDir,
       -- カーソルハッシュ -> fullname 情報 のマップ
       hashCursor2FullnameMap = {},
@@ -330,14 +332,85 @@ function DBCtrl:open( path, readonly, currentDir )
 end
 
 
+function DBCtrl:begin()
+   self.db:begin()
+end
+
+function DBCtrl:beginForTemp()
+   local obj = {
+      insertList = {},
+      nsInfoList = {},
+   }
+   function obj:exec( stmt, errHandle )
+      log( -2, "not support" )
+      os.exec( 1 )
+   end
+   function obj:delete( tableName, condition )
+      log( -2, "not support" )
+      os.exec( 1 )
+   end
+   function obj:insert( tableName, values )
+      table.insert( self.insertList, { tableName, values } )
+   end
+   function obj:update( tableName, set, condition )
+      log( -2, "not support" )
+      os.exec( 1 )
+   end
+
+   self.writeDb = obj
+end
+
+function DBCtrl:commit()
+   if self.writeDb ~= self.db then
+      local writeDb = self.writeDb
+      self.writeDb = self.db
+
+      self.db:begin()
+      log( 2, "merge begin:", os.clock(), os.date() )
+
+      local tmpId2ActIdMap = {}
+      for index, tmpInfo in ipairs( writeDb.nsInfoList ) do
+	 self:insert( "simpleName",
+		      string.format( "NULL, '%s'", tmpInfo.simpleName ) )
+	 local snameInfo = self:getSimpleName( nil, tmpInfo.simpleName )
+	 self:insert(
+	    "namespace",
+	    string.format(
+	       "NULL, %d, %d, '%s', '%s', '%s'",
+	       tmpInfo.parentId, tmpInfo.snameId, tmpInfo.digest,
+	       tmpInfo.name, tmpInfo.otherName ) )
+	 local nsInfo = self:getNamespace( nil, tmpInfo.name )
+
+	 tmpId2ActIdMap[ tmpInfo.id ] = { nsInfo.id, snameInfo.id }
+      end
+
+      for index, insert in ipairs( writeDb.insertList ) do
+	 local val = insert[ 2 ]
+	 if string.find( val, "^%-" ) then
+	    local index = string.find( val, ",", 1, true )
+	    local tmpId = string.sub( val, 1, index - 1 )
+	    local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
+	    val = string.gsub(
+	       val, string.format( "%%%s, %%%s", tmpId, tmpId ),
+	       string.format( "%d, %d", actIdList[ 1 ], actIdList[ 2 ] ) )
+	 end
+	 self:insert( insert[ 1 ], val )
+      end
+      log( 2, "merge end:", os.clock(), os.date() )
+      self.db:commit()
+   else
+      self.db:commit()
+   end
+end
+
 function DBCtrl:close()
-   self.db:commit()
+   self:commit()
    self.db:close()
 end
 
 
 function DBCtrl:createTables()
-   self.db:createTables(
+   self.writeDb:createTables(
       string.format(
 	 [[
 BEGIN;
@@ -355,7 +428,9 @@ CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE bina
 INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '');
 
 CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary );
-CREATE TABLE symbolDecl ( nsId INTEGER, parentId INTEGER, snameId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, PRIMARY KEY( nsId, fileId, line ) );
+CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, PRIMARY KEY( nsId, fileId, line ) );
+INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '' );
+
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize, PRIMARY KEY( nsId, belongNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
@@ -422,7 +497,19 @@ end
 
 
 function DBCtrl:exec( stmt, errHandle )
-   self.db:exec( stmt, errHandle )
+   self.writeDb:exec( stmt, errHandle )
+end
+
+function DBCtrl:delete( tableName, condition )
+   self.writeDb:delete( tableName, condition )
+end
+
+function DBCtrl:insert( tableName, values )
+   self.writeDb:insert( tableName, values )
+end
+
+function DBCtrl:update( tableName, set, condition )
+   self.writeDb:update( tableName, set, condition )
 end
 
 function DBCtrl:exists( tableName, condition )
@@ -430,9 +517,6 @@ function DBCtrl:exists( tableName, condition )
    return row ~= nil
 end
 
-function DBCtrl:delete( tableName, condition )
-   self.db:delete( tableName, condition )
-end
 
 function DBCtrl:mapRowList( tableName, condition, limit, attrib, func, ... )
    self.db:mapRowList( tableName, condition, limit, attrib, func, ... )
@@ -602,6 +686,18 @@ function DBCtrl:addFile(
    return fileInfo
 end
 
+function DBCtrl:makeNsInfo( nsId, snameId, parentId, digest, namespace, otherName )
+   local nsInfo = {
+      id = nsId,
+      snameId = snameId,
+      parentId = parentId,
+      digest = digest,
+      name = namespace, 
+      otherName = otherName,
+   }
+   return nsInfo
+end
+
 function DBCtrl:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
    
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
@@ -637,7 +733,7 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
       self:insert(
 	 "symbolDecl",
 	 string.format( "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, '%s'",
-			item.nsId, item.parentId, item.snameId, item.type,
+			item.nsId, item.snameId, item.parentId, item.type,
 			item.fileId, item.line, item.column,
 			item.endLine, item.endColumn, item.charSize,
 			item.comment and "has" or "none" ) )
@@ -661,13 +757,23 @@ end
 
 function DBCtrl:addNamespaceOne(
       cursor, digest, fileId, parentId, simpleName, namespace, otherName )
-   local snameInfo = self:addSimpleName( simpleName )
-
-   log( 3, "addNamespaceOne: ", namespace )
-
    if not otherName then
       otherName = namespace
    end
+   
+   if self.writeDb ~= self.db then
+      local tmpId = -#self.writeDb.nsInfoList - 1
+      local nsInfo = self:makeNsInfo( tmpId, tmpId, rootNsId, namespace, otherName )
+      nsInfo.simpleName = simpleName
+      table.insert( self.writeDb.nsInfoList, nsInfo )
+      self:addSymbolDecl( cursor, fileId, nsInfo )
+      return nsInfo
+   end
+
+      
+   local snameInfo = self:addSimpleName( simpleName )
+
+   log( 3, "addNamespaceOne: ", namespace )
    
    local item = self:getNamespace( nil, namespace )
    if not item then
@@ -785,18 +891,6 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
    end
 
 
-   -- if kind == clang.CXCursorKind.FunctionDecl.val or
-   --    kind == clang.CXCursorKind.CXXMethod.val
-   -- then
-   --    cursor:visitChildren(
-   -- 	 function( cursor, parent, exInfo )
-   -- 	    if cursor:getCursorKind() == clang.CXCursorKind.CompoundStmt.val then
-   -- 	       return clang.CXChildVisitResult.Break.val
-   -- 	    end
-   -- 	    return clang.CXChildVisitResult.Continue.val
-   -- 	 end, nil )
-   -- end
-
    local fullname, nsList, simpleName = self:getFullname(
       cursor, fileId, anonymousName, typedefName )
 
@@ -905,7 +999,8 @@ function DBCtrl:calcEnumStructDigest( decl, kind, digest )
       end,
       nil,
       { kind, clang.core.CXCursor_StructDecl,
-   	clang.core.CXCursor_UnionDecl }, 1 )
+   	clang.core.CXCursor_UnionDecl,
+	clang.core.CXCursor_EnumDecl }, 1 )
 	 
 
    if needFix then
@@ -916,7 +1011,7 @@ function DBCtrl:calcEnumStructDigest( decl, kind, digest )
    end
 end
 
-function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
+function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj )
    local fileInfo = self:getFileFromCursor( decl )
 
    local otherNameBase
@@ -932,7 +1027,8 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
    else
       log( 3, "addEnumStructDecl start",
 	   decl:getCursorSpelling(), typedefName, os.clock(), os.date() )
-      local digest = self:calcEnumStructDigest( decl, kind )
+      -- local digest = self:calcEnumStructDigest( decl, kind )
+      local digest = nsObj.fixDigest
 
       local declNs, symbolDecl
       declNs, symbolDecl, structUptodate = self:addNamespaceSub(
@@ -949,47 +1045,29 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind )
    local hasIncFlag = self:hasInc( fileInfo, decl )
    local count = 0
    local workFileInfo = fileInfo
-   clang.visitChildrenFast(
-      decl,
-      function( cursor, parent, exInfo, appendInfo )
-   	 local cursorKind = cursor:getCursorKind()
-   	 if hasIncFlag and appendInfo[ 1 ] then
-   	    workFileInfo = self:getFileFromCursor( cursor )
-   	 end
-	 
-   	 if cursorKind == clang.core.CXCursor_StructDecl or
-   	    cursorKind == clang.core.CXCursor_UnionDecl
-   	 then
-   	    self:addStructDecl(
-   	       cursor, anonymousName .. "@" .. tostring( count ), "" )
-   	    count = count + 1
-	 elseif cursorKind == clang.core.CXCursor_EnumDecl then
-   	    self:addEnumDecl(
-   	       cursor, anonymousName .. "@" .. tostring( count ), "" )
-   	    count = count + 1
-   	 elseif cursorKind == kind then
-   	    local name = cursor:getCursorSpelling()
-   	    local fullname = fullnameBase .. "::" .. name
-   	    log( 3, "addEnumStructDecl process", fullname, os.clock() )
-	    
-   	    if not workFileInfo.renew and
-	       (workFileInfo.uptodate or structUptodate )
-	    then
-   	       self.hashCursor2FullnameMap[ cursor:hashCursor() ] = fullname
-   	    else
-   	       local otherName = otherNameBase .. "::" .. name
-   	       local nsInfo = self:addNamespaceOne(
-   		  cursor, "", workFileInfo.id,
-   		  baseNsId, name, fullname, otherName )
-   	    end
-   	 end
-   	 return clang.CXChildVisitResult.Continue.val
-      end,
-      nil,
-      { kind, clang.core.CXCursor_StructDecl,
-   	clang.core.CXCursor_UnionDecl,
-	clang.core.CXCursor_EnumDecl },
-      1 )
+
+   local prevFile = nil
+   for index, info in ipairs( nsObj.memberList ) do
+      local cursor = info[ 1 ]
+      local cxfile = info[ 2 ]
+      local cursorKind = cursor:getCursorKind()
+      if not prevFile or not cxfile:isEqual( prevFile ) then
+	 workFileInfo = self:getFileInfo( nil, cxfile:getFileName() )
+      end
+      prevFile = cxfile
+      
+      local name = cursor:getCursorSpelling()
+      local fullname = fullnameBase .. "::" .. name
+      log( 3, "addEnumStructDecl process", fullname, os.clock() )
+
+      if not workFileInfo.renew and (workFileInfo.uptodate or structUptodate ) then
+	 self.hashCursor2FullnameMap[ cursor:hashCursor() ] = fullname
+      else
+	 local otherName = otherNameBase .. "::" .. name
+	 self:addNamespaceOne( cursor, "", workFileInfo.id,
+			       baseNsId, name, fullname, otherName )
+      end
+   end
    
    log( 3, "addEnumStructDecl end", os.clock() )
 end
@@ -1004,21 +1082,6 @@ function DBCtrl:addStructDecl( structDecl, anonymousName, typedefName )
    self:addEnumStructDecl( structDecl, anonymousName, typedefName,
 			   clang.CXCursorKind.FieldDecl.val )
 end
-
-function DBCtrl:getDeclCursorFromType( cxtype )
-   while true do
-      local baseType = cxtype and cxtype:getPointeeType()
-      if baseType.__ptr.kind == clang.core.CXType_Invalid then
-	 break
-      end
-      cxtype = baseType
-   end
-   if not cxtype then
-      return nil
-   end
-   return cxtype:getTypeDeclaration()
-end
-
 
 function DBCtrl:getNamespaceFromCursor( cursor )
    if not cursor or cursor:getCursorKind() == clang.core.CXCursor_InvalidFile then
@@ -1089,6 +1152,7 @@ function DBCtrl:addReference( refInfo )
 	   name, declCursor:hashCursor(),
 	   clang.getCursorKindSpelling( kind ),
 	   declCursor:getCursorSpelling())
+
       nsInfo = self:addNamespaceOne(
 	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
    end
@@ -1103,15 +1167,6 @@ function DBCtrl:addReference( refInfo )
 		     endInfo and endInfo[ 3 ] or 0,
 		     startInfo and endInfo and endInfo[ 4 ] - startInfo[ 4 ],
 		     parentNsInfo and parentNsInfo.id or 0 ) )
-
-   -- do
-   --    local startInfo2, endInfo2 = self:getSpellRangeFromCursor( cursor, 0 )
-   --    if startInfo2 and endInfo2 then
-   -- 	 print( cursor:getCursorSpelling(),
-   -- 		startInfo[ 2 ], startInfo[ 3 ], endInfo[ 2 ], endInfo[ 3 ],
-   -- 		startInfo2[ 2 ], startInfo2[ 3 ], endInfo2[ 2 ], endInfo2[ 3 ])
-   --    end
-   -- end
 end
 
 
@@ -1125,7 +1180,7 @@ function DBCtrl:addCall( cursor, namespace )
       local result, childList = clang.getChildrenList( cursor, nil, 2 )
       for index, info in ipairs( childList ) do
 	 local child = info[ 1 ]
-	 declCursor = self:getDeclCursorFromType( child:getCursorType() )
+	 declCursor = clang.getDeclCursorFromType( child:getCursorType() )
 	 if declCursor then
 	    local nsInfo = self:getNamespaceFromCursor( declCursor )
 	    if nsInfo then
@@ -1155,7 +1210,7 @@ function DBCtrl:addCall( cursor, namespace )
       kind == clang.core.CXCursor_ParmDecl or
       kind == clang.core.CXCursor_FieldDecl
    then
-      declCursor = self:getDeclCursorFromType( declCursor:getCursorType() )
+      declCursor = clang.getDeclCursorFromType( declCursor:getCursorType() )
       kind = declCursor:getCursorKind()
       nsInfo = self:getNamespaceFromCursor( declCursor )
       if not nsInfo then
@@ -1435,8 +1490,13 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
    then
       local startInfo, endInfo = self:getRangeFromCursor( cursor )
       local fileInfo = self:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
-      local typeCursor = self:getDeclCursorFromType( cursor:getCursorType() )
+      local typeCursor = clang.getDeclCursorFromType( cursor:getCursorType() )
       local nsInfo = self:getNamespaceFromCursor( typeCursor )
+
+      if not nsInfo then
+	 nsInfo = self:makeNsInfo( rootNsId, rootNsId, rootNsId, "", "", "" )
+	 log( 2, "type is unknown" )
+      end
 
       if nsInfo then
 	 func( self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo ), ... )
@@ -1465,7 +1525,7 @@ function DBCtrl:mapCallForCursor( cursor, func, ... )
       kind == clang.core.CXCursor_VarDecl or
       kind == clang.core.CXCursor_FieldDecl
    then
-      cursor = self:getDeclCursorFromType( cursor:getCursorType() )
+      cursor = clang.getDeclCursorFromType( cursor:getCursorType() )
    end
    
    local fileId, line = self:getFileIdLocation( cursor )
@@ -1651,14 +1711,6 @@ function DBCtrl:getFileInfo( id, path )
    return fileInfo, path
 end
 
-function DBCtrl:insert( tableName, values )
-   self.db:insert( tableName, values )
-end
-
-function DBCtrl:update( tableName, set, condition )
-   self.db:update( tableName, set, condition )
-end
-
 function DBCtrl:getFileOpt( filePath, target )
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo = self:getFileInfo( nil, filePath )
@@ -1666,10 +1718,11 @@ function DBCtrl:getFileOpt( filePath, target )
       log( 1, "not regist file", filePath )
       os.exit( 1 )
    end
+
    if not target then
       target = ""
    end
-   local compileOp = ""
+   local compileOp = nil
    local compInfo = self:mapCompInfo(
       string.format( "fileId = %d AND target = '%s'", fileInfo.id, target ),
       function( item )
@@ -1677,6 +1730,9 @@ function DBCtrl:getFileOpt( filePath, target )
 	 return false
       end
    )
+   if not compileOp then
+      return fileInfo, nil
+   end
 
    -- コンパイルオプション文字列を、オプション配列に変換
    local optionList = {}
@@ -1702,7 +1758,7 @@ function DBCtrl:infoAt( tableName, path, line, column )
       nil, nil,
       function( item )
 	 if ( item.line < line and item.endLine > line ) or
-	    ( item.line == line and item.column <= column and
+	    ( item.line == line and item.column <= column or
 		 item.endLine == line and item.endColumn >= column )
 	 then
 	    if not info then
@@ -1717,9 +1773,10 @@ function DBCtrl:infoAt( tableName, path, line, column )
    return info
 end
 
-function DBCtrl:getNsInfoAt( path, line, column )
+function DBCtrl:getNsInfoAt( path, line, column, fileContents )
    local declInfo = self:infoAt( "symbolDecl", path, line, column )
    local refInfo = self:infoAt( "symbolRef", path, line, column )
+   log( 2, declInfo and declInfo.nsId, refInfo and refInfo.nsId )
    if not declInfo and not refInfo then
       return nil
    end
@@ -1730,8 +1787,16 @@ function DBCtrl:getNsInfoAt( path, line, column )
       nsId = declInfo.nsId
    elseif declInfo.charSize < refInfo.charSize then
       nsId = declInfo.nsId
-   else
+   elseif declInfo.charSize > refInfo.charSize then
       nsId = refInfo.nsId
+   else
+      local token = Util:getToken( path, line, column, fileContents )
+      log( 2, "token", token )
+      if self:getSimpleName( declInfo.snameId ).name == token then
+	 nsId = declInfo.nsId
+      else
+	 nsId = refInfo.nsId
+      end
    end
    return self:getNamespace( nsId )
 end
@@ -1817,7 +1882,7 @@ function DBCtrl:dump( level )
 	 local nsInfo = self:getNamespace( row.nsId )
 	 log( level, row.nsId, row.snameId, row.type, row.fileId,
 	      row.line, row.column, row.endLine, row.endColumn, row.charSize,
-	      row.comment, nsInfo.otherName )
+	      row.comment, nsInfo and nsInfo.otherName )
 	 return true
       end
    )
@@ -1878,6 +1943,31 @@ function DBCtrl:dump( level )
    )
    
    log( level, "-- table end -- " )
+end
+
+
+-- fileInfo をインクルードしているソースファイルを1つ返す。
+-- fileInfo がソースファイルである場合、 fileInfo を返す。
+function DBCtrl:getSrcForIncOne( fileInfo )
+   local fileIdSet = {}
+   fileIdSet[ fileInfo.id ] = 1
+   while fileInfo.incFlag ~= 0 do
+      -- ヘッダの場合は、このヘッダをインクルードしているソースを見つける
+      local baseId = nil
+      self:mapIncRefFor(
+	 fileInfo.id,
+	 function( item )
+	    if not fileIdSet[ item.baseFileId ] then
+	       baseId = item.baseFileId
+	       fileIdSet[ baseId ] = 1
+	       return false
+	    end
+	    return true
+	 end
+      )
+      fileInfo = self:getFileInfo( baseId )
+   end
+   return fileInfo
 end
 
 

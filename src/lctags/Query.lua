@@ -3,58 +3,9 @@
 
 local log = require( 'lctags.LogCtrl' )
 local DBCtrl = require( 'lctags.DBCtrl' )
+local Util = require( 'lctags.Util' )
 
 local Query = {}
-
-function Query:getFileLineText( filePath, line, fileContents )
-   if line < 0 then
-      return ""
-   end
-   local handle = io.open( filePath, "r" )
-   if not handle then
-      return "<not found>"
-   end
-   local lineNo = 1
-   if fileContents then
-      for text in string.gmatch( fileContents, "[^\n]+" ) do
-	 if lineNo == line then
-	    return text
-	 end
-	 lineNo = lineNo + 1
-      end
-   else
-      repeat
-	 local text = handle:read( '*l' )
-	 if lineNo == line then
-	    return text
-	 end
-	 lineNo = lineNo + 1
-      until not text
-   end
-   return ""
-end
-
-function Query:printLocate(
-      db, symbol, fileId, line, absFlag, printLine, fileContents )
-   local fileInfo = db:getFileInfo( fileId )
-   if fileInfo.path == "" then
-      log( 2, "skip system file" )
-      return
-   end
-   
-   local baseDir = absFlag and "" or os.getenv( "PWD" )
-   local path = db:getSystemPath( fileInfo.path, baseDir )
-   self:printLocateDirect( io.stdout, symbol, path, line, printLine, fileContents )
-end
-
-function Query:printLocateDirect(
-      outputHandle, symbol, path, line, printLine, fileContents )
-   -- GNU globalフォーマット
-   outputHandle:write(
-      string.format(
-	 "%-16s %4d %-16s %s\n", symbol, line, path,
-	 printLine and self:getFileLineText( path, line, fileContents ) or "" ) )
-end
 
 
 function Query:execWithDb( db, query, target )
@@ -65,7 +16,7 @@ function Query:execWithDb( db, query, target )
       db:mapFile(
 	 target and string.format( "path like '%%%s%%'", target ),
 	 function( item )
-	    self:printLocate( db, "path", item.id, 1, absFlag, false )
+	    Util:printLocate( db, "path", item.id, 1, absFlag, false )
 	    return true
 	 end
       )
@@ -108,7 +59,7 @@ function Query:execWithDb( db, query, target )
       db:mapSymbolRefInfoList(
 	 target,
 	 function( item )
-	    self:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
       )
@@ -120,7 +71,7 @@ function Query:execWithDb( db, query, target )
       db:mapDeclInfoList(
 	 target,
 	 function( item )
-	    self:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
       )
@@ -131,7 +82,7 @@ function Query:execWithDb( db, query, target )
       db:mapDeclInfoList(
 	 target,
 	 function( item )
-	    self:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
       )

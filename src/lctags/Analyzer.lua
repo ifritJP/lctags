@@ -5,6 +5,7 @@ local DBCtrl = require( 'lctags.DBCtrl' )
 local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
 local Query = require( 'lctags.Query' )
+local Util = require( 'lctags.Util' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
 
 
@@ -14,7 +15,7 @@ local function dumpCursorInfo( cursor, depth, prefix )
 
    log( 4, string.format(
    	   "%s %s%s %s(%d) %d %s",
-   	   string.rep( " ", depth ),
+   	   string.rep( "  ", depth ),
    	   prefix and (prefix .. " ") or "", txt, 
    	   clang.getCursorKindSpelling( cursorKind ), cursorKind,
    	   cursor:hashCursor(), cursor:getRawCommentText() or "" ) )
@@ -69,6 +70,8 @@ local targetKindList = {
    clang.core.CXCursor_StructDecl,
    clang.core.CXCursor_UnionDecl,
    clang.core.CXCursor_EnumDecl,
+   clang.core.CXCursor_EnumConstantDecl,
+   clang.core.CXCursor_FieldDecl,
    clang.core.CXCursor_CXXMethod,
    clang.core.CXCursor_Destructor,
    clang.core.CXCursor_FunctionDecl,
@@ -100,9 +103,9 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	    path = DBCtrl:convFullpath( cxfile:getFileName(), analyzer.currentDir )
 	 end
 
-	 table.insert( analyzer.incBelongList,
-		       { cxfile = cxfile,
-			 namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ] } )
+	 table.insert(
+	    analyzer.incBelongList,
+	    { cxfile = cxfile, namespace = analyzer:getNowNs() } )
 
 	 analyzer.currentFile = cxfile
 	 local spInfo = analyzer.path2InfoMap[ path ]
@@ -118,10 +121,13 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 
    local endProcess = {}
 
-   if isNamespaceDecl( cursorKind ) then
-      table.insert( analyzer.nsLevelList, cursor )
-      table.insert( endProcess,
-		    function() table.remove( analyzer.nsLevelList ) end )
+   local recursiveFlag = analyzer.recursiveBaseKind ~= clang.core.CXCursor_InvalidFile
+   if not recursiveFlag then
+      if isNamespaceDecl( cursorKind ) then
+	 analyzer:enterNs( cursor, cursorKind )
+	 table.insert( endProcess,
+		       function() analyzer:exitNs() end )
+      end
    end
 
    if cursorKind == clang.core.CXCursor_Namespace then
@@ -167,15 +173,23 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 list = analyzer.unionList
       end
 	 
-      table.insert( list, { cursor, analyzer.currentSpInfo.anonymousCount } )
+      table.insert( list, { cursor, analyzer.currentSpInfo } )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
       analyzer:registCursor( cursor )
-   elseif cursorKind == clang.core.CXCursor_FunctionDecl then
+   elseif cursorKind == clang.core.CXCursor_FunctionDecl or
+      cursorKind == clang.core.CXCursor_CXXMethod or
+      cursorKind == clang.core.CXCursor_Constructor      
+   then
       table.insert( analyzer.funcList, cursor )
       analyzer.currentFunc = cursor
       table.insert( endProcess, function() analyzer.currentFunc = nil end )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
       analyzer:registCursor( cursor )
+
+      local declCursor = clang.getDeclCursorFromType(
+	 cursor:getCursorType():getResultType() )
+      analyzer:addTypeRef( cursor, declCursor )
+      
    elseif cursorKind == clang.core.CXCursor_MacroDefinition then
       table.insert( analyzer.macroDefList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
@@ -189,19 +203,10 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       -- digest には加えずに、ハッシュだけ登録する
       -- analyzer:registCursor( cursor )
       analyzer.cursorHash2SpInfoMap[ cursor:hashCursor() ] = analyzer.currentSpInfo
-   elseif cursorKind == clang.core.CXCursor_CXXMethod or
-      cursorKind == clang.core.CXCursor_Constructor
-   then
-      table.insert( analyzer.methodList, cursor )
-      analyzer.currentFunc = cursor
-      table.insert( endProcess, function() analyzer.currentFunc = nil end )
-      calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      analyzer:registCursor( cursor )
-      
    elseif clang.isReference( cursorKind ) then
       if cursorKind ~= clang.core.CXCursor_NamespaceRef then
 	 local declCursor = cursor:getCursorReferenced()
-	 local namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ]
+	 local namespace = analyzer:getNowNs()
 	 table.insert(
 	    analyzer.refList,
 	    { cursor = cursor, declCursor = declCursor,
@@ -220,7 +225,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 if storageClass ~= clang.core.CX_SC_Auto and
 	    storageClass ~= clang.core.CX_SC_Register
 	 then
-	    local namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ]
+	    local namespace = analyzer:getNowNs()
 	    table.insert(
 	       analyzer.refList,
 	       { cursor = cursor, declCursor = declCursor,
@@ -232,7 +237,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 end
       end
    elseif cursorKind == clang.core.CXCursor_CallExpr then
-      local namespace = analyzer.nsLevelList[ #analyzer.nsLevelList ]
+      local namespace = analyzer:getNowNs()
       table.insert( analyzer.callList,
 		    { cursor = cursor, namespace = namespace } )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
@@ -242,17 +247,68 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       table.insert( analyzer.typedefList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
       analyzer:registCursor( cursor )
-   elseif cursorKind == clang.core.CXCursor_VarDecl then
-      if analyzer.currentFunc == nil then
-	 table.insert( analyzer.wideAreaValList, cursor )
-	 calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-	 analyzer:registCursor( cursor )
+
+      cursor:visitChildren(
+	 function( aCursor, aParent, aExInfo )
+	    analyzer.hashCursor2TypedefMap[ aCursor:hashCursor() ] =
+	       { typedef = cursor, src = aCursor }
+
+	    if aCursor:getCursorKind() == clang.core.CXCursor_TypeRef then
+	       analyzer:addTypeRef(
+	    	  aCursor,
+	    	  clang.getDeclCursorFromType( aCursor:getCursorType() ) )
+	    end
+	    
+	    return clang.CXChildVisitResult.Break.val
+	 end, {} )
+      
+   elseif cursorKind == clang.core.CXCursor_VarDecl or
+      cursorKind == clang.core.CXCursor_ParmDecl
+   then
+      local declCursor = clang.getDeclCursorFromType( cursor:getCursorType() )
+      local declKind = declCursor:getCursorKind()
+
+      if declKind ~= CXCursor_NoDeclFound then
+	 if declKind == clang.core.CXCursor_StructDecl or
+	    declKind == clang.core.CXCursor_UnionDecl or
+	    declKind == clang.core.CXCursor_EnumDecl
+	 then
+	    if declCursor:getCursorSpelling() == "" then
+	       analyzer.anonymousHash2VarDeclMap[ declCursor:hashCursor() ] = cursor
+	       log( 3, "anonymousHash2VarDeclMap:", declCursor:hashCursor() )
+	    end
+	 end
+	 
+	 if analyzer.currentFunc == nil then
+	    if cursorKind == clang.core.CXCursor_VarDecl then
+	       table.insert( analyzer.wideAreaValList, cursor )
+	       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
+	       analyzer:registCursor( cursor )
+	    end
+	 else
+	    local namespace = analyzer:getNowNs()
+	    table.insert(
+	       analyzer.refList,
+	       { cursor = cursor, declCursor = declCursor,
+		 namespace = namespace } )
+	    calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
+	    analyzer:registCursor( cursor )
+	    calcDigest( declCursor, analyzer.currentSpInfo )
+	    calcDigest( namespace, analyzer.currentSpInfo )
+	 end
       end
+   elseif cursorKind == clang.core.CXCursor_FieldDecl or
+      cursorKind == clang.core.CXCursor_EnumConstantDecl
+   then
+      analyzer:addMember( cursor, cursorKind, cursorOffset )
    end
 
-   if not analyzer.recursiveFlag then
+   if not recursiveFlag then
       if cursorKind == clang.core.CXCursor_Namespace or
 	 cursorKind == clang.core.CXCursor_ClassDecl or
+	 cursorKind == clang.core.CXCursor_StructDecl or
+	 cursorKind == clang.core.CXCursor_EnumDecl or
+	 cursorKind == clang.core.CXCursor_UnionDecl or
 	 cursorKind == clang.core.CXCursor_UnexposedDecl or
 	 cursorKind == clang.core.CXCursor_VarDecl or
 	 (not uptodateFlag and
@@ -263,21 +319,20 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 analyzer.depth = analyzer.depth + 1
 
 	 local switchFlag = false
-	 if not analyzer.recursiveFlag then
+	 if not recursiveFlag then
 	    if isFuncDecl( cursorKind ) or
 	       cursorKind == clang.core.CXCursor_VarDecl
 	    then
-	       analyzer.recursiveFlag = true
+	       analyzer.recursiveBaseKind = cursorKind
 	       switchFlag = true
 	    end
 	 end
 
 	 clang.visitChildrenFast(
-	    cursor, visitFuncMain, analyzer, targetKindList,
-	    analyzer.recursiveFlag and 2 or 1 )
+	    cursor, visitFuncMain, analyzer, targetKindList, switchFlag and 2 or 1 )
 
 	 if switchFlag then
-	    analyzer.recursiveFlag = false
+	    analyzer.recursiveBaseKind = clang.core.CXCursor_InvalidFile
 	 end
 	 
 	 analyzer.depth = analyzer.depth - 1
@@ -301,7 +356,7 @@ function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
       currentDir = os.getenv( "PWD" ),
 
       dbPath = dbPath,
-      recursiveFlag = false,
+      recursiveBaseKind = clang.core.CXCursor_InvalidFile,
 
       recordDigestSrcFlag = recordDigestSrcFlag,
       displayDiagnostics = displayDiagnostics,
@@ -310,12 +365,14 @@ function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
       targetFile = nil,
       currentFile = nil,
       nsList = {},
-      nsLevelList = {},
+      
+      nsLevelList = { { memberList = {} } },
+      hash2NsObj = {},
+      
       incList = {},
       incBelong = {},
       classList = {},
       funcList = {},
-      methodList = {},
       refList = {},
       typedefList = {},
       enumList = {},
@@ -333,6 +390,9 @@ function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
       -- typedef の元定義カーソル -> typedef 定義カーソル
       hashCursor2TypedefMap = {},
 
+      -- anonymous struct, union, enum の元定義カーソル -> VarDecl, FieldDecl 定義カーソル
+      anonymousHash2VarDeclMap = {},
+
       -- cursor -> spInfo のマップ
       cursorHash2SpInfoMap = {},
 
@@ -344,6 +404,70 @@ function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
    setmetatable( obj, { __index = Analyzer } )
    return obj
 end
+
+function Analyzer:getNowNs()
+   return self.nsLevelList[ #self.nsLevelList ].cursor
+end
+
+function Analyzer:enterNs( cursor, cursorKind )
+   local nsObj = { cursor = cursor, memberList = {} }
+   if cursorKind == clang.core.CXCursor_StructDecl or
+      cursorKind == clang.core.CXCursor_UnionDecl or
+      cursorKind == clang.core.CXCursor_EnumDecl
+   then
+      nsObj.digestObj = Helper.openDigest( "md5" )
+   end
+   table.insert( self.nsLevelList, nsObj )
+   self.hash2NsObj[ cursor:hashCursor() ] = nsObj
+end
+
+function Analyzer:addTypeRef( cursor, declCursor )
+   local declKind = declCursor:getCursorKind() 
+   if declKind ~= CXCursor_NoDeclFound then
+      table.insert(
+	 self.refList,
+	 { cursor = cursor, declCursor = declCursor,
+	   namespace = self:getNowNs() } )
+      self:registCursor( cursor )
+   end
+end
+
+function Analyzer:addMember( cursor, cursorKind, cursorOffset )
+   local nsObj = self.nsLevelList[ #self.nsLevelList ]
+   table.insert( nsObj.memberList, { cursor, self.currentFile } )
+   local digestObj = nsObj.digestObj
+
+   if digestObj then
+      digestObj:write( tostring( cursorOffset ) )
+      digestObj:write( cursor:getCursorSpelling() )
+      digestObj:write( cursor:getCursorType():getTypeSpelling() )
+   end
+
+   local declCursor = clang.getDeclCursorFromType( cursor:getCursorType() )
+   if cursorKind == clang.core.CXCursor_FieldDecl then
+      self:addTypeRef( cursor, declCursor )
+   end
+
+   local declKind = declCursor:getCursorKind()
+   if declKind == clang.core.CXCursor_StructDecl or
+      declKind == clang.core.CXCursor_UnionDecl or
+      declKind == clang.core.CXCursor_EnumDecl
+   then
+      if declCursor:getCursorSpelling() == "" then
+	 self.anonymousHash2VarDeclMap[ declCursor:hashCursor() ] = cursor
+	 log( 3, "anonymousHash2VarDeclMap:", declCursor:hashCursor() )
+      end
+   end
+end
+
+function Analyzer:exitNs()
+   local nsObj = self.nsLevelList[ #self.nsLevelList ]
+   table.remove( self.nsLevelList )
+   if nsObj.digestObj then
+      nsObj.fixDigest = nsObj.digestObj:fix()
+   end
+end
+
 
 function Analyzer:createSpInfo( path, uptodateFlag, cxfile )
    local spInfo = {}
@@ -581,9 +705,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    self.currentFile = self.targetFile
    
    log( 2, "visitChildren", os.clock(), os.date() )
-   clang.visitChildrenFast(
-      root, visitFuncMain, self, targetKindList,
-      self.recursiveFlag and 2 or 1 )
+   clang.visitChildrenFast( root, visitFuncMain, self, targetKindList, 1 )
    log( 2, "visitChildren end", os.clock(), os.date() )
 
    local db = self:openDBForWrite()
@@ -647,7 +769,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    if uptodateFlag then
       log( 1, "uptodate all" )
    else
-      self:retisterToDB( db )
+      self:registerToDB( db )
    end
    
    log( 2, "close", os.clock(), os.date()  )
@@ -656,7 +778,37 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
 end
 
 
-function Analyzer:retisterToDB( db )
+function Analyzer:processStructEnum( db, info, anonymousForm, kind )
+   local cursor = info[ 1 ]
+   local name = cursor:getCursorSpelling()
+   log( "processStructEnum:", name,
+	clang.getCursorKindSpelling( cursor:getCursorKind() ) )
+
+   local hash = cursor:hashCursor()
+   local typedefInfo = self.hashCursor2TypedefMap[ hash ]
+   local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
+
+   local nsObj = self.hash2NsObj[ hash ]
+
+   local anonymousId
+   if name == "" then
+      if typedefInfo then
+	 anonymousId = typedefName
+      else
+	 local varCur = self.anonymousHash2VarDeclMap[ hash ]
+	 if varCur then
+	    anonymousId = varCur:getCursorSpelling()
+	 else
+	    anonymousId = "anonymous"
+	 end
+      end
+   end
+
+   db:addEnumStructDecl(
+      cursor, string.format( anonymousForm, anonymousId ), typedefName, kind, nsObj )
+end
+
+function Analyzer:registerToDB( db )
 
    db:setFuncToGetFileInfoFromCursor(
       function( db, cursor )
@@ -682,24 +834,11 @@ function Analyzer:retisterToDB( db )
       db:addNamespace( macroDef )
    end
 
-   log( 2, "-- macroRefList --", os.clock(), os.date()  )
-   for index, macroRef in ipairs( self.macroRefList ) do
-      db:addReference( macroRef )
-   end
-
    -- typedef を先に処理する
    log( 2, "-- typedef -- ", os.clock(), os.date() )
    for index, info in ipairs( self.typedefList ) do
       log( info:getCursorSpelling(),
 	   clang.getCursorKindSpelling( info:getCursorKind() ) )
-      
-      info:visitChildren(
-	 function( aCursor, aParent, aExInfo )
-	    self.hashCursor2TypedefMap[ aCursor:hashCursor() ] =
-	       { typedef = info, src = aCursor }
-	    return clang.CXChildVisitResult.Break.val
-	 end, {} )
-
       
       db:addNamespace( info )
    end
@@ -716,49 +855,23 @@ function Analyzer:retisterToDB( db )
       db:addNamespace( funcDecl )
    end
    
-   log( 2, "-- methodList --", os.clock(), os.date()  )
-   for index, methodDecl in ipairs( self.methodList ) do
-      log( methodDecl:getCursorSpelling() )
-      db:addNamespace( methodDecl )
-   end
-   
 
    log( 2, "-- enum -- ", os.clock(), os.date()  )
    for index, info in ipairs( self.enumList ) do
-      local cursor = info[ 1 ]
-      log( cursor:getCursorSpelling(),
-	   clang.getCursorKindSpelling( cursor:getCursorKind() ) )
-      local typedefInfo = self.hashCursor2TypedefMap[ cursor:hashCursor() ]
-      local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
-      local anonymousId = typedefInfo and typedefName or info[2]
-      
-      db:addEnumDecl( cursor, string.format( "<enum_%s>", anonymousId ),
-		      typedefName )
+      self:processStructEnum( db, info, "<enum_%s>",
+			      clang.CXCursorKind.EnumConstantDecl.val )
    end
    
    log( 2, "-- struct -- ", os.clock(), os.date()  )
    for index, info in ipairs( self.structList ) do
-      local cursor = info[ 1 ]
-      log( cursor:getCursorSpelling(),
-	   clang.getCursorKindSpelling( cursor:getCursorKind() ) )
-
-      local typedefInfo = self.hashCursor2TypedefMap[ cursor:hashCursor() ]
-      local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
-      local anonymousId = typedefInfo and typedefName or info[2]
-      
-      db:addStructDecl( cursor, string.format( "<struct_%s>", anonymousId ),
-			typedefName )
+      self:processStructEnum( db, info, "<struct_%s>",
+			      clang.CXCursorKind.FieldDecl.val )
    end
 
    log( 2, "-- union -- ", os.clock(), os.date()  )
    for index, info in ipairs( self.unionList ) do
-      local cursor = info[ 1 ]
-      log( cursor:getCursorSpelling(),
-	   clang.getCursorKindSpelling( cursor:getCursorKind() ) )
-
-      local typedefInfo = self.hashCursor2TypedefMap[ cursor:hashCursor() ]
-      db:addStructDecl( cursor, string.format( "<anonymous_union_%d>", info[2] ),
-			typedefInfo and typedefInfo.typedef:getCursorSpelling() or "" )
+      self:processStructEnum( db, info, "<union_%s>",
+			      clang.CXCursorKind.FieldDecl.val )
    end
    
    log( 2, "-- wideAreaVal -- ", os.clock(), os.date()  )
@@ -766,6 +879,21 @@ function Analyzer:retisterToDB( db )
       log( info:getCursorSpelling(),
 	   clang.getCursorKindSpelling( info:getCursorKind() ) )
       db:addNamespace( info )
+   end
+
+
+   db:commit()
+
+
+   --- DB のロック時間を少しでも削減するため、
+   --- これ以降は、DB に直接記録しないでメモリ上に格納しておき、
+   --- 最後に DB に反映する。
+   
+   db:beginForTemp()
+
+   log( 2, "-- macroRefList --", os.clock(), os.date()  )
+   for index, macroRef in ipairs( self.macroRefList ) do
+      db:addReference( macroRef )
    end
 
    log( 2, "-- incBelong --", os.clock(), os.date() )
@@ -800,13 +928,38 @@ function Analyzer:update( path, target )
    end
 
    local db = self:openDBForReadOnly()
+   
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList = db:getFileOpt( path, target )
+   if fileInfo.incFlag ~= 0 then
+      fileInfo = self:getSrcForIncOne( fileInfo )
+      fileInfo, optionList = db:getFileOpt(
+	 db:getSystemPath( fileInfo.path ), target )
+   end
+   
+   if not optionList then
+      log( 1, "This file doesn't has target" )
+      os.exit( 1 )
+   end
+
+   local compileOp = ""
+   for index, option in ipairs( optionList ) do
+      compileOp = compileOp .. option .. " "
+   end
+   log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
+   
+   
+   
    db:close()
 
-   if fileInfo.incFlag ~= 0 then
-      log( 1, "this file is include file!!" )
-      os.exit( 1 )
+   if not fileInfo then
+      log( -2, "file not found" )
+      os.exit( 0 )
+   end
+   
+   if not optionList then
+      log( -2, "skip this file since unmatch target" )
+      os.exit( 0 )
    end
 
    local args = clang.mkCharArray( optionList )
@@ -876,9 +1029,6 @@ function Analyzer:analyzeSourceAtWithFunc(
       table.insert( unsavedFileTable, unsavedFile )
    end
 
-   local prev = log( 0, 0 )
-   self:analyzeSource( targetFullPath, optionList, target, unsavedFileTable )
-   log( 0, prev )
    
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
@@ -913,17 +1063,10 @@ function Analyzer:queryAtFunc(
 
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList = db:getFileOpt( filePath, target )
-
-   local compileOp = ""
-   for index, option in ipairs( optionList ) do
-      compileOp = compileOp .. option .. " "
-   end
-   log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
    
-
    if fileInfo.incFlag == 1 then
       -- ヘッダの場合は解析せずに DB 登録されている情報を使用する
-      local nsInfo = db:getNsInfoAt( filePath, line, column )
+      local nsInfo = db:getNsInfoAt( filePath, line, column, fileContents )
       if nsInfo then
 	 func( db, nsInfo, nil )
       else
@@ -933,6 +1076,18 @@ function Analyzer:queryAtFunc(
       db:close()
       return
    end
+
+   if not optionList then
+      log( 1, "This file doesn't has target" )
+      os.exit( 1 )
+   end
+
+   local compileOp = ""
+   for index, option in ipairs( optionList ) do
+      compileOp = compileOp .. option .. " "
+   end
+   log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
+   
       
    local analyzer = Analyzer:new(
       db:getSystemPath( db:convFullpath( self.dbPath ) ),
@@ -976,7 +1131,7 @@ function Analyzer:queryAt(
 		  declCursor,
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
-		     Query:printLocate(
+		     Util:printLocate(
 			db, nsInfo.name, item.fileId, item.line,
 			absFlag, true, fileContents )
 		     return true
@@ -987,7 +1142,7 @@ function Analyzer:queryAt(
 		  declCursor,
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
-		     Query:printLocate(
+		     Util:printLocate(
 			db, nsInfo.name, item.fileId, item.line,
 			absFlag, true, fileContents )
 		     return true
@@ -998,7 +1153,7 @@ function Analyzer:queryAt(
 		  declCursor,
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
-		     Query:printLocate(
+		     Util:printLocate(
 			db, nsInfo.name, item.fileId, item.line,
 			absFlag, true, fileContents )
 		     return true
@@ -1057,7 +1212,7 @@ function Analyzer:graphAt(
 		  kind == clang.core.CXCursor_VarDecl
 	       then
 		  local cxtype = declCursor:getCursorType()
-		  declCursor = db:getDeclCursorFromType( cxtype )
+		  declCursor = clang.getDeclCursorFromType( cxtype )
 		  nsInfo = db:getNamespaceFromCursor( declCursor )
 	       else
 		  nsInfo = db:getNamespaceFromCursor( declCursor )
