@@ -9,6 +9,7 @@ local DBCtrl = require( 'lctags.DBCtrl' )
 local DBAccess = require( 'lctags.DBAccess' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
 local Make = require( 'lctags.Make' )
+local Complete = require( 'lctags.Complete' )
 
 local function printUsage( message )
    if message then
@@ -208,6 +209,8 @@ local function analyzeOption( argList )
 	       lctagOptMap.depth = 100
 	    end
 	    skipArgNum = 1
+	 elseif arg == "comp-at" then
+	    lctagOptMap.mode = arg
 	 end
       else
 	 if skipArgNum > 0 then
@@ -520,5 +523,10 @@ if lctagOptMap.mode == "graph-at" then
       tonumber( srcList[ 3 ] ), lctagOptMap.target,
       lctagOptMap.depth, lctagOptMap.browse,
       lctagOptMap.outputFile, lctagOptMap.imageFormat )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "comp-at" then
+   Complete:at( analyzer, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ] )
    os.exit( 0 )
 end

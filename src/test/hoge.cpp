@@ -13,18 +13,10 @@
 #define ARRAY_LENGTH 10
 typedef int int_t;
 
-typedef int (Callback_t)(void);
-
-typedef enum { enum_val1, enum_val2 } enum_t;
-
-struct yyyy;
-
-typedef struct yyyy YYYY;
-
-struct yyyy {
-    int kkkk;
-  Callback_t * pCallback;
-};
+typedef enum { enum_val1,
+	       enum_val2,
+	       enum_val3 = enum_val1 + 1000
+} enum_t;
 
 typedef struct zzzz ZZZZ;
 struct zzzz {
@@ -40,11 +32,18 @@ namespace iiii {
 #endif
 }
 
-
 typedef struct TEST {
     int aaaa;
 } TEST;
 
+typedef ZZZZ (Callback_t)( TEST * pTest );
+
+struct yyyy;
+typedef struct yyyy YYYY;
+struct yyyy {
+    int kkkk;
+  Callback_t * pCallback;
+};
 
 typedef struct {
     char charValue;
@@ -181,9 +180,9 @@ namespace ns1 {
          *
          * ほげ
          */
-        int func0( int (func)( void ) ) {
+        int func0( ZZZZ (func)( TEST * pClass ) ) {
             char buf[ 1 ];
-            func();
+            func( NULL );
             return 0;
         }
 
@@ -194,21 +193,22 @@ namespace ns1 {
          */
         int func1( Callback_t callback ) {
             char buf[ 1 ];
-            callback();
+            callback( NULL );
             return 0;
         }
 
         /** func2 comment */
-        static int func2() {
+        static ZZZZ func2( TEST * pTest ) {
             char buf[ 2 ];
             static int ps_local = s_static;
             g_global = s_static;
-            return 0;
+	    ZZZZ aaa;
+            return aaa;
         }
 
         int func5( struct_func_t * pClass ) {
             char buf[5];
-            pClass->   pCallback();
+            pClass->   pCallback( NULL );
             pClass->z2 = 1;
             TestClass  aaa;
             return 0;
@@ -227,8 +227,8 @@ namespace ns1 {
             }
             {
                 char buf[10];
-                func2();
-                (*pCallback)();
+                func2( NULL );
+                (*pCallback)( NULL );
                 func0( func2 );
                 func5( NULL );
             }
@@ -264,7 +264,7 @@ namespace ns1 {
   struct yyyy sub2() {
     YYYY aYYYYY;
     aYYYYY.kkkk = 0;
-    aYYYYY.pCallback();
+    aYYYYY.pCallback( NULL );
     return aYYYYY;
   }
 }

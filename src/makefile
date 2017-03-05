@@ -131,15 +131,18 @@ test: build
 ifndef NO_INIT
 	$(LUA_COMMAND) lctags/lctags.lua init . $(IT_OP) $(IS_OP) $(IM_OP)
 endif
+	sync
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge >> dump
+	$(LUA_COMMAND) lctags/lctags.lua build gcc test/comp.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 >> dump
 	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
 	$(LUA_COMMAND) lctags/lctags.lua -xa sub
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 26 8
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 44 8
 	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 236 23
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 237 23
 	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 253 18
-	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 205 18
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 169 15
+	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 204 18
+	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 168 15
 	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 267 15
 	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 230 18
 	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 231 20
@@ -153,6 +156,7 @@ endif
 	$(LUA_COMMAND) lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
 	$(LUA_COMMAND) lctags/lctags.lua graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
 	$(LUA_COMMAND) lctags/lctags.lua list inc test/hoge.cpp -d 2
+	$(LUA_COMMAND) lctags/lctags.lua comp-at test/comp.cpp 26 17
 
 
 test-at-lua:
@@ -160,6 +164,7 @@ ifeq ($(shell which lctags),)
 	@echo please make install
 	@exit 1
 endif
+	sync
 ifndef NO_INIT
 	$(LUA_COMMAND) lctags/lctags.lua init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
 endif

@@ -78,8 +78,9 @@ local targetKindList = {
    clang.core.CXCursor_Constructor,
    clang.core.CXCursor_DeclRefExpr,
    clang.core.CXCursor_MemberRefExpr,
-   clang.core.CXCursor_ParmDecl,
+   --clang.core.CXCursor_ParmDecl,
    clang.core.CXCursor_TypedefDecl,
+   clang.core.CXCursor_TypeRef,
    clang.core.CXCursor_VarDecl,
    clang.core.CXCursor_CallExpr,
 }
@@ -151,13 +152,9 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
       analyzer:registCursor( cursor )
       return 1
-   elseif cursorKind == clang.core.CXCursor_ClassDecl then
-      table.insert( analyzer.classList, cursor )
-      calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-      analyzer:registCursor( cursor )
-      
    elseif cursorKind == clang.core.CXCursor_StructDecl or
       cursorKind == clang.core.CXCursor_UnionDecl or
+      cursorKind == clang.core.CXCursor_ClassDecl or
       cursorKind == clang.core.CXCursor_EnumDecl
    then
       if cursor:getCursorSpelling() == "" then
@@ -171,6 +168,8 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 list = analyzer.structList
       elseif cursorKind == clang.core.CXCursor_UnionDecl then
 	 list = analyzer.unionList
+      elseif cursorKind == clang.core.CXCursor_ClassDecl then
+	 list = analyzer.classList
       end
 	 
       table.insert( list, { cursor, analyzer.currentSpInfo } )
@@ -248,54 +247,34 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
       analyzer:registCursor( cursor )
 
-      cursor:visitChildren(
-	 function( aCursor, aParent, aExInfo )
-	    analyzer.hashCursor2TypedefMap[ aCursor:hashCursor() ] =
-	       { typedef = cursor, src = aCursor }
-
-	    if aCursor:getCursorKind() == clang.core.CXCursor_TypeRef then
-	       analyzer:addTypeRef(
-	    	  aCursor,
-	    	  clang.getDeclCursorFromType( aCursor:getCursorType() ) )
+      local isFuncFlag = false
+      if cursor:getCursorResultType().__ptr.kind ~= clang.core.CXType_Invalid then
+	 isFuncFlag = true
+      end
+      local srcCursor
+      clang.visitChildrenFast(
+	 cursor,
+	 function ( aCursor, aParent, aExInfo, append )
+	    if not srcCursor then
+	       srcCursor = aCursor
 	    end
-	    
-	    return clang.CXChildVisitResult.Break.val
-	 end, {} )
+	    if isFuncFlag then
+	       visitFuncMain( aCursor, aParent, analyzer, append )
+	    else
+	       return clang.CXChildVisitResult.Break.val
+	    end
+	 end, analyzer, targetKindList, isFuncFlag and 2 or 1 )
+
+      if srcCursor then
+	 analyzer.hashCursor2TypedefMap[ srcCursor:hashCursor() ] =
+	    { typedef = cursor, src = srcCursor }
+      end
       
-   elseif cursorKind == clang.core.CXCursor_VarDecl or
-      cursorKind == clang.core.CXCursor_ParmDecl
-   then
-      local declCursor = clang.getDeclCursorFromType( cursor:getCursorType() )
-      local declKind = declCursor:getCursorKind()
-
-      if declKind ~= CXCursor_NoDeclFound then
-	 if declKind == clang.core.CXCursor_StructDecl or
-	    declKind == clang.core.CXCursor_UnionDecl or
-	    declKind == clang.core.CXCursor_EnumDecl
-	 then
-	    if declCursor:getCursorSpelling() == "" then
-	       analyzer.anonymousHash2VarDeclMap[ declCursor:hashCursor() ] = cursor
-	       log( 3, "anonymousHash2VarDeclMap:", declCursor:hashCursor() )
-	    end
-	 end
-	 
-	 if analyzer.currentFunc == nil then
-	    if cursorKind == clang.core.CXCursor_VarDecl then
-	       table.insert( analyzer.wideAreaValList, cursor )
-	       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-	       analyzer:registCursor( cursor )
-	    end
-	 else
-	    local namespace = analyzer:getNowNs()
-	    table.insert(
-	       analyzer.refList,
-	       { cursor = cursor, declCursor = declCursor,
-		 namespace = namespace } )
-	    calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
-	    analyzer:registCursor( cursor )
-	    calcDigest( declCursor, analyzer.currentSpInfo )
-	    calcDigest( namespace, analyzer.currentSpInfo )
-	 end
+   elseif cursorKind == clang.core.CXCursor_VarDecl then
+      if analyzer.currentFunc == nil then
+	 table.insert( analyzer.wideAreaValList, cursor )
+	 calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
+	 analyzer:registCursor( cursor )
       end
    elseif cursorKind == clang.core.CXCursor_FieldDecl or
       cursorKind == clang.core.CXCursor_EnumConstantDecl
@@ -321,6 +300,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 local switchFlag = false
 	 if not recursiveFlag then
 	    if isFuncDecl( cursorKind ) or
+	       cursorKind == clang.core.CXCursor_EnumDecl or
 	       cursorKind == clang.core.CXCursor_VarDecl
 	    then
 	       analyzer.recursiveBaseKind = cursorKind
@@ -349,6 +329,10 @@ end
 
 
 local Analyzer = {}
+
+function Analyzer:newAs( recordDigestSrcFlag, displayDiagnostics )
+   return Analyzer:new( self.dbPath, recordDigestSrcFlag, displayDiagnostics )
+end
 
 function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
    local obj = {
@@ -423,7 +407,7 @@ end
 
 function Analyzer:addTypeRef( cursor, declCursor )
    local declKind = declCursor:getCursorKind() 
-   if declKind ~= CXCursor_NoDeclFound then
+   if declKind ~= clang.core.CXCursor_NoDeclFound then
       table.insert(
 	 self.refList,
 	 { cursor = cursor, declCursor = declCursor,
@@ -844,9 +828,9 @@ function Analyzer:registerToDB( db )
    end
    
    log( 2, "-- classList --", os.clock(), os.date()  )
-   for index, cursor in ipairs( self.classList ) do
-      log( cursor:getCursorSpelling() )
-      db:addNamespace( cursor )
+   for index, info in ipairs( self.classList ) do
+      self:processStructEnum( db, info, "<class_%s>",
+			      clang.CXCursorKind.FieldDecl.val )
    end
 
    log( 2, "-- funcList --", os.clock(), os.date()  )
@@ -917,8 +901,6 @@ end
 
 
 function Analyzer:update( path, target )
-   self.targetFilePath = path
-
    if not target then
       target = ""
    end
@@ -927,6 +909,18 @@ function Analyzer:update( path, target )
       return
    end
 
+   local transUnit, compileOp = self:createUnit( path, target )
+
+   self:analyzeUnit( transUnit, compileOp, target )
+end
+
+function Analyzer:createUnit( path, target )
+   self.targetFilePath = path
+
+   if not target then
+      target = ""
+   end
+   
    local db = self:openDBForReadOnly()
    
    -- filePath の target に対応するコンパイルオプションを取得
@@ -949,7 +943,6 @@ function Analyzer:update( path, target )
    log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
    
    
-   
    db:close()
 
    if not fileInfo then
@@ -963,15 +956,16 @@ function Analyzer:update( path, target )
    end
 
    local args = clang.mkCharArray( optionList )
-   local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
-      path, args:getLength(), args:getPtr(), 0, nil )
 
    local compileOp = ""
    for index, option in ipairs( optionList ) do
       compileOp = compileOp .. option .. " "
    end
 
-   self:analyzeUnit( transUnit, compileOp, target )
+   local unit = self.clangIndex:createTranslationUnitFromSourceFile(
+      path, args:getLength(), args:getPtr(), 0, nil )
+
+   return unit, compileOp
 end
 
 
@@ -1051,7 +1045,7 @@ function Analyzer:analyzeSourceAtWithFunc(
 
    local db = self:openDBForReadOnly( currentDir )
    
-   func( db, nil, declCursor )
+   func( db, db:getFileInfo( nil, targetFullPath ).id,  nil, declCursor )
    
    db:close()
 end
@@ -1068,7 +1062,7 @@ function Analyzer:queryAtFunc(
       -- ヘッダの場合は解析せずに DB 登録されている情報を使用する
       local nsInfo = db:getNsInfoAt( filePath, line, column, fileContents )
       if nsInfo then
-	 func( db, nsInfo, nil )
+	 func( db, fileInfo.id, nsInfo, nil )
       else
 	 log( 1, "not found namespace" )
 	 os.exit( 1 )
@@ -1110,7 +1104,7 @@ function Analyzer:queryAt(
       mode, filePath, line, column, absFlag, target, fileContents )
    self:queryAtFunc(
       filePath, line, column, target, fileContents,
-      function( db, nsInfo, declCursor )
+      function( db, targetFileId, nsInfo, declCursor )
 	 if nsInfo then
 	    if mode == "ref-at" then
 	       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name )
@@ -1132,8 +1126,8 @@ function Analyzer:queryAt(
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Util:printLocate(
-			db, nsInfo.name, item.fileId, item.line,
-			absFlag, true, fileContents )
+			db, nsInfo.name, item.fileId, item.line, absFlag, true,
+			item.fileId == targetFileId and fileContents or nil )
 		     return true
 		  end	 
 	       )
@@ -1143,8 +1137,8 @@ function Analyzer:queryAt(
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Util:printLocate(
-			db, nsInfo.name, item.fileId, item.line,
-			absFlag, true, fileContents )
+			db, nsInfo.name, item.fileId, item.line, absFlag, true,
+			item.fileId == targetFileId and fileContents or nil )
 		     return true
 		  end	 
 	       )
@@ -1154,8 +1148,8 @@ function Analyzer:queryAt(
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Util:printLocate(
-			db, nsInfo.name, item.fileId, item.line,
-			absFlag, true, fileContents )
+			db, nsInfo.name, item.fileId, item.line, absFlag, true,
+			item.fileId == targetFileId and fileContents or nil )
 		     return true
 		  end	 
 	       )
@@ -1190,7 +1184,7 @@ function Analyzer:graphAt(
 
    self:queryAtFunc(
       filePath, line, column, target, nil,
-      function( db, nsInfo, declCursor )
+      function( db, targetFileId, nsInfo, declCursor )
 	 if nsInfo then
 	    if graph == "caller" or graph == "callee" then
 	       Query:outputCallRelation(

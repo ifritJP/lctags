@@ -1669,26 +1669,6 @@ function DBCtrl:getFileInfo( id, path )
       path = ""
    else
       path = self:convPath( path )
-
-      path = string.gsub( path, ".*//", "/" )
-      if string.find( path, "^%." ) then
-	 local nameList = {}
-	 for name in string.gmatch( path, "[^/]" ) do
-	    if name == "." then
-	       if #nameList == 0 then
-		  table.insert( nameList, self.currentDir )
-	       end
-	    elseif name == ".." then
-	       if #nameList == 0 or nameList[ #nameList ] == ".." then
-		  table.insert( nameList, ".." )
-	       else
-		  table.remove( nameList )
-	       end
-	    else
-	       table.insert( nameList, name )
-	    end
-	 end
-      end
    end
 
    fileInfo = self.path2fileInfoMap[ path ]

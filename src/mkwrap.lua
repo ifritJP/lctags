@@ -597,18 +597,27 @@ local function dumpSwigData(
 libs.mk%s = function( tbl, length )
    local len = tbl
    local typeId = type( tbl )
+   local freeFlag = true
+   local __ptr = tbl
    if typeId == "table" then
       len = #tbl
+      __ptr = libclangcore.new_%s( len )
    else
       if length == nil then
          len = 0
       else
          len = length
       end
+      if typeId == "userdata" then
+         freeFlag = false
+      else
+         __ptr = libclangcore.new_%s( len )
+      end
    end
    local array = {
       __length = len,
-      __ptr = libclangcore.new_%s( len ),
+      __ptr = __ptr,
+      __freeFlag = freeFlag,
       getLength = function( self )
 	 return self.__length
       end,
@@ -623,7 +632,9 @@ libs.mk%s = function( tbl, length )
       end,
    }
    setmetatable( array, { __gc = function( self )
-                                   libclangcore.delete_%s( self.__ptr )
+                                   if self.__freeFlag then
+                                      libclangcore.delete_%s( self.__ptr )
+                                   end
                                  end } )
 
    if typeId == "table" then
@@ -633,7 +644,7 @@ libs.mk%s = function( tbl, length )
    end
    return array
 end
-]], arrayName, arrayName, arrayName, arrayName, arrayName, arrayName )
+]], arrayName, arrayName, arrayName, arrayName, arrayName, arrayName, arrayName )
 	 classFile:write( swigTxt )
       end
    )
