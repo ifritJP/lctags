@@ -114,7 +114,7 @@ function Query:exec( dbPath, query, target, useGlogalFlag )
 end
 
 
-function Query:outputRelation( target, depthLimit, relIf, outputFunc, ... )
+function Query:outputRelation( db, target, depthLimit, relIf, outputFunc, ... )
    if not depthLimit then
       depthLimit = 4
    elseif string.find( depthLimit, "^[0-9]+$" ) then
@@ -176,7 +176,7 @@ function Query:outputRelation( target, depthLimit, relIf, outputFunc, ... )
    until #workList == 0
 
 
-   outputFunc( targetId, allIdList, id2BaseIdSetMap, relIf, ... )
+   outputFunc( db, targetId, allIdList, id2BaseIdSetMap, relIf, ... )
 end
 
 function Query:outputCallRelation(
@@ -223,13 +223,26 @@ function Query:outputCallRelation(
       getId = function( self, name )
 	 return db:getNamespace( nil, name ).id
       end,
+      getFileId = function( self, id )
+	 local fileId
+	 db:mapDecl( id,
+		     function( symbolDecl )
+			if db:getFileInfo( symbolDecl.fileId ).incFlag == 0 then
+			   fileId = symbolDecl.fileId
+			   return false
+			end
+			return true
+		     end
+	 )
+	 return fileId
+      end,
       mapBaseFor = function( self, dstId, func )
 	 local condition = callerMode and "nsId = " or "belongNsId ="
 	 db:mapCall( condition .. tostring( dstId ), func )
       end,
    }
 
-   self:outputRelation( namespace, depthLimit, refIf, outputFunc, ... )
+   self:outputRelation( db, namespace, depthLimit, refIf, outputFunc, ... )
 end
 
 
@@ -267,6 +280,9 @@ function Query:outputIncRelation(
       getId = function( self, name )
 	 return db:getFileInfo( nil, name ).id
       end,
+      getFileId = function( self, id )
+	 return id
+      end,
       mapBaseFor = function( self, dstId, func )
 	 if incFlag then
 	    db:mapIncRefListFrom( dstId, func )
@@ -276,8 +292,7 @@ function Query:outputIncRelation(
       end
    }
 
-   self:outputRelation(
-      incFilePath, depthLimit, refIf, outputFunc, ... )
+   self:outputRelation( db, incFilePath, depthLimit, refIf, outputFunc, ... )
 
 end
 
@@ -292,6 +307,7 @@ function Query:outputSymbolRefRelation(
 
    local refIf = {
       reverseFlag = true,
+      id2fileIdMap = {},
       displayItems = function( self )
 	 db:mapNamespace(
 	    nil,
@@ -313,12 +329,24 @@ function Query:outputSymbolRefRelation(
       getId = function( self, name )
 	 return db:getNamespace( nil, name ).id
       end,
+      getFileId = function( self, id )
+	 return self.id2fileIdMap[ id ]
+      end,
       mapBaseFor = function( self, dstId, func )
-	 db:mapSymbolRef( dstId, func )
+	 db:mapSymbolRef(
+	    dstId,
+	    function (item)
+	       self.id2fileIdMap[ item.belongNsId ] = item.fileId
+	       if item.belongNsId ~= db.rootNsId then
+		  return func( item )
+	       end
+	       return true
+	    end
+	 )
       end
    }
 
-   self:outputRelation( symbol, depthLimit, refIf, outputFunc, ... )
+   self:outputRelation( db, symbol, depthLimit, refIf, outputFunc, ... )
 end
 
 

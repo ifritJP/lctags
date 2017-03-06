@@ -18,7 +18,11 @@ local userNsId = 2
 local systemFileId = 1
 local DB_VERSION = 4
 
-local DBCtrl = {}
+local DBCtrl = {
+   rootNsId = rootNsId,
+   userNsId = userNsId,
+   systemFileId = systemFileId,
+}
 
 function convProjPath( projDir, currentDir )
    if not projDir then
@@ -1019,6 +1023,10 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    local baseNsId
 
    local structUptodate = false
+
+   if not nsObj then
+      log( 2, "addEnumStructDecl: nsObj is nil", decl:getCursorSpelling() )
+   end
    
    if fileInfo.uptodate then
       fullnameBase = self:getFullname(
@@ -1028,7 +1036,7 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       log( 3, "addEnumStructDecl start",
 	   decl:getCursorSpelling(), typedefName, os.clock(), os.date() )
       -- local digest = self:calcEnumStructDigest( decl, kind )
-      local digest = nsObj.fixDigest
+      local digest = nsObj and nsObj.fixDigest or ""
 
       local declNs, symbolDecl
       declNs, symbolDecl, structUptodate = self:addNamespaceSub(
@@ -1047,7 +1055,7 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    local workFileInfo = fileInfo
 
    local prevFile = nil
-   for index, info in ipairs( nsObj.memberList ) do
+   for index, info in ipairs( nsObj and nsObj.memberList or {} ) do
       local cursor = info[ 1 ]
       local cxfile = info[ 2 ]
       local cursorKind = cursor:getCursorKind()
@@ -1431,6 +1439,11 @@ end
 
 function DBCtrl:mapDeclInfoList( symbol, func, ... )
    return self:mapSymbolInfoList( "symbolDecl", symbol, func, ... )
+end
+
+function DBCtrl:mapDecl( nsId, func, ... )
+   self:mapRowList(
+      "symbolDecl", "nsId = " .. tostring( nsId ), nil, nil, func, ... )
 end
 
 function DBCtrl:mapSymbolRefInfoList( symbol, func, ... )

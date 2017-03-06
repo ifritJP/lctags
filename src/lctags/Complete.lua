@@ -204,7 +204,7 @@ end
 
 function Complete:at( analyzer, path, line, column, target )
 
-   local analyzerForTokenize = analyzer:newAs( analyzer, false, false )
+   local analyzerForTokenize = analyzer:newAs( false, false )
    local unit = analyzerForTokenize:createUnit( path, target )
 
 

@@ -6,7 +6,7 @@ local obj = {}
 
 
 function obj.dot(
-      targetId, allIdList, id2BaseIdSetMap, relIf,
+      db, targetId, allIdList, id2BaseIdSetMap, relIf,
       browseFlag, outputFile, imageFormat )
    if not imageFormat then
       imageFormat = "svg"
@@ -32,11 +32,53 @@ function obj.dot(
    fileHandle:write(
       'rankdir = "' .. (relIf.reverseFlag and "RL" or "LR") .. '";\n' )
 
+   local fileId2idMap = {}
+   local isFileFlag = true
    for index, id in ipairs( allIdList ) do
-      fileHandle:write( string.format(
-			   '"%d:%s" [tooltip="%s", %s];\n',
-			   id, relIf:getName( id ), relIf:getTooltip( id ),
-			   targetId == id and "color = red" or "" ) )
+      local fileId = relIf:getFileId( id )
+      if not fileId then
+	 fileId = 0
+      end
+
+      if fileId ~= id then
+	 isFileFlag = false
+      end
+
+      if not fileId2idMap[ fileId ] then
+	 fileId2idMap[ fileId ] = {}
+      end
+      table.insert( fileId2idMap[ fileId ], id )
+   end
+
+   if isFileFlag then
+      -- id が file を示す場合、file でグルーピングする意味がないので
+      for index, id in ipairs( allIdList ) do
+	 fileHandle:write( string.format(
+			      '"%d:%s" [tooltip="%s", %s];\n',
+			      id, relIf:getName( id ), relIf:getTooltip( id ),
+			      targetId == id and "color = red" or "" ) )
+      end
+   else
+      -- id が file を示さない場合、file でグルーピングする
+      for fileId, idList in pairs( fileId2idMap ) do
+	 if fileId ~= 0 then
+	    fileHandle:write( string.format( "subgraph cluster_%d {", fileId ) )
+	    fileHandle:write(
+	       string.format( 'label = "%s";', db:getFileInfo( fileId ).path ) )
+	 end
+
+	 for index, id in ipairs( idList ) do
+	    fileHandle:write(
+	       string.format(
+		  '"%d:%s" [tooltip="%s", %s];\n',
+		  id, relIf:getName( id ), relIf:getTooltip( id ),
+		  targetId == id and "color = red" or "" ) )
+	 end
+
+	 if fileId ~= 0 then
+	    fileHandle:write( "}" )
+	 end
+      end
    end
    
    for id, baseIdSet in pairs( id2BaseIdSetMap ) do
@@ -65,7 +107,7 @@ end
 
 
 function obj.txt(
-      targetId, allIdList, id2BaseIdSetMap, relIf, fileHandle )
+      db, targetId, allIdList, id2BaseIdSetMap, relIf, fileHandle )
 
    if not fileHandle then
       log( 1, "failed to open image file" )

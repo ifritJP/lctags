@@ -765,10 +765,11 @@ end
 function Analyzer:processStructEnum( db, info, anonymousForm, kind )
    local cursor = info[ 1 ]
    local name = cursor:getCursorSpelling()
-   log( "processStructEnum:", name,
-	clang.getCursorKindSpelling( cursor:getCursorKind() ) )
-
    local hash = cursor:hashCursor()
+
+   log( "processStructEnum:", name,
+	clang.getCursorKindSpelling( cursor:getCursorKind() ), hash )
+
    local typedefInfo = self.hashCursor2TypedefMap[ hash ]
    local typedefName = typedefInfo and typedefInfo.typedef:getCursorSpelling() or ""
 
