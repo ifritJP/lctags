@@ -1671,7 +1671,6 @@ function DBCtrl:getFileInfo( id, path )
       if work then
 	 return work
       end
-      log( 3, "getFileInfo: id", fileInfo.path )
       self.path2fileInfoMap[ fileInfo.path ] = fileInfo
       self.fileId2fileInfoMap[ id ] = fileInfo
       fileInfo.incPosList = {}
@@ -1688,7 +1687,6 @@ function DBCtrl:getFileInfo( id, path )
    if fileInfo then
       return fileInfo, path
    end
-   log( 3, "getFileInfo: path", path )
    fileInfo = self:getRow( "filePath", "path == '" .. path .. "'" )
    if not fileInfo then
       return nil, path
@@ -1961,6 +1959,37 @@ function DBCtrl:getSrcForIncOne( fileInfo )
       fileInfo = self:getFileInfo( baseId )
    end
    return fileInfo
+end
+
+
+-- fileInfo がインクルードしているファイルの ID を取得し fileId2fileInfoMap に設定する。
+-- インクルードファイル内からさらにインクルードしているファイルも含める。
+function DBCtrl:getIncludeFileSet( fileId2FlieInfoMap, fileInfo )
+   fileId2FlieInfoMap[ fileInfo.id ] = fileInfo
+
+   local newIncFileIdList = { fileInfo.id }
+   repeat
+      local incFileIdList = {}
+      for index, fileId in ipairs( newIncFileIdList ) do
+	 self:mapIncRefListFrom(
+	    fileId,
+	    function( incRefInfo )
+	       local incFileInfo = self:getFileInfo( incRefInfo.id )
+	       if not incFileInfo then
+		  log( 2, "not found incFile in db", incRefInfo.id )
+	       end
+	       if not fileId2FlieInfoMap[ incFileInfo.id ] then
+		  fileId2FlieInfoMap[ incFileInfo.id ] = incFileInfo
+		  table.insert( incFileIdList, incFileInfo.id )
+	       end
+	       return true
+	    end
+	 )
+      end
+      newIncFileIdList = incFileIdList
+   until #newIncFileIdList == 0
+
+   return true
 end
 
 

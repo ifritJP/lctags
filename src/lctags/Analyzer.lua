@@ -546,39 +546,8 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
 	 end
 
 	 local fileId2FlieInfoMap = {}
-	 fileId2FlieInfoMap[ targetFileInfo.id ] = targetFileInfo
-
-	 -- filePath からインクルードしている全ファイルの情報を
-	 -- fileId2FlieInfoMap に設定
-	 local newIncFileIdList = { targetFileInfo.id }
-	 repeat
-	    local incFileIdList = {}
-	    for index, fileId in ipairs( newIncFileIdList ) do
-	       local detectChange = false
-	       db:mapIncRefListFrom(
-		  fileId,
-		  function( incRefInfo )
-		     local incFileInfo = db:getFileInfo( incRefInfo.id )
-		     if not incFileInfo then
-			log( 2, "not found incFile in db", incRefInfo.id )
-			detectChange = true
-			return false
-		     end
-		     if not fileId2FlieInfoMap[ incFileInfo.id ] then
-			fileId2FlieInfoMap[ incFileInfo.id ] = incFileInfo
-			table.insert( incFileIdList, incFileInfo.id )
-			log( 3, "inc file", incFileInfo.path )
-		     end
-		     return true
-		  end
-	       )
-	       if detectChange then
-		  return false
-	       end
-	    end
-	    newIncFileIdList = incFileIdList
-	 until #newIncFileIdList == 0
-
+	 db:getIncludeFileSet( fileId2FlieInfoMap, targetFileInfo )
+	 
 	 -- 取得した全ファイルの情報から、ファイルが更新されているかどうかチェック
 	 local fileId2updateInfoMap = {}
 	 local uptodateFlag = true
@@ -597,8 +566,6 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
 	       dependFileUpdateInfoSet = {},
 	       path = db:convFullpath( db:getSystemPath( fileInfo.path ) ),
 	    }
-
-	    
 	 end
 	 
 	 if not uptodateFlag then

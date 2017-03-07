@@ -227,8 +227,8 @@ function Query:outputCallRelation(
 	 local fileId
 	 db:mapDecl( id,
 		     function( symbolDecl )
+			fileId = symbolDecl.fileId
 			if db:getFileInfo( symbolDecl.fileId ).incFlag == 0 then
-			   fileId = symbolDecl.fileId
 			   return false
 			end
 			return true

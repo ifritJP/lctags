@@ -15,7 +15,7 @@ function obj.dot(
    local fileHandle
    if not outputFile then
       if browseFlag then
-	 outputFile = Helper.getTempFilename( "lctags" )
+	 outputFile = Helper.getTempFilename( "lctags" ) .. "." .. imageFormat
       else
 	 outputFile = "lctags_graph." .. imageFormat
       end
@@ -32,13 +32,30 @@ function obj.dot(
    fileHandle:write(
       'rankdir = "' .. (relIf.reverseFlag and "RL" or "LR") .. '";\n' )
 
+   local dir2FileIdListMap = {}
    local fileId2idMap = {}
    local isFileFlag = true
+   local dirNum = 0
+   local sameDirNum = 0
    for index, id in ipairs( allIdList ) do
       local fileId = relIf:getFileId( id )
+      local dir
       if not fileId then
 	 fileId = 0
+	 dir = ""
+      else
+	 local fileInfo = db:getFileInfo( fileId )
+	 dir = string.gsub( fileInfo.path, "^(.*)/[^/]+$", "%1" )
       end
+      local list = dir2FileIdListMap[ dir ]
+      if not list then
+	 list = {}
+	 dir2FileIdListMap[ dir ] = list
+	 dirNum = dirNum + 1
+      else
+	 sameDirNum = sameDirNum + 1
+      end
+      table.insert( list, fileId )
 
       if fileId ~= id then
 	 isFileFlag = false
@@ -47,36 +64,80 @@ function obj.dot(
       if not fileId2idMap[ fileId ] then
 	 fileId2idMap[ fileId ] = {}
       end
+      
       table.insert( fileId2idMap[ fileId ], id )
    end
 
+   local outputNode = function( id )
+      fileHandle:write( string.format(
+			   '"%d:%s" [tooltip="%s", %s];\n',
+			   id, relIf:getName( id ), relIf:getTooltip( id ),
+			   targetId == id and "color = red" or "" ) )
+   end
+   
    if isFileFlag then
-      -- id が file を示す場合、file でグルーピングする意味がないので
-      for index, id in ipairs( allIdList ) do
-	 fileHandle:write( string.format(
-			      '"%d:%s" [tooltip="%s", %s];\n',
-			      id, relIf:getName( id ), relIf:getTooltip( id ),
-			      targetId == id and "color = red" or "" ) )
+      if dirNum >= 2 and sameDirNum >= 2 then
+	 local index = 0
+	 for dirPath, fileIdList in pairs( dir2FileIdListMap ) do
+	    if dirPath == "" then
+	       outputNode( id )
+	    else
+	       index = index + 1
+	       fileHandle:write( string.format( "subgraph cluster_0%d {", index ) )
+	       fileHandle:write( string.format( 'label = "%s"; fontcolor = "green";',
+						dirPath ) )
+	       for index, fileId in pairs( fileIdList ) do
+		  outputNode( fileId )
+	       end
+	       fileHandle:write( "}" )
+	    end
+	 end
+      else
+	 for index, id in ipairs( allIdList ) do
+	    outputNode( id )
+	 end
       end
    else
-      -- id が file を示さない場合、file でグルーピングする
-      for fileId, idList in pairs( fileId2idMap ) do
+      local fileClusterFunc = function( fileId )
+	 local idList = fileId2idMap[ fileId ]
 	 if fileId ~= 0 then
 	    fileHandle:write( string.format( "subgraph cluster_%d {", fileId ) )
 	    fileHandle:write(
-	       string.format( 'label = "%s";', db:getFileInfo( fileId ).path ) )
+	       string.format( 'label = "%s"; fontcolor = "black";\n',
+			      db:getFileInfo( fileId ).path ) )
 	 end
 
 	 for index, id in ipairs( idList ) do
-	    fileHandle:write(
-	       string.format(
-		  '"%d:%s" [tooltip="%s", %s];\n',
-		  id, relIf:getName( id ), relIf:getTooltip( id ),
-		  targetId == id and "color = red" or "" ) )
+	    outputNode( id )
 	 end
 
 	 if fileId ~= 0 then
 	    fileHandle:write( "}" )
+	 end
+      end
+      -- id が file を示さない場合、file でグルーピングする
+      if dirNum >= 2 and sameDirNum >= 2 then
+	 for dirPath, fileIdList in pairs( dir2FileIdListMap ) do
+	    if dirPath == "" then
+	       for index, fileId in pairs( fileIdList ) do
+		  fileClusterFunc( fileId )
+	       end
+	    else
+	       fileHandle:write(
+		  string.format( "subgraph cluster_0%d {", fileIdList[ 1 ] ) )
+	       fileHandle:write(
+		  string.format( 'label = "%s"; fontcolor = "green"\n;', dirPath ) )
+	    
+	       for index, fileId in pairs( fileIdList ) do
+		  fileClusterFunc( fileId )
+	       end
+
+	       fileHandle:write( "}" )
+	    end
+	 end
+      else
+	 for fileId, idList in pairs( fileId2idMap ) do
+	    fileClusterFunc( fileId )
 	 end
       end
    end
@@ -97,7 +158,7 @@ function obj.dot(
 
    os.execute( string.format(
 		  "dot -T%s -o %s %s", imageFormat, outputFile, dotFile ) )
-   os.remove( dotFile )
+   --os.remove( dotFile )
 
    if browseFlag then
       os.execute( "firefox " .. outputFile )
