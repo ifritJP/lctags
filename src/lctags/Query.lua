@@ -11,7 +11,11 @@ local Query = {}
 function Query:execWithDb( db, query, target )
    local absFlag = query:find( "a" )
    if query == "dump" then
-      db:dump( 1 )
+      db:dump( 1, target )
+   elseif query == "dumpComp" then
+      db:dumpCompieOp( 1, target )
+   elseif query == "dumpFile" then
+      db:dumpFile( 1, target )
    elseif query:find( "P" ) then
       db:mapFile(
 	 target and string.format( "path like '%%%s%%'", target ),
@@ -115,6 +119,14 @@ end
 
 
 function Query:outputRelation( db, target, depthLimit, relIf, outputFunc, ... )
+   local targetId, allIdList, id2BaseIdSetMap = 
+      self:mapRelation( db, target, depthLimit, relIf, nil )
+
+   outputFunc( db, targetId, allIdList, id2BaseIdSetMap, relIf, ... )
+end
+
+
+function Query:mapRelation( db, target, depthLimit, relIf, mapFunc )
    if not depthLimit then
       depthLimit = 4
    elseif string.find( depthLimit, "^[0-9]+$" ) then
@@ -138,7 +150,6 @@ function Query:outputRelation( db, target, depthLimit, relIf, outputFunc, ... )
       end
    end
 
-
    local id2BaseIdSetMap = {}
    local allIdList = {}
    local allIdSet = {}
@@ -153,7 +164,7 @@ function Query:outputRelation( db, target, depthLimit, relIf, outputFunc, ... )
 	    table.insert( allIdList, dstId )
 	    allIdSet[ dstId ] = 1
 	 end
-	 if depth < depthLimit then
+	 if depthLimit == 0 or depth < depthLimit then
 	    relIf:mapBaseFor(
 	       dstId, 
 	       function( itemRaw )
@@ -166,6 +177,9 @@ function Query:outputRelation( db, target, depthLimit, relIf, outputFunc, ... )
 		  if not baseIdSet[ item.baseId ] then
 		     baseIdSet[ item.baseId ] = 1
 		     table.insert( workList, { depth + 1, item.baseId } )
+		     if mapFunc then
+			return mapFunc( item.baseId, item.id )
+		     end
 		  end
 		  return true
 	       end
@@ -175,9 +189,11 @@ function Query:outputRelation( db, target, depthLimit, relIf, outputFunc, ... )
       newIdList = workList
    until #workList == 0
 
-
-   outputFunc( db, targetId, allIdList, id2BaseIdSetMap, relIf, ... )
+   return targetId, allIdList, id2BaseIdSetMap
 end
+
+
+
 
 function Query:outputCallRelation(
       dbPath, namespace, callerMode, depthLimit, outputFunc, ... )
@@ -245,15 +261,10 @@ function Query:outputCallRelation(
    self:outputRelation( db, namespace, depthLimit, refIf, outputFunc, ... )
 end
 
-
-function Query:outputIncRelation(
-      dbPath, incFilePath, incFlag, depthLimit, outputFunc, ... )
-   local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
-   if not db then
-      log( 1, "db open error" )
-      os.exit( 1 )
-   end
-
+--- Include ファイルの参照関係を取得するインタフェース
+-- @param incFlag true の場合、インクルードしているファイルを取得する。
+--   false の場合、インクルードされているファイルを取得する
+function Query:getIncIf( db, incFlag )
    local refIf = {
       reverseFlag = not incFlag,
       displayItems = function( self )
@@ -291,8 +302,18 @@ function Query:outputIncRelation(
 	 end
       end
    }
+end
 
-   self:outputRelation( db, incFilePath, depthLimit, refIf, outputFunc, ... )
+function Query:outputIncRelation(
+      dbPath, incFilePath, incFlag, depthLimit, outputFunc, ... )
+   local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
+   if not db then
+      log( 1, "db open error" )
+      os.exit( 1 )
+   end
+
+   self:outputRelation( db, incFilePath, depthLimit,
+			self:getIncIf( db, incFlag ), outputFunc, ... )
 
 end
 

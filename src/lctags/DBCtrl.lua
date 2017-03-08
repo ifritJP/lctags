@@ -179,9 +179,8 @@ function DBCtrl:changeProjDir(
 end
 
 
-
-function DBCtrl:shrinkDB( path, full )
-   local obj = DBCtrl:open( path, false, os.getenv( "PWD" ) )
+function DBCtrl:checkRemovedFiles( dbPath )
+   local obj = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
    
    if not obj then
       return false
@@ -202,6 +201,19 @@ function DBCtrl:shrinkDB( path, full )
       obj:updateFile( fileInfo, true )
    end
 
+   obj:close()
+end
+
+
+
+function DBCtrl:shrinkDB( path, full )
+   DBCtrl:checkRemovedFiles( path )
+
+   local obj = DBCtrl:open( path, false, os.getenv( "PWD" ) )
+   
+   if not obj then
+      return false
+   end
 
    if full then
       --- 存在しない名前空間、単純名を削除
@@ -633,10 +645,9 @@ function DBCtrl:addFile(
 	    -- コンパイルオプションを含む systemFile は uptodate
 	    local systemFIleInfo = self:getFileInfo( systemFileId, nil )
 	    systemFIleInfo.uptodate = true
-	    log( 2, "systemFIle is uptodate" )
+	    log( 2, "systemFile is uptodate" )
 	 end
       end
-      
       local modTime = Helper.getFileModTime( self:getSystemPath( fileInfo.path ) )
       if modTime > fileInfo.updateTime or
 	 modTime > self.targetFileInfo.updateTime 
@@ -1792,6 +1803,35 @@ function DBCtrl:getNsInfoAt( path, line, column, fileContents )
    return self:getNamespace( nsId )
 end
 
+function DBCtrl:dumpCompieOp( level, path )
+   local fileInfo =  self:getFileInfo( nil, path )
+   log( level, "-- table compileOp -- " )
+   log( level, "fileId", "target", "path", "compOp" )
+   self:mapRowList(
+      "compileOp", "fileId = " .. tostring( fileInfo.id ), nil, nil,
+      function( row )
+	 local fileInfo = self:getFileInfo( row.fileId )
+	 log( level, row.fileId, row.target, fileInfo.path, row.compOp )
+	 return true
+      end
+   )
+end
+
+function DBCtrl:dumpFile( level, path )
+   local fileInfo =  self:getFileInfo( nil, path )
+   log( level, "-- table filePath -- " )
+   log( level, "id", "incFlag", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
+	"path" )
+   self:mapRowList(
+      "filePath", "id = " .. tostring( fileInfo.id ), nil, nil,
+      function( row ) 
+	 log( level, row.id, row.incFlag,
+	      row.updateTime, row.digest, row.path, row.currentDir )
+	 return true
+      end
+   )
+end
+
 function DBCtrl:dump( level )
    if not level then
       level = 3
@@ -1815,8 +1855,7 @@ function DBCtrl:dump( level )
       "filePath", nil, nil, nil,
       function( row ) 
 	 log( level, row.id, row.incFlag,
-	      row.updateTime, row.digest, row.path,
-	      row.currentDir, row.currentDir )
+	      row.updateTime, row.digest, row.path, row.currentDir )
 	 return true
       end
    )
@@ -1936,61 +1975,102 @@ function DBCtrl:dump( level )
    log( level, "-- table end -- " )
 end
 
+function DBCtrl:hasTarget( fileId, target )
+   return self:exists(
+      "compileOp",
+      string.format( "fileId = %d and target = '%s'", fileId, target ) )   
+end
 
--- fileInfo をインクルードしているソースファイルを1つ返す。
--- fileInfo がソースファイルである場合、 fileInfo を返す。
-function DBCtrl:getSrcForIncOne( fileInfo )
-   local fileIdSet = {}
-   fileIdSet[ fileInfo.id ] = 1
-   while fileInfo.incFlag ~= 0 do
-      -- ヘッダの場合は、このヘッダをインクルードしているソースを見つける
-      local baseId = nil
-      self:mapIncRefFor(
-	 fileInfo.id,
-	 function( item )
-	    if not fileIdSet[ item.baseFileId ] then
-	       baseId = item.baseFileId
-	       fileIdSet[ baseId ] = 1
-	       return false
+-- fileInfo をインクルードしているソースファイルでターゲットが target のものを1つ返す。
+-- fileInfo がソースファイルで、ターゲットが targetfileInfo ある場合 fileInfo を返す。
+-- ない場合は nil を返す
+function DBCtrl:getSrcForIncOne( fileInfo, target )
+   if not target then
+      target = ""
+   end
+
+   local srcFileInfo
+   
+   if fileInfo.incFlag == 0 then
+      Query:mapRelation(
+	 self, fileInfo.id, 0, Query:getIncRef( self, false ),
+	 function( baseId, dstId )
+	    local workFileInfo = self:getFileInfo( baseId )
+	    if workFileInfo.incFlag ~= 0 then
+	       if self:hasTarget( baseId, target ) then
+		  srcFileInfo = workFileInfo
+		  return false
+	       end
+	       return true
 	    end
-	    return true
 	 end
       )
-      fileInfo = self:getFileInfo( baseId )
+   else
+      if self:hasTarget( fileInfo.id, target ) then
+	 srcFileInfo = fileInfo
+	 return false
+      end
    end
-   return fileInfo
+
+   if not srcFileInfo then
+      log( 1, "getSrcForIncOne: not found souce", fileInfo.path )
+   end
+   return srcFileInfo
 end
 
 
 -- fileInfo がインクルードしているファイルの ID を取得し fileId2fileInfoMap に設定する。
 -- インクルードファイル内からさらにインクルードしているファイルも含める。
-function DBCtrl:getIncludeFileSet( fileId2FlieInfoMap, fileInfo )
-   fileId2FlieInfoMap[ fileInfo.id ] = fileInfo
+function DBCtrl:getIncludeFileSet(
+      fileId2FileInfoMap, fileInfo, fileId2IncFileInfoListMap )
+   fileId2FileInfoMap[ fileInfo.id ] = fileInfo
 
+   if not fileId2IncFileInfoListMap then
+      fileId2IncFileInfoListMap = {}
+   end
+
+   local totalCount = 0
    local newIncFileIdList = { fileInfo.id }
    repeat
       local incFileIdList = {}
       for index, fileId in ipairs( newIncFileIdList ) do
-	 self:mapIncRefListFrom(
-	    fileId,
-	    function( incRefInfo )
-	       local incFileInfo = self:getFileInfo( incRefInfo.id )
-	       if not incFileInfo then
-		  log( 2, "not found incFile in db", incRefInfo.id )
+	 local workIncFileInfoList = fileId2IncFileInfoListMap[ fileId ]
+	 if workIncFileInfoList then
+	    for subIndex, subFileInfo in ipairs( workIncFileInfoList ) do
+	       if not fileId2FileInfoMap[ subFileInfo.id ] then
+		  totalCount = totalCount + 1 
+		  fileId2FileInfoMap[ subFileInfo.id ] = subFileInfo
+		  table.insert( incFileIdList, subFileInfo.id )
 	       end
-	       if not fileId2FlieInfoMap[ incFileInfo.id ] then
-		  fileId2FlieInfoMap[ incFileInfo.id ] = incFileInfo
-		  table.insert( incFileIdList, incFileInfo.id )
-	       end
-	       return true
 	    end
-	 )
+	 else
+	    workIncFileInfoList = {}
+	    fileId2IncFileInfoListMap[ fileId ] = workIncFileInfoList
+	 
+	    self:mapIncRefListFrom(
+	       fileId,
+	       function( incRefInfo )
+		  local incFileInfo = self:getFileInfo( incRefInfo.id )
+		  if not incFileInfo then
+		     log( 2, "not found incFile in db", incRefInfo.id )
+		  end
+		  if not fileId2FileInfoMap[ incFileInfo.id ] then
+		     totalCount = totalCount + 1 
+		     fileId2FileInfoMap[ incFileInfo.id ] = incFileInfo
+		     table.insert( incFileIdList, incFileInfo.id )
+		     table.insert( workIncFileInfoList, incFileInfo )
+		  end
+		  return true
+	       end
+	    )
+	 end
       end
       newIncFileIdList = incFileIdList
    until #newIncFileIdList == 0
 
+   log( 2, "getIncludeFileSet: total ", totalCount, fileInfo.path )
+
    return true
 end
-
 
 return DBCtrl

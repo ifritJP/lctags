@@ -330,16 +330,23 @@ end
 
 local Analyzer = {}
 
-function Analyzer:newAs( recordDigestSrcFlag, displayDiagnostics )
-   return Analyzer:new( self.dbPath, recordDigestSrcFlag, displayDiagnostics )
+function Analyzer:newAs( recordDigestSrcFlag, displayDiagnostics, currentDir )
+   if currentDir then
+      Helper.chdir( currentDir )
+   end
+   return Analyzer:new(
+      self.dbPath, recordDigestSrcFlag, displayDiagnostics, currentDir )
 end
 
-function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics )
+function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics, currentDir )
+   if not currentDir then
+      currentDir = os.getenv( "PWD" )
+   end
    local obj = {
       clangIndex = clang.createIndex( 1, displayDiagnostics and 1 or 0 ),
-      currentDir = os.getenv( "PWD" ),
+      currentDir = currentDir,
 
-      dbPath = dbPath,
+      dbPath = DBCtrl:convFullpath( dbPath, currentDir ),
       recursiveBaseKind = clang.core.CXCursor_InvalidFile,
 
       recordDigestSrcFlag = recordDigestSrcFlag,
@@ -559,7 +566,7 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
 	    then
 	       uptodateFlag = false
 	       log( 1, "detect modified", fileInfo.path,
-		    targetFileInfo.updateTime, modTime )
+		    targetFileInfo.updateTime, systemPath, modTime )
 	    end
 	    fileId2updateInfoMap[ fileInfo.id ] = {
 	       -- このファイルの宣言に影響を与えるファイルの Set
@@ -872,17 +879,18 @@ function Analyzer:update( path, target )
    if not target then
       target = ""
    end
-   
-   if self:isUptodate( path, nil, target ) then
+
+   -- これが呼ばれるときは更新が必要な時だけなので、uptodate チェックしない。
+   local transUnit, compileOp, analyzer = self:createUnit( path, target, false )
+
+   if transUnit == "uptodate" then
       return
    end
 
-   local transUnit, compileOp = self:createUnit( path, target )
-
-   self:analyzeUnit( transUnit, compileOp, target )
+   analyzer:analyzeUnit( transUnit, compileOp, target )
 end
 
-function Analyzer:createUnit( path, target )
+function Analyzer:createUnit( path, target, checkUptodateFlag )
    self.targetFilePath = path
 
    if not target then
@@ -890,13 +898,14 @@ function Analyzer:createUnit( path, target )
    end
    
    local db = self:openDBForReadOnly()
+
+   local targetFullPath = db:getSystemPath( path )
    
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList = db:getFileOpt( path, target )
    if fileInfo.incFlag ~= 0 then
-      fileInfo = self:getSrcForIncOne( fileInfo )
-      fileInfo, optionList = db:getFileOpt(
-	 db:getSystemPath( fileInfo.path ), target )
+      fileInfo = self:getSrcForIncOne( fileInfo, target )
+      fileInfo, optionList = db:getFileOpt( targetFullPath, target )
    end
    
    if not optionList then
@@ -909,7 +918,8 @@ function Analyzer:createUnit( path, target )
       compileOp = compileOp .. option .. " "
    end
    log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
-   
+
+   local compDir = db:getSystemPath( ( fileInfo.currentDir ) )
    
    db:close()
 
@@ -930,10 +940,21 @@ function Analyzer:createUnit( path, target )
       compileOp = compileOp .. option .. " "
    end
 
-   local unit = self.clangIndex:createTranslationUnitFromSourceFile(
-      path, args:getLength(), args:getPtr(), 0, nil )
+   local analyzer = self:newAs(
+      self.recordDigestSrcFlag, self.displayDiagnostics, compDir )
+   analyzer.targetFilePath = targetFullPath
 
-   return unit, compileOp
+   if checkUptodateFlag then
+      if analyzer:isUptodate( targetFullPath, nil, target ) then
+	 return "uptodate"
+      end
+   end
+
+   
+   local unit = analyzer.clangIndex:createTranslationUnitFromSourceFile(
+      targetFullPath, args:getLength(), args:getPtr(), 0, nil )
+
+   return unit, compileOp, analyzer
 end
 
 
@@ -974,12 +995,9 @@ end
 
 
 function Analyzer:analyzeSourceAtWithFunc(
-      currentDir, targetFullPath, line, column,
+      targetFullPath, line, column,
       optionList, target, fileContents, func )
    
-   Helper.chdir( currentDir )
-   log( 2, "currentDir", currentDir, targetFullPath )
-
    local args = clang.mkCharArray( optionList )
    local unsavedFileTable
    if fileContents then
@@ -991,6 +1009,8 @@ function Analyzer:analyzeSourceAtWithFunc(
       table.insert( unsavedFileTable, unsavedFile )
    end
 
+
+   log( 2, "analyzeSourceAtWithFunc:", self.currentDir, targetFullPath )
    
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
@@ -1011,7 +1031,7 @@ function Analyzer:analyzeSourceAtWithFunc(
 	clang.getCursorKindSpelling( cursor:getCursorKind() ),
 	clang.getCursorKindSpelling( declCursor:getCursorKind() ))
 
-   local db = self:openDBForReadOnly( currentDir )
+   local db = self:openDBForReadOnly( self.currentDir )
    
    func( db, db:getFileInfo( nil, targetFullPath ).id,  nil, declCursor )
    
@@ -1051,17 +1071,16 @@ function Analyzer:queryAtFunc(
    log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
    
       
-   local analyzer = Analyzer:new(
-      db:getSystemPath( db:convFullpath( self.dbPath ) ),
-      self.recordDigestSrcFlag, self.displayDiagnostics )
-
    local currentDir = db:getSystemPath( fileInfo.currentDir )
    local targetFilePath = db:getSystemPath( fileInfo.path )
 
-   db:close()
+   local analyzer = self:newAs(
+      self.recordDigestSrcFlag, self.displayDiagnostics, currentDir )
    
+   db:close()
+
    analyzer:analyzeSourceAtWithFunc(
-      currentDir, targetFilePath, line, column,
+      targetFilePath, line, column,
       optionList, target, fileContents, func )
 end
 

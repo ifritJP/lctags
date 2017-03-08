@@ -22,10 +22,11 @@ usage:
    %s init projDir [-it] [-is] [-im]
    %s build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
    %s shrink [--lctags-db path]
+   %s chkFiles [--lctags-db path]
    %s chg-proj projDir [--lctags-db path]
    %s update pattrn
  - query DB
-   %s dump
+   %s dump <all|compOp|file> name
    %s ref-at[a] [--lctags-target target] [-i] file line column 
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
@@ -196,6 +197,12 @@ local function analyzeOption( argList )
 	 elseif arg == "dump" then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = "dump"
+	    if argList[ index + 1 ] == "compOp" then
+	       lctagOptMap.query = "dumpComp"
+	    elseif argList[ index + 1 ] == "file" then
+	       lctagOptMap.query = "dumpFile"
+	    end
+	    skipArgNum = 1
 	 elseif string.find( arg, "-x", 1, true ) then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = arg
@@ -210,6 +217,8 @@ local function analyzeOption( argList )
 	    end
 	    skipArgNum = 1
 	 elseif arg == "comp-at" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "chkFiles" then
 	    lctagOptMap.mode = arg
 	 end
       else
@@ -436,6 +445,8 @@ if lctagOptMap.mode == "update" then
    os.exit( 0 )
 end
 
+if lctagOptMap.mode == "chkFiles" then DBCtrl:checkRemovedFiles(
+   lctagOptMap.dbPath ) end
 
 
 local analyzer = Analyzer:new(

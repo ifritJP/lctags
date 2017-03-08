@@ -158,7 +158,7 @@ function obj.dot(
 
    os.execute( string.format(
 		  "dot -T%s -o %s %s", imageFormat, outputFile, dotFile ) )
-   --os.remove( dotFile )
+   os.remove( dotFile )
 
    if browseFlag then
       os.execute( "firefox " .. outputFile )

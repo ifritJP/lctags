@@ -205,7 +205,7 @@ end
 function Complete:at( analyzer, path, line, column, target )
 
    local analyzerForTokenize = analyzer:newAs( false, false )
-   local unit = analyzerForTokenize:createUnit( path, target )
+   local unit, compileOp, newAnalyzer = analyzerForTokenize:createUnit( path, target )
 
 
    -- local compResults = unit:codeCompleteAt( path, line, column, nil, 0, 0 )
@@ -324,9 +324,9 @@ function Complete:at( analyzer, path, line, column, target )
    log( 3, fileHandle.__txt )
    log( 3, targetLine, targetColmun )
 
-   analyzer:update( path, target )
+   newAnalyzer:update( path, target )
    
-   analyzer:queryAtFunc(
+   newAnalyzer:queryAtFunc(
       path, targetLine, targetColmun, target, fileHandle.__txt,
       function( db, targetFileId, nsInfo, declCursor )
 	 local typeCursor = clang.getDeclCursorFromType( declCursor:getCursorType() )

@@ -174,7 +174,9 @@ endif
 	-mv $(TEST_LUA_DIR)/digest.* $(TEST_LUA_DIR)/digest
 	-mv $(TEST_LUA_DIR)/*.sql $(TEST_LUA_DIR)/sql
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
+	touch $(TEST_LUA_DIR)/lauxlib.h
 	$(LUA_COMMAND) lctags/lctags.lua shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
+	$(LUA_COMMAND) lctags/lctags.lua update $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) lctags/lctags.lua def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) lctags/lctags.lua dump --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
