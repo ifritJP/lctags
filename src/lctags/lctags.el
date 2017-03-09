@@ -102,12 +102,6 @@ This parameter can set function and string.
     (with-current-buffer lctags-buf
       (goto-char 1))))
 
-(let ((buf (current-buffer)))
-  (with-temp-buffer
-    (insert "hoge")
-    (call-process-region 1 5 "cat" nil buf nil)))
-      
-  
 
 (defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
   (let ((save (current-buffer))

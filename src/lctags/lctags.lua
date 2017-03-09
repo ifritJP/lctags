@@ -15,15 +15,11 @@ local function printUsage( message )
    if message then
       print( message )
    end
-   local command = "lctags"
-   print( string.format( [[
+   local usageTxt = string.gsub( [[
 usage:
  - build DB
    %s init projDir [-it] [-is] [-im]
    %s build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
-   %s shrink [--lctags-db path]
-   %s chkFiles [--lctags-db path]
-   %s chg-proj projDir [--lctags-db path]
    %s update pattrn
  - query DB
    %s dump <all|compOp|file> name
@@ -37,7 +33,12 @@ usage:
    %s -c  [--use-global] symbol
  - graph
    %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
-   %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
+   %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column
+ - modify db
+   %s rm-tgt target
+   %s shrink [--lctags-db path]
+   %s chkFiles [--lctags-db path]
+   %s chg-proj projDir [--lctags-db path]
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -77,10 +78,9 @@ usage:
      --lctags-quiet: discard clang diagnostic.
      --lctags-db: set DB file path.
      --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
-   ]],
-	     command, command, command, command, command, command,
-	     command, command, command, command, command, command,
-	     command, command, command, command ) )
+   ]], '%%s', "lctags" )
+   print( usageTxt )
+   
    os.exit( 1 )
 end
 
@@ -219,6 +219,8 @@ local function analyzeOption( argList )
 	 elseif arg == "comp-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "chkFiles" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "rm-tgt" then
 	    lctagOptMap.mode = arg
 	 end
       else
@@ -384,8 +386,7 @@ end
 
 if lctagOptMap.mode == "chg-proj" then
    DBCtrl:changeProjDir(
-      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
-      Helper.getCurrentTime() )
+      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
    os.exit( 0 )
 end
 
@@ -445,8 +446,15 @@ if lctagOptMap.mode == "update" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "chkFiles" then DBCtrl:checkRemovedFiles(
-   lctagOptMap.dbPath ) end
+if lctagOptMap.mode == "chkFiles" then
+   DBCtrl:checkRemovedFiles( lctagOptMap.dbPath )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "rm-tgt" then
+   DBCtrl:removeTarget( lctagOptMap.dbPath, srcList[ 1 ] )
+   os.exit( 0 )
+end
 
 
 local analyzer = Analyzer:new(

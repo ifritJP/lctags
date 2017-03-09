@@ -509,7 +509,7 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
 
    local targetFileInfo
    local needUpdateFlag = false
-   local needUpdateCompOp = false
+   local sameAsOtherTarget = false
    
    local success, result = pcall(
       function()
@@ -525,7 +525,7 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
 	       -- コンパイルオプションが同じ他のターゲットがあれば、
 	       -- 解析済みとして扱う。
 	       -- ただし、コンパイルオプションを更新しておく必要がある。
-	       needUpdateCompOp = true
+	       sameAsOtherTarget = true
 	       log( 2, "exists same compile option" )
 	    else
 	       log( 2, "change compile option" )
@@ -633,12 +633,12 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
       log( 1, result )
    end
 
-   if result and ( needUpdateFlag or needUpdateCompOp ) then
+   if result and ( needUpdateFlag or sameAsOtherTarget ) then
       -- uptodate で needUpdateFlag の場合、ファイルの更新日時だけ違う。
       -- 次回のチェック時間を短縮するため、updateTime を更新する。
       db = self:openDBForWrite()
       db:setUpdateTime( targetFileInfo.id, Helper.getCurrentTime() )
-      db:updateCompileOp( targetFileInfo, target, compileOp )
+      db:insertCompileOP( targetFileInfo.id, target, compileOp )
       db:close()
    end
    
@@ -1033,7 +1033,7 @@ function Analyzer:analyzeSourceAtWithFunc(
 
    local db = self:openDBForReadOnly( self.currentDir )
    
-   func( db, db:getFileInfo( nil, targetFullPath ).id,  nil, declCursor )
+   func( db, db:getFileInfo( nil, targetFullPath ).id,  nil, declCursor, cursor )
    
    db:close()
 end

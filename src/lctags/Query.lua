@@ -302,6 +302,7 @@ function Query:getIncIf( db, incFlag )
 	 end
       end
    }
+   return refIf
 end
 
 function Query:outputIncRelation(

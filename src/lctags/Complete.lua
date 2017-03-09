@@ -36,16 +36,17 @@ end
 
 -- startIndex 以前で () の開始を検索する
 function Complete:searchParenBegin( tokenInfoList, startIndex, lastIndex )
+   log( 2, "searchParenBegin", startIndex, lastIndex )
    local num = 1
-   for index = startIndex, lastIndex, -1 do
+   for index = lastIndex, startIndex, -1 do
       local token = tokenInfoList[ index ].token
       if token == '(' then
-	 num = num + 1
-      elseif token == ')' then
 	 num = num - 1
 	 if num == 0 then
 	    return index
 	 end
+      elseif token == ')' then
+	 num = num + 1
       end
    end
    return nil
@@ -55,9 +56,11 @@ end
 function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
    -- 解析対象の式を決定する
 
+
+   local blockStartIndex
+
    if not startIndex then
       -- ブロックの開始か終端を見つける
-      local blockStartIndex
       for index = checkIndex, 1, -1 do
 	 tokenInfo = tokenInfoList[ index ]
 	 if tokenInfo.token == '{' or tokenInfo.token == '}' then
@@ -79,12 +82,14 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
    -- blockStartIndex 〜 checkIndex の式を分離
 
    local statementStartIndex = blockStartIndex
+   log( 2, "statementStartIndex", statementStartIndex, checkIndex )
    
    local index = blockStartIndex
    while index < checkIndex do
       local tokenInfo = tokenInfoList[ index ]
       local token = tokenInfo.token
-      if token == "if" or token == "while" or token == "for" then
+      if tokenInfo.kind == clang.core.CXToken_Keyword and (token == "if" or token == "while" or token == "for")
+      then
 	 if tokenInfoList[ index + 1 ].token ~= '(' then
 	    log( 1, "illegal ()", tokenInfo.line, tokenInfo.column )
 	    os.exit( 1 )
@@ -93,14 +98,17 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 	    if not endIndex then
 	       -- 条件式の中が補完対象
 	       if token == "if" or token == "while" then
-		  local parenIndex = self:checkStatement( tokenInfoList,
-							  index + 1, checkIndex )
+		  local parenIndex = self:checkStatement(
+		     tokenInfoList, index + 1, checkIndex )
 		  if parenIndex then
+		     if parenIndex < checkIndex then
+			parenIndex = parenIndex + 1
+		     end
 		     return statementStartIndex, parenIndex
 		  end
 	       end
 	       
-	       log( "2", "this is in condition. not support" )
+	       log( 2, "this is in condition. not support" )
 	       return nil, index
 	    end
 	    index = endIndex + 1
@@ -109,18 +117,22 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 	 local endIndex = self:searchParenEnd( tokenInfoList, index + 1, checkIndex )
 	 if not endIndex then
 	    -- カッコ中が補完対象
-	    local parenIndex = self:checkStatement( tokenInfoList,
-						    index + 1, checkIndex )
+	    local parenIndex = self:checkStatement(
+	       tokenInfoList, index + 1, checkIndex )
 	    if parenIndex then
+	       if parenIndex < checkIndex then
+		  parenIndex = parenIndex + 1
+	       end
 	       return statementStartIndex, parenIndex
 	    end
 	    
-	    log( "2", "this is in paren" )
+	    log( 2, "this is in paren" )
 	    return nil, index
 	 end
 	 index = endIndex + 1
       elseif token == ";" or token == "," then
 	 statementStartIndex = index
+	 log( 2, "statement end",  statementStartIndex )
 	 index = index + 1
       else
 	 index = index + 1
@@ -132,28 +144,33 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 
    -- statementStartIndex 〜 checkIndex の間で式があれば、
    -- checkIndex を含む式の開始位置を検索する
+   log( 2, "search start", checkIndex, statementStartIndex )
    index = checkIndex
-   while index >= statementStartIndex + 1 do
+   while index >= statementStartIndex do
       local tokenInfo = tokenInfoList[ index ]
       local token = tokenInfo.token
       if token == ")" then
-	 local beginIndex = searchParenBegin(
+	 local beginIndex = self:searchParenBegin(
 	    tokenInfoList, statementStartIndex, index - 1 )
 	 if not beginIndex then
-	    log( "2", "illegal ()", tokenInfo.line, tokenInfo.column )
+	    log( 2, "illegal ()", tokenInfo.line, tokenInfo.column )
+	    os.exit( 1 )
 	 end
 	 index = beginIndex - 1
-      elseif string.find( token, "[%+%-%/%%%^%*%&%|%>%<%=]" ) then
-	 -- + - * / % ^ & | > < = の演算子の場合
-	 return statementStartIndex, index
+	 log( 2, "search parenBegin", index )
+      elseif string.find( token, "[%+%-%/%%%^%*%&%|%>%<%=%(,;]" ) then
+	 -- + - * / % ^ & | > < = ( , ; の場合
+	 log( 2, "search end", statementStartIndex, index + 1 )
+	 return statementStartIndex, index + 1
       else
 	 index = index - 1
       end
    end
 
    -- statementStartIndex 〜 checkIndex の間に式はない
+   log( 2, "checkStatement end", statementStartIndex, checkIndex )
    
-   return statementStartIndex
+   return checkIndex
 end
 
 
@@ -251,7 +268,7 @@ function Complete:at( analyzer, path, line, column, target )
       table.insert( tokenInfoList,
 		    { token = token, kind = tokenKind,
 		      line = aLine, column = aColumn, offset = anOffset } )
-      log( 3, getTokenKindSpelling( tokenKind ), token )
+      log( 3, index + 1, getTokenKindSpelling( tokenKind ), token )
    end
    unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 
@@ -265,6 +282,7 @@ function Complete:at( analyzer, path, line, column, target )
    then
       memberAccessFlag = ""
       targetIndex = checkIndex - 1
+      checkIndex = checkIndex - 1
    elseif string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
       -- シンボル
       memberAccessFlag = tokenInfoList[ checkIndex ].token
@@ -279,10 +297,13 @@ function Complete:at( analyzer, path, line, column, target )
 	 checkIndex = checkIndex - 1
       end
    end
-   log( 2, targetIndex, memberAccessFlag )
+   log( 2, targetIndex, memberAccessFlag, checkIndex )
 
    local statementStartIndex, incompletionIndex =
-      self:checkStatement( tokenInfoList, 1, checkIndex )
+      self:checkStatement( tokenInfoList, nil, checkIndex )
+
+   log( 2, "decide statementStartIndex",
+	statementStartIndex, incompletionIndex, targetIndex )
 
    --local fileHandle = io.stdout
    local fileHandle = {
@@ -328,9 +349,29 @@ function Complete:at( analyzer, path, line, column, target )
    
    newAnalyzer:queryAtFunc(
       path, targetLine, targetColmun, target, fileHandle.__txt,
-      function( db, targetFileId, nsInfo, declCursor )
-	 local typeCursor = clang.getDeclCursorFromType( declCursor:getCursorType() )
-	 local nsInfo = db:getNamespaceFromCursor( typeCursor )
+      function( db, targetFileId, nsInfo, declCursor, cursor )
+
+	 local declKind = declCursor:getCursorKind()
+	 local kind = cursor:getCursorKind()
+
+	 local typeCursor
+	 
+
+	 if kind >= clang.core.CXCursor_FirstExpr and
+	    kind <= clang.core.CXCursor_LastExpr
+	 then
+	    typeCursor = clang.getDeclCursorFromType( cursor:getCursorType() )
+	 elseif declKind == clang.core.CXCursor_FunctionDecl or
+	    declKind == clang.core.CXCursor_ParenExpr 
+	 then
+	    typeCursor = clang.getDeclCursorFromType( declCursor:getCursorResultType() )
+	 else
+	    typeCursor = clang.getDeclCursorFromType( declCursor:getCursorType() )
+	 end
+	 log( 2, "typeCursor", typeCursor, typeCursor:getCursorSpelling(),
+	      declCursor:getCursorSpelling() )
+	 nsInfo = db:getNamespaceFromCursor( typeCursor )
+	 
 	 db:mapNamespace(
 	    "parentId = " .. tonumber( nsInfo.id ),
 	    function( item )

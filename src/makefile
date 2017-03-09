@@ -43,6 +43,8 @@ LUASQLITE3_DIR=../external/luasqlite3/lsqlite3_fsl09x
 
 LUA_LIB:=$(addprefix $(PWD)/,$(LUA_LIB))
 
+LCTAGS_LUA=lctags/lctags.lua
+
 #OPT_OP = -O3
 
 IF_LUA = libclanglua/if.lua
@@ -129,36 +131,60 @@ lctags-build:
 
 test: build
 ifndef NO_INIT
-	$(LUA_COMMAND) lctags/lctags.lua init . $(IT_OP) $(IS_OP) $(IM_OP)
+	$(LUA_COMMAND) $(LCTAGS_LUA) init . $(IT_OP) $(IS_OP) $(IM_OP)
 endif
 	sync
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge >> dump
-	$(LUA_COMMAND) lctags/lctags.lua build gcc test/comp.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 >> dump
-	$(LUA_COMMAND) lctags/lctags.lua dump >> dump
-	$(LUA_COMMAND) lctags/lctags.lua -xa sub
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 44 8
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 236 23
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 237 23
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 253 18
-	$(LUA_COMMAND) lctags/lctags.lua def-ata test/hoge.cpp 204 18
-	$(LUA_COMMAND) lctags/lctags.lua ref-ata test/hoge.cpp 168 15
-	$(LUA_COMMAND) lctags/lctags.lua call-ata test/hoge.cpp 267 15
-	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 230 18
-	$(LUA_COMMAND) lctags/lctags.lua def-at test/hoge.cpp 231 20
+	$(MAKE) test-dbbuild
+	env LANG= $(MAKE) test-query | tee test-result
+	diff test-result test-result.expect && echo OK
+
+
+test-dbbuild:
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 4 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge1 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge2 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp3.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp4.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	sleep 1
+	echo 'int ccccc;' >> test/field.h
+	$(LUA_COMMAND) $(LCTAGS_LUA) update .
+	grep -v 'int ccccc;' test/field.h > test/field.work && mv test/field.work test/field.h
+
+test-query:
+	$(LUA_COMMAND) $(LCTAGS_LUA) shrink
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump compOp
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump dumpFile >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) rm-tgt hoge2
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump compOp
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) -xa sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) -xa ccccc
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 44 8
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 236 23
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 237 23
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 253 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata test/hoge.cpp 204 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 168 15
+	$(LUA_COMMAND) $(LCTAGS_LUA) call-ata test/hoge.cpp 267 15
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 230 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 231 20
 	-rm -f graph.sample/*
-	$(LUA_COMMAND) lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
-	$(LUA_COMMAND) lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
-	$(LUA_COMMAND) lctags/lctags.lua graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
-	$(LUA_COMMAND) lctags/lctags.lua list inc test/hoge.cpp -d 2
-	$(LUA_COMMAND) lctags/lctags.lua comp-at test/comp.cpp 26 17
-
-
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph caller ::Callback_t -o graph.sample/caller.svg
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph inc test/hoge.cpp -o graph.sample/inc.png -f png
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph incSrc 5 -o graph.sample/incSrc.svg
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph symbol ::ns1::g_global -o graph.sample/symbol.svg
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
+	$(LUA_COMMAND) $(LCTAGS_LUA) graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
+	$(LUA_COMMAND) $(LCTAGS_LUA) list inc test/hoge.cpp -d 2
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp.cpp 26 17
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp2.cpp 31 9
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp3.cpp 31 24
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp4.cpp 31 17
 test-at-lua:
 ifeq ($(shell which lctags),)
 	@echo please make install
@@ -166,7 +192,7 @@ ifeq ($(shell which lctags),)
 endif
 	sync
 ifndef NO_INIT
-	$(LUA_COMMAND) lctags/lctags.lua init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
+	$(LUA_COMMAND) $(LCTAGS_LUA) init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
 endif
 	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=clean
 	-$(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) --lctags-log 4 --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
@@ -175,11 +201,11 @@ endif
 	-mv $(TEST_LUA_DIR)/*.sql $(TEST_LUA_DIR)/sql
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	touch $(TEST_LUA_DIR)/lauxlib.h
-	$(LUA_COMMAND) lctags/lctags.lua shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
-	$(LUA_COMMAND) lctags/lctags.lua update $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
+	$(LUA_COMMAND) $(LCTAGS_LUA) shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) update $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
-	$(LUA_COMMAND) lctags/lctags.lua def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
-	$(LUA_COMMAND) lctags/lctags.lua dump --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 
 install: build
 	$(MAKE) install-lib LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
@@ -203,8 +229,12 @@ uninstall-lib:
 ifeq ($(LUA_LIB_DIR),)
 	$(error LUA_LIB_DIR is empty)
 endif
+ifeq ($(LUA_LIB_DIR),$(shell pwd))
+	echo LUA_LIB_DIR is this directrory.
+else
 	-rm -f $(LUA_LIB_DIR)/libclanglua/*
 	-rmdir $(LUA_LIB_DIR)/libclanglua
 	-rm -f $(LUA_LIB_DIR)/lctags/*
 	-rmdir $(LUA_LIB_DIR)/lctags
 	-if [ -f lsqlite3.so  ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.so; fi
+endif

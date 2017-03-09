@@ -163,8 +163,11 @@ function DBCtrl:setProjDir( dbPath, projDir )
    self.projDir = projDir
 end
 
-function DBCtrl:changeProjDir(
-      path, currentDir, projDir, currentTime )
+function DBCtrl:getCountElement( tableName, condition )
+   return self.db:getRowNumber( tableName, condition )
+end
+
+function DBCtrl:changeProjDir( path, currentDir, projDir )
    local obj = DBCtrl:open( path, false, currentDir )
 
    if not obj then
@@ -173,6 +176,28 @@ function DBCtrl:changeProjDir(
 
    obj:setProjDir( path, projDir )
 
+   local currentTime = Helper.getCurrentTime()
+
+   local maxNumber = obj:getCountElement( "filePath", nil )
+
+   local index = 0
+   obj:mapFile(
+      nil,
+      function( fileInfo )
+	 index = index + 1
+	 log( 1, string.format( "(%d/%d) %s", index, maxNumber, fileInfo.path ) )
+	 if fileInfo.id ~= systemFileId then
+	    local digest = obj:calcFileDigest( obj:getSystemPath( fileInfo.path ) )
+	    if digest == fileInfo.digest then
+	       obj:setUpdateTime( fileInfo.id, currentTime )
+	    else
+	       log( 1, "digest is difference", fileInfo.path )
+	       obj:setUpdateTime( fileInfo.id, 0 )
+	    end
+	 end
+	 return true
+      end
+   )
    obj:close()
 
    return true
@@ -610,6 +635,15 @@ function DBCtrl:updateCompileOp( fileInfo, target, compileOp )
       string.format( "fileId = %d AND target = '%s'",
 		     fileInfo.id, target ) )
 end
+
+function DBCtrl:insertCompileOP( fileId, target, compileOp )
+   if not target then
+      target = ""
+   end
+   self:insert(
+      "compileOp",
+      string.format( "%d, '%s', '%s'", fileId, target, compileOp ) )
+end
       
 
 function DBCtrl:addFile(
@@ -634,9 +668,7 @@ function DBCtrl:addFile(
 	 self.targetFileInfo = fileInfo
 	 local equalsCompOpResult = self:equalsCompOp( fileInfo, compileOp, target )
 	 if equalsCompOpResult == nil then
-	    self:insert(
-	       "compileOp",
-	       string.format( "%d, '%s', '%s'", fileInfo.id, target, compileOp ) )
+	    self:insertCompileOP( fileInfo.id, target, compileOp )
 	    log( 2, "new compileOp" )
 	 elseif not equalsCompOpResult then
 	    self:updateCompileOp( fileInfo, target, compileOp )
@@ -689,9 +721,7 @@ function DBCtrl:addFile(
    fileInfo = self:getFileInfo( nil, filePath )
 
    if isTarget then
-      self:insert(
-	 "compileOp",
-	 string.format( "%d, '%s', '%s'", fileInfo.id, target, compileOp ) )
+      self:insertCompileOP( fileInfo.id, target, compileOp )
       self:addTokenDigest( fileInfo.id, digest )
    end
    
@@ -1038,12 +1068,16 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    if not nsObj then
       log( 2, "addEnumStructDecl: nsObj is nil", decl:getCursorSpelling() )
    end
+
+   local hasIncFlag = self:hasInc( fileInfo, decl )
    
-   if fileInfo.uptodate then
+   if fileInfo.uptodate and not hasIncFlag then
+      -- ファイルが変更なしで、構造体内でインクルードしていない場合
       fullnameBase = self:getFullname(
 	 decl, fileInfo.id, anonymousName, typedefName )
       self.hashCursor2FullnameMap[ decl:hashCursor() ] = fullnameBase
    else
+      -- ファイルが変更ありか、構造体内でインクルードしている場合
       log( 3, "addEnumStructDecl start",
 	   decl:getCursorSpelling(), typedefName, os.clock(), os.date() )
       -- local digest = self:calcEnumStructDigest( decl, kind )
@@ -1061,7 +1095,6 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       end
    end
 
-   local hasIncFlag = self:hasInc( fileInfo, decl )
    local count = 0
    local workFileInfo = fileInfo
 
@@ -1804,11 +1837,20 @@ function DBCtrl:getNsInfoAt( path, line, column, fileContents )
 end
 
 function DBCtrl:dumpCompieOp( level, path )
-   local fileInfo =  self:getFileInfo( nil, path )
    log( level, "-- table compileOp -- " )
    log( level, "fileId", "target", "path", "compOp" )
+
+   local condition
+   if path then
+      local fileInfo = self:getFileInfo( nil, path )
+      if not fileInfo then
+	 return
+      end
+      condition = "fileId = " .. tostring( fileInfo.id )
+      
+   end
    self:mapRowList(
-      "compileOp", "fileId = " .. tostring( fileInfo.id ), nil, nil,
+      "compileOp", condition, nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
 	 log( level, row.fileId, row.target, fileInfo.path, row.compOp )
@@ -1818,12 +1860,20 @@ function DBCtrl:dumpCompieOp( level, path )
 end
 
 function DBCtrl:dumpFile( level, path )
-   local fileInfo =  self:getFileInfo( nil, path )
    log( level, "-- table filePath -- " )
    log( level, "id", "incFlag", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
+
+   local condition
+   if path then
+      local fileInfo = self:getFileInfo( nil, path )
+      if not fileInfo then
+	 return
+      end
+      condition = "id = " .. tostring( fileInfo.id )
+   end
    self:mapRowList(
-      "filePath", "id = " .. tostring( fileInfo.id ), nil, nil,
+      "filePath", condition, nil, nil,
       function( row ) 
 	 log( level, row.id, row.incFlag,
 	      row.updateTime, row.digest, row.path, row.currentDir )
@@ -1847,29 +1897,10 @@ function DBCtrl:dump( level )
       end
    )
    
-   
-   log( level, "-- table filePath -- " )
-   log( level, "id", "incFlag", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
-	"path" )
-   self:mapRowList(
-      "filePath", nil, nil, nil,
-      function( row ) 
-	 log( level, row.id, row.incFlag,
-	      row.updateTime, row.digest, row.path, row.currentDir )
-	 return true
-      end
-   )
 
-   log( level, "-- table compileOp -- " )
-   log( level, "fileId", "target", "path", "compOp" )
-   self:mapRowList(
-      "compileOp", nil, nil, nil,
-      function( row )
-	 local fileInfo = self:getFileInfo( row.fileId )
-	 log( level, row.fileId, row.target, fileInfo.path, row.compOp )
-	 return true
-      end
-   )
+   self:dumpFile( level, nil )
+
+   self:dumpCompieOp( level, nil )
    
    log( level, "-- table incRef -- " )
    log( level, "incFile", "file", "line" )
@@ -1975,10 +2006,24 @@ function DBCtrl:dump( level )
    log( level, "-- table end -- " )
 end
 
+function DBCtrl:removeTarget( dbPath, target )
+   local obj = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
+   
+   if not obj then
+      return false
+   end
+
+   obj:delete( "compileOp", string.format( "target = '%s'", target or ""  ) )
+
+   obj:close()
+end
+
 function DBCtrl:hasTarget( fileId, target )
-   return self:exists(
-      "compileOp",
-      string.format( "fileId = %d and target = '%s'", fileId, target ) )   
+   local condition = string.format( "target = '%s'", target )
+   if fileId then
+      condition = condition .. " AND fileId = " .. tostring( fileId )
+   end
+   return self:exists( "compileOp", condition )
 end
 
 -- fileInfo をインクルードしているソースファイルでターゲットが target のものを1つ返す。

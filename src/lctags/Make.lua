@@ -8,6 +8,17 @@ local Make = {}
 local function searchNeedUpdateFiles( db, list, target )
    --- リストの中から更新が必要なファイルを検出
 
+   -- 更新対象のリストのファイル更新時間から更新が必要かどうかチェック
+   if not target then
+      target = ""
+   end
+
+   if not db:hasTarget( nil, target ) then
+      log( 1, string.format( "The files does not have target (%s)", target ) )
+      return {}
+   end
+
+
    -- 更新が必要な古いファイル
    local needUpdateFileMap = {}
    -- fileId -> ファイルの更新時間マップ
@@ -18,11 +29,7 @@ local function searchNeedUpdateFiles( db, list, target )
    local uptodateFileList = {}
    -- 情報の更新が必要になったファイルリスト
    local appendUpdateFileList = {}
-
-   -- 更新対象のリストのファイル更新時間から更新が必要かどうかチェック
-   if not target then
-      target = ""
-   end
+   
    for index, fileInfo in ipairs( list ) do
       log( 1, string.format( "check modified (%d/%d) %s",
 			     index, #list, fileInfo.path ) )
@@ -32,10 +39,11 @@ local function searchNeedUpdateFiles( db, list, target )
 	 if modTime then
 	    if modTime > fileInfo.updateTime then
 	       -- 更新時間が古い場合はマップに登録
-	       needUpdateFileMap[ fileInfo.id ] = fileInfo
 	       if fileInfo.incFlag ~= 0 then
 		  needUpdateIncFileInfoSet[ fileInfo.id ] = fileInfo
 		  log( 1, "modified", fileInfo.path, modTime )
+	       else
+		  needUpdateFileMap[ fileInfo.id ] = fileInfo
 	       end
 	    else
 	       table.insert( uptodateFileList, fileInfo )

@@ -185,6 +185,20 @@ function DBAccess:delete( tableName, condition )
    self:exec( string.format( "DELETE FROM %s WHERE %s", tableName, condition ) )
 end
 
+function DBAccess:getRowNumber( tableName, condition )
+   self.selectCount = self.selectCount + 1
+
+   local number = 0
+   local sql = "SELECT COUNT(*) FROM " .. tableName
+   self:mapRowList( tableName, condition, 1, "COUNT(*)",
+		    function( item )
+		       number = item[ "COUNT(*)" ]
+		       return false
+		    end
+   )
+   return number
+end
+
 function DBAccess:createTables( sqlTxt )
    self:exec(
       sqlTxt,

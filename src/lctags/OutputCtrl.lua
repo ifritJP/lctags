@@ -84,7 +84,7 @@ function obj.dot(
 	    else
 	       index = index + 1
 	       fileHandle:write( string.format( "subgraph cluster_0%d {", index ) )
-	       fileHandle:write( string.format( 'label = "%s"; fontcolor = "green";',
+	       fileHandle:write( string.format( 'label = "%s"; fontcolor = "red";',
 						dirPath ) )
 	       for index, fileId in pairs( fileIdList ) do
 		  outputNode( fileId )
