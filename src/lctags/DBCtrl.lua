@@ -6,6 +6,7 @@ local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
 local DBAccess = require( 'lctags.DBAccess' )
 local Util = require( 'lctags.Util' )
+local Query = require( 'lctags.Query' )
 
 local function getFileLocation( cursor )
    local location = cursor:getCursorLocation()
@@ -2036,18 +2037,18 @@ function DBCtrl:getSrcForIncOne( fileInfo, target )
 
    local srcFileInfo
    
-   if fileInfo.incFlag == 0 then
+   if fileInfo.incFlag ~= 0 then
       Query:mapRelation(
-	 self, fileInfo.id, 0, Query:getIncRef( self, false ),
+	 self, fileInfo.id, 0, Query:getIncIf( self, false ),
 	 function( baseId, dstId )
 	    local workFileInfo = self:getFileInfo( baseId )
-	    if workFileInfo.incFlag ~= 0 then
-	       if self:hasTarget( baseId, target ) then
+	    if workFileInfo.incFlag == 0 then
+	       if self:hasTarget( workFileInfo.id, target ) then
 		  srcFileInfo = workFileInfo
 		  return false
 	       end
-	       return true
 	    end
+	    return true
 	 end
       )
    else

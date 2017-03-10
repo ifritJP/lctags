@@ -28,7 +28,7 @@ int main()
 
   Test1::sub();
 
-  zzzz( 0, hoge( 1, 2 )->
+  zzzz( 0, hoge( 1, 2 )->s
 //   return 0;
 // }
     

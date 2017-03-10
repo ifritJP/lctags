@@ -28,7 +28,7 @@ int main()
 
   Test1::sub();
 
-  hoge()->
+  hoge()->f
 //   return 0;
 // }
     

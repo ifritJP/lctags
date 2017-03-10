@@ -890,7 +890,7 @@ function Analyzer:update( path, target )
    analyzer:analyzeUnit( transUnit, compileOp, target )
 end
 
-function Analyzer:createUnit( path, target, checkUptodateFlag )
+function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
    self.targetFilePath = path
 
    if not target then
@@ -904,8 +904,8 @@ function Analyzer:createUnit( path, target, checkUptodateFlag )
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList = db:getFileOpt( path, target )
    if fileInfo.incFlag ~= 0 then
-      fileInfo = self:getSrcForIncOne( fileInfo, target )
-      fileInfo, optionList = db:getFileOpt( targetFullPath, target )
+      fileInfo = db:getSrcForIncOne( fileInfo, target )
+      fileInfo, optionList = db:getFileOpt( fileInfo.path, target )
    end
    
    if not optionList then
@@ -934,6 +934,20 @@ function Analyzer:createUnit( path, target, checkUptodateFlag )
    end
 
    local args = clang.mkCharArray( optionList )
+   local unsavedFileTable
+   if fileContents then
+      unsavedFileTable = {}
+      local unsavedFile = clang.core.CXUnsavedFile()
+      unsavedFile.Filename = targetFullPath
+      unsavedFile.Contents = fileContents
+      unsavedFile.Length = #unsavedFile.Contents
+      table.insert( unsavedFileTable, unsavedFile )
+   end
+
+   local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
+   local unit = self.clangIndex:createTranslationUnitFromSourceFile(
+      targetFullPath, args:getLength(), args:getPtr(),
+      unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
 
    local compileOp = ""
    for index, option in ipairs( optionList ) do
@@ -949,10 +963,6 @@ function Analyzer:createUnit( path, target, checkUptodateFlag )
 	 return "uptodate"
       end
    end
-
-   
-   local unit = analyzer.clangIndex:createTranslationUnitFromSourceFile(
-      targetFullPath, args:getLength(), args:getPtr(), 0, nil )
 
    return unit, compileOp, analyzer
 end
@@ -1175,11 +1185,11 @@ function Analyzer:graphAt(
 	 if nsInfo then
 	    if graph == "caller" or graph == "callee" then
 	       Query:outputCallRelation(
-		  self.dbPath, nsInfo.name, graph == "caller", depthLimit,
+		  db, nsInfo.name, graph == "caller", depthLimit,
 		  OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 	    elseif graph == "systemPath" then
 	       Query:outputSymbolRefRelation(
-		  self.dbPath, nsInfo.name, depthLimit,
+		  db, nsInfo.name, depthLimit,
 		  OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 	    else
 	       log( 1, "illegal graph", graph )
@@ -1205,7 +1215,7 @@ function Analyzer:graphAt(
 	       end
 	       
 	       Query:outputCallRelation(
-		  self.dbPath, nsInfo.name, graph == "caller", depthLimit,
+		  db, nsInfo.name, graph == "caller", depthLimit,
 		  OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 	    elseif graph == "symbol" then
 	       db:SymbolRefInfoListForCursor(
@@ -1213,7 +1223,7 @@ function Analyzer:graphAt(
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Query:outputSymbolRefRelation(
-			self.dbPath, nsInfo.name, depthLimit,
+			db, nsInfo.name, depthLimit,
 			OutputCtrl.dot, browseFlag, outputFile, imageFormat )
 		     return false
 		  end

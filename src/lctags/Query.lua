@@ -1,8 +1,10 @@
 -- Copyright (C) 2017 ifritJP
 
 
+-- 再帰になるので DBCtrl は require しない
+--local DBCtrl = require( 'lctags.DBCtrl' )
+
 local log = require( 'lctags.LogCtrl' )
-local DBCtrl = require( 'lctags.DBCtrl' )
 local Util = require( 'lctags.Util' )
 
 local Query = {}
@@ -93,28 +95,8 @@ function Query:execWithDb( db, query, target )
    end
 end
 
-function Query:exec( dbPath, query, target, useGlogalFlag )
-   local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
-
-   if not db then
-      if not useGlogalFlag then
-	 log( 1, "db open error" )
-	 os.exit( 1 )
-      end
-      local commad = string.format( "global %s %s", query, target or "" )
-      local success, endType, code = os.execute( commad )
-      if success then
-	 os.exit( 0 )
-      else
-	 os.exit( code )
-      end
-   end
-
+function Query:exec( db, query, target, useGlogalFlag )
    self:execWithDb( db, query, target )
-
-   db:close()
-
-   return true
 end
 
 
@@ -196,14 +178,8 @@ end
 
 
 function Query:outputCallRelation(
-      dbPath, namespace, callerMode, depthLimit, outputFunc, ... )
+      db, namespace, callerMode, depthLimit, outputFunc, ... )
    
-   local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
-   if not db then
-      log( 1, "db open error" )
-      os.exit( 1 )
-   end
-
    local refIf = {
       reverseFlag = callerMode,
       displayItems = function( self )
@@ -306,13 +282,7 @@ function Query:getIncIf( db, incFlag )
 end
 
 function Query:outputIncRelation(
-      dbPath, incFilePath, incFlag, depthLimit, outputFunc, ... )
-   local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
-   if not db then
-      log( 1, "db open error" )
-      os.exit( 1 )
-   end
-
+      db, incFilePath, incFlag, depthLimit, outputFunc, ... )
    self:outputRelation( db, incFilePath, depthLimit,
 			self:getIncIf( db, incFlag ), outputFunc, ... )
 
@@ -320,13 +290,8 @@ end
 
 
 function Query:outputSymbolRefRelation(
-      dbPath, symbol, depthLimit, outputFunc, ... )
-   local db = dbPath and DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
-   if not db then
-      log( 1, "db open error" )
-      os.exit( 1 )
-   end
-
+      db, symbol, depthLimit, outputFunc, ... )
+   
    local refIf = {
       reverseFlag = true,
       id2fileIdMap = {},

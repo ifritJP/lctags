@@ -391,42 +391,63 @@ if lctagOptMap.mode == "chg-proj" then
 end
 
 if lctagOptMap.mode == "query" then
-   if not Query:exec(
-      lctagOptMap.dbPath, lctagOptMap.query, srcList[ 1 ],
-      lctagOptMap.useGlobalFlag )
-   then
-      printUsage( "query is error" )
+   local db = DBCtrl:open( lctagOptMap.dbPath, true, os.getenv( "PWD" ) )
+   
+   if not db then
+      if not lctagOptMap.useGlobalFlag then
+	 log( 1, "db open error" )
+	 os.exit( 1 )
+      end
+      local commad = string.format( "global %s %s", query, target or "" )
+      local success, endType, code = os.execute( commad )
+      if success then
+	 os.exit( 0 )
+      else
+	 os.exit( code )
+      end
    end
+   
+   Query:exec( db, lctagOptMap.query, srcList[ 1 ], lctagOptMap.useGlobalFlag )
+
+   db:close()
    os.exit( 0 )
 end
 
 if lctagOptMap.mode == "list" then
+   local db = DBCtrl:open( lctagOptMap.dbPath, true, os.getenv( "PWD" ) )
+   
    if lctagOptMap.query == "inc" or lctagOptMap.query == "incSrc" then
       Query:outputIncRelation(
-	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.query == "inc",
+	 db, srcList[ 1 ], lctagOptMap.query == "inc",
 	 lctagOptMap.depth, OutputCtrl.txt, io.stdout )
    end
+
+   db:close()
    os.exit( 0 )
 end
 
 if lctagOptMap.mode == "graph" then
+   local db = DBCtrl:open( lctagOptMap.dbPath, true, os.getenv( "PWD" ) )
+   
    if lctagOptMap.graph == "inc" or lctagOptMap.graph == "incSrc" then
       Query:outputIncRelation(
-	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "inc",
+	 db, srcList[ 1 ], lctagOptMap.graph == "inc",
 	 lctagOptMap.depth, OutputCtrl.dot,
 	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    elseif lctagOptMap.graph == "caller" or lctagOptMap.graph == "callee" then
       Query:outputCallRelation(
-	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.graph == "caller",
+	 db, srcList[ 1 ], lctagOptMap.graph == "caller",
 	 lctagOptMap.depth, OutputCtrl.dot,
 	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    elseif lctagOptMap.graph == "symbol" then
       Query:outputSymbolRefRelation(
-	 lctagOptMap.dbPath, srcList[ 1 ], lctagOptMap.depth, OutputCtrl.dot,
+	 db, srcList[ 1 ], lctagOptMap.depth, OutputCtrl.dot,
 	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    else
       printUsage( "unknown graph" )
    end
+
+   db:close()
    os.exit( 0 )
 end
 
@@ -546,6 +567,12 @@ if lctagOptMap.mode == "graph-at" then
 end
 
 if lctagOptMap.mode == "comp-at" then
-   Complete:at( analyzer, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ] )
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+
+   Complete:at( analyzer, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ],
+		lctagOptMap.target, fileContents )
    os.exit( 0 )
 end

@@ -174,7 +174,7 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 end
 
 
-function Complete:createForAnalyzingSrc(
+function Complete:concatToken(
       fileHandle, depthList, tokenInfoList, targetIndex,
       startIndex, endIndex, newLineNo, newColmun )
    local prevLine = nil
@@ -219,30 +219,97 @@ function Complete:createForAnalyzingSrc(
    return newLineNo, newColmun, targetLine, targetColmun
 end
 
-function Complete:at( analyzer, path, line, column, target )
+-- tokenInfoList に格納されているトークンから解析用ソースコードを生成する
+function Complete:createSourceForAnalyzing( tokenInfoList )
+   
+   -- clang の解析対象にする token を決定する
+   local checkIndex = #tokenInfoList
+   local targetIndex = #tokenInfoList
+   local prefix = nil
+   local compMode = "member"
+   if tokenInfoList[ checkIndex ].token == '.' or
+      tokenInfoList[ checkIndex ].token == '->' or
+      tokenInfoList[ checkIndex ].token == '::'
+   then
+      compMode = "member"
+      prefix = ""
+      targetIndex = checkIndex - 1
+      checkIndex = checkIndex - 1
+   elseif string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
+      -- シンボル
+      compMode = "symbol"
+      prefix = tokenInfoList[ checkIndex ].token
+      targetIndex = checkIndex - 1
+
+      checkIndex = checkIndex - 1
+      if tokenInfoList[ checkIndex ].token == '.' or
+	 tokenInfoList[ checkIndex ].token == '->' or
+	 tokenInfoList[ checkIndex ].token == '::'
+      then
+	 compMode = "member"
+	 targetIndex = checkIndex - 1
+	 checkIndex = checkIndex - 1
+      end
+   end
+   log( 2, targetIndex, prefix, checkIndex )
+
+   local statementStartIndex, incompletionIndex =
+      self:checkStatement( tokenInfoList, nil, checkIndex )
+
+   log( 2, "decide statementStartIndex",
+	statementStartIndex, incompletionIndex, targetIndex )
+
+   local fileHandle = {
+      __txt = "",
+      write = function( self, txt )
+	 self.__txt = self.__txt .. txt
+      end
+   }
+
+   local newLineNo = 1
+   local newColmun = 0
+   local prevLine = -1
+
+   local depthList = {}
+
+   local targetLine
+   local targetColmun
+   newLineNo, newColmun, targetLine, targetColmun = self:concatToken(
+      fileHandle, depthList, tokenInfoList, targetIndex,
+      1, statementStartIndex, newLineNo, newColmun )
+
+   if incompletionIndex then
+      newLineNo, newColmun, targetLine, targetColmun = self:concatToken(
+	 fileHandle, depthList, tokenInfoList, targetIndex,
+	 incompletionIndex, checkIndex, newLineNo, newColmun )
+   end
+
+   fileHandle:write( ';' )
+
+   for index, depth in ipairs( depthList ) do
+      if depth == '(' then
+	 fileHandle:write( ')' )
+      else
+	 fileHandle:write( '}' )
+      end
+   end
+
+   
+   log( 3, fileHandle.__txt )
+   log( 3, targetLine, targetColmun )
+
+   return fileHandle.__txt, targetLine, targetColmun, prefix, compMode
+end
+
+function Complete:at( analyzer, path, line, column, target, fileContents )
+
+   if not target then
+      target = ""
+   end
 
    local analyzerForTokenize = analyzer:newAs( false, false )
-   local unit, compileOp, newAnalyzer = analyzerForTokenize:createUnit( path, target )
-
-
-   -- local compResults = unit:codeCompleteAt( path, line, column, nil, 0, 0 )
-
-   -- print( compResults.NumResults, compResults.Results )
-
-   -- local compArray = clang.mkCXCompletionResultArray(
-   --    compResults.Results, compResults.NumResults )
-
-   -- for index = 0, compArray:getLength() - 1 do
-   --    local comp = compArray:getItem( index )
-   --    print( comp, clang.getCursorKindSpelling( comp.CursorKind ),
-   -- 	     comp.CompletionString )
-
-   --    local compStr = clang.CXCompletionString:new( comp.CompletionString )
-   --    for chunkIndex = 0, compStr:getNumCompletionChunks() do
-   -- 	 print( compStr:getCompletionChunkText( chunkIndex ),
-   -- 		compStr:getCompletionAnnotation( chunkIndex ) )
-   --    end
-   -- end
+   local unit, compileOp, newAnalyzer =
+      analyzerForTokenize:createUnit( path, target, false, fileContents )
 
 
    local tokenP = clang.mkCXTokenPArray( nil, 1 )
@@ -272,83 +339,60 @@ function Complete:at( analyzer, path, line, column, target )
    end
    unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 
-   -- clang の解析対象にする token を決定する
-   local checkIndex = #tokenInfoList
-   local targetIndex = #tokenInfoList
-   local memberAccessFlag = nil
-   if tokenInfoList[ checkIndex ].token == '.' or
-      tokenInfoList[ checkIndex ].token == '->' or
-      tokenInfoList[ checkIndex ].token == '::'
-   then
-      memberAccessFlag = ""
-      targetIndex = checkIndex - 1
-      checkIndex = checkIndex - 1
-   elseif string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
-      -- シンボル
-      memberAccessFlag = tokenInfoList[ checkIndex ].token
-      targetIndex = checkIndex - 1
 
-      checkIndex = checkIndex - 1
-      if tokenInfoList[ checkIndex ].token == '.' or
-	 tokenInfoList[ checkIndex ].token == '->' or
-	 tokenInfoList[ checkIndex ].token == '::'
-      then
-	 targetIndex = checkIndex - 1
-	 checkIndex = checkIndex - 1
+   local fileTxt, targetLine, targetColmun, prefix, compMode =
+      self:createSourceForAnalyzing( tokenInfoList )
+
+
+   --newAnalyzer:update( path, target )
+
+   if compMode == "symbol" then
+      print( string.format(
+		[=[
+<complete>
+<prefix>%s</prefix>
+]=], prefix ) )
+
+      local db = analyzer:openDBForReadOnly()
+
+      -- 対象ファイルがインクルードしているファイルを取得する
+      local fileInfo = db:getFileInfo( nil, path )
+      local fileId2IncFileInfoListMap = {}
+      local fileId2FileInfoMap = {}
+      db:getIncludeFileSet(
+	 fileId2FileInfoMap, fileInfo, fileId2IncFileInfoListMap )
+      fileId2FileInfoMap[ fileInfo.id ] = fileInfo
+
+      -- ルートの名前空間を探す
+      local nsList = {}
+      db:mapNamespace(
+	 string.format( "name GLOB '::%s*' AND parentId = %d",
+			prefix, db.rootNsId ),
+	 function( item )
+	    table.insert( nsList, item )
+	    return true
+	 end
+      )
+
+      -- ルートの名前空間で、このファイルからアクセスできる名前を探す
+      for index, nsInfo in ipairs( nsList ) do
+	 db:mapDecl(
+	    nsInfo.id,
+	    function( item )
+	       if fileId2FileInfoMap[ item.fileId ] then
+		  print( string.format( '<candidate>%s</candidate>', nsInfo.name ) )
+		  return false
+	       end
+	       return true
+	    end
+	 )
       end
+      print( '</complete>' )
+      return
    end
-   log( 2, targetIndex, memberAccessFlag, checkIndex )
-
-   local statementStartIndex, incompletionIndex =
-      self:checkStatement( tokenInfoList, nil, checkIndex )
-
-   log( 2, "decide statementStartIndex",
-	statementStartIndex, incompletionIndex, targetIndex )
-
-   --local fileHandle = io.stdout
-   local fileHandle = {
-      __txt = "",
-      write = function( self, txt )
-	 self.__txt = self.__txt .. txt
-      end
-   }
-
-   local newLineNo = 1
-   local newColmun = 0
-   local prevLine = -1
-
-   local depthList = {}
-
-   local targetLine
-   local targetColmun
-   newLineNo, newColmun, targetLine, targetColmun = self:createForAnalyzingSrc(
-      fileHandle, depthList, tokenInfoList, targetIndex,
-      1, statementStartIndex, newLineNo, newColmun )
-
-   if incompletionIndex then
-      newLineNo, newColmun, targetLine, targetColmun = self:createForAnalyzingSrc(
-	 fileHandle, depthList, tokenInfoList, targetIndex,
-	 incompletionIndex, checkIndex, newLineNo, newColmun )
-   end
-
-   fileHandle:write( ';' )
-
-   for index, depth in ipairs( depthList ) do
-      if depth == '(' then
-	 fileHandle:write( ')' )
-      else
-	 fileHandle:write( '}' )
-      end
-   end
-
-   
-   log( 3, fileHandle.__txt )
-   log( 3, targetLine, targetColmun )
-
-   newAnalyzer:update( path, target )
    
    newAnalyzer:queryAtFunc(
-      path, targetLine, targetColmun, target, fileHandle.__txt,
+      path, targetLine, targetColmun, target, fileTxt,
       function( db, targetFileId, nsInfo, declCursor, cursor )
 
 	 local declKind = declCursor:getCursorKind()
@@ -371,14 +415,22 @@ function Complete:at( analyzer, path, line, column, target )
 	 log( 2, "typeCursor", typeCursor, typeCursor:getCursorSpelling(),
 	      declCursor:getCursorSpelling() )
 	 nsInfo = db:getNamespaceFromCursor( typeCursor )
+
+	 print( string.format(
+		   [=[
+<complete>
+<prefix>%s</prefix>
+]=], prefix or "" ) )
 	 
 	 db:mapNamespace(
-	    "parentId = " .. tonumber( nsInfo.id ),
+	    string.format( 
+	       "parentId = %d AND name like '%%::%s%%'", nsInfo.id, prefix or "" ),
 	    function( item )
-	       print( item.name )
+	       print( string.format( '<candidate>%s</candidate>', item.name ) )
 	       return true
 	    end
 	 )
+	 print( '</complete>' )
       end
    )
 end

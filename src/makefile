@@ -1,5 +1,7 @@
 PWD=$(shell pwd)
 
+INST_DIR=/usr/local/bin
+
 ####### customize Lua environment ######
 
 LUA_COMMAND=lua5.3
@@ -10,12 +12,13 @@ LUA_LDFLAGS=-llua5.3
 # LUA_INC=/usr/include/luajit-2.0
 # LUA_LDFLAGS=-lluajit-5.1
 
-
 # LUA_COMMAND=./clanglua
 # LUA_CFLAGS=-fPIC -DLUA_COMPAT_5_1 -DLUA_COMPAT_5_2 -I$(PWD)/$(LUA_DIR)
 # LUA_DIR=../external/lua/lua-5.3.4/src
 # LUA_INC=$(PWD)/$(LUA_DIR)
 # LUA_LIB=$(LUA_DIR)/liblua.a
+# LUA_INST_DIR=/usr/local/bin
+# LUA_LIB_DIR=/usr/local/lib/lua/5.3
 # LUA_LDFLAGS=-lncursesw
 
 TEST_LUA_DIR=../external/lua/lua-5.3.4/src
@@ -26,6 +29,7 @@ LIBCLANG_INC=/usr/lib/llvm-3.8/include
 LIBCLANG_LIB=/usr/lib/llvm-3.8/lib
 LIBCLANG_STD_INC=/usr/lib/llvm-3.8/lib/clang/3.8.0/include
 
+# LIBCLANG_DIR=/proj/next/clang/r34-final
 # LIBCLANG_INC=../external/clang/r390/llvm/tools/clang/include
 # LIBCLANG_STD_INC=../external/clang/r390/build/lib/clang/3.9.0/include
 # LIBCLANG_LIB=/usr/lib/llvm-3.8/lib
@@ -40,6 +44,9 @@ LUASQLITE3_DIR=../external/luasqlite3/lsqlite3_fsl09x
 
 
 ####### make rules ######
+
+LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
+
 
 LUA_LIB:=$(addprefix $(PWD)/,$(LUA_LIB))
 
@@ -135,7 +142,10 @@ ifndef NO_INIT
 endif
 	sync
 	$(MAKE) test-dbbuild
-	env LANG= $(MAKE) test-query | tee test-result
+	env LANG= $(MAKE) test-query | \
+		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
+		sed "s@$(PWD)@PWD@g" | \
+		tee test-result
 	diff test-result test-result.expect && echo OK
 
 
@@ -148,6 +158,8 @@ test-dbbuild:
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp3.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp4.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp5.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp6.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	sleep 1
 	echo 'int ccccc;' >> test/field.h
 	$(LUA_COMMAND) $(LCTAGS_LUA) update .
@@ -160,15 +172,15 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) rm-tgt hoge2
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump compOp
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) -xa sub
-	$(LUA_COMMAND) $(LCTAGS_LUA) -xa ccccc
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 44 8
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 236 23
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 237 23
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 253 18
-	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata test/hoge.cpp 204 18
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-ata test/hoge.cpp 168 15
-	$(LUA_COMMAND) $(LCTAGS_LUA) call-ata test/hoge.cpp 267 15
+	$(LUA_COMMAND) $(LCTAGS_LUA) -x sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) -x ccccc
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 44 8
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 236 23
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 237 23
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 253 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 204 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 168 15
+	$(LUA_COMMAND) $(LCTAGS_LUA) call-at test/hoge.cpp 267 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 230 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 231 20
 	-rm -f graph.sample/*
@@ -182,9 +194,12 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
 	$(LUA_COMMAND) $(LCTAGS_LUA) list inc test/hoge.cpp -d 2
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp.cpp 26 17
-	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp2.cpp 31 9
-	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp3.cpp 31 24
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp2.cpp 31 10
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp3.cpp 31 25
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp4.cpp 31 17
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp5.cpp 31 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp6.cpp 25 3
+
 test-at-lua:
 ifeq ($(shell which lctags),)
 	@echo please make install
@@ -208,27 +223,24 @@ endif
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 
 install: build
-	$(MAKE) install-lib LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
-	$(MAKE) -C lctags install
+	$(MAKE) install-lib
+	$(MAKE) -C lctags install INST_DIR=$(INST_DIR)
 
 uninstall:
-	$(MAKE) uninstall-lib LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
-	$(MAKE) -C lctags uninstall
+	$(MAKE) uninstall-lib
+	$(MAKE) -C lctags uninstall INST_DIR=$(INST_DIR)
 
 install-lib:
-ifeq ($(LUA_LIB_DIR),)
-	$(error LUA_LIB_DIR is empty)
-endif
 	mkdir -p $(LUA_LIB_DIR)
 	mkdir -p $(LUA_LIB_DIR)/libclanglua
 	cp $(CORE_SO) $(IF_LUA) $(IFC_LUA) $(LUA_LIB_DIR)/libclanglua
 	if [ -f lsqlite3.so  ]; then cp lsqlite3.so $(LUA_LIB_DIR); fi
 	cp -a lctags $(LUA_LIB_DIR)/
+ifneq ($(LUA_INST_DIR),)
+	cp $(LUA_COMMAND) $(LUA_INST_DIR)
+endif
 
 uninstall-lib:
-ifeq ($(LUA_LIB_DIR),)
-	$(error LUA_LIB_DIR is empty)
-endif
 ifeq ($(LUA_LIB_DIR),$(shell pwd))
 	echo LUA_LIB_DIR is this directrory.
 else
@@ -237,4 +249,7 @@ else
 	-rm -f $(LUA_LIB_DIR)/lctags/*
 	-rmdir $(LUA_LIB_DIR)/lctags
 	-if [ -f lsqlite3.so  ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.so; fi
+endif
+ifneq ($(LUA_INST_DIR),)
+	rm $(LUA_INST_DIR)/$(LUA_COMMAND)
 endif

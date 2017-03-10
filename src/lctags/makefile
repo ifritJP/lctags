@@ -3,6 +3,7 @@ LUA_INC=../../external/lua/lua-5.3.4/src/
 LUA_LIB=
 LUA_CFLAGS=
 LUA_LDFLAGS=-llua5.3
+INST_DIR=/usr/local/bin
 
 all: Helper.so
 
@@ -19,7 +20,7 @@ clean:
 
 install:
 	chmod +x lctags
-	cp lctags /usr/bin/
+	cp lctags $(INST_DIR)
 
 uninstall:
-	rm /usr/bin/lctags
+	rm $(INST_DIR)/lctags

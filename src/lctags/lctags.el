@@ -221,11 +221,19 @@ This parameter can set function and string.
   (interactive)
   (lctags-graph-at "symbol"))
 
+(defun lctags-get-line ()
+  (interactive)
+  (1- (current-line)))
+
+(defun lctags-get-column ()
+  (interactive)
+  (+ (- (point) (point-at-bol)) 1))
+
 (defun lctags-graph-at ( graph )
   (let ((org-buf (current-buffer))
 	(nsId (lctags-namespaceId-at))
-	(line (1- (current-line)))
-	(column (+ (- (point) (point-at-bol)) 1))
+	(line (lctags-get-line))
+	(column (lctags-get-column))
 	)
     
     (with-temp-buffer
@@ -233,14 +241,19 @@ This parameter can set function and string.
 		      "graph-at" graph (buffer-file-name org-buf)
 		      (number-to-string line) (number-to-string column) "-b"))))
 
+(defun lctags-get-process-buffer (init)
+  (let ((buffer (get-buffer-create lctags-process-buf-name)))
+    (when init
+      (with-current-buffer buffer
+	(erase-buffer)))
+    buffer))
 
 (defun lctags-update-this-file ()
   (interactive)
-  (let ((buffer (get-buffer-create lctags-process-buf-name))
+  (let ((buffer (lctags-get-process-buffer t))
 	(org-buf (current-buffer))
 	(file-name (buffer-file-name)))
     (with-current-buffer buffer
-      (erase-buffer)
       (lctags-execute org-buf buffer nil "update" file-name "--lctags-log" "2" ))))
 
 (defun lctags-get-namespace-at ()

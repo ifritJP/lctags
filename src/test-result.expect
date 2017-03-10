@@ -1,58 +1,63 @@
-make[1]: Entering directory '/home/hoge/work/lctags/src'
+make[1]: Entering directory 'PWD'
 lua5.3 lctags/lctags.lua shrink
 1	step6
 1	step7
 lua5.3 lctags/lctags.lua dump compOp
 1	-- table compileOp -- 
 1	fileId	target	path	compOp
-1	2		|/test/hoge.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	25	hoge	|/test/sub.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	25	hoge1	|/test/sub.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	25	hoge2	|/test/sub.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	26		|/test/comp.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	27		|/test/comp2.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	28		|/test/comp3.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	29		|/test/comp4.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
+1	2		|/test/hoge.cpp	-Iclang -Itest -Iclang 
+1	25	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	25	hoge1	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	25	hoge2	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	26		|/test/comp.cpp	-Iclang -Itest -Iclang 
+1	27		|/test/comp2.cpp	-Iclang -Itest -Iclang 
+1	28		|/test/comp3.cpp	-Iclang -Itest -Iclang 
+1	29		|/test/comp4.cpp	-Iclang -Itest -Iclang 
+1	30		|/test/comp5.cpp	-Iclang -Itest -Iclang 
+1	31		|/test/comp6.cpp	-Iclang -Itest -Iclang 
 lua5.3 lctags/lctags.lua dump dumpFile >> dump
 lua5.3 lctags/lctags.lua rm-tgt hoge2
 lua5.3 lctags/lctags.lua dump compOp
 1	-- table compileOp -- 
 1	fileId	target	path	compOp
-1	2		|/test/hoge.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	25	hoge	|/test/sub.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	25	hoge1	|/test/sub.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	26		|/test/comp.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	27		|/test/comp2.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	28		|/test/comp3.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
-1	29		|/test/comp4.cpp	-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include -Itest -I/usr/lib/llvm-3.8/lib/clang/3.8.0/include/ 
+1	2		|/test/hoge.cpp	-Iclang -Itest -Iclang 
+1	25	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	25	hoge1	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	26		|/test/comp.cpp	-Iclang -Itest -Iclang 
+1	27		|/test/comp2.cpp	-Iclang -Itest -Iclang 
+1	28		|/test/comp3.cpp	-Iclang -Itest -Iclang 
+1	29		|/test/comp4.cpp	-Iclang -Itest -Iclang 
+1	30		|/test/comp5.cpp	-Iclang -Itest -Iclang 
+1	31		|/test/comp6.cpp	-Iclang -Itest -Iclang 
 lua5.3 lctags/lctags.lua dump >> dump
-lua5.3 lctags/lctags.lua -xa sub
-sub               251 /home/hoge/work/lctags/src/test/hoge.cpp         void sub( char ** ppArg ) {
-sub                 7 /home/hoge/work/lctags/src/test/comp.cpp   static int sub()
-sub                 7 /home/hoge/work/lctags/src/test/comp2.cpp   static int sub()
-sub                 7 /home/hoge/work/lctags/src/test/comp3.cpp   static int sub()
-sub                 7 /home/hoge/work/lctags/src/test/comp4.cpp   static int sub()
-lua5.3 lctags/lctags.lua -xa ccccc
-ccccc               3 /home/hoge/work/lctags/src/test/field.h 
-ccccc               3 /home/hoge/work/lctags/src/test/field.h 
-lua5.3 lctags/lctags.lua ref-ata test/hoge.cpp 44 8
-::@struct::yyyy::kkkk  266 /home/hoge/work/lctags/src/test/hoge.cpp     aYYYYY.kkkk = 0;
-lua5.3 lctags/lctags.lua ref-ata test/hoge.cpp 236 23
-::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 /home/hoge/work/lctags/src/test/hoge.cpp             val.abcd.efgh = 1;
-lua5.3 lctags/lctags.lua ref-ata test/hoge.cpp 237 23
-::@enum::<enum_enum_t>::enum_val1  237 /home/hoge/work/lctags/src/test/hoge.cpp             return enum_val1;
-::@enum::<enum_enum_t>::enum_val1   18 /home/hoge/work/lctags/src/test/hoge.cpp 	       enum_val3 = enum_val1 + 1000
-lua5.3 lctags/lctags.lua ref-ata test/hoge.cpp 253 18
-::printf          253 /home/hoge/work/lctags/src/test/hoge.cpp                 printf( "%s\n", *ppArg );
-lua5.3 lctags/lctags.lua def-ata test/hoge.cpp 204 18
-::ns1::g_global   153 /home/hoge/work/lctags/src/test/hoge.cpp     int g_global = 0;
-lua5.3 lctags/lctags.lua ref-ata test/hoge.cpp 168 15
-::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 /home/hoge/work/lctags/src/test/hoge.cpp             pClass->z2 = 1;
-lua5.3 lctags/lctags.lua call-ata test/hoge.cpp 267 15
-::Callback_t      196 /home/hoge/work/lctags/src/test/hoge.cpp             callback( NULL );
-::Callback_t      211 /home/hoge/work/lctags/src/test/hoge.cpp             pClass->   pCallback( NULL );
-::Callback_t      231 /home/hoge/work/lctags/src/test/hoge.cpp                 (*pCallback)( NULL );
-::Callback_t      267 /home/hoge/work/lctags/src/test/hoge.cpp     aYYYYY.pCallback( NULL );
+lua5.3 lctags/lctags.lua -x sub
+sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+sub                 7 ./test/comp.cpp    static int sub()
+sub                 7 ./test/comp2.cpp   static int sub()
+sub                 7 ./test/comp3.cpp   static int sub()
+sub                 7 ./test/comp4.cpp   static int sub()
+sub                 7 ./test/comp5.cpp   static int sub()
+lua5.3 lctags/lctags.lua -x ccccc
+ccccc               3 ./test/field.h   
+ccccc               3 ./test/field.h   
+lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 44 8
+::@struct::yyyy::kkkk  266 ./test/hoge.cpp      aYYYYY.kkkk = 0;
+lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 236 23
+::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
+lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 237 23
+::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
+::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
+lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 253 18
+::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
+lua5.3 lctags/lctags.lua def-at test/hoge.cpp 204 18
+::ns1::g_global   153 ./test/hoge.cpp      int g_global = 0;
+lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 168 15
+::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
+lua5.3 lctags/lctags.lua call-at test/hoge.cpp 267 15
+::Callback_t      196 ./test/hoge.cpp              callback( NULL );
+::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
+::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
+::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
 lua5.3 lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::2  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua5.3 lctags/lctags.lua def-at test/hoge.cpp 231 20
@@ -67,29 +72,65 @@ lua5.3 lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at
 lua5.3 lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
 lua5.3 lctags/lctags.lua graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
 lua5.3 lctags/lctags.lua list inc test/hoge.cpp -d 2
-path                1 /home/hoge/work/lctags/src/test/field.h 
-path                1 /home/hoge/work/lctags/src/test/hoge.cpp 
-path                1 /home/hoge/work/lctags/src/test/hoge.h 
+path                1 PWD/test/field.h 
+path                1 PWD/test/hoge.cpp 
+path                1 PWD/test/hoge.h 
 path                1 /usr/include/stdio.h 
 path                1 /usr/include/time.h 
 lua5.3 lctags/lctags.lua comp-at test/comp.cpp 26 17
-comp.cpp:	1	uptodate all
-::Test1::member
-::Test1::sub
-::Test1::func
-lua5.3 lctags/lctags.lua comp-at test/comp2.cpp 31 9
-comp2.cpp:	1	uptodate all
-::Test1::member
-::Test1::sub
-::Test1::func
-lua5.3 lctags/lctags.lua comp-at test/comp3.cpp 31 24
-comp3.cpp:	1	uptodate all
-::Test1::member
-::Test1::sub
-::Test1::func
+<complete>
+<prefix>me</prefix>
+
+<candidate>::Test1::member</candidate>
+</complete>
+lua5.3 lctags/lctags.lua comp-at test/comp2.cpp 31 10
+<complete>
+<prefix>f</prefix>
+
+<candidate>::Test1::func</candidate>
+</complete>
+lua5.3 lctags/lctags.lua comp-at test/comp3.cpp 31 25
+<complete>
+<prefix>s</prefix>
+
+<candidate>::Test1::sub</candidate>
+</complete>
 lua5.3 lctags/lctags.lua comp-at test/comp4.cpp 31 17
-comp4.cpp:	1	uptodate all
-::Test1::member
-::Test1::sub
-::Test1::func
-make[1]: Leaving directory '/home/hoge/work/lctags/src'
+<complete>
+<prefix></prefix>
+
+<candidate>::Test1::member</candidate>
+<candidate>::Test1::sub</candidate>
+<candidate>::Test1::func</candidate>
+</complete>
+lua5.3 lctags/lctags.lua comp-at test/comp5.cpp 31 18
+<complete>
+<prefix>f</prefix>
+
+<candidate>::Test1::func</candidate>
+</complete>
+lua5.3 lctags/lctags.lua comp-at test/comp6.cpp 25 3
+<complete>
+<prefix>TE</prefix>
+
+<candidate>::TEST1</candidate>
+<candidate>::TEST10</candidate>
+<candidate>::TEST11</candidate>
+<candidate>::TEST12</candidate>
+<candidate>::TEST13</candidate>
+<candidate>::TEST14</candidate>
+<candidate>::TEST15</candidate>
+<candidate>::TEST16</candidate>
+<candidate>::TEST17</candidate>
+<candidate>::TEST18</candidate>
+<candidate>::TEST19</candidate>
+<candidate>::TEST2</candidate>
+<candidate>::TEST3</candidate>
+<candidate>::TEST4</candidate>
+<candidate>::TEST5</candidate>
+<candidate>::TEST6</candidate>
+<candidate>::TEST7</candidate>
+<candidate>::TEST8</candidate>
+<candidate>::TEST9</candidate>
+</complete>
+make[1]: Leaving directory 'PWD'
