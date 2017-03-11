@@ -221,9 +221,9 @@ lctags.el は、マイナーモードの機能を提供します。
   - lctags コマンドの graph-at callee オプションを呼び出します。
   - カーソル位置の関数の呼び出し先を辿るコールグラフを表示します。
   - その対象ファイルを事前に lctags で解析しておく必要があります。
-- lctags-graph-callee-at (C-c l g r)
+- lctags-graph-symbol-at (C-c l g s)
   - lctags コマンドの graph-at symbol オプションを呼び出します。
-  - カーソル位置のシンボルの呼び出し元を辿るコールグラフを表示します。
+  - カーソル位置のシンボルの参照元を辿るコールグラフを表示します。
   - その対象ファイルを事前に lctags で解析しておく必要があります。
 - lctags-list-incSrc-this-file (C-c l l I)
   - 現在のバッファで開いているファイルをインクルードしているファイル一覧をリストします。
@@ -236,6 +236,12 @@ lctags.el は、マイナーモードの機能を提供します。
 - lctags-update-this-file (C-c l u)
   - 現在のバッファで開いているファイルを解析しなおします。
   - バッファで開いているファイルがヘッダファイルの場合は動作しません。
+
+*** コード補完
+
+シンボル名、メンバー名の補完を行ないます。
+    
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8557f03cd8d88d3329998db13b6567f37d706120/complete.gif]]
 
 *** グラフ
 
