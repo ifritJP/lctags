@@ -99,7 +99,7 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
       end, { ... }
    )
    if not success then
-      self:errorExit( 3, message )
+      self:errorExit( 3, message, query )
    end
 end
 

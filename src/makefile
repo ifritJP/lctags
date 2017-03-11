@@ -146,7 +146,7 @@ endif
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(PWD)@PWD@g" | \
 		tee test-result
-	diff test-result test-result.expect && echo OK
+	diff test-result.expect test-result && echo OK
 
 
 test-dbbuild:
@@ -155,11 +155,15 @@ test-dbbuild:
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge1 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 2  --lctags-target hoge2 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp-2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp3.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp4.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp5.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp6.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp7.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp8.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp9.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	sleep 1
 	echo 'int ccccc;' >> test/field.h
 	$(LUA_COMMAND) $(LCTAGS_LUA) update .
@@ -193,12 +197,19 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
 	$(LUA_COMMAND) $(LCTAGS_LUA) list inc test/hoge.cpp -d 2
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/hoge.cpp 212 19
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/hoge.cpp 236 15
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/hoge.cpp 235 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp.cpp 26 17
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp-2.cpp 25 16
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp2.cpp 31 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp3.cpp 31 25
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp4.cpp 31 17
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp5.cpp 31 18
-	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp6.cpp 25 3
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp6.cpp 48 5
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp7.cpp 48 17
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp8.cpp 48 13
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp9.cpp 48 8
 
 test-at-lua:
 ifeq ($(shell which lctags),)

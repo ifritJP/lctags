@@ -1,10 +1,10 @@
 #include <stdio.h>
-
+class Test2;
 class Test1
 {
   int member;
 public:
-  Test1 * pTest;
+  Test2 * pTest;
   static int sub() {
     return 1;
   }
@@ -12,9 +12,9 @@ public:
     return 0;
   }
 };
-
-void zzzz( int val1, int val2 )
+class Test2
 {
+  Test1 * pTest;
 }
 
 int main()
@@ -22,8 +22,7 @@ int main()
   Test1 * pTest1; /** */
 
   Test1::sub();
-
-  zzzz( pTest1->me
+  pTest1->pTest->
 //   return 0;
 // }
     
