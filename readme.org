@@ -162,25 +162,23 @@ def-at[a] は、指定ファイルの場所のシンボルの定義箇所をリ�
 emacs からアクセスする場合は、 lctags.el をロードしてください。
 
 #+BEGIN_SRC lisp
+(add-to-list 'load-path "/hoge/foo/lctags" t)
+
 (autoload 'lctags-mode "lctags" "" t)
 (add-hook 'lctags-mode-hook
       '(lambda ()
-         (local-set-key "\M-t" 'lctags-def)
-         (local-set-key "\M-r" 'lctags-ref)
-         (local-set-key "\C-cld" 'lctags-def-at)
-         (local-set-key "\C-clr" 'lctags-ref-at)
-         (local-set-key "\C-clc" 'lctags-ref-at)
-         (local-set-key "\C-clli" 'lctags-list-inc-this-file)
-         (local-set-key "\C-cllI" 'lctags-list-incSrc-this-file)
-         (local-set-key "\C-clgr" 'lctags-graph-caller-at)
-         (local-set-key "\C-clge" 'lctags-graph-callee-at)
-         (local-set-key "\C-clgs" 'lctags-graph-symbol-at)
-         (local-set-key "\C-clu" 'lctags-update-this-file)
-         (local-set-key "\C-t" 'gtags-pop-stack)))
+         (local-set-key (kbd "\M-t") 'lctags-def)
+         (local-set-key (kbd "\M-r") 'lctags-ref)
+	 (local-set-key (kbd "\C-cl") 'lctags-dispatch-mode)
+	 (local-set-key (kbd "C-c C-/") 'lctags-helm-complete-at)
+         (local-set-key (kbd "\C-t") 'gtags-pop-stack)))
 
 (add-hook 'c-mode-common-hook
           '(lambda()
 	     (lctags-mode 1)))
+
+;; (require 'lctags-anything)
+(require 'lctags-helm)
 #+END_SRC
 
 なお、 lctags.el は gtags.el が利用できることが前提になっています。
@@ -240,8 +238,15 @@ lctags.el は、マイナーモードの機能を提供します。
 *** コード補完
 
 シンボル名、メンバー名の補完を行ないます。
-    
+
+補完したい位置にカーソルを移動し、 C-c C-/ で候補を表示します。
+
+補完候補の絞り込みは helm (あるいは anything) を利用します。
+
 [[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8557f03cd8d88d3329998db13b6567f37d706120/complete.gif]]
+
+ファイルを変更している場合、補完が正常に動作しない場合があります。
+一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
 
 *** グラフ
 

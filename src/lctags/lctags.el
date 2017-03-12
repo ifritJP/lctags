@@ -6,18 +6,15 @@
 ;; 
 ;; (add-hook 'lctags-mode-hook
 ;;       '(lambda ()
-;;          (local-set-key "\M-t" 'lctags-def)
-;;          (local-set-key "\M-r" 'lctags-ref)
-;;          (local-set-key "\C-cld" 'lctags-def-at)
-;;          (local-set-key "\C-clr" 'lctags-ref-at)
-;;          (local-set-key "\C-clc" 'lctags-ref-at)
-;;          (local-set-key "\C-clli" 'lctags-list-inc-this-file)
-;;          (local-set-key "\C-cllI" 'lctags-list-incSrc-this-file)
-;;          (local-set-key "\C-clgr" 'lctags-graph-caller-at)
-;;          (local-set-key "\C-clge" 'lctags-graph-callee-at)
-;;          (local-set-key "\C-clgs" 'lctags-graph-symbol-at)
-;;          (local-set-key "\C-clu" 'lctags-update-this-file)
-;;          (local-set-key "\C-t" 'gtags-pop-stack)))
+;;        (local-set-key (kbd "\M-t") 'lctags-def)
+;;        (local-set-key (kbd "\M-r") 'lctags-ref)
+;;        (local-set-key (kbd "\C-cl") 'lctags-dispatch-mode)
+;;        (local-set-key (kbd "C-c C-/") 'lctags-helm-complete-at)
+;;        (local-set-key (kbd "\C-t") 'gtags-pop-stack)))
+;;
+;; (require 'lctags-helm)  or  (require 'lctags-anything)
+;;
+
 
 
 (require 'gtags)
@@ -368,5 +365,7 @@ This parameter can set function and string.
     (ad-set-args 0 (lctags-call-process-func (ad-get-args 0)))
     ad-do-it))
 
+
+(require 'lctags-dispatch)
 
 (provide 'lctags)

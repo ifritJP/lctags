@@ -1,5 +1,7 @@
 (defvar lctags-candidate-info nil)
 
+(defvar lctags-anything nil)
+
 
 (defun lctags-helm-select (item)
   (let ((prefix (lctags-candidate-get-prefix))
@@ -53,6 +55,7 @@
 	(lineno (lctags-get-line))
 	(column (- (lctags-get-column) 2))
 	candidates
+	lctags-params
 	)
     (lctags-execute (current-buffer) buffer
 		    (buffer-string) "comp-at" filename
@@ -74,8 +77,13 @@
 					 ))
 			       X))
 		       lctags-candidate-info))))
-    (helm :sources (list (cons 'name (format "comp-at:%s:%d:%d" filename lineno column))
-			 (cons 'candidates candidates)
-			 (cons 'action 'lctags-helm-select)))))
+    (setq lctags-params (list (cons 'name (format "comp-at:%s:%d:%d"
+						  (file-name-nondirectory filename)
+						  lineno column))
+			      (cons 'candidates candidates)
+			      (cons 'action 'lctags-helm-select)))
+    (if lctags-anything
+	(anything lctags-params)
+      (helm :sources lctags-params))))
 
 (provide 'lctags-helm)
