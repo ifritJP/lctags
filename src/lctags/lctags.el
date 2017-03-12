@@ -6,11 +6,11 @@
 ;; 
 ;; (add-hook 'lctags-mode-hook
 ;;       '(lambda ()
-;;        (local-set-key (kbd "\M-t") 'lctags-def)
-;;        (local-set-key (kbd "\M-r") 'lctags-ref)
-;;        (local-set-key (kbd "\C-cl") 'lctags-dispatch-mode)
-;;        (local-set-key (kbd "C-c C-/") 'lctags-helm-complete-at)
-;;        (local-set-key (kbd "\C-t") 'gtags-pop-stack)))
+;;          (local-set-key (kbd "M-t") 'lctags-def)
+;;          (local-set-key (kbd "M-r") 'lctags-ref)
+;;          (local-set-key (kbd "C-c l") 'lctags-dispatch-mode)
+;;          (local-set-key (kbd "C-c C-/") 'lctags-helm-complete-at)
+;;          (local-set-key (kbd "C-t") 'gtags-pop-stack)))
 ;;
 ;; (require 'lctags-helm)  or  (require 'lctags-anything)
 ;;
