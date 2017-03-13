@@ -69,10 +69,22 @@ function obj.dot(
    end
 
    local outputNode = function( id )
+      local color = ''
+      if targetId == id then
+	 color = 'color = "red"'
+      else
+	 color = 'color = "green"'
+	 relIf:mapBaseFor(
+	    id,
+	    function( item )
+	       color = ''
+	       return false
+	 end )
+      end
+	    
       fileHandle:write( string.format(
 			   '"%d:%s" [tooltip="%s", %s];\n',
-			   id, relIf:getName( id ), relIf:getTooltip( id ),
-			   targetId == id and "color = red" or "" ) )
+			   id, relIf:getName( id ), relIf:getTooltip( id ), color ) )
    end
    
    if isFileFlag then
@@ -126,7 +138,7 @@ function obj.dot(
 	       fileHandle:write(
 		  string.format( "subgraph cluster_0%d {", fileIdList[ 1 ] ) )
 	       fileHandle:write(
-		  string.format( 'label = "%s"; fontcolor = "green"\n;', dirPath ) )
+		  string.format( 'label = "%s"; fontcolor = "green";\n', dirPath ) )
 	    
 	       for index, fileId in pairs( fileIdList ) do
 		  fileClusterFunc( fileId )
@@ -157,7 +169,7 @@ function obj.dot(
    fileHandle:close()
 
    os.execute( string.format(
-		  "dot -T%s -o %s %s", imageFormat, outputFile, dotFile ) )
+   		  "dot -T%s -o %s %s", imageFormat, outputFile, dotFile ) )
    os.remove( dotFile )
 
    if browseFlag then

@@ -17,7 +17,7 @@ end
 local rootNsId = 1
 local userNsId = 2
 local systemFileId = 1
-local DB_VERSION = 4
+local DB_VERSION = 5
 
 local DBCtrl = {
    rootNsId = rootNsId,
@@ -476,6 +476,7 @@ INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '' );
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize, PRIMARY KEY( nsId, belongNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
+CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER );
 CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
 CREATE INDEX index_ns ON namespace ( id, parentId, snameId, name, otherName );
@@ -485,6 +486,7 @@ CREATE INDEX index_compOp ON compileOp ( fileId );
 CREATE INDEX index_symDecl ON symbolDecl ( nsId, parentId, snameId, fileId );
 CREATE INDEX index_symRef ON symbolRef ( nsId, snameId, fileId, belongNsId );
 CREATE INDEX index_incRef ON incRef ( id, baseFileId );
+CREATE INDEX index_incCache ON incCache ( id, baseFileId, incFlag );
 CREATE INDEX index_incBelong ON incBelong ( id, baseFileId );
 CREATE INDEX index_digest ON tokenDigest ( fileId, digest );
 COMMIT;
@@ -511,12 +513,14 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
    self:delete( "symbolDecl", "fileId = " .. tostring( fileId ) )
    self:delete( "symbolRef", "fileId = " .. tostring( fileId ) )
    self:delete( "incRef", string.format( "baseFileId = %d", fileId ) )
+   self:delete( "incCache", string.format( "baseFileId = %d", fileId ) )
    self:delete( "incBelong", string.format( "baseFileId = %d", fileId ) )
    self:delete( "tokenDigest", string.format( "fileId = %d", fileId ) )
 
    if removeFlag then
       self:delete( "filePath", string.format( "id = %d", fileId ) )
       self:delete( "incRef", string.format( "id = %d", fileId ) )
+      self:delete( "incCache", string.format( "id = %d", fileId ) )
       self:delete( "incBelong", string.format( "id = %d", fileId ) )
       self.path2fileInfoMap[ fileInfo.path ] = nil
       self.fileId2fileInfoMap[ fileId ] = nil
@@ -1166,12 +1170,17 @@ function DBCtrl:addReference( refInfo )
    local cursor = refInfo.cursor
    local declCursor = refInfo.declCursor
 
-   local srcFileInfo = self:getFileInfoFromCursor( cursor )
+   local path = refInfo.cxfile and refInfo.cxfile:getFileName() or ""
+
+   local srcFileInfo = self:getFileInfo( nil, path )
    if srcFileInfo then
       if srcFileInfo.uptodate then
 	 log( 3, "uptodate ref", cursor:getCursorSpelling() )
 	 return
       end
+   else
+      log( 3, "not found fileInfo",
+	   cursor:getCursorSpelling(), cursor:hashCursor() )
    end
 
    -- local fileId, line = self:getFileIdLocation( cursor )
@@ -1355,7 +1364,7 @@ function DBCtrl:addTokenDigest( fileId, digest )
 end
 
 
-function DBCtrl:addInclude( cursor, digest )
+function DBCtrl:addInclude( cursor, digest, fileId2IncFileInfoListMap )
    local cxfile = cursor:getIncludedFile()
    local path = cxfile and cxfile:getFileName() or ""
    
@@ -1365,6 +1374,15 @@ function DBCtrl:addInclude( cursor, digest )
 
    local currentFile, line = getFileLocation( cursor )
    local currentFileInfo = self:getFileInfo( nil, currentFile:getFileName() )
+
+
+   local incFileInfoList = fileId2IncFileInfoListMap[ currentFileInfo.id ]
+   if not incFileInfoList then
+      incFileInfoList = {}
+      fileId2IncFileInfoListMap[ currentFileInfo.id ] = incFileInfoList
+   end
+   table.insert( incFileInfoList, fileInfo )
+   
 
    local incInfo = self:getIncRef( currentFileInfo.id, fileInfo.id )
 
@@ -1716,6 +1734,7 @@ function DBCtrl:getFileInfo( id, path )
       if work then
 	 return work
       end
+      log( 2, "getFileInfo new", fileInfo.id, fileInfo.path )
       self.path2fileInfoMap[ fileInfo.path ] = fileInfo
       self.fileId2fileInfoMap[ id ] = fileInfo
       fileInfo.incPosList = {}
@@ -1741,6 +1760,7 @@ function DBCtrl:getFileInfo( id, path )
    if work then
       return work
    end
+   log( 2, "getFileInfo new", fileInfo.id, fileInfo.path )
    self.path2fileInfoMap[ path ] = fileInfo
    self.fileId2fileInfoMap[ fileInfo.id ] = fileInfo
    fileInfo.incPosList = {}
@@ -1883,6 +1903,31 @@ function DBCtrl:dumpFile( level, path )
    )
 end
 
+function DBCtrl:dumpIncCache( level, path )
+   log( level, "-- table incCache -- " )
+   log( level, "beseFileId", "id", "incFlag", "basePath", "path" )
+
+   local condition
+   if path then
+      local fileInfo = self:getFileInfo( nil, path )
+      if not fileInfo then
+	 return
+      end
+      condition = "baseFileId = " .. tostring( fileInfo.id )
+   end
+   self:mapRowList(
+      "incCache", condition, nil, nil,
+      function( row )
+	 local baseFileInfo = self:getFileInfo( row.baseFileId )
+	 local incFileInfo = self:getFileInfo( row.id )
+	 log( level, row.baseFileId, row.id, row.incFlag, 
+	      baseFileInfo.path, incFileInfo.path )
+	 return true
+      end
+   )
+end
+
+
 function DBCtrl:dump( level )
    if not level then
       level = 3
@@ -1914,6 +1959,8 @@ function DBCtrl:dump( level )
 	 return true
       end
    )
+
+   self:dumpIncCache( level, nil )
 
    log( level, "-- table namespace -- " )
    log( level, "id", "parent", "name" )
@@ -2038,15 +2085,14 @@ function DBCtrl:getSrcForIncOne( fileInfo, target )
    local srcFileInfo
    
    if fileInfo.incFlag ~= 0 then
-      Query:mapRelation(
-	 self, fileInfo.id, 0, Query:getIncIf( self, false ),
-	 function( baseId, dstId )
-	    local workFileInfo = self:getFileInfo( baseId )
-	    if workFileInfo.incFlag == 0 then
-	       if self:hasTarget( workFileInfo.id, target ) then
-		  srcFileInfo = workFileInfo
-		  return false
-	       end
+      self:mapRowList(
+	 "incCache",
+	 string.format(  "id = %d AND incFlag = 0", fileInfo.id ), nil, nil,
+	 function( item )
+	    local baseId = item.baseFileId
+	    if self:hasTarget( baseId, target ) then
+	       srcFileInfo = workFileInfo
+	       return false
 	    end
 	    return true
 	 end
@@ -2065,58 +2111,71 @@ function DBCtrl:getSrcForIncOne( fileInfo, target )
 end
 
 
--- fileInfo がインクルードしているファイルの ID を取得し fileId2fileInfoMap に設定する。
--- インクルードファイル内からさらにインクルードしているファイルも含める。
-function DBCtrl:getIncludeFileSet(
-      fileId2FileInfoMap, fileInfo, fileId2IncFileInfoListMap )
-   fileId2FileInfoMap[ fileInfo.id ] = fileInfo
+function DBCtrl:mapIncludeCache( fileInfo, func )
+   self:mapRowList(
+      "incCache", "baseFileId = " .. tostring( fileInfo.id ), nil, nil, func )
+end
 
-   if not fileId2IncFileInfoListMap then
-      fileId2IncFileInfoListMap = {}
+function DBCtrl:getIncludeCache( fileInfo )
+   local incFileIdSet = {}
+   self:mapIncludeCache(
+      fileInfo,
+      function( item )
+	 incFileIdSet[ item.id ] = 1
+	 return true
+      end
+   )
+   return incFileIdSet
+end
+
+function DBCtrl:addIncludeCache( targetFileInfo, fileId2IncFileInfoListMap )
+
+   -- fileId 毎の全 include 関係を辿ったインクルードファイルセットのマップ
+   local fileId2IncCacheSetMap = {}
+   -- キャッシュ先の incCacheSet のリスト
+   local incCacheSetList = {}
+
+   self:addIncludeCacheSub(
+      targetFileInfo, fileId2IncFileInfoListMap,
+      fileId2IncCacheSetMap, incCacheSetList )
+   
+   for fileId, incCacheSet in pairs( fileId2IncCacheSetMap ) do
+      local workFileInfo = self:getFileInfo( fileId )
+      if not workFileInfo.uptodate then
+   	 for incFileInfo in pairs( incCacheSet ) do
+   	    self:insert(
+   	       "incCache",
+	       string.format( "%d, %d, %d",
+			      incFileInfo.id, fileId, workFileInfo.incFlag ) )
+   	 end
+      end
    end
+end
 
-   local totalCount = 0
-   local newIncFileIdList = { fileInfo.id }
-   repeat
-      local incFileIdList = {}
-      for index, fileId in ipairs( newIncFileIdList ) do
-	 local workIncFileInfoList = fileId2IncFileInfoListMap[ fileId ]
-	 if workIncFileInfoList then
-	    for subIndex, subFileInfo in ipairs( workIncFileInfoList ) do
-	       if not fileId2FileInfoMap[ subFileInfo.id ] then
-		  totalCount = totalCount + 1 
-		  fileId2FileInfoMap[ subFileInfo.id ] = subFileInfo
-		  table.insert( incFileIdList, subFileInfo.id )
-	       end
+function DBCtrl:addIncludeCacheSub(
+      fileInfo, fileId2IncFileInfoListMap,
+      fileId2IncCacheSetMap, incCacheSetList )
+
+   local incFileInfoList = fileId2IncFileInfoListMap[ fileInfo.id ]
+   local incCacheSet = {}
+   fileId2IncCacheSetMap[ fileInfo.id ] = incCacheSet
+
+   table.insert( incCacheSetList, incCacheSet )
+
+   if incFileInfoList then
+      for index, incFileInfo in ipairs( incFileInfoList ) do
+	 if not fileId2IncCacheSetMap[ incFileInfo.id ] then
+	    for fileId, incFileIdSet in pairs( incCacheSetList ) do
+	       incFileIdSet[ incFileInfo ] = 1
 	    end
-	 else
-	    workIncFileInfoList = {}
-	    fileId2IncFileInfoListMap[ fileId ] = workIncFileInfoList
-	 
-	    self:mapIncRefListFrom(
-	       fileId,
-	       function( incRefInfo )
-		  local incFileInfo = self:getFileInfo( incRefInfo.id )
-		  if not incFileInfo then
-		     log( 2, "not found incFile in db", incRefInfo.id )
-		  end
-		  if not fileId2FileInfoMap[ incFileInfo.id ] then
-		     totalCount = totalCount + 1 
-		     fileId2FileInfoMap[ incFileInfo.id ] = incFileInfo
-		     table.insert( incFileIdList, incFileInfo.id )
-		     table.insert( workIncFileInfoList, incFileInfo )
-		  end
-		  return true
-	       end
-	    )
+	    self:addIncludeCacheSub(
+	       incFileInfo, fileId2IncFileInfoListMap,
+	       fileId2IncCacheSetMap, incCacheSetList )
 	 end
       end
-      newIncFileIdList = incFileIdList
-   until #newIncFileIdList == 0
+   end
 
-   log( 2, "getIncludeFileSet: total ", totalCount, fileInfo.path )
-
-   return true
+   table.remove( incCacheSetList )
 end
 
 return DBCtrl

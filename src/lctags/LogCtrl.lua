@@ -40,11 +40,13 @@ local log = function( level, ... )
       local debugInfo3 = debug.getinfo( 4 )
       local debugInfo4 = debug.getinfo( 5 )
       local debugInfo5 = debug.getinfo( 6 )
+      local debugInfo6 = debug.getinfo( 7 )
       print( debugInfo.short_src, debugInfo.currentline,
 	     "\n", debugInfo2.short_src, debugInfo2.currentline,
 	     "\n", debugInfo3.short_src, debugInfo3.currentline,
 	     "\n", debugInfo4.short_src, debugInfo4.currentline,
-	     "\n", debugInfo5.short_src, debugInfo5.currentline )
+	     "\n", debugInfo5.short_src, debugInfo5.currentline,
+	     "\n", debugInfo6.short_src, debugInfo6.currentline )
    end
 end
 --[[

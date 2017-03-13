@@ -39,11 +39,11 @@
 (defun lctags-dispatch-menu-set-keymap (info keymap)
   (plist-put info :keymap keymap))
 
-(defun lctags-dispatch-mode-exit (&optional action)
+(defun lctags-dispatch-mode-exit (&optional action param)
   (set-window-configuration lctags-dispatch-prev-window-conf)
   (kill-buffer (get-buffer lctags-dispatch-buf-name))
   (when action
-    (funcall action))
+    (funcall action param))
   )
 
 (defun lctags-dispatch-build-keymap (menu-info)
@@ -55,15 +55,15 @@
 	))
     (mapcar
      (lambda (menu)
-       (define-key map (kbd (lctags-dispatch-menu-get-bind menu))
+       (define-key map (eval `(kbd ,(lctags-dispatch-menu-get-bind menu)))
 	 (if (lctags-dispatch-menu-get-submenu menu)
 	     (eval `(lambda ()
 		      (interactive)
 		      (lctags-dispatch-redraw ',(lctags-dispatch-menu-get-submenu menu))))
-	   (eval `(lambda ()
-		    (interactive)
+	   (eval `(lambda (param)
+		    (interactive "P")
 		    (lctags-dispatch-mode-exit
-		     ',(lctags-dispatch-menu-get-action menu)))))))
+		     ',(lctags-dispatch-menu-get-action menu) param))))))
        menu-info)
     map
     ))

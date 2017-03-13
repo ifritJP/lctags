@@ -199,24 +199,25 @@ This parameter can set function and string.
 		 (when depth (number-to-string depth))))
 
 (defun lctags-list-incSrc-this-file (&optional depth)
-  (interactive)
+  (interactive "P")
   (gtags-push-context)
   (lctags-pos-at "incSrc" nil
 		 (when depth "-d")
 		 (when depth (number-to-string depth))))
 
 
-(defun lctags-graph-caller-at ()
-  (interactive)
-  (lctags-graph-at "caller"))
+(defun lctags-graph-caller-at (&optional depth)
+  (interactive "P")
+  (lctags-graph-at "caller" depth))
 
-(defun lctags-graph-callee-at ()
-  (interactive)
-  (lctags-graph-at "callee"))
+(defun lctags-graph-callee-at (&optional depth)
+  (interactive "P")
+  (lctags-graph-at "callee" depth))
 
-(defun lctags-graph-symbol-at ()
-  (interactive)
-  (lctags-graph-at "symbol"))
+(defun lctags-graph-symbol-at (&optional depth)
+  (interactive "P")
+  (lctags-graph-at "symbol" depth))
+
 
 (defun lctags-get-line ()
   (interactive)
@@ -226,7 +227,7 @@ This parameter can set function and string.
   (interactive)
   (+ (- (point) (point-at-bol)) 1))
 
-(defun lctags-graph-at ( graph )
+(defun lctags-graph-at ( graph depth )
   (let ((org-buf (current-buffer))
 	(nsId (lctags-namespaceId-at))
 	(line (lctags-get-line))
@@ -236,7 +237,10 @@ This parameter can set function and string.
     (with-temp-buffer
       (lctags-execute org-buf (current-buffer) nil
 		      "graph-at" graph (buffer-file-name org-buf)
-		      (number-to-string line) (number-to-string column) "-b"))))
+		      (number-to-string line) (number-to-string column) "-b"
+		      (when depth "-d")
+		      (when depth (number-to-string depth))
+		      ))))
 
 (defun lctags-get-process-buffer (init)
   (let ((buffer (get-buffer-create lctags-process-buf-name)))

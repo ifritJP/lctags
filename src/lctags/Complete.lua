@@ -238,62 +238,55 @@ end
 function Complete:concatToken(
       fileHandle, depthList, tokenInfoList, targetIndex,
       startIndex, endIndex, newLineNo, newColmun )
-   local prevLine = nil
+
+   log( 2, "concatToken", targetIndex, startIndex, endIndex )
+   
    local targetLine
    local targetColmun
-   local prevKind = nil
    for index = startIndex, endIndex do
       local tokenInfo = tokenInfoList[ index ]
       local aColumn = tokenInfo.column
-      local tokenEnd = 0
       local tokenKind = tokenInfo.kind
       local aLine = tokenInfo.line
       local token = tokenInfo.token
-      if aLine ~= prevLine then
-	 prevLine = aLine
-	 fileHandle:write( '\n' .. string.rep( ' ', aColumn - 1 ) )
-	 newLineNo = newLineNo + 1
-	 newColmun = aColumn - 1
-      end
-      if tokenKind == clang.core.CXToken_Keyword or
-	 tokenKind == clang.core.CXToken_Literal
-      then
-	 fileHandle:write( ' ' )
-	 fileHandle:write( token )
-	 fileHandle:write( ' ' )
-	 newColmun = newColmun + 2
-	 tokenEnd = -1
-      elseif prevKind == clang.core.CXToken_Identifier and
-	 tokenKind == clang.core.CXToken_Identifier
-      then
-	 fileHandle:write( ' ' )
-	 fileHandle:write( token )
-	 newColmun = newColmun + 1
-      elseif tokenKind == clang.core.CXToken_Comment then
+
+      if tokenKind == clang.core.CXToken_Comment then
 	 -- skip
       else
+	 if aLine ~= newLineNo then
+	    
+	    fileHandle:write( string.rep( '\n', aLine - newLineNo ) ..
+				 string.rep( ' ', aColumn - 1 ) )
+	    prevLine = aLine
+	    newLineNo = aLine
+	    newColmun = aColumn
+	 else
+	    fileHandle:write( string.rep( ' ', aColumn - newColmun ) )
+	 end
 	 fileHandle:write( token )
-      end
-      newColmun = newColmun + #token
-      prevKind = tokenKind
+	 newColmun = aColumn + #token
 
-      if index == targetIndex then
-	 targetLine = newLineNo
-	 targetColmun = newColmun + tokenEnd
-      end
+	 if index == targetIndex then
+	    targetLine = newLineNo
+	    targetColmun = newColmun - 1
+	    log( 2, "decide target pos", token, targetLine, targetColmun )
+	 end
 
-      if token == "(" or token == "{" then
-	 table.insert( depthList, 1, token )
-      elseif token == ")" or token == "}" then
-	 table.remove( depthList, 1 )
+	 if token == "(" or token == "{" then
+	    table.insert( depthList, 1, token )
+	 elseif token == ")" or token == "}" then
+	    table.remove( depthList, 1 )
+	 end
       end
-      
    end
-   return newLineNo, newColmun, targetLine, targetColmun
+
+   log( 2, newLineNo, newColmun, targetLine, targetColmun, prevLine )
+   
+   return newLineNo, newColmun, targetLine, targetColmun, prevLine
 end
 
 -- tokenInfoList に格納されているトークンから解析用ソースコードを生成する
-function Complete:createSourceForAnalyzing( tokenInfoList )
+function Complete:createSourceForAnalyzing( fileContents, tokenInfoList )
    
    -- clang の解析対象にする token を決定する
    local checkIndex = #tokenInfoList
@@ -330,7 +323,8 @@ function Complete:createSourceForAnalyzing( tokenInfoList )
       self:checkStatement( tokenInfoList, nil, checkIndex )
 
    log( 2, "decide statementStartIndex",
-	statementStartIndex, incompletionIndex, targetIndex )
+	statementStartIndex, incompletionIndex, targetIndex, checkIndex )
+
 
    local fileHandle = {
       __txt = "",
@@ -339,19 +333,46 @@ function Complete:createSourceForAnalyzing( tokenInfoList )
       end
    }
 
-   local newLineNo = 1
+   -- tokenInfoList にはマクロ定義の \ の情報が入らないので、
+   -- tokenInfoList からは マクロ定義を正常に再現できない。
+   -- そこで、解析に直接関係のない statementStartIndex より前の箇所は
+   -- 元のソースをそのまま展開する
+
+   -- 元ソースを展開する行数を取得
+   local rawEndLine = tokenInfoList[ statementStartIndex ].line - 1
+   local rawEndTokenIndex = statementStartIndex - 1
+   for index = statementStartIndex - 1, 1, -1 do
+      if tokenInfoList[ index ].line <= rawEndLine then
+	 rawEndTokenIndex = index
+	 break
+      end
+   end
+
+   if rawEndTokenIndex > 0 then
+      -- 元ソースを展開する
+      local lineNo = 1
+      local crIndex = 0
+      for lineNo = 1, rawEndLine do
+	 crIndex = string.find( fileContents, "\n", crIndex + 1, true )
+      end
+      fileHandle:write( fileContents:sub( 1, crIndex ) )
+   end
+   log( 2, "rawEnd", rawEndLine, rawEndTokenIndex )
+   
+
+   -- 解析に不要な情報を削除して、 token を展開する
+   local newLineNo = rawEndTokenIndex + 1
    local newColmun = 0
-   local prevLine = -1
 
    local depthList = {}
 
    local targetLine
    local targetColmun
-
+   
    local frontSyntax = ""
    newLineNo, newColmun, targetLine, targetColmun = self:concatToken(
       fileHandle, depthList, tokenInfoList, targetIndex,
-      1, statementStartIndex, newLineNo, newColmun )
+      rawEndTokenIndex + 1, statementStartIndex, newLineNo, newColmun )
 
    if incompletionIndex then
       newLineNo, newColmun, targetLine, targetColmun = self:concatToken(
@@ -373,6 +394,10 @@ function Complete:createSourceForAnalyzing( tokenInfoList )
    end
 
    fileHandle:write( ';' )
+   if not targetLine then
+      targetLine = newLineNo
+      targetColmun = newColmun + 1
+   end
 
    for index, depth in ipairs( depthList ) do
       if depth == '(' then
@@ -384,7 +409,7 @@ function Complete:createSourceForAnalyzing( tokenInfoList )
 
    
    log( 3, fileHandle.__txt )
-   log( 3, targetLine, targetColmun )
+   log( 3, "tgt:", targetLine, targetColmun )
 
    return fileHandle.__txt, targetLine, targetColmun, prefix, compMode, frontSyntax
 end
@@ -400,8 +425,9 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
    if string.find( frontSyntax, "^::" ) then
       local workNsInfo = db:getNamespace( nil, frontSyntax )
       pattern = string.format(
-	 "(name GLOB '%s%s*' AND parentId = %d) OR name GLOB '%s::@enum::*::%s*'",
-	 frontSyntax, prefix, workNsInfo.id,
+	 "(name GLOB '%s%s*' AND parentId = %d) OR " ..
+	    "name GLOB '%s%s*::[0-9]*' OR name GLOB '%s::@enum::*::%s*'",
+	 frontSyntax, prefix, workNsInfo.id, frontSyntax, prefix,	 
 	 (frontSyntax == "::") and "" or frontSyntax, prefix )
    else
       -- 指定位置の名前空間からアクセス可能なシンボルの検索式を生成する
@@ -409,15 +435,16 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
       if frontSyntax == "" then
 	 pattern = string.format( 
 	    "name GLOB '::%s*' AND parentId = %d OR " ..
-	       "name GLOB '::@enum::*::%s*'",
-	    prefix, db.rootNsId, prefix )
+	       "name GLOB '::%s*::[0-9]*' OR name GLOB '::@enum::*::%s*'",
+	    prefix, db.rootNsId, prefix, prefix )
       else
 	 workNsInfo = db:getNamespace( nil, "::" .. frontSyntax )
 	 if workNsInfo then
 	    pattern = string.format( 
 	       "name GLOB '*%s::%s*' AND parentId = %d OR " ..
-		  "name GLOB '::%s::@enum::*::%s*'",
-	       frontSyntax, prefix, workNsInfo.id, frontSyntax, prefix )
+		  "name GLOB '*%s::%s*::[0-9]*' OR name GLOB '::%s::@enum::*::%s*'",
+	       frontSyntax, prefix, workNsInfo.id,
+	       frontSyntax, prefix, frontSyntax, prefix )
 	 end
       end
       local nsTokenList = clang.getNamespaceList( cursor )
@@ -432,8 +459,9 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
 	    end
 	    pattern = pattern .. string.format(
 	       "name GLOB '*::%s*' AND parentId = %d OR " ..
-		  "name GLOB '%s::@enum::*::%s*'",
-	       prefix, workNsInfo.id, fullnameBase, prefix )
+		  "name GLOB '%s::*%s*::[0-9]*' OR name GLOB '%s::@enum::*::%s*'",
+	       prefix, workNsInfo.id,
+	       fullnameBase, prefix, fullnameBase, prefix )
 	 else
 	    workNsInfo = db:getNamespace(
 	       nil, fullnameBase .. "::" .. frontSyntax )
@@ -443,8 +471,10 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
 	       end
 	       pattern = pattern .. string.format(
 		  "name GLOB '*::%s*' AND parentId = %d OR " ..
+		     "name GLOB '%s::%s::*%s*::[0-9f]*' OR " ..
 		     "name GLOB '%s::%s::@enum::*::%s*'",
 		  prefix, workNsInfo.id,
+		  fullnameBase, frontSyntax, prefix,
 		  fullnameBase, frontSyntax, prefix )
 	    end
 	 end
@@ -454,70 +484,90 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
    log( 2, "pattern", pattern )
    -- パターンから名前空間を探す
    local nsList = {}
+   local id2InfoSet = {}
    db:mapNamespace(
       pattern,
       function( item )
 	 table.insert( nsList, item )
+	 id2InfoSet[ item.id ] = item
 	 log( 3, "candidate", item.name )
 	 return true
       end
    )
 
-   -- static は末尾に数値が付くので、その名前空間を探す
-   local newList = {}
+   -- 
+   local globalNsList = {}
+   local localNsList = {}
    for index, nsInfo in ipairs( nsList ) do
-      table.insert( newList, nsInfo )
-      db:mapNamespace(
-	 "parentId = " .. tostring( nsInfo.id ),
-	 function( item )
-	    if string.find( item.name, "^" .. nsInfo.name .. "::[%d]+$" ) then
-	       table.insert( newList, item )
-	       log( 3, "candidate static", item.name )
-	    end
-	    return true
+      if string.find( nsInfo.name, "::%d+$" ) then
+	 if id2InfoSet[ nsInfo.parentId ] then
+	    table.insert( localNsList, nsInfo )
 	 end
-      )
+      else
+	 table.insert( globalNsList, nsInfo )
+      end
    end
-   nsList = newList
+   
 
+   log( 2, "search include" )
    -- 対象ファイルがインクルードしているファイルを取得する
    local fileInfo = db:getFileInfo( nil, path )
-   local fileId2IncFileInfoListMap = {}
-   local fileId2FileInfoMap = {}
-   db:getIncludeFileSet(
-      fileId2FileInfoMap, fileInfo, fileId2IncFileInfoListMap )
-   fileId2FileInfoMap[ fileInfo.id ] = fileInfo
-
+   local incFileIdSet = db:getIncludeCache( fileInfo )
+   incFileIdSet[ fileInfo.id ] = 1
+   
    print( string.format(
 	     [=[
 <complete>
 <prefix>%s</prefix>
 ]=], prefix ) )
 
+   log( 2, "search access ns", pattern )
    -- 名前空間候補から、このファイルからアクセスできる名前を探す
-   for index, nsInfo in ipairs( nsList ) do
+   for index, nsInfo in ipairs( globalNsList ) do
       db:mapDecl(
 	 nsInfo.id,
 	 function( item )
 	    log( 3, "decl", nsInfo.id, item.fileId, nsInfo.name )
-	    if fileId2FileInfoMap[ item.fileId ] then
-	       if string.find( nsInfo.name, "::@%w+^" ) then
-		  -- skip
-	       else
-		  local fileInfo = db:getFileInfo( item.fileId )
-		  local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
-		  simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
-		  print( createCandidate(
-			    nsInfo.name, simpleName,
-			    item.type, "", db:getSystemPath( fileInfo.path ),
-			    item.line, item.column, item.endLine, item.endColmun ) )
-	       end
+	    if incFileIdSet[ item.fileId ] then
+	       local fileInfo = db:getFileInfo( item.fileId )
+	       local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
+	       simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
+	       print( createCandidate(
+			 nsInfo.name, simpleName,
+			 item.type, "", db:getSystemPath( fileInfo.path ),
+			 item.line, item.column, item.endLine, item.endColmun ) )
 	       return false
 	    end
 	    return true
 	 end
       )
    end
+
+   log( 2, "search static", #localNsList )
+   -- static は末尾に file ID が付くので、その file がアクセス可能か探す
+   for index, nsInfo in ipairs( localNsList ) do
+      local fileTxt = string.gsub( nsInfo.name, ".*::(%d+)$", "%1" )
+      local fileId = tonumber( fileTxt )
+      log( 2, nsInfo.name, fileId )
+      if incFileIdSet[ fileId ] then
+	 db:mapDecl(
+	    nsInfo.id,
+	    function( item )
+	       log( 3, "decl", nsInfo.id, item.fileId, nsInfo.name )
+	       local fileInfo = db:getFileInfo( item.fileId )
+	       local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
+	       simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
+	       print( createCandidate(
+			 nsInfo.name, simpleName,
+			 item.type, "", db:getSystemPath( fileInfo.path ),
+			 item.line, item.column, item.endLine, item.endColmun ) )
+	       return false
+	    end
+	 )
+      end
+   end
+
+   
    print( '</complete>' )
 end
 
@@ -656,26 +706,33 @@ function Complete:at( analyzer, path, line, column, target, fileContents )
    end
    unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 
+   if not fileContents then
+      fileContents = io.open( path ):read( '*a' )
+   end
 
    local fileTxt, targetLine, targetColmun, prefix, compMode, frontSyntax =
-      self:createSourceForAnalyzing( tokenInfoList )
+      self:createSourceForAnalyzing( fileContents, tokenInfoList )
 
-
+   if targetLine then
    --newAnalyzer:update( path, target )
+      newAnalyzer:queryAtFunc(
+	 path, targetLine, targetColmun, target, fileTxt,
+	 function( db, targetFileId, nsInfo, declCursor, cursor )
+	    local kind = cursor:getCursorKind()
 
-   newAnalyzer:queryAtFunc(
-      path, targetLine, targetColmun, target, fileTxt,
-      function( db, targetFileId, nsInfo, declCursor, cursor )
-	 local kind = cursor:getCursorKind()
-	 
-	 if compMode == "symbol" or kind == clang.core.CXCursor_CompoundStmt then
-	    self:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
-	 else
-	    self:completeMember(
-	       db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+	    if compMode == "symbol" or kind == clang.core.CXCursor_CompoundStmt then
+	       self:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
+	    else
+	       self:completeMember(
+		  db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+	    end
 	 end
-      end
-   )
+      )
+   else
+      -- targetLine がない時は、解析する対象がない単なるシンボル補完
+      local db = newAnalyzer:openDBForReadOnly()
+      self:completeSymbol( db, path, nil, "symbol", prefix, frontSyntax )
+   end
 end
 
 

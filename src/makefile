@@ -145,6 +145,7 @@ endif
 	env LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(PWD)@PWD@g" | \
+		sed "s@$(LUA_COMMAND)@lua@g" | \
 		tee test-result
 	diff test-result.expect test-result && echo OK
 
@@ -164,6 +165,8 @@ test-dbbuild:
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp7.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp8.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp9.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp10.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp11.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-log 3 >> dump
 	sleep 1
 	echo 'int ccccc;' >> test/field.h
 	$(LUA_COMMAND) $(LCTAGS_LUA) update .
@@ -210,6 +213,8 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp7.cpp 48 17
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp8.cpp 48 13
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp9.cpp 48 8
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp10.cpp 48 6
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp11.cpp 10 2
 
 test-at-lua:
 ifeq ($(shell which lctags),)
@@ -226,8 +231,9 @@ endif
 	-mv $(TEST_LUA_DIR)/digest.* $(TEST_LUA_DIR)/digest
 	-mv $(TEST_LUA_DIR)/*.sql $(TEST_LUA_DIR)/sql
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
-	touch $(TEST_LUA_DIR)/lauxlib.h
 	$(LUA_COMMAND) $(LCTAGS_LUA) shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
+	sleep 1
+	touch $(TEST_LUA_DIR)/lauxlib.h
 	$(LUA_COMMAND) $(LCTAGS_LUA) update $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3

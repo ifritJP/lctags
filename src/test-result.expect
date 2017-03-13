@@ -1,8 +1,8 @@
 make[1]: Entering directory 'PWD'
-lua5.3 lctags/lctags.lua shrink
+lua lctags/lctags.lua shrink
 1	step6
 1	step7
-lua5.3 lctags/lctags.lua dump compOp
+lua lctags/lctags.lua dump compOp
 1	-- table compileOp -- 
 1	fileId	target	path	compOp
 1	2		|/test/hoge.cpp	-Iclang -Itest -Iclang 
@@ -19,9 +19,11 @@ lua5.3 lctags/lctags.lua dump compOp
 1	33		|/test/comp7.cpp	-Iclang -Itest -Iclang 
 1	34		|/test/comp8.cpp	-Iclang -Itest -Iclang 
 1	35		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-lua5.3 lctags/lctags.lua dump dumpFile >> dump
-lua5.3 lctags/lctags.lua rm-tgt hoge2
-lua5.3 lctags/lctags.lua dump compOp
+1	36		|/test/comp10.cpp	-Iclang -Itest -Iclang 
+1	37		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+lua lctags/lctags.lua dump dumpFile >> dump
+lua lctags/lctags.lua rm-tgt hoge2
+lua lctags/lctags.lua dump compOp
 1	-- table compileOp -- 
 1	fileId	target	path	compOp
 1	2		|/test/hoge.cpp	-Iclang -Itest -Iclang 
@@ -37,8 +39,10 @@ lua5.3 lctags/lctags.lua dump compOp
 1	33		|/test/comp7.cpp	-Iclang -Itest -Iclang 
 1	34		|/test/comp8.cpp	-Iclang -Itest -Iclang 
 1	35		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-lua5.3 lctags/lctags.lua dump >> dump
-lua5.3 lctags/lctags.lua -x sub
+1	36		|/test/comp10.cpp	-Iclang -Itest -Iclang 
+1	37		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+lua lctags/lctags.lua dump >> dump
+lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
 sub                 8 ./test/comp.cpp    static int sub() {
 sub                 8 ./test/comp-2.cpp   static int sub() {
@@ -50,47 +54,48 @@ sub                46 ./test/comp6.cpp     int sub()
 sub                46 ./test/comp7.cpp     int sub()
 sub                46 ./test/comp8.cpp     int sub()
 sub                46 ./test/comp9.cpp     int sub()
-lua5.3 lctags/lctags.lua -x ccccc
+sub                46 ./test/comp10.cpp     int sub()
+lua lctags/lctags.lua -x ccccc
 ccccc               3 ./test/field.h   
 ccccc               3 ./test/field.h   
-lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 44 8
+lua lctags/lctags.lua ref-at test/hoge.cpp 44 8
 ::@struct::yyyy::kkkk  266 ./test/hoge.cpp      aYYYYY.kkkk = 0;
-lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 236 23
+lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
 ::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
-lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 237 23
+lua lctags/lctags.lua ref-at test/hoge.cpp 237 23
 ::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
 ::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
-lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 253 18
+lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
-lua5.3 lctags/lctags.lua def-at test/hoge.cpp 204 18
+lua lctags/lctags.lua def-at test/hoge.cpp 204 18
 ::ns1::g_global   153 ./test/hoge.cpp      int g_global = 0;
-lua5.3 lctags/lctags.lua ref-at test/hoge.cpp 168 15
+lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
-lua5.3 lctags/lctags.lua call-at test/hoge.cpp 267 15
+lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 ::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
-lua5.3 lctags/lctags.lua def-at test/hoge.cpp 230 18
+lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::2  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
-lua5.3 lctags/lctags.lua def-at test/hoge.cpp 231 20
+lua lctags/lctags.lua def-at test/hoge.cpp 231 20
 ::Callback_t      218 ./test/hoge.cpp          int func3( Callback_t * pCallback ) {
 rm -f graph.sample/*
-lua5.3 lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
-lua5.3 lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
-lua5.3 lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
-lua5.3 lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
-lua5.3 lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
-lua5.3 lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
-lua5.3 lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
-lua5.3 lctags/lctags.lua graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
-lua5.3 lctags/lctags.lua list inc test/hoge.cpp -d 2
+lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
+lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
+lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
+lua lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
+lua lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
+lua lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
+lua lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
+lua lctags/lctags.lua graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
+lua lctags/lctags.lua list inc test/hoge.cpp -d 2
 path                1 PWD/test/field.h 
 path                1 PWD/test/hoge.cpp 
 path                1 PWD/test/hoge.h 
 path                1 /usr/include/stdio.h 
 path                1 /usr/include/time.h 
-lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 212 19
+lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <complete>
 <prefix></prefix>
 
@@ -101,12 +106,12 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <type>Callback_t *</type>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
-<line>133</line>
+<line>165</line>
 <column>9</column>
 </startPos>
 <endPos>
-<line>133</line>
-<column>29</column>
+<line>165</line>
+<column>31</column>
 </endPos>
 </candidate>
 <candidate>
@@ -116,12 +121,12 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <type>int</type>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
-<line>135</line>
-<column>12</column>
+<line>167</line>
+<column>11</column>
 </startPos>
 <endPos>
-<line>135</line>
-<column>18</column>
+<line>167</line>
+<column>17</column>
 </endPos>
 </candidate>
 <candidate>
@@ -131,12 +136,12 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <type>int</type>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
-<line>136</line>
-<column>12</column>
+<line>168</line>
+<column>11</column>
 </startPos>
 <endPos>
-<line>136</line>
-<column>18</column>
+<line>168</line>
+<column>17</column>
 </endPos>
 </candidate>
 <candidate>
@@ -146,12 +151,12 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <type>int</type>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
-<line>139</line>
-<column>12</column>
+<line>171</line>
+<column>11</column>
 </startPos>
 <endPos>
-<line>139</line>
-<column>18</column>
+<line>171</line>
+<column>17</column>
 </endPos>
 </candidate>
 <candidate>
@@ -161,16 +166,16 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <type>int</type>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
-<line>140</line>
-<column>12</column>
+<line>172</line>
+<column>11</column>
 </startPos>
 <endPos>
-<line>140</line>
-<column>18</column>
+<line>172</line>
+<column>17</column>
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 236 15
+lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <complete>
 <prefix></prefix>
 
@@ -181,31 +186,31 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <type>Callback_t *</type>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
-<line>126</line>
+<line>157</line>
 <column>9</column>
 </startPos>
 <endPos>
-<line>126</line>
-<column>29</column>
+<line>157</line>
+<column>31</column>
 </endPos>
 </candidate>
 <candidate>
 <canonical>abcd</canonical>
 <simple>abcd</simple>
 <kind>m</kind>
-<type>struct (anonymous struct at PWD/test/hoge.cpp:127:10)</type>
+<type>struct (anonymous struct at PWD/test/hoge.cpp:158:9)</type>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
-<line>127</line>
-<column>10</column>
+<line>158</line>
+<column>9</column>
 </startPos>
 <endPos>
-<line>129</line>
-<column>14</column>
+<line>160</line>
+<column>15</column>
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 235 18
+lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <complete>
 <prefix></prefix>
 
@@ -255,21 +260,6 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns1::s_static::2</canonical>
-<simple>s_static</simple>
-<kind>v</kind>
-<type></type>
-<file>PWD/test/hoge.cpp</file>
-<startPos>
-<line>154</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>154</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
 <canonical>::ns1::struct_func_t</canonical>
 <simple>struct_func_t</simple>
 <kind>t</kind>
@@ -299,8 +289,23 @@ lua5.3 lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <column>0</column>
 </endPos>
 </candidate>
+<candidate>
+<canonical>::ns1::s_static::2</canonical>
+<simple>s_static</simple>
+<kind>v</kind>
+<type></type>
+<file>PWD/test/hoge.cpp</file>
+<startPos>
+<line>154</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>154</line>
+<column>0</column>
+</endPos>
+</candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp.cpp 26 17
+lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <complete>
 <prefix>me</prefix>
 
@@ -312,15 +317,15 @@ lua5.3 lctags/lctags.lua comp-at test/comp.cpp 26 17
 <file>PWD/test/comp.cpp</file>
 <startPos>
 <line>5</line>
-<column>4</column>
+<column>3</column>
 </startPos>
 <endPos>
 <line>5</line>
-<column>14</column>
+<column>13</column>
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp-2.cpp 25 16
+lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <complete>
 <prefix></prefix>
 
@@ -331,16 +336,16 @@ lua5.3 lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <type>Test1 *</type>
 <file>PWD/test/comp-2.cpp</file>
 <startPos>
-<line>18</line>
+<line>17</line>
 <column>3</column>
 </startPos>
 <endPos>
-<line>18</line>
-<column>14</column>
+<line>17</line>
+<column>16</column>
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp2.cpp 31 10
+lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <complete>
 <prefix>f</prefix>
 
@@ -352,7 +357,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <file>PWD/test/comp2.cpp</file>
 <startPos>
 <line>11</line>
-<column>4</column>
+<column>3</column>
 </startPos>
 <endPos>
 <line>13</line>
@@ -360,7 +365,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp2.cpp 31 10
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp3.cpp 31 25
+lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <complete>
 <prefix>s</prefix>
 
@@ -372,7 +377,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <file>PWD/test/comp3.cpp</file>
 <startPos>
 <line>7</line>
-<column>4</column>
+<column>3</column>
 </startPos>
 <endPos>
 <line>10</line>
@@ -380,7 +385,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp3.cpp 31 25
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp4.cpp 31 17
+lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <complete>
 <prefix></prefix>
 
@@ -392,11 +397,11 @@ lua5.3 lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <file>PWD/test/comp4.cpp</file>
 <startPos>
 <line>5</line>
-<column>4</column>
+<column>3</column>
 </startPos>
 <endPos>
 <line>5</line>
-<column>14</column>
+<column>13</column>
 </endPos>
 </candidate>
 <candidate>
@@ -407,7 +412,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <file>PWD/test/comp4.cpp</file>
 <startPos>
 <line>7</line>
-<column>4</column>
+<column>3</column>
 </startPos>
 <endPos>
 <line>10</line>
@@ -422,7 +427,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <file>PWD/test/comp4.cpp</file>
 <startPos>
 <line>11</line>
-<column>4</column>
+<column>3</column>
 </startPos>
 <endPos>
 <line>13</line>
@@ -430,7 +435,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp4.cpp 31 17
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp5.cpp 31 18
+lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <complete>
 <prefix>f</prefix>
 
@@ -442,7 +447,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <file>PWD/test/comp5.cpp</file>
 <startPos>
 <line>11</line>
-<column>4</column>
+<column>3</column>
 </startPos>
 <endPos>
 <line>13</line>
@@ -450,7 +455,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp5.cpp 31 18
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp6.cpp 48 5
+lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <complete>
 <prefix>TE</prefix>
 
@@ -725,7 +730,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp6.cpp 48 5
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp7.cpp 48 17
+lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <complete>
 <prefix></prefix>
 
@@ -865,7 +870,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp7.cpp 48 17
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp8.cpp 48 13
+lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <complete>
 <prefix>TE</prefix>
 
@@ -960,7 +965,7 @@ lua5.3 lctags/lctags.lua comp-at test/comp8.cpp 48 13
 </endPos>
 </candidate>
 </complete>
-lua5.3 lctags/lctags.lua comp-at test/comp9.cpp 48 8
+lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <complete>
 <prefix>T</prefix>
 
@@ -1066,6 +1071,196 @@ lua5.3 lctags/lctags.lua comp-at test/comp9.cpp 48 8
 </startPos>
 <endPos>
 <line>6</line>
+<column>0</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
+<complete>
+<prefix>T</prefix>
+
+<candidate>
+<canonical>::TMP_MAX</canonical>
+<simple>TMP_MAX</simple>
+<kind>M</kind>
+<type></type>
+<file>/usr/include/x86_64-linux-gnu/bits/stdio_lim.h</file>
+<startPos>
+<line>24</line>
+<column>10</column>
+</startPos>
+<endPos>
+<line>24</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::TEST901</canonical>
+<simple>TEST901</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>9</line>
+<column>1</column>
+</startPos>
+<endPos>
+<line>9</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::TEST902</canonical>
+<simple>TEST902</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>10</line>
+<column>1</column>
+</startPos>
+<endPos>
+<line>10</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::TEST903</canonical>
+<simple>TEST903</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>11</line>
+<column>1</column>
+</startPos>
+<endPos>
+<line>11</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns91::TEST91</canonical>
+<simple>TEST91</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>20</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>20</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns91::TEST92</canonical>
+<simple>TEST92</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>21</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>21</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns91::TEST93</canonical>
+<simple>TEST93</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>22</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>22</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns91::ns92::TEST911</canonical>
+<simple>TEST911</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>31</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>31</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns91::ns92::TEST912</canonical>
+<simple>TEST912</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>32</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>32</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns91::ns92::TEST913</canonical>
+<simple>TEST913</simple>
+<kind>c</kind>
+<type></type>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>33</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>33</line>
+<column>0</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
+<complete>
+<prefix>f</prefix>
+
+<candidate>
+<canonical>::func123</canonical>
+<simple>func123</simple>
+<kind>f</kind>
+<type></type>
+<file>PWD/test/comp11.cpp</file>
+<startPos>
+<line>6</line>
+<column>1</column>
+</startPos>
+<endPos>
+<line>6</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::func::37</canonical>
+<simple>func</simple>
+<kind>f</kind>
+<type></type>
+<file>PWD/test/comp11.cpp</file>
+<startPos>
+<line>8</line>
+<column>1</column>
+</startPos>
+<endPos>
+<line>11</line>
 <column>0</column>
 </endPos>
 </candidate>

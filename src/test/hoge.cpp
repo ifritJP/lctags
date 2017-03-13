@@ -173,7 +173,7 @@ namespace ns1 {
         };
       } struct_func_t;
       
-      
+      static int s_static2 = 0;
 
         /**
          * func0 comment

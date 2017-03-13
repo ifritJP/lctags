@@ -47,6 +47,12 @@
     (when prefix-info
       (nth 2 prefix-info))))
 
+(defface lctags-candidate-face
+  '((t
+     :foreground "orange"))
+  "candidate face")
+(defvar lctags-candidate-face 'lctags-candidate-face)
+
 
 (defun lctags-helm-complete-at ()
   (interactive)
@@ -67,14 +73,17 @@
       (setq candidates
 	    (delq nil (lctags-candidate-map-candidate
 		       (lambda (X)
-			 (cons (format "(%s) %s %s"
-				       (lctags-candidate-item-get-kind X)
-				       (lctags-candidate-item-get-canonical X)
-				       (if (lctags-candidate-item-get-type X)
-					   (format "<%s>"
-						   (lctags-candidate-item-get-type X))
-					 ""
-					 ))
+			 (cons (format
+				"(%s) %s %s"
+				(lctags-candidate-item-get-kind X)
+				(propertize
+				 (lctags-candidate-item-get-canonical X)
+				 'face 'lctags-candidate-face)
+				(if (lctags-candidate-item-get-type X)
+				    (format "<%s>"
+					    (lctags-candidate-item-get-type X))
+				  ""
+				  ))
 			       X))
 		       lctags-candidate-info))))
     (setq lctags-params (list (cons 'name (format "comp-at:%s:%d:%d"

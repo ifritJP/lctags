@@ -52,17 +52,14 @@ local function searchNeedUpdateFiles( db, list, target )
       end
    end
 
-   local fileId2IncFileIdListMap = {}
-   
    -- 更新時間が新しいファイルがインクルードしているファイルの更新情報をチェックする
    for index, fileInfo in ipairs( uptodateFileList ) do
       log( 1, string.format( "check depending include files (%d/%d) %s",
 			     index, #uptodateFileList, fileInfo.path ) )
       local prev = os.clock()
-      local fileId2FlieInfoMap = {}
-      db:getIncludeFileSet(
-	 fileId2FlieInfoMap, fileInfo, fileId2IncFileIdListMap )
-      for fileId, incFileInfo in pairs( fileId2FlieInfoMap ) do
+      local incFileIdSet = db:getIncludeCache( fileInfo )
+      for fileId in pairs( incFileIdSet ) do
+	 local incFileInfo = db:getFileInfo( fileId )
 	 if incFileInfo.id ~= DBCtrl.systemFileId then
 	    modTime = fileId2ModTime[ fileId ]
 	    if not modTime then
@@ -76,7 +73,7 @@ local function searchNeedUpdateFiles( db, list, target )
 	       
 	       local removeList = {}
 	       for needUpdateIncFileId in pairs( needUpdateIncFileInfoSet ) do
-		  if fileId2FlieInfoMap[ needUpdateIncFileId ] then
+		  if incFileIdSet[ needUpdateIncFileId ] then
 		     table.insert( removeList, needUpdateIncFileId )
 		  end
 	       end
@@ -96,13 +93,10 @@ local function searchNeedUpdateFiles( db, list, target )
    for fileId, fileInfo in pairs( needUpdateFileMap ) do
       log( 1, string.format( "check include files %d %s",
 			     #uptodateFileList, fileInfo.path ) )
-      local fileId2FlieInfoMap = {}
-      db:getIncludeFileSet(
-	 fileId2FlieInfoMap, fileInfo, fileId2IncFileIdListMap )
+      local incFileIdSet = db:getIncludeCache( fileInfo )
       local removeList = {}
       for needUpdateIncFileId in pairs( needUpdateIncFileInfoSet ) do
-	 if fileId ~= needUpdateIncFileId and
-	    fileId2FlieInfoMap[ needUpdateIncFileId ]
+	 if fileId ~= needUpdateIncFileId and incFileIdSet[ needUpdateIncFileId ]
 	 then
 	    table.insert( removeList, needUpdateIncFileId )
 	 end

@@ -195,8 +195,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       analyzer:registCursor( cursor )
    elseif cursorKind == clang.core.CXCursor_MacroExpansion then
       local declCursor = cursor:getCursorReferenced()
-      table.insert( analyzer.macroRefList,
-		    { cursor = cursor, declCursor = declCursor, namespace = nil } )
+      analyzer:addRef( analyzer.macroRefList, cursor, declCursor, nil )
       -- マクロ参照はヘッダの多重 include 抑止に利用していることが多い。
       -- これを digest 計算に加えると、include 抑止の ifdef が差分で引っかかるので
       -- digest には加えずに、ハッシュだけ登録する
@@ -206,10 +205,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       if cursorKind ~= clang.core.CXCursor_NamespaceRef then
 	 local declCursor = cursor:getCursorReferenced()
 	 local namespace = analyzer:getNowNs()
-	 table.insert(
-	    analyzer.refList,
-	    { cursor = cursor, declCursor = declCursor,
-	      namespace = namespace } )
+	 analyzer:addRef( analyzer.refList, cursor, declCursor, namespace )
 	 calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
 	 analyzer:registCursor( cursor )
 	 calcDigest( declCursor, analyzer.currentSpInfo )
@@ -225,10 +221,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	    storageClass ~= clang.core.CX_SC_Register
 	 then
 	    local namespace = analyzer:getNowNs()
-	    table.insert(
-	       analyzer.refList,
-	       { cursor = cursor, declCursor = declCursor,
-		 namespace = namespace } )
+	    analyzer:addRef( analyzer.refList, cursor, declCursor, namespace )
 	    calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
 	    analyzer:registCursor( cursor )
 	    calcDigest( declCursor, analyzer.currentSpInfo )
@@ -396,6 +389,15 @@ function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics, currentD
    return obj
 end
 
+function Analyzer:addRef( list, cursor, declCursor, namespace )
+   table.insert(
+      list,
+      { cursor = cursor, cxfile = self.currentSpInfo.cxfile,
+	declCursor = declCursor, namespace = namespace } )
+end
+
+
+
 function Analyzer:getNowNs()
    return self.nsLevelList[ #self.nsLevelList ].cursor
 end
@@ -418,6 +420,7 @@ function Analyzer:addTypeRef( cursor, declCursor )
       table.insert(
 	 self.refList,
 	 { cursor = cursor, declCursor = declCursor,
+	   cxfile = self.currentSpInfo.cxfile,
 	   namespace = self:getNowNs() } )
       self:registCursor( cursor )
    end
@@ -552,13 +555,13 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
 	    end
 	 end
 
-	 local fileId2FlieInfoMap = {}
-	 db:getIncludeFileSet( fileId2FlieInfoMap, targetFileInfo )
+	 local incFileIdSet = db:getIncludeCache( targetFileInfo )
 	 
 	 -- 取得した全ファイルの情報から、ファイルが更新されているかどうかチェック
 	 local fileId2updateInfoMap = {}
 	 local uptodateFlag = true
-	 for fileId, fileInfo in pairs( fileId2FlieInfoMap ) do
+	 for fileId in pairs( incFileIdSet ) do
+	    local fileInfo = db:getFileInfo( fileId )
 	    local systemPath = db:getSystemPath( fileInfo.path )
 	    local modTime = Helper.getFileModTime( systemPath )
 	    if fileInfo.path ~= "" and
@@ -586,7 +589,8 @@ function Analyzer:isUptodate( filePath, compileOp, target, unsavedFile )
 	    --    - class のメンバー、メソッド
 
 	    local changeFlag = false
-	    for fileId, fileInfo in ipairs( fileId2FlieInfoMap ) do
+	    for fileId in ipairs( incFileIdSet ) do
+	       local fileInfo = db:getFileInfo( fileId )
 	       local updateInfo = fileId2updateInfoMap[ fileInfo.id ]
 	       local parentIdSet = {}
 	       db:mapRowList(
@@ -704,6 +708,8 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    for index, cursor in ipairs( self.nsList ) do
       db:addNamespace( cursor )
    end
+
+   local fileId2IncFileInfoListMap = {}
    
    log( 2, "-- inc --", os.clock(), os.date() )
    for index, inclusion in ipairs( self.incList ) do
@@ -711,7 +717,8 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       local path = cxfile and cxfile:getFileName() or ""
       path = db:convFullpath( path )
       local spInfo = self.path2InfoMap[ path ]
-      spInfo.fileInfo = db:addInclude( inclusion, spInfo.fixDigest )
+      spInfo.fileInfo = db:addInclude(
+	 inclusion, spInfo.fixDigest, fileId2IncFileInfoListMap )
    end
 
 
@@ -727,7 +734,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    if uptodateFlag then
       log( 1, "uptodate all" )
    else
-      self:registerToDB( db )
+      self:registerToDB( db, fileId2IncFileInfoListMap )
    end
    
    log( 2, "close", os.clock(), os.date()  )
@@ -767,7 +774,7 @@ function Analyzer:processStructEnum( db, info, anonymousForm, kind )
       cursor, string.format( anonymousForm, anonymousId ), typedefName, kind, nsObj )
 end
 
-function Analyzer:registerToDB( db )
+function Analyzer:registerToDB( db, fileId2IncFileInfoListMap )
 
    db:setFuncToGetFileInfoFromCursor(
       function( db, cursor )
@@ -859,6 +866,11 @@ function Analyzer:registerToDB( db )
    for index, incBelong in ipairs( self.incBelongList ) do
       db:addIncBelong( incBelong )
    end
+
+   log( 2, "-- incCache --", os.clock(),  os.date() )
+   db:addIncludeCache(
+      db:getFileInfo( nil, self.targetFile:getFileName() ),
+      fileId2IncFileInfoListMap )
 
    log( 2, "-- refList --", os.clock(), os.date()  )
    for index, refInfo in ipairs( self.refList ) do
@@ -1020,7 +1032,8 @@ function Analyzer:analyzeSourceAtWithFunc(
    end
 
 
-   log( 2, "analyzeSourceAtWithFunc:", self.currentDir, targetFullPath )
+   log( 2, "analyzeSourceAtWithFunc:", self.currentDir,
+	targetFullPath, line, column )
    
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
