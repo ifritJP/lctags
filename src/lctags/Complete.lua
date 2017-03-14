@@ -27,7 +27,7 @@ end
 
 function createCandidate(
       canonical, simple, kind, typeName,
-      filePath, startLine, startColmun, endLine, endColmun )
+      filePath, startLine, startColmun, endLine, endColmun, value )
    if kind == clang.core.CXCursor_FunctionDecl or
       kind == clang.core.CXCursor_CXXMethod
    then
@@ -60,6 +60,7 @@ function createCandidate(
 <simple>%s</simple>
 <kind>%s</kind>
 <type>%s</type>
+<val>%s</val>
 <file>%s</file>
 <startPos>
 <line>%d</line>
@@ -71,7 +72,8 @@ function createCandidate(
 </endPos>
 </candidate>]],
       convertXmlTxt( canonical ), convertXmlTxt( simple ), kind,
-      convertXmlTxt( typeName ), filePath or "",
+      convertXmlTxt( typeName ),
+      value and string.format( "%d", value ) or "", filePath or "",
       startLine or 0, startColmun or 0, endLine or 0, endColmun or 0 )
 end
 
@@ -286,35 +288,50 @@ function Complete:concatToken(
 end
 
 -- tokenInfoList に格納されているトークンから解析用ソースコードを生成する
-function Complete:createSourceForAnalyzing( fileContents, tokenInfoList )
+function Complete:createSourceForAnalyzing( fileContents, tokenInfoList, mode )
    
    -- clang の解析対象にする token を決定する
    local checkIndex = #tokenInfoList
    local targetIndex = #tokenInfoList
    local prefix = nil
    local compMode = "member"
-   if tokenInfoList[ checkIndex ].token == '.' or
-      tokenInfoList[ checkIndex ].token == '->' or
-      tokenInfoList[ checkIndex ].token == '::'
-   then
-      compMode = "member"
-      prefix = ""
-      targetIndex = checkIndex - 1
-      checkIndex = checkIndex - 1
-   elseif string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
-      -- シンボル
-      compMode = "symbol"
-      prefix = tokenInfoList[ checkIndex ].token
-      targetIndex = checkIndex - 1
 
-      checkIndex = checkIndex - 1
+   if mode == "comp" then
       if tokenInfoList[ checkIndex ].token == '.' or
 	 tokenInfoList[ checkIndex ].token == '->' or
 	 tokenInfoList[ checkIndex ].token == '::'
       then
 	 compMode = "member"
+	 prefix = ""
 	 targetIndex = checkIndex - 1
 	 checkIndex = checkIndex - 1
+      elseif string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
+	 -- シンボル
+	 compMode = "symbol"
+	 prefix = tokenInfoList[ checkIndex ].token
+	 targetIndex = checkIndex - 1
+
+	 checkIndex = checkIndex - 1
+	 if tokenInfoList[ checkIndex ].token == '.' or
+	    tokenInfoList[ checkIndex ].token == '->' or
+	    tokenInfoList[ checkIndex ].token == '::'
+	 then
+	    compMode = "member"
+	    targetIndex = checkIndex - 1
+	    checkIndex = checkIndex - 1
+	 end
+      end
+   else
+      if string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
+	 -- シンボル
+	 compMode = "symbol"
+	 prefix = ""
+	 if tokenInfoList[ checkIndex ].token == '.' or
+	    tokenInfoList[ checkIndex ].token == '->' or
+	    tokenInfoList[ checkIndex ].token == '::'
+	 then
+	    compMode = "member"
+	 end
       end
    end
    log( 2, targetIndex, prefix, checkIndex )
@@ -497,12 +514,17 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
 
    -- 
    local globalNsList = {}
+   local enumNsId2InfoMap = {}
+   local enumCount = 0
    local localNsList = {}
    for index, nsInfo in ipairs( nsList ) do
       if string.find( nsInfo.name, "::%d+$" ) then
 	 if id2InfoSet[ nsInfo.parentId ] then
 	    table.insert( localNsList, nsInfo )
 	 end
+      elseif string.find( nsInfo.name, "@enum::[%w_]+::[%w_]+$" ) then
+	 enumNsId2InfoMap[ nsInfo.id ] = nsInfo
+	 enumCount = enumCount + 1
       else
 	 table.insert( globalNsList, nsInfo )
       end
@@ -521,8 +543,51 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
 <prefix>%s</prefix>
 ]=], prefix ) )
 
-   log( 2, "search access ns", pattern )
-   -- 名前空間候補から、このファイルからアクセスできる名前を探す
+   if enumCount > 100 then
+      -- enum 値の場合、DB の問い合わせを削減するため親の enum 型の定義情報を使う
+      local readyCount = 0
+      local enumNsId2DeclInfoMap = {}
+      local readyEnumNsInfoSet = {}
+      for nsId, nsInfo in pairs( enumNsId2InfoMap ) do
+	 if not readyEnumNsInfoSet[ nsInfo.id ] then
+	    db:mapDeclForParent(
+	       nsInfo.parentId,
+	       function( item )
+		  if not readyEnumNsInfoSet[ item.nsId ] then
+		     local workNsInfo = enumNsId2InfoMap[ item.nsId ]
+		     readyCount = readyCount + 1
+		     readyEnumNsInfoSet[ item.nsId ] = 1
+		     if incFileIdSet[ item.fileId ] and workNsInfo then
+			local fileInfo = db:getFileInfo( item.fileId )
+			local simpleName = string.gsub( workNsInfo.name, "::%d+$", "" )
+			simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
+			print( createCandidate(
+				  workNsInfo.name, simpleName,
+				  item.type, "",
+				  db:getSystemPath( fileInfo.path ),
+				  item.line, item.column, item.endLine,
+				  item.endColmun ) )
+		     end
+		  end
+		  return true
+	       end
+	    )
+	    if not readyEnumNsInfoSet[ nsInfo.id ] then
+	       log( 1, "not exist enum", nsInfo.name )
+	       table.insert( globalNsList, nsInfo )
+	    end
+	 end
+      end
+   else
+      for nsId, nsInfo in pairs( enumNsId2InfoMap ) do
+	 table.insert( globalNsList, nsInfo )
+      end
+   end
+
+
+   log( 2, "search access ns", pattern, #globalNsList )
+   -- 名前空間候補の中で、このファイルからアクセスできる名前を探す。
+   -- ここの処理が遅い。。。
    for index, nsInfo in ipairs( globalNsList ) do
       db:mapDecl(
 	 nsInfo.id,
@@ -598,6 +663,8 @@ function Complete:completeMember(
    while typeCursor:getCursorKind() == clang.core.CXCursor_TypedefDecl do
       local cxtype = typeCursor:getTypedefDeclUnderlyingType()
       typeCursor = cxtype:getTypeDeclaration()
+      log( 2, "cxtype", typeCursor, typeCursor:getCursorSpelling(),
+	   clang.getCursorKindSpelling( typeCursor:getCursorKind() ) )
    end
    
    if not prefix then
@@ -613,7 +680,7 @@ function Complete:completeMember(
    local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
       local name = aCursor:getCursorSpelling()
       local memberKind = aCursor:getCursorKind()
-      log( 2, aCursor:getCursorSpelling(),
+      log( 2, "visitFunc", aCursor:getCursorSpelling(),
 	   clang.getCursorKindSpelling( memberKind ) )
       if memberKind == clang.core.CXCursor_FieldDecl or
 	 memberKind == clang.core.CXCursor_CXXMethod or
@@ -652,12 +719,13 @@ function Complete:completeMember(
       end
    end
 
+
    local anonymousDeclList = {}
    clang.visitChildrenFast(
       typeCursor, visitFunc, anonymousDeclList, nil, 1 )
    repeat
       -- anonymous 構造体のメンバーは、
-      -- 親から直接アクセス可能のでリストアップする
+      -- 親から直接アクセス可能なのでリストアップする
       local newList = {}
       for index, anonymousDecl in ipairs( anonymousDeclList ) do
 	 clang.visitChildrenFast( anonymousDecl, visitFunc, newList, nil, 1 )
@@ -669,6 +737,15 @@ function Complete:completeMember(
 end   
 
 function Complete:at( analyzer, path, line, column, target, fileContents )
+   self:analyzeAt( "comp", analyzer, path, line, column, target, fileContents )
+end
+
+function Complete:inqAt( analyzer, path, line, column, target, fileContents )
+   self:analyzeAt( "inq", analyzer, path, line, column, target, fileContents )
+end
+
+
+function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileContents )
 
    if not target then
       target = ""
@@ -711,20 +788,24 @@ function Complete:at( analyzer, path, line, column, target, fileContents )
    end
 
    local fileTxt, targetLine, targetColmun, prefix, compMode, frontSyntax =
-      self:createSourceForAnalyzing( fileContents, tokenInfoList )
+      self:createSourceForAnalyzing( fileContents, tokenInfoList, mode )
 
    if targetLine then
-   --newAnalyzer:update( path, target )
+      --newAnalyzer:update( path, target )
       newAnalyzer:queryAtFunc(
 	 path, targetLine, targetColmun, target, fileTxt,
 	 function( db, targetFileId, nsInfo, declCursor, cursor )
 	    local kind = cursor:getCursorKind()
 
-	    if compMode == "symbol" or kind == clang.core.CXCursor_CompoundStmt then
-	       self:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
+	    if mode == "comp" then
+	       if compMode == "symbol" or kind == clang.core.CXCursor_CompoundStmt then
+		  self:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
+	       else
+		  self:completeMember(
+		     db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+	       end
 	    else
-	       self:completeMember(
-		  db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+	       self:inqCursor( db, path, declCursor )
 	    end
 	 end
       )
@@ -735,5 +816,47 @@ function Complete:at( analyzer, path, line, column, target, fileContents )
    end
 end
 
+function Complete:inqCursor( db, path, cursor )
+   local kind = cursor:getCursorKind()
+
+   
+   if kind == clang.core.CXCursor_EnumConstantDecl then
+      local parent = cursor:getCursorSemanticParent()
+
+      local fullnameBase = ""
+      db:SymbolDefInfoListForCursor(
+	 parent,
+	 function( item )
+	    parentNsInfo = db:getNamespace( item.nsId )
+	    fullnameBase = parentNsInfo.name
+	    return false
+	 end
+      )
+      
+      print( string.format(
+		[=[
+<complete>
+<prefix>%s</prefix>
+]=], "" ) )
+      clang.visitChildrenFast(
+      	 parent,
+      	 function( aCursor, parent, anonymousDeclList, appendInfo )
+	    startInfo, endInfo = db:getRangeFromCursor( aCursor )
+	    local fileInfo = startInfo and db:getFileInfo(
+	       nil, startInfo[ 1 ]:getFileName() )
+	    local name = aCursor:getCursorSpelling()
+	    local canonical = name
+	    local memberKind = aCursor:getCursorKind()
+
+      	    print( createCandidate(
+      		      canonical, name, memberKind, fullnameBase,
+      		      db:getSystemPath( fileInfo.path ),
+      		      startInfo and startInfo[ 2 ], startInfo and startInfo[ 3 ],
+      		      endInfo and endInfo[ 2 ], endInfo and endInfo[ 3 ],
+		      aCursor:getEnumConstantDeclUnsignedValue() ) )
+      	 end, nil, nil, 1 )
+      print( '</complete>' )
+   end
+end
 
 return Complete

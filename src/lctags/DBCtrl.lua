@@ -1504,6 +1504,16 @@ function DBCtrl:mapDeclInfoList( symbol, func, ... )
    return self:mapSymbolInfoList( "symbolDecl", symbol, func, ... )
 end
 
+function DBCtrl:mapDeclAtFile( fileId, func, ... )
+   self:mapRowList(
+      "symbolDecl", "fileId = " .. tostring( fileId ), nil, nil, func, ... )
+end
+
+function DBCtrl:mapDeclForParent( parentId, func, ... )
+   self:mapRowList(
+      "symbolDecl", "parentId = " .. tostring( parentId ), nil, nil, func, ... )
+end
+
 function DBCtrl:mapDecl( nsId, func, ... )
    self:mapRowList(
       "symbolDecl", "nsId = " .. tostring( nsId ), nil, nil, func, ... )
@@ -1581,17 +1591,32 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
    end
 
    
-   
-
    local fileId, line = self:getFileIdLocation( cursor )
    local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
    if snameInfo then
       log( 2, "SymbolDefInfoListForCursor", fileId, line, snameInfo.name, snameInfo.id )
+      local findFlag = false
+      local params = { ... }
       self:mapRowList(
 	 "symbolDecl",
 	 string.format( "fileId = %d AND (line = %d OR endLine = %d) AND snameId = %d",
-			fileId, line, line, snameInfo.id ), nil, nil, func, ... )
+			fileId, line, line, snameInfo.id ), nil, nil,
+	 function( item )
+	    findFlag = true
+	    return func( item, table.unpack( params ) )
+	 end
+      )
+      if findFlag then
+	 return
+      end
    end
+
+   
+   self:mapRowList(
+      "symbolDecl",
+      string.format( "fileId = %d AND (line = %d OR endLine = %d) AND type = %d",
+		     fileId, line, line, cursor:getCursorKind() ),
+      nil, nil, func, ... )
 end
 
 
@@ -1734,7 +1759,7 @@ function DBCtrl:getFileInfo( id, path )
       if work then
 	 return work
       end
-      log( 2, "getFileInfo new", fileInfo.id, fileInfo.path )
+      log( 3, "getFileInfo new", fileInfo.id, fileInfo.path )
       self.path2fileInfoMap[ fileInfo.path ] = fileInfo
       self.fileId2fileInfoMap[ id ] = fileInfo
       fileInfo.incPosList = {}

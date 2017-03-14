@@ -21,6 +21,7 @@ lua lctags/lctags.lua dump compOp
 1	35		|/test/comp9.cpp	-Iclang -Itest -Iclang 
 1	36		|/test/comp10.cpp	-Iclang -Itest -Iclang 
 1	37		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+1	38		|/test/comp12.cpp	-Iclang -Itest -Iclang 
 lua lctags/lctags.lua dump dumpFile >> dump
 lua lctags/lctags.lua rm-tgt hoge2
 lua lctags/lctags.lua dump compOp
@@ -41,6 +42,7 @@ lua lctags/lctags.lua dump compOp
 1	35		|/test/comp9.cpp	-Iclang -Itest -Iclang 
 1	36		|/test/comp10.cpp	-Iclang -Itest -Iclang 
 1	37		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+1	38		|/test/comp12.cpp	-Iclang -Itest -Iclang 
 lua lctags/lctags.lua dump >> dump
 lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
@@ -95,6 +97,59 @@ path                1 PWD/test/hoge.cpp
 path                1 PWD/test/hoge.h 
 path                1 /usr/include/stdio.h 
 path                1 /usr/include/time.h 
+lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
+<complete>
+<prefix></prefix>
+
+<candidate>
+<canonical>enum_val1</canonical>
+<simple>enum_val1</simple>
+<kind>E</kind>
+<type>::@enum::&lt;enum_enum_t&gt;</type>
+<val>0</val>
+<file>PWD/test/hoge.cpp</file>
+<startPos>
+<line>16</line>
+<column>16</column>
+</startPos>
+<endPos>
+<line>16</line>
+<column>25</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>enum_val2</canonical>
+<simple>enum_val2</simple>
+<kind>E</kind>
+<type>::@enum::&lt;enum_enum_t&gt;</type>
+<val>1</val>
+<file>PWD/test/hoge.cpp</file>
+<startPos>
+<line>17</line>
+<column>9</column>
+</startPos>
+<endPos>
+<line>17</line>
+<column>18</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>enum_val3</canonical>
+<simple>enum_val3</simple>
+<kind>E</kind>
+<type>::@enum::&lt;enum_enum_t&gt;</type>
+<val>1000</val>
+<file>PWD/test/hoge.cpp</file>
+<startPos>
+<line>18</line>
+<column>9</column>
+</startPos>
+<endPos>
+<line>18</line>
+<column>37</column>
+</endPos>
+</candidate>
+</complete>
 lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <complete>
 <prefix></prefix>
@@ -104,6 +159,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <simple>pCallback</simple>
 <kind>m</kind>
 <type>Callback_t *</type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>165</line>
@@ -119,6 +175,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <simple>z1</simple>
 <kind>m</kind>
 <type>int</type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>167</line>
@@ -134,6 +191,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <simple>z2</simple>
 <kind>m</kind>
 <type>int</type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>168</line>
@@ -149,6 +207,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <simple>z3</simple>
 <kind>m</kind>
 <type>int</type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>171</line>
@@ -164,6 +223,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <simple>z4</simple>
 <kind>m</kind>
 <type>int</type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>172</line>
@@ -184,6 +244,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <simple>pCallback</simple>
 <kind>m</kind>
 <type>Callback_t *</type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>157</line>
@@ -199,6 +260,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <simple>abcd</simple>
 <kind>m</kind>
 <type>struct (anonymous struct at PWD/test/hoge.cpp:158:9)</type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>158</line>
@@ -219,6 +281,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <simple>g_global</simple>
 <kind>v</kind>
 <type></type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>153</line>
@@ -234,6 +297,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <simple>ns2</simple>
 <kind>n</kind>
 <type></type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>163</line>
@@ -249,6 +313,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <simple>ns31</simple>
 <kind>n</kind>
 <type></type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>249</line>
@@ -264,6 +329,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <simple>struct_func_t</simple>
 <kind>t</kind>
 <type></type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>156</line>
@@ -279,6 +345,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <simple>sub2</simple>
 <kind>f</kind>
 <type></type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>264</line>
@@ -294,6 +361,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <simple>s_static</simple>
 <kind>v</kind>
 <type></type>
+<val></val>
 <file>PWD/test/hoge.cpp</file>
 <startPos>
 <line>154</line>
@@ -314,6 +382,7 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <simple>member</simple>
 <kind>m</kind>
 <type>int</type>
+<val></val>
 <file>PWD/test/comp.cpp</file>
 <startPos>
 <line>5</line>
@@ -334,6 +403,7 @@ lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <simple>pTest</simple>
 <kind>m</kind>
 <type>Test1 *</type>
+<val></val>
 <file>PWD/test/comp-2.cpp</file>
 <startPos>
 <line>17</line>
@@ -354,6 +424,7 @@ lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <simple>func</simple>
 <kind>f</kind>
 <type>int ()</type>
+<val></val>
 <file>PWD/test/comp2.cpp</file>
 <startPos>
 <line>11</line>
@@ -374,6 +445,7 @@ lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <simple>sub</simple>
 <kind>f</kind>
 <type>int ()</type>
+<val></val>
 <file>PWD/test/comp3.cpp</file>
 <startPos>
 <line>7</line>
@@ -394,6 +466,7 @@ lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <simple>member</simple>
 <kind>m</kind>
 <type>int</type>
+<val></val>
 <file>PWD/test/comp4.cpp</file>
 <startPos>
 <line>5</line>
@@ -409,6 +482,7 @@ lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <simple>sub</simple>
 <kind>f</kind>
 <type>int ()</type>
+<val></val>
 <file>PWD/test/comp4.cpp</file>
 <startPos>
 <line>7</line>
@@ -424,6 +498,7 @@ lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <simple>func</simple>
 <kind>f</kind>
 <type>int ()</type>
+<val></val>
 <file>PWD/test/comp4.cpp</file>
 <startPos>
 <line>11</line>
@@ -444,6 +519,7 @@ lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <simple>func</simple>
 <kind>f</kind>
 <type>int ()</type>
+<val></val>
 <file>PWD/test/comp5.cpp</file>
 <startPos>
 <line>11</line>
@@ -464,6 +540,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST601</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>9</line>
@@ -479,6 +556,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST602</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>10</line>
@@ -494,6 +572,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST603</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>11</line>
@@ -509,6 +588,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST61</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>20</line>
@@ -524,6 +604,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST62</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>21</line>
@@ -539,6 +620,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST63</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>22</line>
@@ -554,6 +636,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST611</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>31</line>
@@ -569,6 +652,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST612</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>32</line>
@@ -584,6 +668,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST613</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>33</line>
@@ -599,6 +684,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST60_1</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>4</line>
@@ -614,6 +700,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST60_2</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>5</line>
@@ -629,6 +716,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST60_3</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>6</line>
@@ -644,6 +732,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST6_1</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>15</line>
@@ -659,6 +748,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST6_2</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>16</line>
@@ -674,6 +764,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST6_3</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>17</line>
@@ -689,6 +780,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST62_1</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>26</line>
@@ -704,6 +796,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST62_2</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>27</line>
@@ -719,6 +812,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
 <simple>TEST62_3</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
 <line>28</line>
@@ -739,6 +833,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>ns73</simple>
 <kind>n</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>35</line>
@@ -754,6 +849,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>enum_TEST72</simple>
 <kind>t</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>25</line>
@@ -769,6 +865,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>TEST711</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>31</line>
@@ -784,6 +881,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>TEST712</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>32</line>
@@ -799,6 +897,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>TEST713</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>33</line>
@@ -814,6 +913,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>sub</simple>
 <kind>f</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>46</line>
@@ -829,6 +929,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>TEST72_1</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>26</line>
@@ -844,6 +945,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>TEST72_2</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>27</line>
@@ -859,6 +961,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <simple>TEST72_3</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
 <line>28</line>
@@ -879,6 +982,7 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <simple>TEST81</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
 <line>20</line>
@@ -894,6 +998,7 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <simple>TEST82</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
 <line>21</line>
@@ -909,6 +1014,7 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <simple>TEST83</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
 <line>22</line>
@@ -924,6 +1030,7 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <simple>TEST8_1</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
 <line>15</line>
@@ -939,6 +1046,7 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <simple>TEST8_2</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
 <line>16</line>
@@ -954,6 +1062,7 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <simple>TEST8_3</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
 <line>17</line>
@@ -974,6 +1083,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <simple>TEST901</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp9.cpp</file>
 <startPos>
 <line>9</line>
@@ -989,6 +1099,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <simple>TEST902</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp9.cpp</file>
 <startPos>
 <line>10</line>
@@ -1004,6 +1115,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <simple>TEST903</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp9.cpp</file>
 <startPos>
 <line>11</line>
@@ -1019,6 +1131,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <simple>TMP_MAX</simple>
 <kind>M</kind>
 <type></type>
+<val></val>
 <file>/usr/include/x86_64-linux-gnu/bits/stdio_lim.h</file>
 <startPos>
 <line>24</line>
@@ -1034,6 +1147,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <simple>TEST90_1</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp9.cpp</file>
 <startPos>
 <line>4</line>
@@ -1049,6 +1163,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <simple>TEST90_2</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp9.cpp</file>
 <startPos>
 <line>5</line>
@@ -1064,6 +1179,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <simple>TEST90_3</simple>
 <kind>E</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp9.cpp</file>
 <startPos>
 <line>6</line>
@@ -1084,6 +1200,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TMP_MAX</simple>
 <kind>M</kind>
 <type></type>
+<val></val>
 <file>/usr/include/x86_64-linux-gnu/bits/stdio_lim.h</file>
 <startPos>
 <line>24</line>
@@ -1099,6 +1216,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST901</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>9</line>
@@ -1114,6 +1232,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST902</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>10</line>
@@ -1129,6 +1248,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST903</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>11</line>
@@ -1144,6 +1264,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST91</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>20</line>
@@ -1159,6 +1280,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST92</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>21</line>
@@ -1174,6 +1296,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST93</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>22</line>
@@ -1189,6 +1312,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST911</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>31</line>
@@ -1204,6 +1328,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST912</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>32</line>
@@ -1219,6 +1344,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <simple>TEST913</simple>
 <kind>c</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
 <line>33</line>
@@ -1239,6 +1365,7 @@ lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
 <simple>func123</simple>
 <kind>f</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp11.cpp</file>
 <startPos>
 <line>6</line>
@@ -1254,6 +1381,7 @@ lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
 <simple>func</simple>
 <kind>f</kind>
 <type></type>
+<val></val>
 <file>PWD/test/comp11.cpp</file>
 <startPos>
 <line>8</line>
@@ -1262,6 +1390,43 @@ lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
 <endPos>
 <line>11</line>
 <column>0</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
+<complete>
+<prefix></prefix>
+
+<candidate>
+<canonical>val1</canonical>
+<simple>val1</simple>
+<kind>m</kind>
+<type>int</type>
+<val></val>
+<file>PWD/test/comp12.cpp</file>
+<startPos>
+<line>2</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>2</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val2</canonical>
+<simple>val2</simple>
+<kind>m</kind>
+<type>int</type>
+<val></val>
+<file>PWD/test/comp12.cpp</file>
+<startPos>
+<line>3</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>3</line>
+<column>11</column>
 </endPos>
 </candidate>
 </complete>

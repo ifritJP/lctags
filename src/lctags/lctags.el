@@ -10,6 +10,7 @@
 ;;          (local-set-key (kbd "M-r") 'lctags-ref)
 ;;          (local-set-key (kbd "C-c l") 'lctags-dispatch-mode)
 ;;          (local-set-key (kbd "C-c C-/") 'lctags-helm-complete-at)
+;;          (local-set-key (kbd "C-c C-x") 'lctags-helm-change-enum-at)
 ;;          (local-set-key (kbd "C-t") 'gtags-pop-stack)))
 ;;
 ;; (require 'lctags-helm)  or  (require 'lctags-anything)

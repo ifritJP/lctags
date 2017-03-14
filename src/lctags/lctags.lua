@@ -27,6 +27,8 @@ usage:
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
    %s ns-at [--lctags-target target] [-i] file line column
+   %s comp-at [--lctags-target target] [-i] file line column
+   %s inq-at [--lctags-target target] [-i] file line column
    %s list <incSrc|inc> [-d depth] name
    %s -x[t|s|r][a]  [--use-global] symbol
    %s -xP[a]  [--use-global] file
@@ -217,6 +219,8 @@ local function analyzeOption( argList )
 	    end
 	    skipArgNum = 1
 	 elseif arg == "comp-at" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "inq-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "chkFiles" then
 	    lctagOptMap.mode = arg
@@ -574,5 +578,16 @@ if lctagOptMap.mode == "comp-at" then
 
    Complete:at( analyzer, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ],
 		lctagOptMap.target, fileContents )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "inq-at" then
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+
+   Complete:inqAt( analyzer, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ],
+		   lctagOptMap.target, fileContents )
    os.exit( 0 )
 end
