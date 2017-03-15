@@ -9,16 +9,18 @@ local Util = require( 'lctags.Util' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
 
 
-local function dumpCursorInfo( cursor, depth, prefix )
+local function dumpCursorInfo( cursor, depth, prefix, cursorOffset )
    local cursorKind = cursor:getCursorKind()
    local txt = cursor:getCursorSpelling()
 
-   log( 4, string.format(
-   	   "%s %s%s %s(%d) %d %s",
+   log( 4,
+	string.format(
+   	   "%s %s%s %s(%d) %d %s %s",
    	   string.rep( "  ", depth ),
    	   prefix and (prefix .. " ") or "", txt, 
    	   clang.getCursorKindSpelling( cursorKind ), cursorKind,
-   	   cursor:hashCursor(), cursor:getRawCommentText() or "" ) )
+   	   cursor:hashCursor(), cursor:getRawCommentText() or "",
+	   cursorOffset or ""  ) )
 end
 
 local function getFileLoc( cursor )
@@ -35,11 +37,12 @@ end
 local function isNamespaceDecl( cursorKind )
    return cursorKind == clang.core.CXCursor_Namespace or
       cursorKind == clang.core.CXCursor_ClassDecl or
-      cursorKind == clang.core.CXCursor_CXXMethod or
-      cursorKind == clang.core.CXCursor_FunctionDecl or
-      cursorKind == clang.core.CXCursor_Constructor or
       cursorKind == clang.core.CXCursor_StructDecl or
       cursorKind == clang.core.CXCursor_UnionDecl or
+      cursorKind == clang.core.CXCursor_Constructor or
+      cursorKind == clang.core.CXCursor_Destructor or
+      cursorKind == clang.core.CXCursor_CXXMethod or
+      cursorKind == clang.core.CXCursor_FunctionDecl or
       cursorKind == clang.core.CXCursor_EnumDecl
 end
 
@@ -85,39 +88,135 @@ local targetKindList = {
    clang.core.CXCursor_CallExpr,
 }
 
+
+local targetKindNsList = {
+   clang.core.CXCursor_Namespace,
+   clang.core.CXCursor_ClassDecl,
+   clang.core.CXCursor_StructDecl,
+   clang.core.CXCursor_UnionDecl,
+   clang.core.CXCursor_Constructor,
+   clang.core.CXCursor_Destructor,
+   clang.core.CXCursor_CXXMethod,
+   clang.core.CXCursor_FunctionDecl,
+   clang.core.CXCursor_EnumDecl
+}
+
+local targetKindPreproList = {
+   clang.core.CXCursor_MacroDefinition,
+   clang.core.CXCursor_MacroExpansion,
+   clang.core.CXCursor_InclusionDirective,
+}
+
+
+local function checkChangeFile( analyzer, cursor )
+   local uptodateFlag
+   
+   
+   local cxfile, line = getFileLoc( cursor )
+   if analyzer.currentFile ~= cxfile and
+      ( not analyzer.currentFile or not cxfile or
+	   not analyzer.currentFile:isEqual( cxfile ) )
+   then
+      local path = ""
+      if cxfile then
+	 path = DBCtrl:convFullpath( cxfile:getFileName(), analyzer.currentDir )
+      end
+
+      table.insert(
+	 analyzer.incBelongList,
+	 { cxfile = cxfile, namespace = analyzer:getNowNs() } )
+
+      analyzer.currentFile = cxfile
+      local spInfo = analyzer.path2InfoMap[ path ]
+      if not spInfo then
+	 spInfo = analyzer:createSpInfo( path, false )
+      end
+      analyzer.currentSpInfo = spInfo
+      uptodateFlag = spInfo.uptodateFlag
+      log( 3, "changeCurrentFile:", path, 
+	   analyzer.currentSpInfo.digest, uptodateFlag )
+   end
+
+   return uptodateFlag
+end
+
+
+--[[
+   次を解析する。
+   ・namespace 内での #include がないか？
+   ・その namespace, #include は解析済みか？ 
+]]
+local function visitFuncNsInc( cursor, parent, analyzer, exInfo )
+   local cursorKind = cursor:getCursorKind()
+   local cursorOffset = tostring( exInfo[ 2 ] )
+
+   dumpCursorInfo( cursor, 1, "visitFuncNsInc:", cursorOffset )
+
+   if exInfo[ 1 ] then
+      checkChangeFile( analyzer, cursor )
+   end
+
+   if cursorKind == clang.core.CXCursor_InclusionDirective then
+      local cxfile = cursor:getIncludedFile()
+      local path = ""
+      if cxfile then
+	 path = DBCtrl:convFullpath( cxfile:getFileName(),analyzer.currentDir )
+      end
+      local spInfo = analyzer.path2InfoMap[ path ]
+      if not spInfo then
+	 spInfo = analyzer:createSpInfo( path, true, cxfile )
+      end
+      
+      table.insert( analyzer.incList, cursor )
+      calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
+      return 1
+   end
+      
+   if cursorKind == clang.core.CXCursor_MacroDefinition then
+      table.insert( analyzer.macroDefList, cursor )
+      calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
+      analyzer:registCursor( cursor )
+      return 1
+   end
+
+   if cursorKind == clang.core.CXCursor_MacroExpansion then
+      local declCursor = cursor:getCursorReferenced()
+      analyzer:addRef( analyzer.macroRefList, cursor, declCursor, nil )
+      -- マクロ参照はヘッダの多重 include 抑止に利用していることが多い。
+      -- これを digest 計算に加えると、include 抑止の ifdef が差分で引っかかるので
+      -- digest には加えずに、ハッシュだけ登録する
+      analyzer:registCursor( cursor )
+      -- analyzer.cursorHash2SpInfoMap[ cursor:hashCursor() ] = analyzer.currentSpInfo
+      return 1
+   end
+
+   if isNamespaceDecl( cursorKind ) then
+      analyzer.depth = analyzer.depth + 1
+
+      table.insert( analyzer.namespaceList,
+		    { cursor = cursor, spInfo = analyzer.currentSpInfo } )
+      
+      clang.visitChildrenFast2(
+	 cursor, visitFuncNsInc, analyzer,
+	 targetKindPreproList, targetKindNsList, { analyzer.targetFile }, 1 )
+      
+      analyzer.depth = analyzer.depth - 1
+   end
+
+end
+
+
 local function visitFuncMain( cursor, parent, analyzer, exInfo )
    local cursorKind = cursor:getCursorKind()
 
-   dumpCursorInfo( cursor, analyzer.depth )
-
    local uptodateFlag
    local cursorOffset = tostring( exInfo[ 2 ] )
+
+   dumpCursorInfo( cursor, analyzer.depth, nil, cursorOffset )
    
    if exInfo[ 1 ] then
-      local cxfile, line = getFileLoc( cursor )
-      if analyzer.currentFile ~= cxfile and
-	 ( not analyzer.currentFile or not cxfile or
-	      not analyzer.currentFile:isEqual( cxfile ) )
-      then
-	 local path = ""
-	 if cxfile then
-	    path = DBCtrl:convFullpath( cxfile:getFileName(), analyzer.currentDir )
-	 end
-
-	 table.insert(
-	    analyzer.incBelongList,
-	    { cxfile = cxfile, namespace = analyzer:getNowNs() } )
-
-	 analyzer.currentFile = cxfile
-	 local spInfo = analyzer.path2InfoMap[ path ]
-	 if not spInfo then
-	    spInfo = analyzer:createSpInfo( path, false )
-	 end
-	 analyzer.currentSpInfo = spInfo
-	 uptodateFlag = spInfo.uptodateFlag
-	 log( 3, "changeCurrentFile:", path, 
-	      analyzer.currentSpInfo.digest, uptodateFlag )
-      end
+      uptodateFlag = checkChangeFile( analyzer, cursor )
    end
 
    local endProcess = {}
@@ -136,23 +235,27 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
       analyzer:registCursor( cursor )
    end
-   
+
+   ---[[
    if cursorKind == clang.core.CXCursor_InclusionDirective then
       local cxfile = cursor:getIncludedFile()
       local path = ""
       if cxfile then
-	 path = DBCtrl:convFullpath( cxfile:getFileName(),analyzer.currentDir )
+   	 path = DBCtrl:convFullpath( cxfile:getFileName(),analyzer.currentDir )
       end
       local spInfo = analyzer.path2InfoMap[ path ]
       if not spInfo then
-	 spInfo = analyzer:createSpInfo( path, true, cxfile )
+   	 spInfo = analyzer:createSpInfo( path, true, cxfile )
       end
       
       table.insert( analyzer.incList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
       analyzer:registCursor( cursor )
       return 1
-   elseif cursorKind == clang.core.CXCursor_StructDecl or
+   end
+   --]]
+      
+   if cursorKind == clang.core.CXCursor_StructDecl or
       cursorKind == clang.core.CXCursor_UnionDecl or
       cursorKind == clang.core.CXCursor_ClassDecl or
       cursorKind == clang.core.CXCursor_EnumDecl
@@ -188,7 +291,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       local declCursor = clang.getDeclCursorFromType(
 	 cursor:getCursorType():getResultType() )
       analyzer:addTypeRef( cursor, declCursor )
-      
+      ---[[
    elseif cursorKind == clang.core.CXCursor_MacroDefinition then
       table.insert( analyzer.macroDefList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
@@ -201,6 +304,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       -- digest には加えずに、ハッシュだけ登録する
       -- analyzer:registCursor( cursor )
       analyzer.cursorHash2SpInfoMap[ cursor:hashCursor() ] = analyzer.currentSpInfo
+      --]]
    elseif clang.isReference( cursorKind ) then
       if cursorKind ~= clang.core.CXCursor_NamespaceRef then
 	 local declCursor = cursor:getCursorReferenced()
@@ -349,6 +453,8 @@ function Analyzer:new( dbPath, recordDigestSrcFlag, displayDiagnostics, currentD
       targetFile = nil,
       currentFile = nil,
       nsList = {},
+
+      namespaceList = {},
       
       nsLevelList = { { memberList = {} } },
       hash2NsObj = {},
@@ -665,8 +771,32 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    self.targetFile =
       transUnit:getFile( transUnit:getTranslationUnitSpelling() )
    self.currentFile = self.targetFile
+
+
+   -- self.depth = 0
+   -- clang.visitChildrenFast2(
+   --    root, visitFuncNsInc, self,
+   --    targetKindPreproList, targetKindNsList, { self.targetFile }, 1 )
+
+   -- local targetFileList = {}
+   -- local db = db:openDBForReadOnly()
+   -- for index, namespace in ipairs( self.namespaceList ) do
+   --    local cursor = namespace.cursor
+   --    local spInfo = namespace.spInfo
+   --    spInfo.fixDigest = spInfo.digest:fix()
+   --    print( "namespace:", cursor:getCursorSpelling(), spInfo.fixDigest )
+   --    local startInfo, endInfo = :getRangeFromCursor( cursor )
+   --    spInfo.digest = Helper.openDigest( "md5" )
+   --    spInfo.digest:write( spInfo.fixDigest )
+
+   -- end
+
+   
+
+   -- os.exit( 0 )
    
    log( 2, "visitChildren", os.clock(), os.date() )
+   self.depth = 0
    clang.visitChildrenFast( root, visitFuncMain, self, targetKindList, 1 )
    log( 2, "visitChildren end", os.clock(), os.date() )
 

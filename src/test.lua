@@ -148,13 +148,14 @@ local function dumpCursorTU( transUnit )
 	     cursor:getCursorSemanticParent():getCursorKind() ) )
    
 
-   if useFastFlag then
-      --clang.visitChildrenFast( root, visitFuncMain, { depth = 0 }, nil )
-
-      local result, list = clang.getChildrenList( root, nil, 1 )
-      for index, info in ipairs( list ) do
-      	 visitFuncMainFast( info[ 1 ], info[ 2 ], { depth = 0 }, info[ 3 ] )
-      end
+   if useFastFlag == 1 then
+      clang.visitChildrenFast( root, visitFuncMain, { depth = 0 }, nil, 2 )
+   elseif useFastFlag == 2 then
+      clang.visitChildrenFast2(
+	 root, visitFuncMain, { depth = 0 },
+	 { clang.core.CXCursor_MacroDefinition },
+	 { clang.core.CXCursor_FieldDecl },
+	 { transUnit:getFile( transUnit:getTranslationUnitSpelling() ) }, 2 )
    else
       root:visitChildren( visitFuncMain, { depth = 0 } )
    end
@@ -172,31 +173,36 @@ end
 
 local clangIndex = clang.createIndex( 0, 1 )
 
-print( "start", os.clock() )
-dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
-print( "end", os.clock() )
-
-useFastFlag = true
-print( "start", os.clock() )
-dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
-print( "end", os.clock() )
-
+useFastFlag = 2
 -- print( "start", os.clock() )
--- dumpCursor( clangIndex, "swig/libClangLua_wrap.c",
--- 	    { "-I/usr/lib/llvm-3.8/include", "-I/usr/include/lua5.3",
--- 	      "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include" } )
+-- dumpCursor( clangIndex, "../external/luasqlite3/lsqlite3_fsl09x/sqlite3.c", { "-Itest" } )
 -- print( "end", os.clock() )
 
-local unsavedFile = clang.core.CXUnsavedFile()
-unsavedFile.Filename = "test/hoge.cpp"
-unsavedFile.Contents = [[
-int func() {
-  return 1;
-}
-]]
-unsavedFile.Length = #unsavedFile.Contents
-
 print( "start", os.clock() )
-dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" }, { unsavedFile } )
+dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
 print( "end", os.clock() )
+
+-- useFastFlag = true
+-- print( "start", os.clock() )
+-- dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
+-- print( "end", os.clock() )
+
+-- -- print( "start", os.clock() )
+-- -- dumpCursor( clangIndex, "swig/libClangLua_wrap.c",
+-- -- 	    { "-I/usr/lib/llvm-3.8/include", "-I/usr/include/lua5.3",
+-- -- 	      "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include" } )
+-- -- print( "end", os.clock() )
+
+-- local unsavedFile = clang.core.CXUnsavedFile()
+-- unsavedFile.Filename = "test/hoge.cpp"
+-- unsavedFile.Contents = [[
+-- int func() {
+--   return 1;
+-- }
+-- ]]
+-- unsavedFile.Length = #unsavedFile.Contents
+
+-- print( "start", os.clock() )
+-- dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" }, { unsavedFile } )
+-- print( "end", os.clock() )
    

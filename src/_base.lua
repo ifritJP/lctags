@@ -19,11 +19,20 @@ libs.cx2string = function( cxstr )
    return str
 end
 
-libs.visitChildrenLow = function( cursor, func, exInfo )
+libs.visitChildrenLow = function( cursor, func, exInfo, cxfileList )
    if not __libclang_visit then
       __libclang_visit = {}
    end
-   table.insert( __libclang_visit, { func, exInfo } )
+
+   local list = {}
+   if cxfileList then
+      for index, cxfile in ipairs( cxfileList ) do
+	 table.insert( list, cxfile.__ptr )
+      end
+   end
+   local fileArray = cxfileList and libs.mkCXFileArray( list )
+   
+   table.insert( __libclang_visit, { func, exInfo, fileArray and fileArray.__ptr } )
    local result = libclangcore.clang_visitChildren( cursor, nil )
 
    table.remove( __libclang_visit )
@@ -49,21 +58,44 @@ libs.visitChildrenFast = function( cursor, func, exInfo, kindList, callbackResul
    return result
 end
 
-libs.getChildrenList = function( cursor, kindList, callbackResult )
+libs.visitChildrenFast2 = function(
+      cursor, func, exInfo, kindList, kindList2,
+      cxfileList, callbackResult )
+   local result, list = libs.getChildrenList(
+      cursor, kindList, callbackResult, kindList2, cxfileList )
+   
+   for index, info in ipairs( list ) do
+      func( info[ 1 ], info[ 2 ], exInfo, info[ 3 ] )
+   end
+   return result
+end
+
+
+libs.getChildrenList = function( cursor, kindList, callbackResult, kindList2, cxfileList )
    if not kindList then
       kindList = {}
    end
-   local kindArray = libclangcore.new_intArray( #kindList + 2 )
+   if not kindList2 then
+      kindList2 = {}
+   end
+   local kindArray = libclangcore.new_intArray( #kindList + #kindList2 + 4 )
    
    libclangcore.intArray_setitem( kindArray, 0, callbackResult )
+   libclangcore.intArray_setitem( kindArray, 1, cxfileList and #cxfileList or 0 )
    for index, kind in ipairs( kindList ) do
-      libclangcore.intArray_setitem( kindArray, index, kind )
+      libclangcore.intArray_setitem( kindArray, index + 1, kind )
    end
    libclangcore.intArray_setitem(
-      kindArray, #kindList + 1, libclangcore.CXCursor_InvalidFile )
+      kindArray, #kindList + 2, libclangcore.CXCursor_InvalidFile )
+   
+   for index, kind in ipairs( kindList2 ) do
+      libclangcore.intArray_setitem( kindArray, #kindList + 2 + index, kind )
+   end
+   libclangcore.intArray_setitem(
+      kindArray, #kindList + #kindList2 + 3, libclangcore.CXCursor_InvalidFile )
 
    local list = {}
-   local result = libs.visitChildrenLow( cursor.__ptr, list, kindArray )
+   local result = libs.visitChildrenLow( cursor.__ptr, list, kindArray, cxfileList )
    libclangcore.delete_intArray( kindArray )
 
    local cursorList = {}

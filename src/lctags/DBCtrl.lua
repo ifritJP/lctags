@@ -479,6 +479,7 @@ CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER );
 CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
+CREATE TABLE preproDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
 CREATE INDEX index_ns ON namespace ( id, parentId, snameId, name, otherName );
 CREATE INDEX index_sName ON simpleName ( id, name );
 CREATE INDEX index_filePath ON filePath ( id, path );
@@ -489,6 +490,7 @@ CREATE INDEX index_incRef ON incRef ( id, baseFileId );
 CREATE INDEX index_incCache ON incCache ( id, baseFileId, incFlag );
 CREATE INDEX index_incBelong ON incBelong ( id, baseFileId );
 CREATE INDEX index_digest ON tokenDigest ( fileId, digest );
+CREATE INDEX index_prepro ON preproDigest (fileId, digest );
 COMMIT;
 ]], DB_VERSION ) )
 end
@@ -516,6 +518,7 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
    self:delete( "incCache", string.format( "baseFileId = %d", fileId ) )
    self:delete( "incBelong", string.format( "baseFileId = %d", fileId ) )
    self:delete( "tokenDigest", string.format( "fileId = %d", fileId ) )
+   self:delete( "preproDigest", string.format( "fileId = %d", fileId ) )
 
    if removeFlag then
       self:delete( "filePath", string.format( "id = %d", fileId ) )
@@ -2202,5 +2205,7 @@ function DBCtrl:addIncludeCacheSub(
 
    table.remove( incCacheSetList )
 end
+
+
 
 return DBCtrl

@@ -41,8 +41,15 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
       if ( LUA_LEN( pLua, -1 ) == 0 ) {
 	prevFile = NULL;
       }
-      
-      // exInfo = param[2]
+
+      // cxfile * pArray = param[3];
+      lua_pushinteger( pLua, 3 );
+      lua_gettable( pLua, -3 );
+      CXFile * pFileArray;
+      SWIG_ConvertPtr( pLua,-1,(void**)&pFileArray,SWIGTYPE_p_p_void,0);
+      lua_pop( pLua, 1 );
+
+      // kindArray = param[2]
       lua_pushinteger( pLua, 2 );
       lua_gettable( pLua, -3 );
 
@@ -53,12 +60,14 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 	exit( 1 );
       }
       int result = pKindArray[ 0 ];
-      pKindArray = pKindArray + 1;
+      int length = pKindArray[ 1 ];
+      pKindArray = pKindArray + 2;
 
       lua_pop( pLua, 1 );
 
       int index;
       int findFlag = 0;
+      int anyFileFlag = 1;
       if ( pKindArray[ 0 ] == CXCursor_InvalidFile ) {
 	findFlag = 1;
       }
@@ -69,9 +78,21 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 	    break;
 	  }
 	}
+	if ( !findFlag ) {
+	  anyFileFlag = 0;
+	  pKindArray = &pKindArray[ index + 1 ];
+	  for ( index = 0; pKindArray[ index ] != CXCursor_InvalidFile; index++ ) {
+	    if ( cursor.kind == pKindArray[ index ] ) {
+	      findFlag = 1;
+	      printf( "kind = %d\n", pKindArray[ index ] );
+	      break;
+	    }
+	  }
+	}
       }
       
       if ( findFlag ) {
+	// 解析対象の Cursor の場合
 	CXSourceLocation loc = clang_getCursorLocation( cursor );
 	CXFile cxfile;
 	unsigned int line;
@@ -80,46 +101,58 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 
 	clang_getFileLocation( loc,  &cxfile, &line, &column, &offset );
 
-	int equalsPrevFileFlag = clang_File_isEqual( prevFile, cxfile );
-	prevFile = cxfile;
-      
-      
-	lua_pushinteger( pLua, LUA_LEN( pLua, -1 ) + 1 );
-	lua_createtable( pLua, 2, 0 );
-
-	{
-	  CXCursor * resultptr;
-	
-	  lua_pushinteger( pLua, 1 );
-	
-	  resultptr = (CXCursor *) malloc(sizeof(CXCursor));
-	  memmove(resultptr, &cursor, sizeof(CXCursor));
-	  SWIG_NewPointerObj( pLua,(void *) resultptr,SWIGTYPE_p_CXCursor,1);
-
-	  lua_settable( pLua, -3 );
+	if ( !anyFileFlag ) {
+	  findFlag = 0;
+	  for ( index = 0; index < length; index++ ) {
+	    if ( clang_File_isEqual( pFileArray[ index ], cxfile ) ) {
+	      findFlag = 1;
+	      break;
+	    }
+	  }
 	}
 
-	{
-	  CXCursor * resultptr;
-	
-	  lua_pushinteger( pLua, 2 );
-	
-	  resultptr = (CXCursor *) malloc(sizeof(CXCursor));
-	  memmove(resultptr, &parent, sizeof(CXCursor));
-	  SWIG_NewPointerObj( pLua,(void *) resultptr,SWIGTYPE_p_CXCursor,1);
+	if ( findFlag ) {
+	  int equalsPrevFileFlag = clang_File_isEqual( prevFile, cxfile );
+	  prevFile = cxfile;
+      
+      
+	  lua_pushinteger( pLua, LUA_LEN( pLua, -1 ) + 1 );
+	  lua_createtable( pLua, 2, 0 );
 
+	  {
+	    CXCursor * resultptr;
+	
+	    lua_pushinteger( pLua, 1 );
+	
+	    resultptr = (CXCursor *) malloc(sizeof(CXCursor));
+	    memmove(resultptr, &cursor, sizeof(CXCursor));
+	    SWIG_NewPointerObj( pLua,(void *) resultptr,SWIGTYPE_p_CXCursor,1);
+
+	    lua_settable( pLua, -3 );
+	  }
+
+	  {
+	    CXCursor * resultptr;
+	
+	    lua_pushinteger( pLua, 2 );
+	
+	    resultptr = (CXCursor *) malloc(sizeof(CXCursor));
+	    memmove(resultptr, &parent, sizeof(CXCursor));
+	    SWIG_NewPointerObj( pLua,(void *) resultptr,SWIGTYPE_p_CXCursor,1);
+
+	    lua_settable( pLua, -3 );
+	  }
+	
+	  lua_pushinteger( pLua, 3 );
+	  lua_pushboolean( pLua, !equalsPrevFileFlag );
 	  lua_settable( pLua, -3 );
-	}
-	
-	lua_pushinteger( pLua, 3 );
-	lua_pushboolean( pLua, !equalsPrevFileFlag );
-	lua_settable( pLua, -3 );
 
-	lua_pushinteger( pLua, 4 );
-	lua_pushinteger( pLua, offset );
-	lua_settable( pLua, -3 );
+	  lua_pushinteger( pLua, 4 );
+	  lua_pushinteger( pLua, offset );
+	  lua_settable( pLua, -3 );
         
-	lua_settable( pLua, -3 );
+	  lua_settable( pLua, -3 );
+	}
       }
 
       lua_pop( pLua, 1 );
@@ -144,6 +177,7 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
     lua_gettable( pLua, -5 );
     lua_remove( pLua, -5 );
 
+    // Lua のコールバックを呼び出し
     int hasErr = lua_pcall( pLua, 3, 1, 0 );
 
     static int orrurError = 0;
