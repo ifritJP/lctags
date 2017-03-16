@@ -1,47 +1,47 @@
 #include <stdio.h>
 
 typedef enum {
-  TEST90_1,
-  TEST90_2,
-  TEST90_3
-} enum_TEST90;
+  TEST100_1,
+  TEST100_2,
+  TEST100_3
+} enum_TEST100;
 
-class TEST901;
-class TEST902;
-class TEST903;
+class TEST1001;
+class TEST1002;
+class TEST1003;
 
-namespace ns91 {
+namespace ns101 {
   typedef enum {
-    TEST9_1,
-    TEST9_2,
-    TEST9_3
-  } enum_TEST9;
+    TEST10_1,
+    TEST10_2,
+    TEST10_3
+  } enum_TEST10;
 
-  class TEST91;
-  class TEST92;
-  class TEST93;
+  class TEST101;
+  class TEST102;
+  class TEST103;
 
-  namespace ns92 {
+  namespace ns102 {
     typedef enum {
-      TEST92_1,
-      TEST92_2,
-      TEST92_3
-    } enum_TEST92;
+      TEST102_1,
+      TEST102_2,
+      TEST102_3
+    } enum_TEST102;
 
-    class TEST911;
-    class TEST912;
-    class TEST913;
+    class TEST1011;
+    class TEST1012;
+    class TEST1013;
 
-    namespace ns93 {
+    namespace ns103 {
       typedef enum {
-	TEST93_1,
-	TEST93_2,
-	TEST93_3
-      } enum_TEST93;
+	TEST103_1,
+	TEST103_2,
+	TEST103_3
+      } enum_TEST103;
 
-      class TEST921;
-      class TEST922;
-      class TEST923;
+      class TEST1021;
+      class TEST1022;
+      class TEST1023;
     }
     int sub()
     {

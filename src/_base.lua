@@ -210,16 +210,22 @@ libs.getNamespaceList = function( cursor, includeCurrent, cursorHash2NSFunc )
 end
 
 local cxFileArray
-if libs.core.new_CXFileArray then
-   cxFileArray = libs.core.new_CXFileArray( 1 )
+if libclangcore.new_CXFileArray then
+   cxFileArray = libclangcore.new_CXFileArray( 1 )
 end
---   libs.core.delete_CXFileArray( cxFileArray )
+--   libclangcore.delete_CXFileArray( cxFileArray )
 libs.getFileLocation = function( obj, func, ... )
    local params = table.pack( ... )
    table.insert( params, cxFileArray )
    local result = table.pack( func( obj, table.unpack( params ) ) )
-   local cxFile = libs.CXFile:new( libs.core.CXFileArray_getitem( cxFileArray, 0 ) )
+   local cxFile = libs.CXFile:new( libclangcore.CXFileArray_getitem( cxFileArray, 0 ) )
    return cxFile, table.unpack( result )
+end
+
+libs.getCursorLocation = function( cursor )
+   local location = cursor:getCursorLocation()
+   return libs.getFileLocation(
+      location.__ptr, libclangcore.clang_getFileLocation )
 end
 
 libs.getCurosrPlainText = function( cursor )
@@ -260,11 +266,11 @@ end
 libs.getDeclCursorFromType = function( cxtype )
    while true do
       local baseType = cxtype and cxtype:getPointeeType()
-      if baseType.__ptr.kind == libs.core.CXType_Invalid then
+      if baseType.__ptr.kind == libclangcore.CXType_Invalid then
 	 if cxtype then
 	    baseType = cxtype:getElementType()
 	 end
-	 if baseType.__ptr.kind == libs.core.CXType_Invalid then
+	 if baseType.__ptr.kind == libclangcore.CXType_Invalid then
 	    break
 	 end
       end

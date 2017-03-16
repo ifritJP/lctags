@@ -466,8 +466,8 @@ CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEG
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE binary);
-CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary);
-INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '');
+CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary, invalidSkip INTEGER);
+INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '', 1 );
 
 CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary );
 CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, PRIMARY KEY( nsId, fileId, line ) );
@@ -479,7 +479,7 @@ CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER );
 CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
-CREATE TABLE preproDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
+CREATE TABLE preproDigest ( fileId INTEGER, nsId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, nsId, digest ) );
 CREATE INDEX index_ns ON namespace ( id, parentId, snameId, name, otherName );
 CREATE INDEX index_sName ON simpleName ( id, name );
 CREATE INDEX index_filePath ON filePath ( id, path );
@@ -490,7 +490,7 @@ CREATE INDEX index_incRef ON incRef ( id, baseFileId );
 CREATE INDEX index_incCache ON incCache ( id, baseFileId, incFlag );
 CREATE INDEX index_incBelong ON incBelong ( id, baseFileId );
 CREATE INDEX index_digest ON tokenDigest ( fileId, digest );
-CREATE INDEX index_prepro ON preproDigest (fileId, digest );
+CREATE INDEX index_prepro ON preproDigest ( fileId, nsId, digest );
 COMMIT;
 ]], DB_VERSION ) )
 end
@@ -722,7 +722,7 @@ function DBCtrl:addFile(
    self:insert(
       "filePath",
       string.format(
-	 "NULL, '%s', %d, %d, '%s', '%s'", filePath, time, isTarget and 0 or 1,
+	 "NULL, '%s', %d, %d, '%s', '%s', 0", filePath, time, isTarget and 0 or 1,
 	 self:calcFileDigest( filePath ),
 	 isTarget and self:convPath( currentDir ) or "" ) )
 
@@ -1091,6 +1091,16 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       -- local digest = self:calcEnumStructDigest( decl, kind )
       local digest = nsObj and nsObj.fixDigest or ""
 
+      -- local parentKind = decl:getCursorSemanticParent():getCursorKind()
+      -- if nsObj.parentNs and parentKind == clang.core.CXCursor_TranslationUnit then
+      -- 	 -- 親の namespace があるはずが、 CXCursor_TranslationUnit のものは、
+      -- 	 -- ソースコード中にバグがあるので登録しない
+      -- 	 local cxfile, line, column = getFileLocation( decl )
+      -- 	 log( 1, "addEnumStructDecl: illegal struct",
+      -- 	      cxfile:getFileName(), line, column )
+      -- 	 return
+      -- end
+
       local declNs, symbolDecl
       declNs, symbolDecl, structUptodate = self:addNamespaceSub(
 	 decl, fileInfo, digest, anonymousName, typedefName )
@@ -1098,6 +1108,24 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       otherNameBase = declNs.otherName
       baseNsId = declNs.id
 
+      -- マクロ内で複数定義している場合、
+      -- メンバー参照の nsInfo の解決が正常にできないので
+      -- ヘッダ解析の skip は無効にする。
+      local condition = string.format(
+	 "nsId <> %d AND fileId = %d AND line = %d AND column = %d AND endLine = %d AND endColumn = %d AND type = %d",
+	 symbolDecl.nsId, symbolDecl.fileId,
+	 symbolDecl.line, symbolDecl.column,
+	 symbolDecl.endLine, symbolDecl.endColumn, symbolDecl.type )
+      local samePosDecl = self:getRow( "symbolDecl", condition )
+      if samePosDecl then
+	 local samePosDeclNsInfo = self:getNamespace( samePosDecl.nsId )
+	 log( 1, "multiple decl in macro",
+	      fullnameBase, samePosDeclNsInfo.name, fileInfo.path,
+	      symbolDecl.line, symbolDecl.column )
+	 self:update( "filePath", "invalidSkip = 1",
+		      "id = " .. tostring( fileInfo.id ) )
+      end
+      
       if structUptodate then
 	 log( 3, "addEnumStructDecl", "uptodate", fullnameBase )
       end
@@ -1160,9 +1188,17 @@ function DBCtrl:getNamespaceFromCursor( cursor )
    end
 
    local fileId, line, column = self:getFileIdLocation( cursor )
-   
+
    fullname = self:getFullname( cursor, fileId, "", "" )
    nsInfo = self:getNamespace( nil, fullname )
+
+   if not nsInfo then
+      symbolDeclInfo = self:infoAt(
+	 "symbolDecl", fileId, line, column, cursor:getCursorKind() )
+      if symbolDeclInfo then
+	 nsInfo = self:getNamespace( symbolDeclInfo.nsId )
+      end
+   end
    self.hashCursor2FullnameMap[ hash ] = fullname
    self.hashCursor2NSMap[ hash ] = nsInfo
    return nsInfo
@@ -1189,7 +1225,11 @@ function DBCtrl:addReference( refInfo )
    -- local fileId, line = self:getFileIdLocation( cursor )
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
    local line = startInfo and startInfo[ 2 ] or 0
-   local fileInfo = startInfo and self:getFileInfo( nil, startInfo[ 1 ]:getFileName() )
+   local filePath
+   if startInfo and startInfo[ 1 ] then
+      filePath = startInfo[ 1 ]:getFileName()
+   end
+   local fileInfo = startInfo and self:getFileInfo( nil, filePath )
    local fileId = fileInfo and fileInfo.id or systemFileId
    
 
@@ -1217,7 +1257,7 @@ function DBCtrl:addReference( refInfo )
 	   name, declCursor:hashCursor(),
 	   clang.getCursorKindSpelling( kind ),
 	   declCursor:getCursorSpelling())
-
+      
       nsInfo = self:addNamespaceOne(
 	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
    end
@@ -1355,12 +1395,28 @@ function DBCtrl:mapIncRefFor( fileId, func )
       "incRef", string.format( "id = %d", fileId ), nil, nil, func )
 end
 
+function DBCtrl:existsPrepro( fileId, nsId, digest )
+   return self:exists(
+      "preproDigest",
+      string.format( "fileId = %d AND digest = '%s' AND nsId = %d",
+		     fileId, digest, nsId ) )
+end
+
+function DBCtrl:addPrepro( fullPath, belongNsName, digest )
+   local fileInfo = self:getFileInfo( nil, fullPath )
+   local nsInfo = self:getNamespace( nil, belongNsName )
+   self:insert(
+      "preproDigest", string.format(
+	 "%d, %d, '%s'", fileInfo.id, nsInfo and nsInfo.id or rootNsId, digest ) )
+end
+
 
 function DBCtrl:existsFileWithTokenDigest( fileId, digest )
    return self:exists(
       "tokenDigest", string.format( "fileId = %d AND digest = '%s'",
 				    fileId, digest ) )
 end
+
 
 function DBCtrl:addTokenDigest( fileId, digest )
    self:insert( "tokenDigest", string.format( "%d, '%s'", fileId, digest ) )
@@ -1415,7 +1471,8 @@ function DBCtrl:addIncBelong( incBelong )
       return
    end
    local path = incBelong.cxfile:getFileName()
-   log( 3, "incBelong:", path )
+   log( 3, "incBelong:", incBelong.namespace,
+	incBelong.namespace and incBelong.namespace:getCursorSpelling(), path )
 
    local fileInfo = self:getFileInfo( nil, path )
    local belongNsId
@@ -1788,7 +1845,7 @@ function DBCtrl:getFileInfo( id, path )
    if work then
       return work
    end
-   log( 2, "getFileInfo new", fileInfo.id, fileInfo.path )
+   log( 3, "getFileInfo new", fileInfo.id, fileInfo.path )
    self.path2fileInfoMap[ path ] = fileInfo
    self.fileId2fileInfoMap[ fileInfo.id ] = fileInfo
    fileInfo.incPosList = {}
@@ -1828,18 +1885,15 @@ function DBCtrl:getFileOpt( filePath, target )
 end
 
 
-function DBCtrl:infoAt( tableName, path, line, column )
+function DBCtrl:infoAt( tableName, fileId, line, column, kind )
    local info = nil
-   local fileInfo = self:getFileInfo( nil, path )
-   if not fileInfo then
-      return nil
+   local condition = string.format( 
+      "fileId = %d AND line <= %d AND endLine >= %d", fileId, line, line )
+   if kind then
+      condition = condition .. " AND type = " .. tostring( kind )
    end
    self:mapRowList(
-      tableName,
-      string.format( 
-      	 "fileId = %d AND line <= %d AND endLine >= %d",
-      	 fileInfo.id, line, line ),
-      nil, nil,
+      tableName, condition, nil, nil,
       function( item )
 	 if ( item.line < line and item.endLine > line ) or
 	    ( item.line == line and item.column <= column or
@@ -1857,9 +1911,12 @@ function DBCtrl:infoAt( tableName, path, line, column )
    return info
 end
 
-function DBCtrl:getNsInfoAt( path, line, column, fileContents )
-   local declInfo = self:infoAt( "symbolDecl", path, line, column )
-   local refInfo = self:infoAt( "symbolRef", path, line, column )
+function DBCtrl:getNsInfoAt( fileInfo, line, column, fileContents )
+   if not fileInfo then
+      return nil
+   end
+   local declInfo = self:infoAt( "symbolDecl", fileInfo.id, line, column )
+   local refInfo = self:infoAt( "symbolRef", fileInfo.id, line, column )
    log( 2, declInfo and declInfo.nsId, refInfo and refInfo.nsId )
    if not declInfo and not refInfo then
       return nil
@@ -1874,7 +1931,8 @@ function DBCtrl:getNsInfoAt( path, line, column, fileContents )
    elseif declInfo.charSize > refInfo.charSize then
       nsId = refInfo.nsId
    else
-      local token = Util:getToken( path, line, column, fileContents )
+      local token = Util:getToken(
+	 self:getSystemPath( fileInfo.path ), line, column, fileContents )
       log( 2, "token", token )
       if self:getSimpleName( declInfo.snameId ).name == token then
 	 nsId = declInfo.nsId
@@ -1910,7 +1968,7 @@ end
 
 function DBCtrl:dumpFile( level, path )
    log( level, "-- table filePath -- " )
-   log( level, "id", "incFlag", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
+   log( level, "id", "incFlag", "skip", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
 
    local condition
@@ -1924,7 +1982,7 @@ function DBCtrl:dumpFile( level, path )
    self:mapRowList(
       "filePath", condition, nil, nil,
       function( row ) 
-	 log( level, row.id, row.incFlag,
+	 log( level, row.id, row.incFlag, row.invalidSkip == 0 and 'o' or 'x',
 	      row.updateTime, row.digest, row.path, row.currentDir )
 	 return true
       end
@@ -1950,6 +2008,54 @@ function DBCtrl:dumpIncCache( level, path )
 	 local incFileInfo = self:getFileInfo( row.id )
 	 log( level, row.baseFileId, row.id, row.incFlag, 
 	      baseFileInfo.path, incFileInfo.path )
+	 return true
+      end
+   )
+end
+
+function DBCtrl:dumpTokenDigest( level, path )
+   log( level, "-- table tokenDigest -- " )
+   log( level, "incFile", "digest" )
+
+   local condition
+   if path then
+      local fileInfo = self:getFileInfo( nil, path )
+      if not fileInfo then
+	 return
+      end
+      condition = "fileId = " .. tostring( fileInfo.id )
+   end
+   
+   self:mapRowList(
+      "tokenDigest", condition, nil, nil,
+      function( row ) 
+	 local fileInfo = self:getFileInfo( row.fileId )
+	 log( level, row.fileId, row.digest, fileInfo.path )
+	 return true
+      end
+   )
+end
+
+
+function DBCtrl:dumpPreproDigest( level, path )
+   log( level, "-- table preproDigest -- " )
+   log( level, "incFile", "nsId", "digest", "path", "ns" )
+
+   local condition
+   if path then
+      local fileInfo = self:getFileInfo( nil, path )
+      if not fileInfo then
+	 return
+      end
+      condition = "fileId = " .. tostring( fileInfo.id )
+   end
+   
+   self:mapRowList(
+      "preproDigest", condition, nil, nil,
+      function( row )
+	 local fileInfo = self:getFileInfo( row.fileId )
+	 local nsInfo = self:getNamespace( row.nsId )
+	 log( level, row.fileId, nsInfo.id, row.digest, fileInfo.path, nsInfo.name )
 	 return true
       end
    )
@@ -2068,16 +2174,9 @@ function DBCtrl:dump( level )
       end
    )
 
-   log( level, "-- table tokenDigest -- " )
-   log( level, "incFile", "digest" )
-   self:mapRowList(
-      "tokenDigest", nil, nil, nil,
-      function( row ) 
-	 local fileInfo = self:getFileInfo( row.fileId )
-	 log( level, row.fileId, row.digest, fileInfo.path )
-	 return true
-      end
-   )
+   self:dumpTokenDigest( level )
+
+   self:dumpPreproDigest( level )
    
    log( level, "-- table end -- " )
 end

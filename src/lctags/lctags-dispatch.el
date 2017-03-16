@@ -43,7 +43,9 @@
   (set-window-configuration lctags-dispatch-prev-window-conf)
   (kill-buffer (get-buffer lctags-dispatch-buf-name))
   (when action
-    (funcall action param))
+    (if param
+	(funcall action param)
+      (funcall action)))
   )
 
 (defun lctags-dispatch-build-keymap (menu-info)

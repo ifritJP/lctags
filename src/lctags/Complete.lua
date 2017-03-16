@@ -592,7 +592,9 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
       db:mapDecl(
 	 nsInfo.id,
 	 function( item )
-	    log( 3, "decl", nsInfo.id, item.fileId, nsInfo.name )
+	    local fileInfo = db:getFileInfo( item.fileId )
+	    log( 3, "decl", nsInfo.id, item.fileId, nsInfo.name, fileInfo.path )
+
 	    if incFileIdSet[ item.fileId ] then
 	       local fileInfo = db:getFileInfo( item.fileId )
 	       local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )

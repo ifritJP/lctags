@@ -64,10 +64,10 @@ local function calcDigest( cursor, spInfo )
 end
 
 local targetKindList = {
-   clang.core.CXCursor_MacroDefinition,
-   clang.core.CXCursor_MacroExpansion,
+   -- clang.core.CXCursor_MacroDefinition,
+   -- clang.core.CXCursor_MacroExpansion,
+   -- clang.core.CXCursor_InclusionDirective,
    clang.core.CXCursor_UnexposedDecl,
-   clang.core.CXCursor_InclusionDirective,
    clang.core.CXCursor_Namespace,
    clang.core.CXCursor_ClassDecl,
    clang.core.CXCursor_StructDecl,
@@ -111,8 +111,8 @@ local targetKindPreproList = {
 local function checkChangeFile( analyzer, cursor )
    local uptodateFlag
    
-   
    local cxfile, line = getFileLoc( cursor )
+
    if analyzer.currentFile ~= cxfile and
       ( not analyzer.currentFile or not cxfile or
 	   not analyzer.currentFile:isEqual( cxfile ) )
@@ -122,9 +122,11 @@ local function checkChangeFile( analyzer, cursor )
 	 path = DBCtrl:convFullpath( cxfile:getFileName(), analyzer.currentDir )
       end
 
-      table.insert(
-	 analyzer.incBelongList,
-	 { cxfile = cxfile, namespace = analyzer:getNowNs() } )
+      if not analyzer.checkPreproFlag then
+	 table.insert(
+	    analyzer.incBelongList,
+	    { cxfile = cxfile, namespace = analyzer:getNowNs() } )
+      end
 
       analyzer.currentFile = cxfile
       local spInfo = analyzer.path2InfoMap[ path ]
@@ -152,7 +154,8 @@ local function visitFuncNsInc( cursor, parent, analyzer, exInfo )
 
    dumpCursorInfo( cursor, 1, "visitFuncNsInc:", cursorOffset )
 
-   if exInfo[ 1 ] then
+   if exInfo[ 1 ] or analyzer.returnVisit then
+      analyzer.returnVisit = false
       checkChangeFile( analyzer, cursor )
    end
 
@@ -194,13 +197,13 @@ local function visitFuncNsInc( cursor, parent, analyzer, exInfo )
    if isNamespaceDecl( cursorKind ) then
       analyzer.depth = analyzer.depth + 1
 
-      table.insert( analyzer.namespaceList,
-		    { cursor = cursor, spInfo = analyzer.currentSpInfo } )
+      table.insert( analyzer.namespaceList, cursor )
       
       clang.visitChildrenFast2(
 	 cursor, visitFuncNsInc, analyzer,
 	 targetKindPreproList, targetKindNsList, { analyzer.targetFile }, 1 )
-      
+      analyzer.returnVisit = true
+
       analyzer.depth = analyzer.depth - 1
    end
 
@@ -215,7 +218,8 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 
    dumpCursorInfo( cursor, analyzer.depth, nil, cursorOffset )
    
-   if exInfo[ 1 ] then
+   if exInfo[ 1 ] or analyzer.returnVisit then
+      analyzer.returnVisit = false
       uptodateFlag = checkChangeFile( analyzer, cursor )
    end
 
@@ -236,7 +240,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       analyzer:registCursor( cursor )
    end
 
-   ---[[
+   --[[
    if cursorKind == clang.core.CXCursor_InclusionDirective then
       local cxfile = cursor:getIncludedFile()
       local path = ""
@@ -291,7 +295,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       local declCursor = clang.getDeclCursorFromType(
 	 cursor:getCursorType():getResultType() )
       analyzer:addTypeRef( cursor, declCursor )
-      ---[[
+      --[[
    elseif cursorKind == clang.core.CXCursor_MacroDefinition then
       table.insert( analyzer.macroDefList, cursor )
       calcDigestTxt( cursorOffset, analyzer.currentSpInfo )
@@ -407,6 +411,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 
 	 clang.visitChildrenFast(
 	    cursor, visitFuncMain, analyzer, targetKindList, switchFlag and 2 or 1 )
+	 analyzer.returnVisit = true
 
 	 if switchFlag then
 	    analyzer.recursiveBaseKind = clang.core.CXCursor_InvalidFile
@@ -510,15 +515,28 @@ end
 
 function Analyzer:enterNs( cursor, cursorKind )
    local nsObj = { cursor = cursor, memberList = {} }
+   if #self.nsLevelList > 0 then
+      nsObj.parentNs = self.nsLevelList[ #self.nsLevelList ].cursor
+   end
+   
    if cursorKind == clang.core.CXCursor_StructDecl or
       cursorKind == clang.core.CXCursor_UnionDecl or
       cursorKind == clang.core.CXCursor_EnumDecl
    then
       nsObj.digestObj = Helper.openDigest( "md5" )
    end
-   table.insert( self.nsLevelList, nsObj )
    self.hash2NsObj[ cursor:hashCursor() ] = nsObj
+   table.insert( self.nsLevelList, nsObj )
 end
+
+function Analyzer:exitNs()
+   local nsObj = self.nsLevelList[ #self.nsLevelList ]
+   if nsObj.digestObj then
+      nsObj.fixDigest = nsObj.digestObj:fix()
+   end
+   table.remove( self.nsLevelList )
+end
+
 
 function Analyzer:addTypeRef( cursor, declCursor )
    local declKind = declCursor:getCursorKind() 
@@ -559,15 +577,6 @@ function Analyzer:addMember( cursor, cursorKind, cursorOffset )
       end
    end
 end
-
-function Analyzer:exitNs()
-   local nsObj = self.nsLevelList[ #self.nsLevelList ]
-   table.remove( self.nsLevelList )
-   if nsObj.digestObj then
-      nsObj.fixDigest = nsObj.digestObj:fix()
-   end
-end
-
 
 function Analyzer:createSpInfo( path, uptodateFlag, cxfile )
    local spInfo = {}
@@ -773,31 +782,97 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    self.currentFile = self.targetFile
 
 
-   -- self.depth = 0
-   -- clang.visitChildrenFast2(
-   --    root, visitFuncNsInc, self,
-   --    targetKindPreproList, targetKindNsList, { self.targetFile }, 1 )
-
-   -- local targetFileList = {}
-   -- local db = db:openDBForReadOnly()
-   -- for index, namespace in ipairs( self.namespaceList ) do
-   --    local cursor = namespace.cursor
-   --    local spInfo = namespace.spInfo
-   --    spInfo.fixDigest = spInfo.digest:fix()
-   --    print( "namespace:", cursor:getCursorSpelling(), spInfo.fixDigest )
-   --    local startInfo, endInfo = :getRangeFromCursor( cursor )
-   --    spInfo.digest = Helper.openDigest( "md5" )
-   --    spInfo.digest:write( spInfo.fixDigest )
-
-   -- end
-
-   
-
-   -- os.exit( 0 )
-   
-   log( 2, "visitChildren", os.clock(), os.date() )
+   log( 2, "checkPrepro", os.clock(), os.date() )
    self.depth = 0
-   clang.visitChildrenFast( root, visitFuncMain, self, targetKindList, 1 )
+   self.checkPreproFlag = true
+   clang.visitChildrenFast2(
+      root, visitFuncNsInc, self,
+      targetKindPreproList, targetKindNsList, { self.targetFile }, 1 )
+   self.checkPreproFlag = false
+
+   
+
+   -- 解析対象の cxfile リスト
+   local targetFileList = { self.targetFile }
+   
+   local preproDigestList = {}
+   local db = self:openDBForReadOnly()
+
+   for path, spInfo in pairs( self.path2InfoMap ) do
+      spInfo.fixPreproDigest = spInfo.digest:fix()
+      spInfo.digest = Helper.openDigest( "md5" )
+      spInfo.digest:write( spInfo.fixPreproDigest )
+   end
+
+   -- インクルードファイルの prepro digest を確認して、解析済みかどうか確認する。
+   -- 解析済みでなければ targetFileList に入れて解析対象にする
+   local incFilePathSet = {}
+   for incIndex, inclusion in ipairs( self.incList ) do
+      local incFile = inclusion:getIncludedFile()
+      local incFullPath = ""
+      if incFile then
+	 incFullPath = DBCtrl:convFullpath( incFile:getFileName(), self.currentDir )
+      end
+      local fileInfo = db:getFileInfo( nil, incFullPath )
+      if fileInfo and fileInfo.invalidSkip ~= 0 then
+	 table.insert( targetFileList, incFile )
+	 log( 2, "This file has invalidSkip", incFullPath )
+      else
+	 local cxfile, line, column, offset = clang.getCursorLocation( inclusion )
+
+	 local spInfo = self.path2InfoMap[ incFullPath ]
+	 
+	 local belongNsName = ""
+	 for index, cursor in ipairs( self.namespaceList ) do
+	    local nsList, fullname = clang.getNamespaceList( cursor, true )
+
+	    local startInfo, endInfo = db:getRangeFromCursor( cursor )
+	    if startInfo[ 1 ]:isEqual( cxfile ) and startInfo[ 4 ] <= offset and
+	       endInfo[ 1 ]:isEqual( cxfile ) and endInfo[ 4 ] >= offset
+	    then
+	       log( 2, "find include in namespace", inclusion:getCursorSpelling() )
+	       log( cursor:getCursorSpelling(), spInfo.fixPreproDigest,
+		    fullname, nsInfo and nsInfo.id or "none" )
+
+	       belongNsName = fullname
+	       break
+	    end
+	 end
+
+	 local nsInfo = db:getNamespace( nil, belongNsName )
+	 local alreadyFlag = false
+	 if nsInfo and fileInfo then
+	    log( 3, "check prepro", nsInfo.name, fileInfo.path, spInfo.fixPreproDigest )
+	    if db:existsPrepro( fileInfo.id, nsInfo.id, spInfo.fixPreproDigest ) and
+	       fileInfo.id ~= systemFileId
+	    then
+	       local modTime = Helper.getFileModTime( incFullPath )
+	       if fileInfo.updateTime >= modTime then
+		  alreadyFlag = true
+		  log( 3, "already analyzed", fileInfo.path )
+	       end
+	    end
+	 end
+	 if not alreadyFlag then
+	    if not incFilePathSet[ incFullPath ] then
+	       incFilePathSet[ incFullPath ] = 1
+	       table.insert( targetFileList, incFile )
+	    end
+	    table.insert( preproDigestList,
+			  { fullPath = incFullPath, nsName = belongNsName,
+			    digest = spInfo.fixPreproDigest } )
+	 end
+      end
+   end
+
+   db:close()
+
+
+   log( 2, "visitChildren", #targetFileList, #self.incList, os.clock(), os.date() )
+   self.depth = 0
+   clang.visitChildrenFast2(
+      root, visitFuncMain, self,
+      { clang.core.CXCursor_Namespace }, targetKindList, targetFileList,  1 )
    log( 2, "visitChildren end", os.clock(), os.date() )
 
    local db = self:openDBForWrite()
@@ -849,6 +924,11 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       local spInfo = self.path2InfoMap[ path ]
       spInfo.fileInfo = db:addInclude(
 	 inclusion, spInfo.fixDigest, fileId2IncFileInfoListMap )
+   end
+
+   log( 2, "-- prepro -- ", os.clock(), os.date() )
+   for index, prepro in ipairs( preproDigestList ) do
+      db:addPrepro( prepro.fullPath, prepro.nsName, prepro.digest )
    end
 
 
@@ -1061,7 +1141,7 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
    end
    log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
 
-   local compDir = db:getSystemPath( ( fileInfo.currentDir ) )
+   local compDir = db:getSystemPath( fileInfo.currentDir )
    
    db:close()
 
@@ -1075,6 +1155,11 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
       os.exit( 0 )
    end
 
+
+   local analyzer = self:newAs(
+      self.recordDigestSrcFlag, self.displayDiagnostics, compDir )
+   analyzer.targetFilePath = targetFullPath
+   
    local args = clang.mkCharArray( optionList )
    local unsavedFileTable
    if fileContents then
@@ -1085,9 +1170,9 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
       unsavedFile.Length = #unsavedFile.Contents
       table.insert( unsavedFileTable, unsavedFile )
    end
-
+   
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
-   local unit = self.clangIndex:createTranslationUnitFromSourceFile(
+   local unit = analyzer.clangIndex:createTranslationUnitFromSourceFile(
       targetFullPath, args:getLength(), args:getPtr(),
       unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
 
@@ -1095,10 +1180,6 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
    for index, option in ipairs( optionList ) do
       compileOp = compileOp .. option .. " "
    end
-
-   local analyzer = self:newAs(
-      self.recordDigestSrcFlag, self.displayDiagnostics, compDir )
-   analyzer.targetFilePath = targetFullPath
 
    if checkUptodateFlag then
       if analyzer:isUptodate( targetFullPath, nil, target ) then
@@ -1201,7 +1282,7 @@ function Analyzer:queryAtFunc(
    
    if fileInfo.incFlag == 1 then
       -- ヘッダの場合は解析せずに DB 登録されている情報を使用する
-      local nsInfo = db:getNsInfoAt( filePath, line, column, fileContents )
+      local nsInfo = db:getNsInfoAt( fileInfo, line, column, fileContents )
       if nsInfo then
 	 func( db, fileInfo.id, nsInfo, nil )
       else

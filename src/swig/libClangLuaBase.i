@@ -84,7 +84,6 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 	  for ( index = 0; pKindArray[ index ] != CXCursor_InvalidFile; index++ ) {
 	    if ( cursor.kind == pKindArray[ index ] ) {
 	      findFlag = 1;
-	      printf( "kind = %d\n", pKindArray[ index ] );
 	      break;
 	    }
 	  }
@@ -114,7 +113,6 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 	if ( findFlag ) {
 	  int equalsPrevFileFlag = clang_File_isEqual( prevFile, cxfile );
 	  prevFile = cxfile;
-      
       
 	  lua_pushinteger( pLua, LUA_LEN( pLua, -1 ) + 1 );
 	  lua_createtable( pLua, 2, 0 );
