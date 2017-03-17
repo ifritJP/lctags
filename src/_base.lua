@@ -8,8 +8,8 @@ if _VERSION == "Lua 5.1" then
    table.pack = function( ... )
       return { ... }
    end
-   table.unpack = function( list )
-      return unpack( list )
+   table.unpack = function( ... )
+      return unpack( ... )
    end
 end
 
@@ -168,6 +168,7 @@ libs.getNamespaceList = function( cursor, includeCurrent, cursorHash2NSFunc )
 	 break
       end
       if cursorKind == libclangcore.CXCursor_ClassDecl or
+	 cursorKind == libclangcore.CXCursor_ClassTemplate or
 	 cursorKind == libclangcore.CXCursor_StructDecl or
 	 cursorKind == libclangcore.CXCursor_UnionDecl or
 	 cursorKind == libclangcore.CXCursor_Namespace or

@@ -19,7 +19,8 @@ clean:
 	rm -f Helper.so Helper
 
 install:
-	sed "s/lua5.3/$(LUA_COMMAND)/g" lctags > $(INST_DIR)/lctags
+	sed "s@lua5.3@$(LUA_COMMAND)@g" lctags | \
+		sed 's@$${DIR}@'"$(LUA_MOD_DIR)/lctags@g" > $(INST_DIR)/lctags
 	chmod +x $(INST_DIR)/lctags
 
 uninstall:

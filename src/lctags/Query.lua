@@ -12,12 +12,20 @@ local Query = {}
 
 function Query:execWithDb( db, query, target )
    local absFlag = query:find( "a" )
-   if query == "dump" then
+   if query == "dumpAll" then
       db:dump( 1, target )
-   elseif query == "dumpComp" then
-      db:dumpCompieOp( 1, target )
+   elseif query == "dumpTarget" then
+      db:dumpTargetInfo( 1, target )
    elseif query == "dumpFile" then
       db:dumpFile( 1, target )
+   elseif query == "dumpRef" then
+      db:dumpSymbolRef( 1, target )
+   elseif query == "dumpDef" then
+      db:dumpSymbolDecl( 1, target )
+   elseif query == "dumpCall" then
+      db:dumpCall( 1, target )
+   elseif query == "dumpInc" then
+      db:dumpIncCache( 1, target )
    elseif query:find( "P" ) then
       db:mapFile(
 	 target and string.format( "path like '%%%s%%'", target ),
@@ -76,6 +84,22 @@ function Query:execWithDb( db, query, target )
 
       db:mapDeclInfoList(
 	 target,
+	 function( item )
+	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    return true
+	 end
+      )
+   elseif query:find( "C" ) then
+      if not target then
+	 return false
+      end
+
+      local nsInfo = db:getNamespace( nil, target )
+      if not nsInfo then
+	 return false
+      end
+      db:mapCall(
+	 "nsId = " .. tostring( nsInfo.id ),
 	 function( item )
 	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true

@@ -20,7 +20,8 @@ local function visitFuncMain( cursor, parent, exInfo )
    	     "%s %s %s(%d)",
    	     string.rep( " ", exInfo.depth ), txt, 
    	     clang.getCursorKindSpelling( cursorKind ), cursorKind ),
-	  cursor:hashCursor() )
+	  cursor:hashCursor(),
+	  cxfile and cxfile:getFileName(), line, column, os.clock() )
    return 2
    
    -- local cursorKind = cursor:getCursorKind()
@@ -164,27 +165,87 @@ end
 local function dumpCursor( clangIndex, path, options, unsavedFileTable )
    local args = clang.mkcharPArray( options )
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
-   local transUnit = clangIndex:createTranslationUnitFromSourceFile(
-      path, args:getLength(), args:getPtr(),
-      unsavedFileArray:getLength(), unsavedFileArray:getPtr() );
+   print( "createTranslationUnitFromSourceFile start", os.clock() )
+
+   local unitArray = clang.mkCXTranslationUnitArray( nil, 1 )
+   local code = clangIndex:parseTranslationUnit2(
+      path, args:getPtr(), args:getLength(),
+      unsavedFileArray:getPtr(), unsavedFileArray:getLength(),
+      clang.core.CXTranslationUnit_ForSerialization +
+	 clang.core.CXTranslationUnit_DetailedPreprocessingRecord,
+      unitArray:getPtr() )
+
+   if code ~= clang.core.CXError_Success then
+      print( "failed to parseTranslationUnit2", code, clang.core.CXError_Success )
+      os.exit( 1 )
+   end
+
+   local transUnit = clang.CXTranslationUnit:new( unitArray:getItem( 0 ) )
+   
+   print( "createTranslationUnitFromSourceFile end", os.clock() )
 
    dumpCursorTU( transUnit )
 end
 
+-- for key, val in pairs( clang.core ) do
+--    print( key, val )
+-- end
+
 local clangIndex = clang.createIndex( 0, 1 )
 
-useFastFlag = 2
+-- if arg[ 1 ] then
+--    local optList = { "-M" }
+--    for index, opt in ipairs( arg ) do
+--       table.insert( optList, opt )
+--    end
+--    dumpCursor( clangIndex, "test/hoge.cpp", optList, nil )
+
+--    os.exit( 1 )
+-- end
+
+-- print( string.format( "%s %s %s %s", arg[-1], arg[0], "-Itest",
+-- 		      "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include" ) )
+
+-- local pipe = io.popen(
+--    string.format( "%s %s %s %s", arg[-1], arg[0], "-Itest",
+-- 		  "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include" ) )
+-- while true do
+--    local txt = pipe:read( '*l' )
+--    if not txt then
+--       break
+--    end
+--    for path in string.gmatch( txt, "[^%s\\]+" ) do
+--       if not string.find( path, ":$" ) then
+-- 	 print( "file", path )
+--       end
+--    end
+-- end
+
+useFastFlag = 1
 -- print( "start", os.clock() )
 -- dumpCursor( clangIndex, "../external/luasqlite3/lsqlite3_fsl09x/sqlite3.c", { "-Itest" } )
 -- print( "end", os.clock() )
 
 print( "start", os.clock() )
-dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
+-- dumpCursor( clangIndex, "test/inc1.cpp", { "-Itest", "-std=c++11", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include", "-include-pch", "field.pch" } )
+-- dumpCursor( clangIndex, "test/inc1.cpp", { "-Itest", "-std=c++11", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include", "-include-pch", "inc1.pch" } )
+dumpCursor( clangIndex, "test/inc1.cpp",
+	    { "-Itest", "-std=c++1z", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include",
+	      --"-include-pch", "inc1.h.pch", "-include-pch", "inc2.h.pch" } )
+	      --"-include-pch", "inc2.h.pch" } )
+	      "-include-pch", ".lctags/pch/@/proj/test/inc1.h.pch" } )
+	    --})
 print( "end", os.clock() )
 
--- useFastFlag = true
+
 -- print( "start", os.clock() )
--- dumpCursor( clangIndex, "test/hoge.cpp", { "-Itest" } )
+-- dumpCursor( clangIndex, "test/class.cpp", { "-Itest", "-std=c++11", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include", "-include-pch", "string.pch" } )
+-- print( "end", os.clock() )
+
+-- useFastFlag = 1
+-- print( "start", os.clock() )
+-- dumpCursor( clangIndex, "test/hoge.cpp",
+-- 	    { "-Itest", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include" } )
 -- print( "end", os.clock() )
 
 -- -- print( "start", os.clock() )

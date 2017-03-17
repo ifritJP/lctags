@@ -2,8 +2,10 @@
 
 local displayLevel = 1
 local prefix = ""
-local log = function( level, ... )
 
+local LogCtrl = {}
+
+LogCtrl.log = function( level, ... )
    local logLevel = level
    local param = { ... }
    
@@ -29,10 +31,21 @@ local log = function( level, ... )
    if logLevel > displayLevel then
       return
    end
-   if prefix ~= "" then
-      print( prefix, logLevel, table.unpack( param ) )
+   if #param == 1 and type( param[ 1 ] ) == "function" then
+      LogCtrl.raw( logLevel, param[ 1 ]() )
    else
-      print( logLevel, table.unpack( param ) )
+      LogCtrl.raw( logLevel, table.unpack( param ) )
+   end
+end
+
+LogCtrl.raw = function( logLevel, ... )
+   if logLevel > displayLevel then
+      return
+   end
+   if prefix ~= "" then
+      print( prefix, logLevel, ... )
+   else
+      print( logLevel, ... )
    end
    if logLevel == -2 then
       local debugInfo = debug.getinfo( 2 )
@@ -49,9 +62,8 @@ local log = function( level, ... )
 	     "\n", debugInfo6.short_src, debugInfo6.currentline )
    end
 end
---[[
-log = function( ... )
-end
---]]
 
-return log
+
+setmetatable( LogCtrl, { __call = function( func, ... ) return LogCtrl.log( ... ) end  } )
+
+return LogCtrl

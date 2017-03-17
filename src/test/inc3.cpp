@@ -1,3 +1,3 @@
-namespace inc1 {
+namespace INC1 {
 #include "inc2.h"
 }

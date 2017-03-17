@@ -7,6 +7,7 @@ local Helper = require( 'lctags.Helper' )
 local DBAccess = require( 'lctags.DBAccess' )
 local Util = require( 'lctags.Util' )
 local Query = require( 'lctags.Query' )
+local Option = require( 'lctags.Option' )
 
 local function getFileLocation( cursor )
    local location = cursor:getCursorLocation()
@@ -23,6 +24,7 @@ local DBCtrl = {
    rootNsId = rootNsId,
    userNsId = userNsId,
    systemFileId = systemFileId,
+   projDirPrefix = '|',
 }
 
 function convProjPath( projDir, currentDir )
@@ -50,6 +52,7 @@ function newObj( db, currentDir )
       name2snameInfoMap = {},
       -- path -> converted path マップ
       convPathCache = {},
+      -- 解析対象のソースファイル情報
       targetFileInfo = nil,
       -- true の場合、同名の構造体情報を個々に扱う
       individualStructFlag = false,
@@ -60,6 +63,10 @@ function newObj( db, currentDir )
       getFileInfoFromCursor = function() return nil end
    }
    setmetatable( obj, { __index = DBCtrl } )
+
+   if dbPath then
+      obj.dbPath = obj:getFullname( dbPath )
+   end
    
    return obj
 end
@@ -98,17 +105,16 @@ function DBCtrl:init(
    return true
 end
 
-function DBCtrl:forceUpdate( path )
-   local db = DBAccess:open( path, false )
+function DBCtrl:forceUpdate( dbPath )
+   local db = DBAccess:open( dbPath, false )
    if not db then
       log( 1, "open error." )
       return false
    end
 
-   local obj = {
-      db = db,
-   }
-   setmetatable( obj, { __index = DBCtrl } )
+   
+   
+   local obj = newObj( db, currentDir )
 
    obj:update( "filePath", "updateTime = 0", "incFlag = 0" )
 
@@ -136,22 +142,8 @@ function DBCtrl:calcFileDigest( path )
    if path == "" then
       return ""
    end
-   local fileHandle = io.open( path, "r" )
-   if not fileHandle then
-      log( 1, "file open error", path )
-      return nil
-   end
-   local text = fileHandle:read( "*a" )
-   fileHandle:close()
-   return self:calcTextDigest( text )
+   return Util:calcFileDigest( path )
 end
-
-function DBCtrl:calcTextDigest( text )
-   local digestObj = Helper.openDigest( "md5" )
-   digestObj:write( text )
-   return digestObj:fix()
-end
-
 
 function DBCtrl:setProjDir( dbPath, projDir )
    projDir = self:convFullpath( convProjPath( projDir, self.currentDir ) )
@@ -323,6 +315,9 @@ function DBCtrl:shrinkDB( path, full )
    return true
 end
 
+function DBCtrl:getMiscPath()
+   return string.gsub( self.dbPath, "/[^/]+$", "/.lctags" )
+end
 
 function DBCtrl:open( path, readonly, currentDir )
    if not currentDir then
@@ -369,6 +364,8 @@ function DBCtrl:open( path, readonly, currentDir )
    else
       obj.projDir = projDirInfo.val
    end
+
+   obj.dbPath = obj:convFullpath( path )
 
    return obj
 end
@@ -439,7 +436,7 @@ function DBCtrl:commit()
 	 self:insert( insert[ 1 ], val )
       end
       log( 2, "merge end:", os.clock(), os.date() )
-      self.db:commit()
+     self.db:commit()
    else
       self.db:commit()
    end
@@ -469,7 +466,7 @@ CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE bi
 CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary, invalidSkip INTEGER);
 INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '', 1 );
 
-CREATE TABLE compileOp ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary );
+CREATE TABLE targetInfo ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary, hasPch INTEGER, PRIMARY KEY ( fileId, target, compOp ) );
 CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, PRIMARY KEY( nsId, fileId, line ) );
 INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '' );
 
@@ -477,13 +474,13 @@ CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INT
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize, PRIMARY KEY( nsId, belongNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
-CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER );
+CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER, PRIMARY KEY ( id, nsId ) );
 CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
 CREATE TABLE preproDigest ( fileId INTEGER, nsId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, nsId, digest ) );
 CREATE INDEX index_ns ON namespace ( id, parentId, snameId, name, otherName );
 CREATE INDEX index_sName ON simpleName ( id, name );
 CREATE INDEX index_filePath ON filePath ( id, path );
-CREATE INDEX index_compOp ON compileOp ( fileId );
+CREATE INDEX index_target ON targetInfo ( fileId );
 CREATE INDEX index_symDecl ON symbolDecl ( nsId, parentId, snameId, fileId );
 CREATE INDEX index_symRef ON symbolRef ( nsId, snameId, fileId, belongNsId );
 CREATE INDEX index_incRef ON incRef ( id, baseFileId );
@@ -497,6 +494,10 @@ end
 
 function DBCtrl:setFuncToGetFileInfoFromCursor( func )
    self.getFileInfoFromCursor = func
+end
+
+function DBCtrl:setFuncToGetRangeCursor( func )
+   self.getRangeCursor = func
 end
 
 function DBCtrl:updateFile( fileInfo, removeFlag )
@@ -525,6 +526,7 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
       self:delete( "incRef", string.format( "id = %d", fileId ) )
       self:delete( "incCache", string.format( "id = %d", fileId ) )
       self:delete( "incBelong", string.format( "id = %d", fileId ) )
+      self:delete( "targetInfo", string.format( "fileId = %d", fileId ) )
       self.path2fileInfoMap[ fileInfo.path ] = nil
       self.fileId2fileInfoMap[ fileId ] = nil
    end
@@ -533,7 +535,18 @@ end
 
 
 function DBCtrl:getFileIdLocation( cursor )
-   local cxfile, line, column = getFileLocation( cursor )
+   local cxfile, line, column
+   if self.getRangeCursor then
+      local startInfo, endInfo = self:getRangeCursor( cursor )
+      if startInfo then
+   	 cxfile = startInfo[ 1 ]
+   	 line = startInfo[ 2 ]
+   	 column = startInfo[ 3 ]
+      end
+   end
+   if not line then
+      cxfile, line, column = getFileLocation( cursor )
+   end
    if not cxfile then
       return systemFileId, line, column
    end
@@ -590,7 +603,8 @@ function DBCtrl:getNamespace( id, canonicalName )
    if id then
       return self:getRow( "namespace", string.format( "id == %d", id ) )
    end
-   return self:getRow( "namespace", "name == '" .. canonicalName .. "'" )
+   return self:getRow(
+      "namespace", string.format( "name == '%s'", canonicalName ) )
 end
 
 function DBCtrl:getSimpleName( id, name )
@@ -620,7 +634,7 @@ function DBCtrl:equalsCompOp( fileInfo, compileOp, target )
 				 fileInfo.id, compileOp )
    end
    
-   local targetInfo = self:getRow( "compileOp", condition )
+   local targetInfo = self:getRow( "targetInfo", condition )
    if not targetInfo then
       log( 2, "not found compileOp:", fileInfo.id, target or "nil" )
       return nil
@@ -639,23 +653,24 @@ end
 
 function DBCtrl:updateCompileOp( fileInfo, target, compileOp )
    self:update(
-      "compileOp", "compOp = '" .. compileOp .. "'",
+      "targetInfo", "compOp = '" .. compileOp .. "'",
       string.format( "fileId = %d AND target = '%s'",
 		     fileInfo.id, target ) )
 end
 
-function DBCtrl:insertCompileOP( fileId, target, compileOp )
+function DBCtrl:insertTargetInfo( fileId, target, compileOp, hasPchFlag )
    if not target then
       target = ""
    end
    self:insert(
-      "compileOp",
-      string.format( "%d, '%s', '%s'", fileId, target, compileOp ) )
+      "targetInfo",
+      string.format( "%d, '%s', '%s', %d",
+		     fileId, target, compileOp, hasPchFlag and 1 or 0 ) )
 end
       
 
-function DBCtrl:addFile(
-      filePath, time, digest, compileOp, currentDir, isTarget, target )
+function DBCtrl:addFile( filePath, time, digest, compileOp,
+			 currentDir, isTarget, target, hasPchFlag )
    if not compileOp then
       compileOp = ""
    end
@@ -672,15 +687,19 @@ function DBCtrl:addFile(
       if fileInfo.id == systemFileId then
 	 return fileInfo
       end
+
       if isTarget then
 	 self.targetFileInfo = fileInfo
-	 local equalsCompOpResult = self:equalsCompOp( fileInfo, compileOp, target )
-	 if equalsCompOpResult == nil then
-	    self:insertCompileOP( fileInfo.id, target, compileOp )
-	    log( 2, "new compileOp" )
-	 elseif not equalsCompOpResult then
-	    self:updateCompileOp( fileInfo, target, compileOp )
-	 else
+      end
+      local equalsCompOpResult = self:equalsCompOp( fileInfo, compileOp, target )
+      if equalsCompOpResult == nil then
+	 self:insertTargetInfo(fileInfo.id, target, compileOp, hasPchFlag )
+	 log( 2, "new target" )
+      elseif not equalsCompOpResult then
+	 self:updateCompileOp( fileInfo, target, compileOp )
+	 log( 2, "new compileOp" )
+      else
+	 if isTarget then
 	    -- コンパイルオプションが等しいので、
 	    -- コンパイルオプションを含む systemFile は uptodate
 	    local systemFIleInfo = self:getFileInfo( systemFileId, nil )
@@ -688,6 +707,7 @@ function DBCtrl:addFile(
 	    log( 2, "systemFile is uptodate" )
 	 end
       end
+
       local modTime = Helper.getFileModTime( self:getSystemPath( fileInfo.path ) )
       if modTime > fileInfo.updateTime or
 	 modTime > self.targetFileInfo.updateTime 
@@ -729,13 +749,11 @@ function DBCtrl:addFile(
    fileInfo = self:getFileInfo( nil, filePath )
 
    if isTarget then
-      self:insertCompileOP( fileInfo.id, target, compileOp )
       self:addTokenDigest( fileInfo.id, digest )
-   end
-   
-   if isTarget then
       self.targetFileInfo = fileInfo
    end
+   self:insertTargetInfo( fileInfo.id, target, compileOp, not isTarget )
+   
    return fileInfo
 end
 
@@ -779,8 +797,11 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
    local fileInfo = self:getFileInfo( fileId )
    local item = self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
 
-   log( 3, "addSymbolDecl", fileInfo.id,
-	fileInfo.uptodate, nsInfo.name, cursor:hashCursor() )
+   log( 3,
+	function()
+	   return "addSymbolDecl", fileInfo.id, fileInfo.uptodate, nsInfo.name, cursor:hashCursor()
+	end
+   )
 
    if not fileInfo.uptodate then
       self:insert(
@@ -804,6 +825,7 @@ function DBCtrl:addSimpleName( name )
    end
    self:insert( "simpleName", string.format( "NULL, '%s'", name ) )
    local item = self:getSimpleName( nil, name )
+   log( 3, "addSimpleName", name )
    return item
 end
 
@@ -816,7 +838,8 @@ function DBCtrl:addNamespaceOne(
    
    if self.writeDb ~= self.db then
       local tmpId = -#self.writeDb.nsInfoList - 1
-      local nsInfo = self:makeNsInfo( tmpId, tmpId, rootNsId, namespace, otherName )
+      local nsInfo = self:makeNsInfo(
+	 tmpId, tmpId, rootNsId, digest, namespace, otherName )
       nsInfo.simpleName = simpleName
       table.insert( self.writeDb.nsInfoList, nsInfo )
       self:addSymbolDecl( cursor, fileId, nsInfo )
@@ -865,18 +888,17 @@ function DBCtrl:addNamespace( cursor )
       return 
    end
    if fileInfo.uptodate then
-      local fullname = self:getFullname(
-	 cursor, fileInfo.id, anonymousName, typedefName )
+      local fullname = self:getFullname( cursor, fileInfo.id, "", "" )
       self.hashCursor2FullnameMap[ cursor:hashCursor() ] = fullname
       log( "update namespace:", fullname, cursor:hashCursor() )
       return
    end
-   self:addNamespaceSub( cursor, fileInfo )
+   self:addNamespaceSub( cursor, fileInfo, "", "" )
 end
 
 function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
    local spell = cursor:getCursorSpelling()
-   local simpleName = spell
+   local simpleName = string.gsub( spell, "<.+>", "" )
    local nsList = clang.getNamespaceList(
       cursor, nil,
       function( aCursor )
@@ -934,7 +956,12 @@ end
 function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typedefName )
    local spell = cursor:getCursorSpelling()
 
-   log( 3, "addNamespaceSub:", spell )
+   log( 3,
+	function()
+	   local kind = clang.getCursorKindSpelling( cursor:getCursorKind() )
+	   return "addNamespaceSub:", spell, kind
+	end
+   )
    
    local fileId = fileInfo.id
    local kind = cursor:getCursorKind()
@@ -1074,7 +1101,12 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    local structUptodate = false
 
    if not nsObj then
-      log( 2, "addEnumStructDecl: nsObj is nil", decl:getCursorSpelling() )
+      log( 2,
+	   function()
+	      local fileId, line = self:getFileIdLocation( decl )
+	      return "addEnumStructDecl: nsObj is nil", decl:getCursorSpelling(), fileInfo.path, line
+	   end
+      )
    end
 
    local hasIncFlag = self:hasInc( fileInfo, decl )
@@ -1085,21 +1117,14 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
 	 decl, fileInfo.id, anonymousName, typedefName )
       self.hashCursor2FullnameMap[ decl:hashCursor() ] = fullnameBase
    else
-      -- ファイルが変更ありか、構造体内でインクルードしている場合
-      log( 3, "addEnumStructDecl start",
-	   decl:getCursorSpelling(), typedefName, os.clock(), os.date() )
+      -- ファイルが変更されているか、構造体内でインクルードしている場合
+      log( 3,
+	   function()
+	      return "addEnumStructDecl start", decl:getCursorSpelling(), typedefName, os.clock(), os.date()
+	   end
+      )
       -- local digest = self:calcEnumStructDigest( decl, kind )
       local digest = nsObj and nsObj.fixDigest or ""
-
-      -- local parentKind = decl:getCursorSemanticParent():getCursorKind()
-      -- if nsObj.parentNs and parentKind == clang.core.CXCursor_TranslationUnit then
-      -- 	 -- 親の namespace があるはずが、 CXCursor_TranslationUnit のものは、
-      -- 	 -- ソースコード中にバグがあるので登録しない
-      -- 	 local cxfile, line, column = getFileLocation( decl )
-      -- 	 log( 1, "addEnumStructDecl: illegal struct",
-      -- 	      cxfile:getFileName(), line, column )
-      -- 	 return
-      -- end
 
       local declNs, symbolDecl
       declNs, symbolDecl, structUptodate = self:addNamespaceSub(
@@ -1160,16 +1185,6 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    log( 3, "addEnumStructDecl end", os.clock() )
 end
 
-function DBCtrl:addEnumDecl( enumDecl, anonymousName, typedefName )
-   self:addEnumStructDecl( enumDecl, anonymousName, typedefName,
-			   clang.CXCursorKind.EnumConstantDecl.val )
-end
-
-
-function DBCtrl:addStructDecl( structDecl, anonymousName, typedefName )
-   self:addEnumStructDecl( structDecl, anonymousName, typedefName,
-			   clang.CXCursorKind.FieldDecl.val )
-end
 
 function DBCtrl:getNamespaceFromCursor( cursor )
    if not cursor or cursor:getCursorKind() == clang.core.CXCursor_InvalidFile then
@@ -1214,12 +1229,19 @@ function DBCtrl:addReference( refInfo )
    local srcFileInfo = self:getFileInfo( nil, path )
    if srcFileInfo then
       if srcFileInfo.uptodate then
-	 log( 3, "uptodate ref", cursor:getCursorSpelling() )
+	 log( 3,
+	      function()
+		 return "uptodate ref", cursor:getCursorSpelling(), srcFileInfo.path
+	      end
+	 )
 	 return
       end
    else
-      log( 3, "not found fileInfo",
-	   cursor:getCursorSpelling(), cursor:hashCursor() )
+      log( 3,
+	   function()
+	      return "not found fileInfo", cursor:getCursorSpelling(), cursor:hashCursor()
+	   end
+      )
    end
 
    -- local fileId, line = self:getFileIdLocation( cursor )
@@ -1231,7 +1253,6 @@ function DBCtrl:addReference( refInfo )
    end
    local fileInfo = startInfo and self:getFileInfo( nil, filePath )
    local fileId = fileInfo and fileInfo.id or systemFileId
-   
 
    local parentNsInfo = self:getNamespaceFromCursor( refInfo.namespace )
    local nsInfo = self:getNamespaceFromCursor( declCursor )
@@ -1253,10 +1274,11 @@ function DBCtrl:addReference( refInfo )
       -- 宣言のないものはここでグローバルとして登録する
 
       local name = cursor:getCursorSpelling()
-      log( 3, "regist none decl namespace",
-	   name, declCursor:hashCursor(),
-	   clang.getCursorKindSpelling( kind ),
-	   declCursor:getCursorSpelling())
+      log( 3,
+	   function()
+	      return "regist none decl namespace", name, declCursor:hashCursor(), clang.getCursorKindSpelling( kind ), declCursor:getCursorSpelling()
+	   end
+      )
       
       nsInfo = self:addNamespaceOne(
 	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
@@ -1307,9 +1329,11 @@ function DBCtrl:addCall( cursor, namespace )
 
    local nsInfo = self:getNamespaceFromCursor( declCursor )
 
-   log( 3, "addCallDecl:", cursor:getCursorSpelling(),
-	declCursor:getCursorSpelling(),
-	clang.getCursorKindSpelling( kind ) )
+   log( 3,
+	function()
+	   return "addCallDecl:", cursor:getCursorSpelling(), declCursor:getCursorSpelling(), clang.getCursorKindSpelling( kind )
+	end
+   )
 
    if kind == clang.core.CXCursor_VarDecl or
       kind == clang.core.CXCursor_ParmDecl or
@@ -1326,9 +1350,11 @@ function DBCtrl:addCall( cursor, namespace )
       end
    end
 
-   log( 3, "addCall:", cursor:getCursorSpelling(),
-	declCursor:getCursorSpelling(),
-	clang.getCursorKindSpelling( kind ) )
+   log( 3,
+	function()
+	   return "addCall:", cursor:getCursorSpelling(), declCursor:getCursorSpelling(), clang.getCursorKindSpelling( kind )
+	end
+   )
    
    if not nsInfo then
       -- 宣言のないもの
@@ -1338,10 +1364,11 @@ function DBCtrl:addCall( cursor, namespace )
 	 return
       end
       local name = cursor:getCursorSpelling()
-      log( 3, "regist none call namespace",
-	   name, declCursor:hashCursor(),
-	   clang.getCursorKindSpelling( kind ),
-	   declCursor:getCursorSpelling())
+      log( 3,
+	   function()
+	      return "regist none call namespace", name, declCursor:hashCursor(), clang.getCursorKindSpelling( kind ), declCursor:getCursorSpelling()
+	      end
+      )
       nsInfo = self:addNamespaceOne(
 	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
    end
@@ -1471,8 +1498,11 @@ function DBCtrl:addIncBelong( incBelong )
       return
    end
    local path = incBelong.cxfile:getFileName()
-   log( 3, "incBelong:", incBelong.namespace,
-	incBelong.namespace and incBelong.namespace:getCursorSpelling(), path )
+   log( 3,
+	function()
+	   return "incBelong:", incBelong.namespace, incBelong.namespace and incBelong.namespace:getCursorSpelling(), path
+	end
+   )
 
    local fileInfo = self:getFileInfo( nil, path )
    local belongNsId
@@ -1494,6 +1524,13 @@ function DBCtrl:addIncBelong( incBelong )
 end
 
 function DBCtrl:getRangeFromCursor( cursor )
+   if self.getRangeCursor then
+      local startInfo, endInfo = self:getRangeCursor( cursor )
+      if startInfo then
+	 return startInfo, endInfo
+      end
+   end
+
    local range = cursor:getCursorExtent()
    if not range then
       return
@@ -1537,7 +1574,7 @@ function DBCtrl:hasInc( fileInfo, cursor )
 end
 
 function DBCtrl:mapSymbolInfoList( tableName, symbol, func, ... )
-   local nsInfo = self:getRow( "namespace", "otherName = '" .. symbol .. "'" )
+   local nsInfo = self:getNamespace( nil, symbol )
    if nsInfo then
       self:mapRowList(
 	 tableName,
@@ -1555,8 +1592,8 @@ function DBCtrl:mapSymbolInfoList( tableName, symbol, func, ... )
       string.format( "snameId = %d", snameInfo.id ), nil, nil, func, ... )
 end
 
-function DBCtrl:mapCompInfo( condition, func )
-   return self:mapRowList( "compileOp", condition, nil, nil, func )
+function DBCtrl:mapTargetInfo( condition, func )
+   return self:mapRowList( "targetInfo", condition, nil, nil, func )
 end
 
 
@@ -1722,7 +1759,7 @@ function DBCtrl:getSystemPath( path, baseDir )
    if cache then
       path = cache
    end
-   if path:byte( 1 ) == 124 then  -- '|' 
+   if path:byte( 1 ) == self.projDirPrefix:byte( 1 ) then
       path = self.projDir .. path:sub( 2 )
    end
 
@@ -1782,8 +1819,18 @@ function DBCtrl:convFullpath( path, currentDir )
    return path
 end
 
+function DBCtrl:isInProjFile( path )
+   if path:byte( 1 ) == self.projDirPrefix:byte( 1 ) then 
+      return true
+   end
+   if string.find( path, self.projDir, 1, true ) == 1 then
+      return true
+   end
+   return false
+end
+
 function DBCtrl:convPath( path )
-   if path:byte( 1 ) == 124 then  -- '|' 
+   if path:byte( 1 ) == self.projDirPrefix:byte( 1 ) then
       return path
    end
    local cache = self.convPathCache[ path ] 
@@ -1795,7 +1842,7 @@ function DBCtrl:convPath( path )
    path = self:convFullpath( path )
 
    if string.find( path, self.projDir, 1, true ) == 1 then
-      path = "|" .. path:sub( #self.projDir + 1 )
+      path = self.projDirPrefix .. path:sub( #self.projDir + 1 )
    end
 
    self.convPathCache[ orgPath ] = path
@@ -1864,20 +1911,21 @@ function DBCtrl:getFileOpt( filePath, target )
       target = ""
    end
    local compileOp = nil
-   local compInfo = self:mapCompInfo(
+   local compInfo = self:mapTargetInfo(
       string.format( "fileId = %d AND target = '%s'", fileInfo.id, target ),
       function( item )
 	 compileOp = item.compOp
 	 return false
       end
    )
+   
    if not compileOp then
       return fileInfo, nil
    end
 
    -- コンパイルオプション文字列を、オプション配列に変換
    local optionList = {}
-   for option in string.gmatch( compileOp, "([^ ]+)" ) do
+   for option in string.gmatch( compileOp, "([^%s]+)" ) do
       table.insert( optionList, option )
    end
 
@@ -1885,7 +1933,13 @@ function DBCtrl:getFileOpt( filePath, target )
 end
 
 
-function DBCtrl:infoAt( tableName, fileId, line, column, kind )
+function DBCtrl:infoAt( tableName, fileId, line, column, kind, sameLineFlag )
+
+   if not fileId or not line or not column then
+      log( 2, "infoAt: illegal param", fileId, line, column )
+      return nil
+   end
+   
    local info = nil
    local condition = string.format( 
       "fileId = %d AND line <= %d AND endLine >= %d", fileId, line, line )
@@ -1895,28 +1949,40 @@ function DBCtrl:infoAt( tableName, fileId, line, column, kind )
    self:mapRowList(
       tableName, condition, nil, nil,
       function( item )
-	 if ( item.line < line and item.endLine > line ) or
-	    ( item.line == line and item.column <= column or
-		 item.endLine == line and item.endColumn >= column )
+	 if item.line < line and item.endLine > line or
+	    ( item.line == line and item.endLine == line and
+		 item.column <= column and item.endColumn >= column ) or
+	    ( item.line == line and item.column <= column and item.endLine > line ) or
+	    ( item.line < line and item.endLine == line and item.endColumn >= column ) 
 	 then
-	    if not info then
-	       info = item
-	    elseif info.charSize > item.charSize then
-	       info = item
+	    if not sameLineFlag or
+	       item.line == line and item.endLine == line 
+	    then
+	       if not info then
+		  info = item
+	       elseif info.charSize > item.charSize then
+		  info = item
+	       end
 	    end
 	 end
 	 return true
       end
    )
+   if info then
+      log( 3, "infoAt", tableName, line, column, info.nsId,
+	   info.line, info.column, info.endLine, info.endColumn, info.charSize )
+   end
    return info
 end
 
-function DBCtrl:getNsInfoAt( fileInfo, line, column, fileContents )
+function DBCtrl:getNsInfoAt( fileInfo, line, column, fileContents, sameLineFlag )
    if not fileInfo then
       return nil
    end
-   local declInfo = self:infoAt( "symbolDecl", fileInfo.id, line, column )
-   local refInfo = self:infoAt( "symbolRef", fileInfo.id, line, column )
+   local declInfo = self:infoAt(
+      "symbolDecl", fileInfo.id, line, column, nil, sameLineFlag )
+   local refInfo = self:infoAt(
+      "symbolRef", fileInfo.id, line, column, nil, sameLineFlag )
    log( 2, declInfo and declInfo.nsId, refInfo and refInfo.nsId )
    if not declInfo and not refInfo then
       return nil
@@ -1943,24 +2009,34 @@ function DBCtrl:getNsInfoAt( fileInfo, line, column, fileContents )
    return self:getNamespace( nsId )
 end
 
-function DBCtrl:dumpCompieOp( level, path )
-   log( level, "-- table compileOp -- " )
-   log( level, "fileId", "target", "path", "compOp" )
 
+function DBCtrl:getFileIdCondition( path, keyName )
    local condition
    if path then
       local fileInfo = self:getFileInfo( nil, path )
       if not fileInfo then
 	 return
       end
-      condition = "fileId = " .. tostring( fileInfo.id )
-      
+      if keyName then
+	 condition = keyName .. " = "
+      else
+	 condition = "fileId = "
+      end
+      condition = condition .. tostring( fileInfo.id )
    end
+   return condition
+end
+
+function DBCtrl:dumpTargetInfo( level, path )
+   log( level, "-- table target -- " )
+   log( level, "fileId", "hasPch", "target", "path", "compOp" )
+
    self:mapRowList(
-      "compileOp", condition, nil, nil,
+      "targetInfo", self:getFileIdCondition( path ), nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
-	 log( level, row.fileId, row.target, fileInfo.path, row.compOp )
+	 log( level, row.fileId, row.hasPch,
+	      row.target, fileInfo.path, row.compOp )
 	 return true
       end
    )
@@ -1971,16 +2047,8 @@ function DBCtrl:dumpFile( level, path )
    log( level, "id", "incFlag", "skip", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
 
-   local condition
-   if path then
-      local fileInfo = self:getFileInfo( nil, path )
-      if not fileInfo then
-	 return
-      end
-      condition = "id = " .. tostring( fileInfo.id )
-   end
    self:mapRowList(
-      "filePath", condition, nil, nil,
+      "filePath", self:getFileIdCondition( path ), nil, nil,
       function( row ) 
 	 log( level, row.id, row.incFlag, row.invalidSkip == 0 and 'o' or 'x',
 	      row.updateTime, row.digest, row.path, row.currentDir )
@@ -1991,18 +2059,10 @@ end
 
 function DBCtrl:dumpIncCache( level, path )
    log( level, "-- table incCache -- " )
-   log( level, "beseFileId", "id", "incFlag", "basePath", "path" )
+   log( level, "baseFileId", "id", "incFlag", "basePath", "path" )
 
-   local condition
-   if path then
-      local fileInfo = self:getFileInfo( nil, path )
-      if not fileInfo then
-	 return
-      end
-      condition = "baseFileId = " .. tostring( fileInfo.id )
-   end
    self:mapRowList(
-      "incCache", condition, nil, nil,
+      "incCache", self:getFileIdCondition( path, "baseFileId" ), nil, nil,
       function( row )
 	 local baseFileInfo = self:getFileInfo( row.baseFileId )
 	 local incFileInfo = self:getFileInfo( row.id )
@@ -2017,17 +2077,8 @@ function DBCtrl:dumpTokenDigest( level, path )
    log( level, "-- table tokenDigest -- " )
    log( level, "incFile", "digest" )
 
-   local condition
-   if path then
-      local fileInfo = self:getFileInfo( nil, path )
-      if not fileInfo then
-	 return
-      end
-      condition = "fileId = " .. tostring( fileInfo.id )
-   end
-   
    self:mapRowList(
-      "tokenDigest", condition, nil, nil,
+      "tokenDigest", self:getFileIdCondition( path ), nil, nil,
       function( row ) 
 	 local fileInfo = self:getFileInfo( row.fileId )
 	 log( level, row.fileId, row.digest, fileInfo.path )
@@ -2041,21 +2092,66 @@ function DBCtrl:dumpPreproDigest( level, path )
    log( level, "-- table preproDigest -- " )
    log( level, "incFile", "nsId", "digest", "path", "ns" )
 
-   local condition
-   if path then
-      local fileInfo = self:getFileInfo( nil, path )
-      if not fileInfo then
-	 return
-      end
-      condition = "fileId = " .. tostring( fileInfo.id )
-   end
-   
    self:mapRowList(
-      "preproDigest", condition, nil, nil,
+      "preproDigest", self:getFileIdCondition( path ), nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
 	 local nsInfo = self:getNamespace( row.nsId )
 	 log( level, row.fileId, nsInfo.id, row.digest, fileInfo.path, nsInfo.name )
+	 return true
+      end
+   )
+end
+
+
+function DBCtrl:dumpSymbolRef( level, path )
+   log( level, "-- table symbolRef -- " )
+   log( level, "refed", "snameId", "fileId", "line", "colum",
+	"eLine", "eColumn", "belong", "belong", "callee" )
+
+   self:mapRowList(
+      "symbolRef", self:getFileIdCondition( path ), nil, nil,
+      function( row ) 
+	 local nsInfo = self:getNamespace( row.nsId )
+	 local belongNsInfo = self:getNamespace( row.belongNsId )
+	 log( level, row.nsId, row.snameId, row.fileId, row.line, row.column,
+	      row.endLine, row.endColumn, row.charSize,
+	      row.belongNsId, belongNsInfo and belongNsInfo.name or "<none>",
+	      nsInfo and nsInfo.otherName )
+	 return true
+      end
+   )
+end
+
+
+function DBCtrl:dumpSymbolDecl( level, path )
+   log( level, "-- table symbolDecl -- " )
+   log( level, "nsId", "snameId", "type", "file", "line", "column", "eLine", "eColumn", "size", "comment", "name" )
+   
+   self:mapRowList(
+      "symbolDecl", self:getFileIdCondition( path ), nil, nil,
+      function( row ) 
+	 local nsInfo = self:getNamespace( row.nsId )
+	 log( level, row.nsId, row.snameId, row.type, row.fileId,
+	      row.line, row.column, row.endLine, row.endColumn, row.charSize,
+	      row.comment, nsInfo and nsInfo.otherName )
+	 return true
+      end
+   )
+end
+
+function DBCtrl:dumpCall( level, path )
+   log( level, "-- table funcCall -- " )
+   log( level, "callee", "snameId", "caller", "fileId", "line", "CALLEE", "CALLER" )
+
+   self:mapRowList(
+      "funcCall", self:getFileIdCondition( path ), nil, nil,
+      function( row )
+	 local nsInfo = self:getNamespace( row.nsId )
+	 local belongNsInfo = self:getNamespace( row.belongNsId )
+	 log( level, row.nsId, row.snameId, row.belongNsId,
+	      row.fileId, row.line, nsInfo and nsInfo.otherName, 
+	      belongNsInfo and belongNsInfo.name or "<none>" )
 	 return true
       end
    )
@@ -2080,7 +2176,7 @@ function DBCtrl:dump( level )
 
    self:dumpFile( level, nil )
 
-   self:dumpCompieOp( level, nil )
+   self:dumpTargetInfo( level, nil )
    
    log( level, "-- table incRef -- " )
    log( level, "incFile", "file", "line" )
@@ -2116,51 +2212,12 @@ function DBCtrl:dump( level )
 	 return true
       end
    )
-   
-   log( level, "-- table symbolDecl -- " )
-   log( level, "nsId", "snameId", "type", "file", "line", "column", "eLine", "eColumn", "size", "comment", "name"  )
-   self:mapRowList(
-      "symbolDecl", nil, nil, nil,
-      function( row ) 
-	 local nsInfo = self:getNamespace( row.nsId )
-	 log( level, row.nsId, row.snameId, row.type, row.fileId,
-	      row.line, row.column, row.endLine, row.endColumn, row.charSize,
-	      row.comment, nsInfo and nsInfo.otherName )
-	 return true
-      end
-   )
-   
-   log( level, "-- table symbolRef -- " )
-   log( level, "refed", "snameId", "fileId", "line", "colum",
-	"eLine", "eColumn", "belong", "belong", "callee" )
-   self:mapRowList(
-      "symbolRef", nil, nil, nil,
-      function( row ) 
-	 local nsInfo = self:getNamespace( row.nsId )
-	 local belongNsInfo = self:getNamespace( row.belongNsId )
-	 log( level, row.nsId, row.snameId, row.fileId, row.line, row.column,
-	      row.endLine, row.endColumn, row.charSize,
-	      row.belongNsId, belongNsInfo and belongNsInfo.name or "<none>",
-	      nsInfo and nsInfo.otherName )
-	 return true
-      end
-   )
 
+   self:dumpSymbolDecl( level, nil )
 
-   log( level, "-- table funcCall -- " )
-   log( level, "callee", "snameId", "caller", "fileId", "line", "CALLEE", "CALLER" )
-   self:mapRowList(
-      "funcCall", nil, nil, nil,
-      function( row )
-	 local nsInfo = self:getNamespace( row.nsId )
-	 local belongNsInfo = self:getNamespace( row.belongNsId )
-	 log( level, row.nsId, row.snameId, row.belongNsId,
-	      row.fileId, row.line, nsInfo and nsInfo.otherName, 
-	      belongNsInfo and belongNsInfo.name or "<none>" )
-	 return true
-      end
-   )
+   self:dumpSymbolRef( level, nil )
 
+   self:dumpCall( level, nil )
    
    log( level, "-- table incBelong -- " )
    log( level, "incFile", "baseFileId", "belong", "belongNs", "file" )
@@ -2181,14 +2238,23 @@ function DBCtrl:dump( level )
    log( level, "-- table end -- " )
 end
 
-function DBCtrl:removeTarget( dbPath, target )
+function DBCtrl:remove( dbPath, mode, target )
    local obj = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
    
    if not obj then
       return false
    end
 
-   obj:delete( "compileOp", string.format( "target = '%s'", target or ""  ) )
+   if mode == "target" then
+      obj:delete( "targetInfo", string.format( "target = '%s'", target or ""  ) )
+   elseif mode == "file" then
+      local fileInfo = obj:getFileInfo( nil, target )
+      if fileInfo then
+	 obj:updateFile( fileInfo, true )
+      else
+	 log( 1, "not found", target )
+      end
+   end
 
    obj:close()
 end
@@ -2198,7 +2264,7 @@ function DBCtrl:hasTarget( fileId, target )
    if fileId then
       condition = condition .. " AND fileId = " .. tostring( fileId )
    end
-   return self:exists( "compileOp", condition )
+   return self:exists( "targetInfo", condition )
 end
 
 -- fileInfo をインクルードしているソースファイルでターゲットが target のものを1つ返す。
@@ -2239,8 +2305,11 @@ end
 
 
 function DBCtrl:mapIncludeCache( fileInfo, func )
-   self:mapRowList(
-      "incCache", "baseFileId = " .. tostring( fileInfo.id ), nil, nil, func )
+   local condition
+   if fileInfo then
+      condition = "baseFileId = " .. tostring( fileInfo.id )
+   end
+   self:mapRowList( "incCache", condition, nil, nil, func )
 end
 
 function DBCtrl:getIncludeCache( fileInfo )
@@ -2305,6 +2374,49 @@ function DBCtrl:addIncludeCacheSub(
    table.remove( incCacheSetList )
 end
 
+function DBCtrl:registerFromJson( dbPath, target, json )
+   local db = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
 
+   json:readValue(
+      function( val, keyList, objType )
+	 if objType == "object" then
+	    local optList = { "build" }
+	    for option in string.gmatch( val.command, "([^%s]+)" ) do
+	       table.insert( optList, option )
+	    end
+	    
+	    local srcList, optList, lctagOptMap = Option:analyzeOption( optList )
+
+	    local compileOp = ""
+	    for index, opt in ipairs( optList ) do
+	       compileOp = compileOp .. opt .. " "
+	    end
+
+	    log( 1, "regist", keyList[ #keyList ], val.file )
+	    db:addFile( val.file, 0, "", compileOp, val.directory, true, target )
+	    return {}
+	 end
+	 return val
+      end
+   )
+
+   db:close()
+end
+
+function DBCtrl:getPchPath( path, stdMode )
+   local pchRoot = string.format(
+      "%s/pch/%s", self:getMiscPath(), target ~= "" and target or "@" )
+   local pchSystem = pchRoot .. "/sys"
+   local pchProj = pchRoot .. "/proj"
+
+   path = self:convPath( path )
+   local incFilePath = self:getSystemPath( path )
+
+   local pchPath = pchSystem .. incFilePath
+   if self:isInProjFile( path ) then
+      pchPath = pchProj .. string.gsub( path, "^" .. self.projDirPrefix .. "/", "/" )
+   end
+   return pchPath .. ".pch." .. stdMode
+end
 
 return DBCtrl

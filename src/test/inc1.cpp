@@ -1,17 +1,11 @@
+namespace INC1 {
+#include "inc2.h"
+}
+#include "inc1.h"
 #include "inc1.h"
 
-#define STRUCT_AAAA                       \
-    union {                               \
-        struct {                          \
-            struct _struct_AAA  *_pppp;   \
-        } bbbbb;                          \
-    } aaaa;                               \
-#endif
-
-struct _str_aaaa {
-    STRUCT_AAAA
-};
-
-struct _str_bbbb {
-    STRUCT_AAAA
-};
+namespace ns4 {
+#include "field.h"
+#define FIELD
+#include "field.h"
+}

@@ -35,6 +35,7 @@ typedef struct {
 static int helper_openDigest( lua_State * pLua );
 static int helper_msleep( lua_State * pLua );
 static int helper_chdir( lua_State * pLua );
+static int helper_mkdir( lua_State * pLua );
 static int helper_getFileModTime( lua_State * pLua );
 static int helper_getCurrentTime( lua_State * pLua );
 static int helper_getTempFilename( lua_State * pLua );
@@ -58,6 +59,7 @@ static const luaL_Reg s_if_lib[] = {
     { "openDigest", helper_openDigest },
     { "msleep", helper_msleep },
     { "chdir", helper_chdir },
+    { "mkdir", helper_mkdir },
     { "getFileModTime", helper_getFileModTime },
     { "getCurrentTime", helper_getCurrentTime },
     { "getTempFilename", helper_getTempFilename },
@@ -123,6 +125,39 @@ static int helper_msleep( lua_State * pLua )
 static int helper_chdir( lua_State * pLua )
 {
     lua_pushinteger( pLua, chdir( lua_tostring( pLua, 1 ) ) );
+    return 1;
+}
+
+static int helper_mkdir( lua_State * pLua )
+{
+    if ( mkdir( lua_tostring( pLua, 1 ), 0777 ) == 0 ) {
+	lua_pushinteger( pLua, 0 );
+    }
+    else {
+	switch ( errno ) {
+	case EACCES:
+	    lua_pushstring( pLua, "EACCES" );
+	    break;
+	case EEXIST:
+	    lua_pushstring( pLua, "EEXIST" );
+	    break;
+	case ENOENT:
+	    lua_pushstring( pLua, "ENOENT" );
+	    break;
+	case ENOSPC:
+	    lua_pushstring( pLua, "ENOSPC" );
+	    break;
+	case ENOTDIR:
+	    lua_pushstring( pLua, "ENOTDIR" );
+	    break;
+	case EROFS:
+	    lua_pushstring( pLua, "EROFS" );
+	    break;
+	default:
+	    lua_pushinteger( pLua, errno );
+	    break;
+	}
+    }
     return 1;
 }
 

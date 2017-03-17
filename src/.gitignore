@@ -4,3 +4,6 @@
 *.log
 *.sqlite3
 sql
+prof
+profi.*
+.lctags

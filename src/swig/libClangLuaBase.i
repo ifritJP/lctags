@@ -92,13 +92,21 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
       
       if ( findFlag ) {
 	// 解析対象の Cursor の場合
-	CXSourceLocation loc = clang_getCursorLocation( cursor );
+        CXSourceRange range = clang_getCursorExtent( cursor );
+        CXSourceLocation startLoc = clang_getRangeStart( range );
+        CXSourceLocation endLoc = clang_getRangeEnd( range );
+        
+	//CXSourceLocation loc = clang_getCursorLocation( cursor );
 	CXFile cxfile;
 	unsigned int line;
 	unsigned int column;
 	unsigned int offset;
+	unsigned int endLine;
+	unsigned int endColumn;
+	unsigned int endOffset;
 
-	clang_getFileLocation( loc,  &cxfile, &line, &column, &offset );
+	clang_getFileLocation( endLoc,  &cxfile, &endLine, &endColumn, &endOffset );
+	clang_getFileLocation( startLoc,  &cxfile, &line, &column, &offset );
 
 	if ( !anyFileFlag ) {
 	  findFlag = 0;
@@ -115,7 +123,7 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 	  prevFile = cxfile;
       
 	  lua_pushinteger( pLua, LUA_LEN( pLua, -1 ) + 1 );
-	  lua_createtable( pLua, 2, 0 );
+	  lua_createtable( pLua, 9, 0 );
 
 	  {
 	    CXCursor * resultptr;
@@ -148,7 +156,27 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 	  lua_pushinteger( pLua, 4 );
 	  lua_pushinteger( pLua, offset );
 	  lua_settable( pLua, -3 );
+
+	  lua_pushinteger( pLua, 5 );
+	  lua_pushinteger( pLua, line );
+	  lua_settable( pLua, -3 );
         
+	  lua_pushinteger( pLua, 6 );
+	  lua_pushinteger( pLua, column );
+	  lua_settable( pLua, -3 );
+
+	  lua_pushinteger( pLua, 7 );
+	  lua_pushinteger( pLua, endLine );
+	  lua_settable( pLua, -3 );
+        
+	  lua_pushinteger( pLua, 8 );
+	  lua_pushinteger( pLua, endColumn );
+	  lua_settable( pLua, -3 );
+          
+	  lua_pushinteger( pLua, 9 );
+	  lua_pushinteger( pLua, endOffset );
+	  lua_settable( pLua, -3 );
+          
 	  lua_settable( pLua, -3 );
 	}
       }
@@ -277,6 +305,7 @@ static void CXInclusionVisitor_wrap(
 
 %include "clang-c/Platform.h"
 %include "clang-c/CXString.h"
+%include "clang-c/CXErrorCode.h"
 %include "clang-c/Index.h"
  //%include "clang-c/CXCompilationDatabase.h"
 

@@ -2,64 +2,133 @@ make[1]: Entering directory 'PWD'
 lua lctags/lctags.lua shrink
 1	step6
 1	step7
-lua lctags/lctags.lua dump compOp
-1	-- table compileOp -- 
-1	fileId	target	path	compOp
-1	2		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-1	25	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	25	hoge1	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	25	hoge2	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	26		|/test/comp.cpp	-Iclang -Itest -Iclang 
-1	27		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
-1	28		|/test/comp2.cpp	-Iclang -Itest -Iclang 
-1	29		|/test/comp3.cpp	-Iclang -Itest -Iclang 
-1	30		|/test/comp4.cpp	-Iclang -Itest -Iclang 
-1	31		|/test/comp5.cpp	-Iclang -Itest -Iclang 
-1	32		|/test/comp6.cpp	-Iclang -Itest -Iclang 
-1	33		|/test/comp7.cpp	-Iclang -Itest -Iclang 
-1	34		|/test/comp8.cpp	-Iclang -Itest -Iclang 
-1	35		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-1	36		|/test/comp10.cpp	-Iclang -Itest -Iclang 
-1	37		|/test/comp11.cpp	-Iclang -Itest -Iclang 
-1	38		|/test/comp12.cpp	-Iclang -Itest -Iclang 
-lua lctags/lctags.lua dump dumpFile >> dump
-lua lctags/lctags.lua rm-tgt hoge2
-lua lctags/lctags.lua dump compOp
-1	-- table compileOp -- 
-1	fileId	target	path	compOp
-1	2		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-1	25	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	25	hoge1	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	26		|/test/comp.cpp	-Iclang -Itest -Iclang 
-1	27		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
-1	28		|/test/comp2.cpp	-Iclang -Itest -Iclang 
-1	29		|/test/comp3.cpp	-Iclang -Itest -Iclang 
-1	30		|/test/comp4.cpp	-Iclang -Itest -Iclang 
-1	31		|/test/comp5.cpp	-Iclang -Itest -Iclang 
-1	32		|/test/comp6.cpp	-Iclang -Itest -Iclang 
-1	33		|/test/comp7.cpp	-Iclang -Itest -Iclang 
-1	34		|/test/comp8.cpp	-Iclang -Itest -Iclang 
-1	35		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-1	36		|/test/comp10.cpp	-Iclang -Itest -Iclang 
-1	37		|/test/comp11.cpp	-Iclang -Itest -Iclang 
-1	38		|/test/comp12.cpp	-Iclang -Itest -Iclang 
-lua lctags/lctags.lua dump >> dump
+lua lctags/lctags.lua dump target
+1	-- table target -- 
+1	fileId	hasPch	target	path	compOp
+1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
+1	3	1		/usr/include/stdio.h	c++98
+1	4	1		/usr/include/features.h	c++98
+1	5	1		/usr/include/stdc-predef.h	c++98
+1	6	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
+1	7	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
+1	8	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
+1	9	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
+1	10	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
+1	11	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
+1	12	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
+1	13	1		/usr/include/libio.h	c++98
+1	14	1		/usr/include/_G_config.h	c++98
+1	15	1		/usr/include/wchar.h	c++98
+1	16	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+1	17	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
+1	18	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
+1	19	1		/usr/include/time.h	c++98
+1	20	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
+1	21	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
+1	22	1		/usr/include/xlocale.h	c++98
+1	23	1		|/test/hoge.h	c++98
+1	24	1		|/test/field.h	c++11
+1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	23	1	hoge	|/test/hoge.h	c++98
+1	24	1	hoge	|/test/field.h	c++98
+1	25	1	hoge1	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	23	1	hoge1	|/test/hoge.h	-Iclang -Itest -Iclang 
+1	24	1	hoge1	|/test/field.h	-Iclang -Itest -Iclang 
+1	25	1	hoge2	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	23	1	hoge2	|/test/hoge.h	-Iclang -Itest -Iclang 
+1	24	1	hoge2	|/test/field.h	-Iclang -Itest -Iclang 
+1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
+1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
+1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
+1	29	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
+1	30	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
+1	31	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
+1	32	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
+1	33	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
+1	34	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
+1	35	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
+1	36	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
+1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
+1	39	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
+1	40	1		|/test/inc2.h	c++11
+1	41	1		|/test/inc3.h	c++11
+1	42	1		|/test/inc1.h	c++11
+lua lctags/lctags.lua dump file >> dump
+lua lctags/lctags.lua rm target hoge2
+lua lctags/lctags.lua dump target
+1	-- table target -- 
+1	fileId	hasPch	target	path	compOp
+1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
+1	3	1		/usr/include/stdio.h	c++98
+1	4	1		/usr/include/features.h	c++98
+1	5	1		/usr/include/stdc-predef.h	c++98
+1	6	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
+1	7	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
+1	8	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
+1	9	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
+1	10	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
+1	11	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
+1	12	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
+1	13	1		/usr/include/libio.h	c++98
+1	14	1		/usr/include/_G_config.h	c++98
+1	15	1		/usr/include/wchar.h	c++98
+1	16	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+1	17	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
+1	18	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
+1	19	1		/usr/include/time.h	c++98
+1	20	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
+1	21	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
+1	22	1		/usr/include/xlocale.h	c++98
+1	23	1		|/test/hoge.h	c++98
+1	24	1		|/test/field.h	c++11
+1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	23	1	hoge	|/test/hoge.h	c++98
+1	24	1	hoge	|/test/field.h	c++98
+1	25	1	hoge1	|/test/sub.cpp	-Iclang -Itest -Iclang 
+1	23	1	hoge1	|/test/hoge.h	-Iclang -Itest -Iclang 
+1	24	1	hoge1	|/test/field.h	-Iclang -Itest -Iclang 
+1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
+1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
+1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
+1	29	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
+1	30	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
+1	31	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
+1	32	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
+1	33	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
+1	34	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
+1	35	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
+1	36	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
+1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
+1	39	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
+1	40	1		|/test/inc2.h	c++11
+1	41	1		|/test/inc3.h	c++11
+1	42	1		|/test/inc1.h	c++11
+lua lctags/lctags.lua dump all >> dump
 lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+sub                46 ./test/comp6.cpp     int sub()
+sub                46 ./test/comp7.cpp     int sub()
+sub                46 ./test/comp8.cpp     int sub()
+sub                46 ./test/comp9.cpp     int sub()
+sub                46 ./test/comp10.cpp     int sub()
 sub                 8 ./test/comp.cpp    static int sub() {
 sub                 8 ./test/comp-2.cpp   static int sub() {
 sub                 7 ./test/comp2.cpp   static int sub()
 sub                 7 ./test/comp3.cpp   static int sub()
 sub                 7 ./test/comp4.cpp   static int sub()
 sub                 7 ./test/comp5.cpp   static int sub()
-sub                46 ./test/comp6.cpp     int sub()
-sub                46 ./test/comp7.cpp     int sub()
-sub                46 ./test/comp8.cpp     int sub()
-sub                46 ./test/comp9.cpp     int sub()
-sub                46 ./test/comp10.cpp     int sub()
 lua lctags/lctags.lua -x ccccc
-ccccc               3 ./test/field.h   
-ccccc               3 ./test/field.h   
+ccccc               6 ./test/field.h   
+ccccc               6 ./test/field.h   
+ccccc               6 ./test/field.h   
+lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
+::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
+::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
+::int_t           124 ./test/hoge.cpp  void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] );
+::int_t           127 ./test/hoge.cpp  void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] )
+::int_t           129 ./test/hoge.cpp      int_t array2Int[ ARRAY_LENGTH ][ ARRAY_LENGTH ];
 lua lctags/lctags.lua ref-at test/hoge.cpp 44 8
 ::@struct::yyyy::kkkk  266 ./test/hoge.cpp      aYYYYY.kkkk = 0;
 lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
@@ -82,6 +151,9 @@ lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::2  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua lctags/lctags.lua def-at test/hoge.cpp 231 20
 ::Callback_t      218 ./test/hoge.cpp          int func3( Callback_t * pCallback ) {
+lua lctags/lctags.lua ref-at test/hoge.cpp 284 3
+lua lctags/lctags.lua def-at test/hoge.cpp 299 12
+::rootval         299 ./test/hoge.cpp    int rootval;
 rm -f graph.sample/*
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
@@ -90,7 +162,7 @@ lua lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
 lua lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
 lua lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
 lua lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
-lua lctags/lctags.lua graph-at symbol test/hoge.cpp 105 18 -o graph.sample/at-symbol.svg
+lua lctags/lctags.lua graph-at symbol test/hoge.cpp 107 18 -o graph.sample/at-symbol.svg
 lua lctags/lctags.lua list inc test/hoge.cpp -d 2
 path                1 PWD/test/field.h 
 path                1 PWD/test/hoge.cpp 

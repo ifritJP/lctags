@@ -11,7 +11,7 @@ if arg[1] == "base" then
 end
 
 local clang
-if load then
+if not loadstring then
    clang = load( baseScrit )()
 else
    clang = loadstring( baseScrit )()

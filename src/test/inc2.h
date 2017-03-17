@@ -3,7 +3,7 @@
 
 extern int inc2;
 
-namespace inc2 {
+namespace INC2 {
 #include "inc3.h"
 }
 

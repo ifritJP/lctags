@@ -20,40 +20,54 @@ function processParen( arg, macroParen )
    return macroParen
 end
 
-local nextType = nil
-local macroParen = 0
-function gcc:convertCompileOption( compiler, arg )
-   if compiler == "gcc" then
-      if nextType == "skip" then
-	 nextType = nil
-	 return "skip"
-      elseif nextType == "opt" then
-	 nextType = nil
-	 return "opt", arg
-      elseif nextType == "macroParen" then
-	 macroParen = processParen( arg, macroParen )
-	 if macroParen == 0 then
-	    nextType = nil
-	 end
-	 return "opt", arg
-      end
-      if string.find( arg, "^-" ) then
-	 if string.find( arg, "^-[IDo]" ) then
-	    if string.find( arg, "^-D" ) then
-	       macroParen = processParen( arg, macroParen )
-	       if macroParen > 0 then
-		  nextType = "macroParen"
-	       end
-	    end
-	    if arg == "-I" or arg == "-o" then
-	       nextType = "opt"
-	    end
-	    return "opt", arg
-	 end
-	 return "skip"
-      end
-      return "src", arg
+function gcc:createCompileOptionConverter( compiler )
+   if compiler ~= "gcc" then
+      return nil
    end
+   local obj = {
+      nextType = nil,
+      macroParen = 0,
+      convert = function( self, arg )
+	 if compiler == "gcc" then
+	    if self.nextType == "skip" then
+	       self.nextType = nil
+	       return "skip"
+	    elseif self.nextType == "opt" then
+	       self.nextType = nil
+	       return "opt", arg
+	    elseif self.nextType == "macroParen" then
+	       self.macroParen = processParen( arg, self.macroParen )
+	       if self.macroParen == 0 then
+		  self.nextType = nil
+	       end
+	       return "opt", arg
+	    end
+	    if string.find( arg, "^-" ) then
+	       if string.find( arg, "^-[IDo]" ) then
+		  if string.find( arg, "^-D" ) then
+		     self.macroParen = processParen( arg, self.macroParen )
+		     if self.macroParen > 0 then
+			self.nextType = "macroParen"
+		     end
+		  end
+		  if arg == "-I" then
+		     self.nextType = "opt"
+		  end
+		  if arg == "-o" then
+		     self.nextType = "skip"
+		     return "skip"
+		  end
+		  return "opt", arg
+	       elseif string.find( arg, "-std=", 1, true ) then
+		  return "opt", arg
+	       end
+	       return "skip"
+	    end
+	    return "src", arg
+	 end
+      end,
+   }
+   return obj
 end
 
 function gcc:getDefaultOptionList( compiler )

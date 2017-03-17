@@ -21,8 +21,12 @@ function convertXmlTxt( txt )
    if txt == nil or txt == "" then
       return ""
    end
+   txt = string.gsub( txt, '&', "&amp;" )
    txt = string.gsub( txt, '>', "&gt;" )
-   return string.gsub( txt, '<', "&lt;" )
+   txt = string.gsub( txt, '<', "&lt;" )
+   txt = string.gsub( txt, '"', "&quot;" )
+   txt = string.gsub( txt, "'", "&apos;" )
+   return txt
 end
 
 function createCandidate(
@@ -795,7 +799,7 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
    if targetLine then
       --newAnalyzer:update( path, target )
       newAnalyzer:queryAtFunc(
-	 path, targetLine, targetColmun, target, fileTxt,
+	 path, targetLine, targetColmun, target, false, fileTxt,
 	 function( db, targetFileId, nsInfo, declCursor, cursor )
 	    local kind = cursor:getCursorKind()
 

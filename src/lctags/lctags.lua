@@ -4,326 +4,15 @@
 local log = require( 'lctags.LogCtrl' )
 local Analyzer = require( 'lctags.Analyzer' )
 local Query = require( 'lctags.Query' )
-local gcc = require( 'lctags.gcc' )
 local DBCtrl = require( 'lctags.DBCtrl' )
-local DBAccess = require( 'lctags.DBAccess' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
 local Make = require( 'lctags.Make' )
 local Complete = require( 'lctags.Complete' )
-
-local function printUsage( message )
-   if message then
-      print( message )
-   end
-   local usageTxt = string.gsub( [[
-usage:
- - build DB
-   %s init projDir [-it] [-is] [-im]
-   %s build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
-   %s update pattrn
- - query DB
-   %s dump <all|compOp|file> name
-   %s ref-at[a] [--lctags-target target] [-i] file line column 
-   %s def-at[a] [--lctags-target target] [-i] file line column 
-   %s call-at[a] [--lctags-target target] [-i] file line column
-   %s ns-at [--lctags-target target] [-i] file line column
-   %s comp-at [--lctags-target target] [-i] file line column
-   %s inq-at [--lctags-target target] [-i] file line column
-   %s list <incSrc|inc> [-d depth] name
-   %s -x[t|s|r][a]  [--use-global] symbol
-   %s -xP[a]  [--use-global] file
-   %s -c  [--use-global] symbol
- - graph
-   %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
-   %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column
- - modify db
-   %s rm-tgt target
-   %s shrink [--lctags-db path]
-   %s chkFiles [--lctags-db path]
-   %s chg-proj projDir [--lctags-db path]
-
-  option:
-     init: initialize DB file. "projDir" is a root directory of your project.
-       -it: enable individual type mode.
-       -is: enable individual struct mode.
-       -is: enable individual macro mode.
-     build: build DB for "src".
-            "compiler" is "gcc" or "cc" or ....
-            "comp-op" is compiler option. This include source file path.
-     shrink: shrink DB.
-     chg-proj: change project directory.
-     dump: dump DB.
-     --lctags-conf: confing file.
-     --lctags-target: set build target.
-     -x: query DB.
-        -xt: symbol declaration
-        -xs: symbol declaration
-        -xr: symbol reference
-        -xP: file list
-     -c: list symbol.
-     def-at: symbol declaration at position
-     ref-at: symbol reference at position
-     call:at: function call at position
-     -i: input from stdin for source file contents.
-     --use-global: use GNU global when db is not found.
-     graph: draw graph.
-     graph-at: draw graph at position.
-         inc: include relation.
-         caller: caller graph.
-         callee: callee graph.
-         -d: depth.
-         -b: browse graph.
-         -o: output image file.
-         -f: image type. (svg, png)
-
-   common option:
-     --lctags-quiet: discard clang diagnostic.
-     --lctags-db: set DB file path.
-     --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
-   ]], '%%s', "lctags" )
-   print( usageTxt )
-   
-   os.exit( 1 )
-end
-
-local function loadConfig( path, exitOnErr )
-   local fileHandle = io.open( path, "r" )
-   if fileHandle then
-      fileHandle:close()
-      local chunk, err = loadfile( path )
-      if chunk then
-	 return chunk()
-      end
-      print( err )
-   end
-   if exitOnErr then
-      print( "loadfile error", err )
-      os.exit( 1 )
-   end
-   return nil
-end
+local Option = require( 'lctags.Option' )
+local Json = require( 'lctags.Json' )
 
 
-local function analyzeOption( argList )
-   local srcList = {}
-   local optList = {}
-   local skipArgNum = 0
-   local lctagOptMap = {}
-
-   for index, arg in ipairs( argList ) do
-      if skipArgNum > 0 then
-	 skipArgNum = skipArgNum - 1
-      elseif string.find( arg, "--lctags-conf", 1, true ) then
-	 skipArgNum = 1
-	 lctagOptMap.conf = loadConfig( argList[ index + 1 ], true )
-      elseif string.find( arg, "--lctags-db", 1, true ) then
-	 skipArgNum = 1
-	 lctagOptMap.dbPath = argList[ index + 1 ]
-	 local confPath = string.gsub(
-	    lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
-	 lctagOptMap.conf = loadConfig( confPath, false )
-      end
-   end
-
-   if not lctagOptMap.dbPath then
-      local dir = os.getenv( "PWD" )
-      repeat
-	 local dbPath = dir .. "/" .. "lctags.sqlite3"
-	 local dbFile = io.open( dbPath, "r" )
-	 if dbFile then
-	    dbFile:close()
-	    lctagOptMap.dbPath = dbPath
-	    if not lctagOptMap.conf then
-	       local confPath = string.gsub(
-		  lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
-	       lctagOptMap.conf = loadConfig( confPath, false )
-	    end
-	    break
-	 end
-	 dir = string.gsub( dir, "/[^/]*$", "" )
-      until dir == ""
-      if not lctagOptMap.dbPath then
-	 if lctagOptMap.mode == "init" then
-	 end
-      end
-   end
-   
-   skipArgNum = 0
-   for index, arg in ipairs( argList ) do
-      if index == 1 then
-	 if arg == "build" then
-	    lctagOptMap.mode = "build"
-	    lctagOptMap.cc = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "init" then
-	    lctagOptMap.mode = "init"
-	    lctagOptMap.projDir = argList[ index + 1 ]
-	    if not lctagOptMap.dbPath then
-	       lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
-	    end
-	    
-	    skipArgNum = 1
-	 elseif arg == "shrink" then
-	    lctagOptMap.mode = "shrink"
-	 elseif arg == "shrinkFull" then
-	    lctagOptMap.mode = "shrinkFull"
-	 elseif arg == "forceUpdate" then
-	    lctagOptMap.mode = "forceUpdate"
-	 elseif arg == "chg-proj" then
-	    lctagOptMap.mode = "chg-proj"
-	    lctagOptMap.projDir = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "update" then
-	    lctagOptMap.mode = "update"
-	 elseif arg == "updateForMake" then
-	    lctagOptMap.mode = "updateForMake"
-	 elseif string.find( arg, "ref-at", 1, true ) then
-	    lctagOptMap.mode = "ref-at"
-	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "def-at", 1, true ) then
-	    lctagOptMap.mode = "def-at"
-	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "call-at", 1, true ) then
-	    lctagOptMap.mode = "call-at"
-	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif arg == "ns-at" then
-	    lctagOptMap.mode = "ns-at"
-	 elseif arg == "graph" then
-	    lctagOptMap.mode = "graph"
-	    lctagOptMap.graph = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "graph-at" then
-	    lctagOptMap.mode = "graph-at"
-	    lctagOptMap.graph = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "dump" then
-	    lctagOptMap.mode = "query"
-	    lctagOptMap.query = "dump"
-	    if argList[ index + 1 ] == "compOp" then
-	       lctagOptMap.query = "dumpComp"
-	    elseif argList[ index + 1 ] == "file" then
-	       lctagOptMap.query = "dumpFile"
-	    end
-	    skipArgNum = 1
-	 elseif string.find( arg, "-x", 1, true ) then
-	    lctagOptMap.mode = "query"
-	    lctagOptMap.query = arg
-	 elseif string.find( arg, "-c", 1, true ) then
-	    lctagOptMap.mode = "query"
-	    lctagOptMap.query = arg
-	 elseif string.find( arg, "list", 1, true ) then
-	    lctagOptMap.mode = "list"
-	    lctagOptMap.query = argList[ index + 1 ]
-	    if lctagOptMap.query == "inc" then
-	       lctagOptMap.depth = 100
-	    end
-	    skipArgNum = 1
-	 elseif arg == "comp-at" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "inq-at" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "chkFiles" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "rm-tgt" then
-	    lctagOptMap.mode = arg
-	 end
-      else
-	 if skipArgNum > 0 then
-	    skipArgNum = skipArgNum - 1
-	 else
-	    local processMode = "skip"
-	    if string.find( arg, "^-" ) then
-	       if arg == "--lctags-log" then
-		  skipArgNum = 1
-		  log( 0, tonumber( argList[ index + 1 ] ) )
-	       elseif arg == "--lctags-db" then
-		  skipArgNum = 1
-	       elseif arg == "--lctags-conf" then
-		  skipArgNum = 1
-	       elseif arg == "--lctags-target" then
-		  skipArgNum = 1
-		  lctagOptMap.target = argList[ index + 1 ]
-	       elseif arg == "--lctags-digestRec" then
-		  lctagOptMap.recordDigestSrcFlag = true
-	       elseif arg == "--lctags-recSql" then
-		  skipArgNum = 1
-		  DBAccess:recordSql( io.open( argList[ index + 1 ], "w" ) )
-	       elseif arg == "--use-global" then
-		  lctagOptMap.useGlobalFlag = true
-	       elseif arg == "--lctags-quiet" then
-		  lctagOptMap.quiet = true
-	       else
-		  if lctagOptMap.mode == "build" then
-		     processMode = "conv"
-		  elseif lctagOptMap.mode == "graph" or
-		     lctagOptMap.mode == "graph-at" or
-		     lctagOptMap.mode == "list"
-		  then
-		     if arg == "-b" then
-			lctagOptMap.browse = true
-		     elseif arg == "-d" then
-			lctagOptMap.depth = tonumber( argList[ index + 1 ] )
-			skipArgNum = 1
-		     elseif arg == "-o" then
-			lctagOptMap.outputFile = argList[ index + 1 ]
-			skipArgNum = 1
-		     elseif arg == "-f" then
-			lctagOptMap.imageFormat = argList[ index + 1 ]
-			skipArgNum = 1
-		     end
-		  elseif lctagOptMap.mode == "init" then
-		     if arg == "-it" then
-			lctagOptMap.individualTypeFlag = true
-		     elseif arg == "-is" then
-			lctagOptMap.individualStructFlag = true
-		     elseif arg == "-im" then
-			lctagOptMap.individualMacroFlag = true
-		     end
-		  else
-		     if arg == "-i" then
-			lctagOptMap.inputFromStdin = true
-		     elseif arg == "-j" then
-			lctagOptMap.jobs = tonumber( argList[ index + 1 ] )
-			skipArgNum = 1
-		     end
-		     processMode = "skip"
-		  end
-	       end
-	    else
-	       if lctagOptMap.mode == "build" then
-		  processMode = "conv"
-		  
-	       else
-		  processMode = nil
-	       end
-	    end
-
-	    if processMode == "conv" then
-	       local cc = gcc
-	       if lctagOptMap.cc ~=  "gcc" then
-		  cc = lctagOptMap.conf
-	       end
-	       local argType, argTxt =
-		  cc:convertCompileOption( lctagOptMap.cc, arg )
-	       if argType == "src" then
-		  table.insert( srcList, argTxt )
-	       elseif argType == "opt" then
-		  table.insert( optList, argTxt )
-	       end
-	    elseif processMode == nil then
-	       table.insert( srcList, arg )
-	    end
-	 end
-      end
-   end
-   return srcList, optList, lctagOptMap
-end
-
-if not arg[1] then
-   printUsage( "" )
-end
-
-local srcList, optList, lctagOptMap = analyzeOption( arg )
+local srcList, optList, lctagOptMap = Option:analyzeOption( arg )
 if lctagOptMap.conf and lctagOptMap.conf.getDefaultOptionList then
    local list = lctagOptMap.conf:getDefaultOptionList( lctagOptMap.cc )
    for index, opt in ipairs( list ) do
@@ -331,18 +20,13 @@ if lctagOptMap.conf and lctagOptMap.conf.getDefaultOptionList then
    end
 end
 
-for key, val in pairs( lctagOptMap ) do
-   log( 3, key, val )
-end
-
-
 local projDir = os.getenv( "PWD" )
 if lctagOptMap.projDir then
    projDir = lctagOptMap.projDir
 end
 
 if not lctagOptMap.mode then
-   printUsage( "mode is none" )
+   Option:printUsage( "mode is none" )
 end
 
 if not lctagOptMap.dbPath then
@@ -448,7 +132,7 @@ if lctagOptMap.mode == "graph" then
 	 db, srcList[ 1 ], lctagOptMap.depth, OutputCtrl.dot,
 	 lctagOptMap.browse, lctagOptMap.outputFile, lctagOptMap.imageFormat )
    else
-      printUsage( "unknown graph" )
+      Option:printUsage( "unknown graph" )
    end
 
    db:close()
@@ -457,14 +141,14 @@ end
 
 
 if not lctagOptMap.dbPath then
-   printUsage( "db is not found." )
+   Option:printUsage( "db is not found." )
 end
 
 
 if lctagOptMap.mode == "update" then
    local src = srcList[1]
    if not src then
-      printUsage( "" )
+      Option:printUsage( "" )
    end
 
    Make:updateFor( lctagOptMap.dbPath, lctagOptMap.target, lctagOptMap.jobs, src )
@@ -476,8 +160,15 @@ if lctagOptMap.mode == "chkFiles" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "rm-tgt" then
-   DBCtrl:removeTarget( lctagOptMap.dbPath, srcList[ 1 ] )
+if lctagOptMap.mode == "rm" then
+   DBCtrl:remove( lctagOptMap.dbPath, lctagOptMap.rm, srcList[ 1 ] )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "register" then
+   DBCtrl:registerFromJson(
+      lctagOptMap.dbPath, lctagOptMap.target,
+      Json:fromStream( io.open( srcList[ 1 ], "r" ) ) )
    os.exit( 0 )
 end
 
@@ -485,14 +176,17 @@ end
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
+if lctagOptMap.mode == "depIncs" then
+   analyzer:dumpIncludeList( srcList[ 1 ], optList, nil )
+   os.exit( 0 )
+end
+
 if lctagOptMap.mode == "build" then
    local src = srcList[1]
    if not src then
       log( 1, "src is nil" )
       os.exit( 1 )
    end
-   
-   
 
    local option = ""
    for index, opt in ipairs( optList ) do
@@ -519,25 +213,18 @@ if lctagOptMap.mode == "build" then
       end
    end
 
-   
-   local clangVer = require( 'libclanglua.if' ).getClangVersion()
-   clangVer3 = string.gsub(
-      clangVer, "^clang version (%d+)%.(%d+)%.(%d+)[^%d].*", "%1.%2.%3" )
-   clangVer2 = string.gsub( clangVer3, "^(%d+)%.(%d+)[^%d].*", "%1.%2" )
-
-   defInc = string.format(
-      "/usr/lib/llvm-%s/lib/clang/%s/include/", clangVer2, clangVer3 )
-   table.insert( optList, "-I" .. defInc )
-
-
-   analyzer:analyzeSource( src, optList, lctagOptMap.target )
+   if lctagOptMap.onlyReg then
+      analyzer:onlyRegister( src, optList, lctagOptMap.target )
+   else
+      analyzer:analyzeSource( src, optList, lctagOptMap.target )
+   end
    os.exit( 0 )
 end
 
 if lctagOptMap.mode == "updateForMake" then
    local src = srcList[1]
    if not src then
-      printUsage( "" )
+      Option:printUsage( "" )
    end
 
    log( 3, "src:", src, "target:", lctagOptMap.target )

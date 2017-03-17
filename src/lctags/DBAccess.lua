@@ -45,6 +45,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       uniqueCount = 0,
       lockLogFlag = true,
       time = 0,
+      beginTime = 0,
    }
    setmetatable( obj, { __index = DBAccess } )
 
@@ -130,6 +131,7 @@ end
 function DBAccess:begin()
    if self.readonly then
       log( 1, "db mode is read only" )
+      os.exit( 1 )
       return
    end
 
@@ -137,12 +139,13 @@ function DBAccess:begin()
    --self:commit()
    self:exec( "PRAGMA journal_mode = MEMORY" )
    self:exec( "BEGIN IMMEDIATE" )
+
+   self.beginTime = os.clock()
    
    log( 2, "begin" )
 end
 
 function DBAccess:commit()
-   log( 2, "commit" )
    if self.readonly then
       return
    end
@@ -154,6 +157,7 @@ function DBAccess:commit()
 	 end
       end
    )
+   log( 2, "commit:", os.clock() - self.beginTime )
 end
 
 function DBAccess:insert( tableName, values )

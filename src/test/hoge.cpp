@@ -274,3 +274,39 @@ namespace ns4 {
     ns1::g_global
   };
 }
+
+template <typename T1, typename T2> class TEMP
+{
+  typedef T1 tmp_t;
+public:
+  const tmp_t s_val;
+
+  TEMP(T1 val ) : s_val( val )
+  {}
+
+  T2 aaaaaa(const T1 &t) const
+  {
+    return t;
+  }
+
+  T2 bbbbbb(const T1 &t) const
+  {
+    return aaaaaa( t);
+  }
+};
+
+namespace {
+  int rootval;
+
+  void func()
+  {
+    TEMP<int_t,int> tmp(1);
+    TEMP<int_t,int> tmp2(1);
+    tmp.aaaaaa(2);
+    
+    if ( 1 ) {
+      rootval = 1;
+    }
+  }
+}
+

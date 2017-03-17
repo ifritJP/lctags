@@ -1,12 +1,16 @@
 local Helper = require( 'lctags.Helper' )
 local DBCtrl = require( 'lctags.DBCtrl' )
 local log = require( 'lctags.LogCtrl' )
+local Option = require( 'lctags.Option' )
 
 local Make = {}
 
 
+--- list の中から更新が必要なファイルリストを返す
+--
+-- ヘッダファイルの更新が必要な場合、
+-- そのファイルをインクルードしているソースファイルをリストに含める
 local function searchNeedUpdateFiles( db, list, target )
-   --- リストの中から更新が必要なファイルを検出
 
    -- 更新対象のリストのファイル更新時間から更新が必要かどうかチェック
    if not target then
@@ -25,6 +29,8 @@ local function searchNeedUpdateFiles( db, list, target )
    local fileId2ModTime = {}
    -- 更新が必要なインクルードファイルのセット
    local needUpdateIncFileInfoSet = {}
+   -- 更新が必要なインクルードファイルのリスト
+   local needUpdateIncIdList = {}
    -- 情報が新しいファイル
    local uptodateFileList = {}
    -- 情報の更新が必要になったファイルリスト
@@ -41,6 +47,7 @@ local function searchNeedUpdateFiles( db, list, target )
 	       -- 更新時間が古い場合はマップに登録
 	       if fileInfo.incFlag ~= 0 then
 		  needUpdateIncFileInfoSet[ fileInfo.id ] = fileInfo
+		  table.insert( needUpdateIncIdList, fileInfo.id )
 		  log( 1, "modified", fileInfo.path, modTime )
 	       else
 		  needUpdateFileMap[ fileInfo.id ] = fileInfo
@@ -49,6 +56,8 @@ local function searchNeedUpdateFiles( db, list, target )
 	       table.insert( uptodateFileList, fileInfo )
 	    end
 	 end
+      else
+	 log( 1, string.format( "this file is not target %s", fileInfo.path ) )
       end
    end
 
@@ -123,10 +132,131 @@ local function searchNeedUpdateFiles( db, list, target )
       local srcFileInfo = db:getSrcForIncOne( fileInfo, target )
       if srcFileInfo then
 	 table.insert( needFileList, srcFileInfo )
-	 log( 1, "needUpdateIncFileInfoSet:", fileInfo.path )
+	 log( 1, "needUpdateIncFileInfoSet:", srcFileInfo.path )
       end
    end
-   return needFileList
+   return needFileList, needUpdateIncIdList
+end
+
+
+-- 共通インクルードファイルの更新を効率良く行なうために、
+-- なるべくインクルードファイルが被らないように解析できるように順番を決定する
+--
+-- @param list 更新が必要なソースファイルリスト
+-- @param needUpdateIncIdList 更新が必要なインクルードファイルリスト
+function Make:decideOrderForMake( db, list, needUpdateIncIdList )
+   if needUpdateIncIdList == 0 then
+      -- 更新対象にインクルードファイルがない場合は list をそのまま返す
+      log( 2, "decideOrderForMake: has no inc" )
+      return list
+   end
+
+   local needUpdateIncIdSet = {}
+   for index, incId in ipairs( needUpdateIncIdList ) do
+      needUpdateIncIdSet[ incId ] = 1
+   end
+   -- list がインクルードしているファイルを needUpdateIncIdSet に追加する
+   for index, fileInfo in ipairs( list ) do
+      for incId in pairs( db:getIncludeCache( fileInfo ) ) do
+	 needUpdateIncIdSet[ incId ] = 1
+      end
+   end
+   
+
+   local needUpdateSrcId2FileInfoMap = {}
+   for index, fileInfo in ipairs( list ) do
+      needUpdateSrcId2FileInfoMap[ fileInfo.id ] = fileInfo
+   end
+   
+
+   
+   -- ファイルID -> ソースファイルの情報
+   local fileId2SrcInfoMap = {}
+   -- インクルードファイル ID -> インクルードファイルの情報
+   local incId2IncInfoMap = {}
+   db:mapIncludeCache(
+      nil,
+      function( item )
+	 if needUpdateIncIdSet[ item.id ] and
+	    needUpdateSrcId2FileInfoMap[ item.baseFileId ]
+	 then
+	    local srcInfo = fileId2SrcInfoMap[ item.baseFileId ]
+	    if not srcInfo then
+	       srcInfo = { incIdSet = {} }
+	       fileId2SrcInfoMap[ item.baseFileId ] = srcInfo
+	    end
+	    srcInfo.incIdSet[ item.id ] = 1
+	    
+	    local incInfo = incId2IncInfoMap[ item.id ]
+	    if not incInfo then
+	       incInfo = { count = 0, srcIdSet = {} }
+	       incId2IncInfoMap[ item.id ] = incInfo
+	    end
+	    incInfo.count = incInfo.count + 1
+	    incInfo.srcIdSet[ item.baseFileId ] = 1
+	 end
+	 return true
+      end
+   )
+
+   -- 参照数の多いインクルードをより多く参照しているソースを探すために
+   -- インクルード数をカウントする
+   local maxNum
+   local maxSrcId
+   for fileId, srcInfo in pairs( fileId2SrcInfoMap ) do
+      srcInfo.count = 0
+      for incId in pairs( srcInfo.incIdSet ) do
+	 srcInfo.count = srcInfo.count + incId2IncInfoMap[ incId ].count
+      end
+      if not maxNum or maxNum < srcInfo.count then
+	 maxSrcId = fileId
+	 maxNum = srcInfo.count
+      end
+   end
+   if not maxSrcId then
+      log( 2, "decideOrderForMake not found max" )
+      return list
+   end
+
+   local buildList = {}
+   table.insert( buildList, ( db:getFileInfo( maxSrcId ) ) )
+   needUpdateSrcId2FileInfoMap[ maxSrcId ] = nil
+
+   repeat
+      -- maxSrcId から参照しているインクルードファイルを除外し、
+      -- 次にインクルード数が多いものを見つける
+      log( 2, "decideOrderForMake", maxNum, buildList[ #buildList ].path )
+      
+      maxNum = 0
+      local nextSrcId
+      for incId in pairs( fileId2SrcInfoMap[ maxSrcId ].incIdSet ) do
+	 local incInfo = incId2IncInfoMap[ incId ]
+	 for srcId in pairs( incInfo.srcIdSet ) do
+	    if srcId ~= maxSrcId then
+	       srcInfo = fileId2SrcInfoMap[ srcId ]
+	       srcInfo.count = srcInfo.count - incInfo.count
+	       srcInfo.incIdSet[ incId ] = nil
+
+	       if not maxNum or maxNum < srcInfo.count then
+		  nextSrcId = srcId
+		  maxNum = srcInfo.count
+	       end
+	    end
+	 end
+      end
+      if nextSrcId then
+	 table.insert( buildList, ( db:getFileInfo( nextSrcId ) ) )
+	 needUpdateSrcId2FileInfoMap[ maxSrcId ] = nil
+	 maxSrcId = nextSrcId
+      end
+   until nextSrcId == nil
+
+   -- 残りのソースを追加する
+   for srcId, fileInfo in pairs( needUpdateSrcId2FileInfoMap ) do
+      table.insert( buildList, fileInfo )
+   end
+
+   return buildList
 end
 
 
@@ -134,6 +264,8 @@ function Make:updateFor( dbPath, target, jobs, src )
    local db = DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
    local dbFullPath = db:convFullpath( dbPath )
    local targetFileInfo = db:getFileInfo( nil, src )
+
+   
 
    -- src 以降のファイルをピックアップ
    local list = {}
@@ -155,12 +287,15 @@ function Make:updateFor( dbPath, target, jobs, src )
       os.exit( 1 )
    end
 
-   list = searchNeedUpdateFiles( db, list, target )
-
+   -- ピックアップしたファイルから、更新が必要なものを検索
+   list, needUpdateIncIdList = searchNeedUpdateFiles( db, list, target )
    if #list == 0 then
       log( 1, 'all file is analyzed already' )
       os.exit( 0 )
    end
+
+
+   list = self:decideOrderForMake( db, list, needUpdateIncIdList )
 
 
    -- list の情報を更新する makefile を生成
@@ -171,9 +306,17 @@ function Make:updateFor( dbPath, target, jobs, src )
       os.exit( 1 )
    end
 
+   -- 最初のファイルは共通インクルードが多いので並列に処理せずにビルドし、
+   -- 他のファイルを並列処理するように make を生成する
    for index, fileInfo in ipairs( list ) do
+      local group
+      if index == 1 then
+	 group = "FIRST"
+      else
+	 group = "SRCS"
+      end
       fileHandle:write(
-	 string.format( "SRCS += %d/%d%s\n", index, #list,
+	 string.format( "%s += %d/%d%s\n", group, index, #list,
 			db:getSystemPath( fileInfo.path ) ) )
    end
    db:close()
@@ -181,24 +324,33 @@ function Make:updateFor( dbPath, target, jobs, src )
    fileHandle:write(
       string.format( 
 	 [[
+FIRST := $(addsuffix .lc, $(FIRST))
 SRCS := $(addsuffix .lc, $(SRCS))
 
-all: $(SRCS)
+all: first
+	$(MAKE) -f %s second
+
+first: $(FIRST)
+
+second: $(SRCS)
 
 %%.lc:
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
-	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s
+	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s
 ]],
-	 arg[-1], arg[0], 
-	 target and ("--lctags-target " .. target ) or "", log( 0, -1 ), dbPath ) )
+	 tmpName, arg[-1], arg[0], 
+	 target and ("--lctags-target " .. target ) or "", log( 0, -1 ), dbPath,
+	 Option:isValidProfile() and "--lctags-prof" or "" ) )
 
    fileHandle:close()
 
    -- make の実行
    log( 1, "-j:", jobs )
-   os.execute( "make -f " .. tmpName .. " " ..
-		  (jobs and ("-j" .. tostring( jobs )) or "" ))
-   os.remove( tmpName )
+   if not os.execute( "make -f " .. tmpName .. " " ..
+		      (jobs and ("-j" .. tostring( jobs )) or "" )) then
+      os.exit( 1 )
+   end
+   --os.remove( tmpName )
   
 end
 

@@ -1,3 +1,7 @@
+local Helper = require( 'lctags.Helper' )
+local Option = require( 'lctags.Option' )
+local log = require( 'lctags.LogCtrl' )
+
 local Util = {}
 
 function Util:getToken( filePath, line, column, fileContents )
@@ -71,7 +75,57 @@ function Util:printLocateDirect(
 	 printLine and Util:getFileLineText( path, line, fileContents ) or "" ) )
 end
 
+function Util:calcFileDigest( path )
+   if path then
+   end
+   local fileObj = io.open( path, "r" )
+   if not fileObj then
+      log( 1, "file open error", path )
+      return nil
+   end
+   local digest = Helper.openDigest( "md5" )
+   while true do
+      local txt = fileObj:read( 1000 * 10 )
+      if not txt then
+	 return digest:fix()
+      end
+      digest:write( txt )
+   end
+end
 
+function Util:calcTextDigest( text )
+   local digest = Helper.openDigest( "md5" )
+   digest:write( text )
+   return digest:fix()
+end
+
+function Util:profile( func, path )
+   if not Option:isValidProfile() then
+      return func()
+   end
+
+   local profiler = require( 'ProFi' )
+   profiler:start()
+   
+   local result = func()
+   
+   profiler:stop()
+   profiler:writeReport( path )
+
+   return result
+end
+
+function Util:mkdirWithParent( path )
+   local dir = ""
+   for name in string.gmatch( path, "[^/]+" ) do
+      dir = dir .. "/" .. name 
+      local result = Helper.mkdir( dir )
+      if result ~= 0 and result ~= "EEXIST" then
+	 log( 1, "mkdirWithParent", dir, result )
+	 return
+      end
+   end
+end
 
 return Util
 
