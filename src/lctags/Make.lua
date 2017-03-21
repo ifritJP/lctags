@@ -61,7 +61,9 @@ local function searchNeedUpdateFiles( db, list, target )
       end
    end
 
-   -- 更新時間が新しいファイルがインクルードしているファイルの更新情報をチェックする
+   -- 更新時間が新しいファイルがインクルードしているファイルの更新情報をチェックする。
+   -- ソースファイルが更新されていなくても、インクルードファイルが更新されている場合は、
+   -- ソースファイルを更新する必要がある
    for index, fileInfo in ipairs( uptodateFileList ) do
       log( 1, string.format( "check depending include files (%d/%d) %s",
 			     index, #uptodateFileList, fileInfo.path ) )
@@ -86,7 +88,7 @@ local function searchNeedUpdateFiles( db, list, target )
 		     table.insert( removeList, needUpdateIncFileId )
 		  end
 	       end
-	       for index, removeId in ipairs( removeList ) do
+	       for subIndex, removeId in ipairs( removeList ) do
 		  log( 3, "excludeIncFile", removeId, fileInfo.path )
 		  needUpdateIncFileInfoSet[ removeId ] = nil
 		  needUpdateFileMap[ removeId ] = nil
@@ -99,9 +101,11 @@ local function searchNeedUpdateFiles( db, list, target )
 
    -- 更新するファイルが、更新が必要なインクルードファイルを
    -- インクルードしているかどうかを確認する
+   local wokIndex = 0
    for fileId, fileInfo in pairs( needUpdateFileMap ) do
-      log( 1, string.format( "check include files %d %s",
-			     #uptodateFileList, fileInfo.path ) )
+      log( 1, string.format( "check include files %d/%d %s",
+			     wokIndex, #uptodateFileList, fileInfo.path ) )
+      wokIndex = wokIndex + 1
       local incFileIdSet = db:getIncludeCache( fileInfo )
       local removeList = {}
       for needUpdateIncFileId in pairs( needUpdateIncFileInfoSet ) do
@@ -167,13 +171,12 @@ function Make:decideOrderForMake( db, list, needUpdateIncIdList )
    for index, fileInfo in ipairs( list ) do
       needUpdateSrcId2FileInfoMap[ fileInfo.id ] = fileInfo
    end
-   
-
-   
+      
    -- ファイルID -> ソースファイルの情報
    local fileId2SrcInfoMap = {}
    -- インクルードファイル ID -> インクルードファイルの情報
    local incId2IncInfoMap = {}
+   log( 2, "decideOrderForMake: setup information" )
    db:mapIncludeCache(
       nil,
       function( item )
@@ -201,34 +204,37 @@ function Make:decideOrderForMake( db, list, needUpdateIncIdList )
 
    -- 参照数の多いインクルードをより多く参照しているソースを探すために
    -- インクルード数をカウントする
-   local maxNum
-   local maxSrcId
+   log( 2, "decideOrderForMake: search maxRef" )
+   local procIndex = 0
    for fileId, srcInfo in pairs( fileId2SrcInfoMap ) do
       srcInfo.count = 0
       for incId in pairs( srcInfo.incIdSet ) do
 	 srcInfo.count = srcInfo.count + incId2IncInfoMap[ incId ].count
       end
-      if not maxNum or maxNum < srcInfo.count then
-	 maxSrcId = fileId
-	 maxNum = srcInfo.count
-      end
-   end
-   if not maxSrcId then
-      log( 2, "decideOrderForMake not found max" )
-      return list
    end
 
    local buildList = {}
-   table.insert( buildList, ( db:getFileInfo( maxSrcId ) ) )
-   needUpdateSrcId2FileInfoMap[ maxSrcId ] = nil
 
-   repeat
-      -- maxSrcId から参照しているインクルードファイルを除外し、
-      -- 次にインクルード数が多いものを見つける
+   while true do
+      local maxNum
+      local maxSrcId
+      for fileId, srcInfo in pairs( fileId2SrcInfoMap ) do
+	 if not maxNum or maxNum < srcInfo.count then
+	    maxSrcId = fileId
+	    maxNum = srcInfo.count
+	 end
+      end
+      
+      if not maxSrcId or maxNum <= 2 then
+	 break
+      end
+
+      table.insert( buildList, ( db:getFileInfo( maxSrcId ) ) )
+      needUpdateSrcId2FileInfoMap[ maxSrcId ] = nil
+
+      -- maxSrcId から参照しているインクルードファイルを除外する。
       log( 2, "decideOrderForMake", maxNum, buildList[ #buildList ].path )
       
-      maxNum = 0
-      local nextSrcId
       for incId in pairs( fileId2SrcInfoMap[ maxSrcId ].incIdSet ) do
 	 local incInfo = incId2IncInfoMap[ incId ]
 	 for srcId in pairs( incInfo.srcIdSet ) do
@@ -244,12 +250,8 @@ function Make:decideOrderForMake( db, list, needUpdateIncIdList )
 	    end
 	 end
       end
-      if nextSrcId then
-	 table.insert( buildList, ( db:getFileInfo( nextSrcId ) ) )
-	 needUpdateSrcId2FileInfoMap[ maxSrcId ] = nil
-	 maxSrcId = nextSrcId
-      end
-   until nextSrcId == nil
+      fileId2SrcInfoMap[ maxSrcId ] = nil
+   end
 
    -- 残りのソースを追加する
    for srcId, fileInfo in pairs( needUpdateSrcId2FileInfoMap ) do

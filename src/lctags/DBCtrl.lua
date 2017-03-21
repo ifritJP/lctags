@@ -18,13 +18,14 @@ end
 local rootNsId = 1
 local userNsId = 2
 local systemFileId = 1
-local DB_VERSION = 5
+local DB_VERSION = 6
 
 local DBCtrl = {
    rootNsId = rootNsId,
    userNsId = userNsId,
    systemFileId = systemFileId,
    projDirPrefix = '|',
+   convPathCache = {},
 }
 
 function convProjPath( projDir, currentDir )
@@ -315,8 +316,30 @@ function DBCtrl:shrinkDB( path, full )
    return true
 end
 
-function DBCtrl:getMiscPath()
-   return string.gsub( self.dbPath, "/[^/]+$", "/.lctags" )
+function DBCtrl:getMiscPath( prefix, target, path )
+   local miscRoot = string.gsub( self.dbPath, "/[^/]+$", "/.lctags" )
+   if not prefix then
+      return miscRoot
+   end
+
+   local miscPath = string.format( "%s/%s/%s", miscRoot, prefix,
+				   target ~= "" and target or "@" )
+
+   if not path then
+      return miscPath
+   end
+   
+   local miscSystem = miscPath .. "/sys"
+   local miscProj = miscPath .. "/proj"
+
+   path = self:convPath( path )
+   local incFilePath = self:getSystemPath( path )
+
+   local miscPath = miscSystem .. incFilePath
+   if self:isInProjFile( path ) then
+      miscPath = miscProj .. string.gsub( path, "^" .. self.projDirPrefix .. "/", "/" )
+   end
+   return miscPath
 end
 
 function DBCtrl:open( path, readonly, currentDir )
@@ -378,6 +401,7 @@ end
 function DBCtrl:beginForTemp()
    local obj = {
       insertList = {},
+      updateList = {},
       nsInfoList = {},
    }
    function obj:exec( stmt, errHandle )
@@ -392,8 +416,12 @@ function DBCtrl:beginForTemp()
       table.insert( self.insertList, { tableName, values } )
    end
    function obj:update( tableName, set, condition )
-      log( -2, "not support" )
-      os.exec( 1 )
+      if tableName == "filePath" or tableName == "namespace" then
+	 table.insert( self.updateList, { tableName, set, condition } )
+      else
+	 log( -2, "not support", tableName )
+	 os.exec( 1 )
+      end
    end
 
    self.writeDb = obj
@@ -408,6 +436,7 @@ function DBCtrl:commit()
       log( 2, "merge begin:", os.clock(), os.date() )
 
       local tmpId2ActIdMap = {}
+      local correctParentIdSet = {}
       for index, tmpInfo in ipairs( writeDb.nsInfoList ) do
 	 self:insert( "simpleName",
 		      string.format( "NULL, '%s'", tmpInfo.simpleName ) )
@@ -416,11 +445,20 @@ function DBCtrl:commit()
 	    "namespace",
 	    string.format(
 	       "NULL, %d, %d, '%s', '%s', '%s'",
-	       tmpInfo.parentId, tmpInfo.snameId, tmpInfo.digest,
+	       snameInfo.id, tmpInfo.parentId, tmpInfo.digest,
 	       tmpInfo.name, tmpInfo.otherName ) )
 	 local nsInfo = self:getNamespace( nil, tmpInfo.name )
+	 if nsInfo.parentId < 0 then
+	    correctParentIdSet[ nsInfo.parentId ] = 1
+	 end
 
 	 tmpId2ActIdMap[ tmpInfo.id ] = { nsInfo.id, snameInfo.id }
+      end
+      for parentId in pairs( correctParentIdSet ) do
+	 self:update(
+	    "namespace",
+	    "parentId = " .. tostring( tmpId2ActIdMap[ parentId ][ 1 ] ),
+	    "parentId = " .. tostring( parentId ) )
       end
 
       for index, insert in ipairs( writeDb.insertList ) do
@@ -429,12 +467,35 @@ function DBCtrl:commit()
 	    local index = string.find( val, ",", 1, true )
 	    local tmpId = string.sub( val, 1, index - 1 )
 	    local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
-	    val = string.gsub(
-	       val, string.format( "%%%s, %%%s", tmpId, tmpId ),
-	       string.format( "%d, %d", actIdList[ 1 ], actIdList[ 2 ] ) )
+	    local pattern = string.format( "%s, %s,", tmpId, tmpId )
+	    val = string.format( "%d, %d, %s", actIdList[ 1 ], actIdList[ 2 ],
+				 val:sub( #pattern + 1 ) )
+	 end
+	 local findIndex = string.find( val, "-", 1, true )
+	 if findIndex then
+	    local tmpId = string.gsub( val:sub( findIndex ), "^(%-%d+).*$", "%1" )
+	    local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
+	    val = string.format( "%s%s%s", val:sub( 1, findIndex - 1),
+				 actIdList[ 1 ], val:sub( findIndex + #tmpId ) )
 	 end
 	 self:insert( insert[ 1 ], val )
       end
+
+      for index, update in ipairs( writeDb.updateList ) do
+	 if update[ 1 ] == "namespace" then
+	    local val = update[ 3 ]
+	    local findIndex = string.find( val, "-", 1, true )
+	    if findIndex then
+	       local tmpId = string.gsub( val:sub( findIndex ), "^(%-%d+).*$", "%1" )
+	       local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
+	       val = string.format( "%s%s%s", val:sub( 1, findIndex - 1),
+				    actIdList[ 1 ], val:sub( findIndex + #tmpId ) )
+	    end
+	    update[ 3 ] = val
+	 end
+	 self:update( update[ 1 ], update[ 2 ], update[ 3 ] )
+      end
+      
       log( 2, "merge end:", os.clock(), os.date() )
      self.db:commit()
    else
@@ -459,7 +520,7 @@ INSERT INTO etc VALUES( 'projDir', '' );
 INSERT INTO etc VALUES( 'individualStructFlag', '0' );
 INSERT INTO etc VALUES( 'individualTypeFlag', '0' );
 INSERT INTO etc VALUES( 'individualMacroFlag', '0' );
-CREATE TABLE namespace ( id INTEGER PRIMARY KEY, parentId INTEGER, snameId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary);
+CREATE TABLE namespace ( id INTEGER PRIMARY KEY, snameId INTEGER, parentId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary);
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE binary);
@@ -477,7 +538,7 @@ CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER, PRIMARY KEY ( id, nsId ) );
 CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
 CREATE TABLE preproDigest ( fileId INTEGER, nsId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, nsId, digest ) );
-CREATE INDEX index_ns ON namespace ( id, parentId, snameId, name, otherName );
+CREATE INDEX index_ns ON namespace ( id, snameId, parentId, name, otherName );
 CREATE INDEX index_sName ON simpleName ( id, name );
 CREATE INDEX index_filePath ON filePath ( id, path );
 CREATE INDEX index_target ON targetInfo ( fileId );
@@ -694,10 +755,10 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
       local equalsCompOpResult = self:equalsCompOp( fileInfo, compileOp, target )
       if equalsCompOpResult == nil then
 	 self:insertTargetInfo(fileInfo.id, target, compileOp, hasPchFlag )
-	 log( 2, "new target" )
+	 log( 2, "new target", fileInfo.path )
       elseif not equalsCompOpResult then
 	 self:updateCompileOp( fileInfo, target, compileOp )
-	 log( 2, "new compileOp" )
+	 log( 2, "new compileOp", fileInfo.path )
       else
 	 if isTarget then
 	    -- コンパイルオプションが等しいので、
@@ -716,7 +777,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
 	 local fileDigest = self:calcFileDigest( filePath )
 	 if fileDigest ~= fileInfo.digest then
 	    -- ファイルの digest も違う場合は、登録情報を全て更新
-	    log( 2, "detect mismatch digest", filePath, digest )
+	    log( 2, "detect mismatch digest", filePath, fileDigest )
 	    self:updateFile( fileInfo )
 	    self:update(
 	       "filePath", "digest = '" .. fileDigest .. "'",
@@ -732,7 +793,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
       else
 	 log( 2, "detect new digest file", fileInfo.path, digest )
 	 fileInfo.uptodate = false
-	 self:addTokenDigest( fileInfo.id, digest )
+	 --self:addTokenDigest( fileInfo.id, digest )
       end
       
       self:setUpdateTime( fileInfo.id, time )
@@ -749,7 +810,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
    fileInfo = self:getFileInfo( nil, filePath )
 
    if isTarget then
-      self:addTokenDigest( fileInfo.id, digest )
+      --self:addTokenDigest( fileInfo.id, digest )
       self.targetFileInfo = fileInfo
    end
    self:insertTargetInfo( fileInfo.id, target, compileOp, not isTarget )
@@ -839,11 +900,13 @@ function DBCtrl:addNamespaceOne(
    if self.writeDb ~= self.db then
       local tmpId = -#self.writeDb.nsInfoList - 1
       local nsInfo = self:makeNsInfo(
-	 tmpId, tmpId, rootNsId, digest, namespace, otherName )
+	 tmpId, tmpId, parentId, digest, namespace, otherName )
       nsInfo.simpleName = simpleName
       table.insert( self.writeDb.nsInfoList, nsInfo )
-      self:addSymbolDecl( cursor, fileId, nsInfo )
-      return nsInfo
+      if not cursor then
+	 return nsInfo
+      end
+      return nsInfo, self:addSymbolDecl( cursor, fileId, nsInfo )
    end
 
       
@@ -856,7 +919,7 @@ function DBCtrl:addNamespaceOne(
       self:insert(
 	 "namespace",
 	 string.format( "NULL, %d, %d, '%s', '%s', '%s'",
-			parentId, snameInfo.id, digest, namespace, otherName ) )
+			snameInfo.id, parentId, digest, namespace, otherName ) )
       item = self:getNamespace( nil, namespace )
    end
 
@@ -1284,6 +1347,7 @@ function DBCtrl:addReference( refInfo )
 	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
    end
 
+   log( 3, "symbolRef", nsInfo.id, nsInfo.snameId, nsInfo.name )
 
    self:insert(
       "symbolRef",
@@ -2403,20 +2467,62 @@ function DBCtrl:registerFromJson( dbPath, target, json )
    db:close()
 end
 
-function DBCtrl:getPchPath( path, stdMode )
-   local pchRoot = string.format(
-      "%s/pch/%s", self:getMiscPath(), target ~= "" and target or "@" )
-   local pchSystem = pchRoot .. "/sys"
-   local pchProj = pchRoot .. "/proj"
+function DBCtrl:registerFromInfo( dbPath, target )
+   local db = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
 
-   path = self:convPath( path )
-   local incFilePath = self:getSystemPath( path )
+   local dependRoot = db:getMiscPath( "depend", target )
 
-   local pchPath = pchSystem .. incFilePath
-   if self:isInProjFile( path ) then
-      pchPath = pchProj .. string.gsub( path, "^" .. self.projDirPrefix .. "/", "/" )
+   local findStream = io.popen( "find " .. dependRoot )
+
+   local filePathSet = {}
+   
+   while true do
+      local dependFile = findStream:read( '*l' )
+      if not dependFile then
+	 break
+      end
+      log( 1, "registerFromInfo", dependFile )
+      local dependStream = io.open( dependFile, "r" )
+
+      local filePath = dependStream:read( '*l' )
+      local compDir = dependStream:read( '*l' )
+      local compileOp = dependStream:read( '*l' )
+
+      local targetFileInfo = db:addFile(
+	 filePath, 0, "", compileOp, compDir, true, target )
+
+      local incFileInfoList = {}
+      while true do
+	 local path = dependStream:read( '*l' )
+	 if not path then
+	    break
+	 end
+	 local fileInfo
+	 if not filePathSet[ path ] then
+	    filePathSet[ path ] = 1
+	    fileInfo = db:addFile( path, 0, "", "", compDir, false, target )
+	 else
+	    fileInfo = db:getFileInfo( nil, path )
+	 end
+	 table.insert( incFileInfoList, fileInfo )
+      end
+      dependStream:close()
+
+      os.remove( dependFile )
+
+      local fileId2IncFileInfoListMap = {}
+      fileId2IncFileInfoListMap[ targetFileInfo.id ] = incFileInfoList
+
+      db:addIncludeCache( targetFileInfo, fileId2IncFileInfoListMap )
    end
-   return pchPath .. ".pch." .. stdMode
+
+   findStream:close()
+
+   db:close()
+end
+
+function DBCtrl:getPchPath( path, target, stdMode )
+   return self:getMiscPath( "pch", target, path ) .. ".pch." .. stdMode
 end
 
 return DBCtrl

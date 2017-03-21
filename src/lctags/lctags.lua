@@ -166,9 +166,14 @@ if lctagOptMap.mode == "rm" then
 end
 
 if lctagOptMap.mode == "register" then
-   DBCtrl:registerFromJson(
-      lctagOptMap.dbPath, lctagOptMap.target,
-      Json:fromStream( io.open( srcList[ 1 ], "r" ) ) )
+   if lctagOptMap.registerFromInfo then
+      DBCtrl:registerFromInfo(
+	 lctagOptMap.dbPath, lctagOptMap.target, srcList[ 1 ] )
+   else
+      DBCtrl:registerFromJson(
+	 lctagOptMap.dbPath, lctagOptMap.target,
+	 Json:fromStream( io.open( srcList[ 1 ], "r" ) ) )
+   end
    os.exit( 0 )
 end
 

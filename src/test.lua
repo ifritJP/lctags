@@ -191,7 +191,7 @@ end
 --    print( key, val )
 -- end
 
-local clangIndex = clang.createIndex( 0, 1 )
+local clangIndex = clang.createIndex( 1, 1 )
 
 -- if arg[ 1 ] then
 --    local optList = { "-M" }
@@ -229,18 +229,22 @@ useFastFlag = 1
 print( "start", os.clock() )
 -- dumpCursor( clangIndex, "test/inc1.cpp", { "-Itest", "-std=c++11", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include", "-include-pch", "field.pch" } )
 -- dumpCursor( clangIndex, "test/inc1.cpp", { "-Itest", "-std=c++11", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include", "-include-pch", "inc1.pch" } )
-dumpCursor( clangIndex, "test/inc1.cpp",
-	    { "-Itest", "-std=c++1z", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include",
-	      --"-include-pch", "inc1.h.pch", "-include-pch", "inc2.h.pch" } )
-	      --"-include-pch", "inc2.h.pch" } )
-	      "-include-pch", ".lctags/pch/@/proj/test/inc1.h.pch" } )
-	    --})
+-- dumpCursor( clangIndex, "test/inc1.cpp",
+-- 	    { "-Itest", "-std=c++1z", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include",
+-- 	      --"-include-pch", "inc1.h.pch", "-include-pch", "inc2.h.pch" } )
+-- 	      --"-include-pch", "inc2.h.pch" } )
+-- 	      "-include-pch", ".lctags/pch/@/proj/test/inc1.h.pch" } )
+-- 	    --})
 print( "end", os.clock() )
 
 
--- print( "start", os.clock() )
--- dumpCursor( clangIndex, "test/class.cpp", { "-Itest", "-std=c++11", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include", "-include-pch", "string.pch" } )
--- print( "end", os.clock() )
+useFastFlag = 2
+print( "start", os.clock() )
+dumpCursor( clangIndex, "test/class.cpp",
+	    { "-Itest", "-std=c++11", "-I/usr/lib/llvm-3.8/lib/clang/3.8.0/include",
+	      "-include-pch", ".lctags/pch/@/proj/test/class.h.pch.c++11"
+} )
+print( "end", os.clock() )
 
 -- useFastFlag = 1
 -- print( "start", os.clock() )

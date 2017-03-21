@@ -31,9 +31,9 @@ function Option:printUsage( message )
 usage:
  - build DB
    %s init projDir [-it] [-is] [-im]
-   %s build compiler [--lctags-only-reg] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] comp-op [...] src
-   %s update pattrn
-   %s register [--lctags-conf conf] [--lctags-target target] file
+   %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] comp-op [...] src
+   %s update [-j jobs] pattrn
+   %s register [--lctags-conf conf] [--lctags-target target] <-i|file>
    %s depIncs comp-op src
  - query DB
    %s dump <all|target|file|ref|def> [path]
@@ -300,6 +300,10 @@ function Option:analyzeOption( argList )
 			lctagOptMap.individualStructFlag = true
 		     elseif arg == "-im" then
 			lctagOptMap.individualMacroFlag = true
+		     end
+		  elseif lctagOptMap.mode == "register" then
+		     if arg == "-i" then
+			lctagOptMap.registerFromInfo = true
 		     end
 		  else
 		     if arg == "-i" then
