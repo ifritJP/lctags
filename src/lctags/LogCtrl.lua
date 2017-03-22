@@ -27,6 +27,8 @@ LogCtrl.log = function( level, ... )
    elseif logLevel == -1 then
       prefix = ...
       return
+   elseif logLevel == -3 then
+      return prefix
    end
    if logLevel > displayLevel then
       return

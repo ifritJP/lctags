@@ -11,6 +11,9 @@ local Complete = require( 'lctags.Complete' )
 local Option = require( 'lctags.Option' )
 local Json = require( 'lctags.Json' )
 
+if not arg[1] then
+   Option:printUsage( "" )
+end
 
 local srcList, optList, lctagOptMap = Option:analyzeOption( arg )
 if lctagOptMap.conf and lctagOptMap.conf.getDefaultOptionList then
@@ -79,23 +82,23 @@ if lctagOptMap.mode == "chg-proj" then
 end
 
 if lctagOptMap.mode == "query" then
-   local db = DBCtrl:open( lctagOptMap.dbPath, true, os.getenv( "PWD" ) )
-   
+   local db = lctagOptMap.dbPath and DBCtrl:open( lctagOptMap.dbPath,
+						  true, os.getenv( "PWD" ) )
+
    if not db then
       if not lctagOptMap.useGlobalFlag then
 	 log( 1, "db open error" )
 	 os.exit( 1 )
       end
-      local commad = string.format( "global %s %s", query, target or "" )
+      local commad = string.format( "global %s %s", lctagOptMap.query, srcList[1] or "" )
       local success, endType, code = os.execute( commad )
-      if success then
-	 os.exit( 0 )
-      else
+      if not success then
 	 os.exit( code )
       end
+      os.exit( 0 )
    end
    
-   Query:exec( db, lctagOptMap.query, srcList[ 1 ], lctagOptMap.useGlobalFlag )
+   Query:exec( db, lctagOptMap.query, srcList[ 1 ] )
 
    db:close()
    os.exit( 0 )

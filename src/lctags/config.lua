@@ -31,7 +31,7 @@ end
    This method is compile option converter from your compiler to clang.
    This is sample for armcc.
 ]]
-function config:convertCompileOption( compiler )
+function config:createCompileOptionConverter( compiler )
    if compiler ~= "armcc" then
       return nil
    end

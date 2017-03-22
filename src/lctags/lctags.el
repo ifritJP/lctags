@@ -45,6 +45,9 @@ This parameter can set function and string.
 This parameter can set function and string.
 ")
 
+(defvar lctags-use-global nil
+  )
+
 
 (setq lctags-target-buf nil)
 
@@ -131,8 +134,11 @@ This parameter can set function and string.
       (setq select-name
 	    (format "(C)%s:%d:%d"
 		    (file-name-nondirectory buffer-file-name) line column)))
+     ((equal mode "file")
+      (setq lctags-opt "-xP")
+      (setq select-name (format "(F)%s" tag)))
      ((equal mode "def")
-      (setq lctags-opt "-xta")
+      (setq lctags-opt "-xa")
       (setq select-name (format "(D)%s" tag)))
      ((equal mode "ref")
       (setq lctags-opt "-xra")
@@ -152,11 +158,15 @@ This parameter can set function and string.
 		  (concat "GTAGS SELECT* " select-name)))
     (setq opt-list
 	  (append (list save buffer input lctags-opt)
+		  (when lctags-use-global
+		      '("--use-global"))
 		  lctags-opt2
 		  lctags-opt-list
 		  (list tag
-			(number-to-string line)
-			(number-to-string column))))
+			(when (and tag (not (eq tag "")))
+			  (number-to-string line))
+			(when (and tag (not (eq tag "")))
+			  (number-to-string column)))))
     (apply 'lctags-execute opt-list)
 
     (with-current-buffer buffer
@@ -171,11 +181,23 @@ This parameter can set function and string.
 	)
        ((= lineNum 1)
 	(gtags-select-it nil)
+	;;(gtags-select-mode)
 	t)
        (t
 	(gtags-select-mode)
 	t)
        ))))
+
+(defun lctags-find-file ()
+  (interactive)
+  (let (tagname prompt)
+    (setq prompt "Find files: ")
+    (setq tagname (read-string prompt))
+    (gtags-push-context)
+    (let ((lctags-target-buf (current-buffer)))
+      (gtags-goto-tag tagname "P"))))
+
+  
 
 (defun lctags-ref-at ()
   (interactive)
@@ -293,6 +315,8 @@ This parameter can set function and string.
       (lctags-pos-at "ref" tag))
      ((char-equal flag-char ?S)
       (lctags-pos-at "def" tag))
+     ((char-equal flag-char ?P)
+      (lctags-pos-at "file" tag))
      (t
       (lctags-pos-at "def" tag)))))
 
@@ -366,7 +390,7 @@ This parameter can set function and string.
       new-arg-list)))
 
 (defadvice call-process (around lctags-call-process activate)
-  (let ((index 0))
+  (let ()
     (ad-set-args 0 (lctags-call-process-func (ad-get-args 0)))
     ad-do-it))
 

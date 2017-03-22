@@ -1,6 +1,5 @@
 local log = require( 'lctags.LogCtrl' )
 local gcc = require( 'lctags.gcc' )
-local DBAccess = require( 'lctags.DBAccess' )
 
 
 local Option = {}
@@ -266,13 +265,15 @@ function Option:analyzeOption( argList )
 		  lctagOptMap.recordDigestSrcFlag = true
 	       elseif arg == "--lctags-recSql" then
 		  skipArgNum = 1
-		  DBAccess:recordSql( io.open( argList[ index + 1 ], "w" ) )
+		  self.recordSqlObj = io.open( argList[ index + 1 ], "w" )
 	       elseif arg == "--use-global" then
 		  lctagOptMap.useGlobalFlag = true
 	       elseif arg == "--lctags-quiet" then
 		  lctagOptMap.quiet = true
 	       elseif arg == "--lctags-prof" then
 		  self.profile = true
+	       elseif arg == "--lctags-lockLog" then
+		  self.lockLog = true
 	       else
 		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs"
 		  then
@@ -330,7 +331,7 @@ function Option:analyzeOption( argList )
 		     if lctagOptMap.conf and
 			lctagOptMap.conf.createCompileOptionConverter
 		     then
-			converter = lctagOptMap.conf.createCompileOptionConverter(
+			converter = lctagOptMap.conf:createCompileOptionConverter(
 			   lctagOptMap.cc )
 		     end
 		  end
@@ -361,6 +362,10 @@ function Option:analyzeOption( argList )
       table.insert( optList, "-I" .. defInc )
       -- table.insert( optList, "-I" ..  "/usr/lib/gcc/x86_64-linux-gnu/5/include" )
    end
+
+   for key, val in pairs( lctagOptMap ) do
+      log( 3, "lctagOptMap", key, val )
+   end
    
    return srcList, optList, lctagOptMap
 end
@@ -369,10 +374,12 @@ function Option:isValidProfile()
    return self.profile
 end
 
-
-if not arg[1] then
-   Option:printUsage( "" )
+function Option:isValidLockLog()
+   return self.lockLog
 end
 
+function Option:getRecordSqlObj()
+   return self.recordSqlObj
+end
 
 return Option

@@ -8,12 +8,39 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <fcntl.h>           /* For O_* constants */
+#include <sys/stat.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
+#ifndef NAME_MAX
+#define NAME_MAX 256
+#endif
+
+#define DIGEST_ID "lctags.digest"
+#define LOCK_ID "lctags.lock"
 
 
-#define HELPER_ID ""
+#define LOCK_DEFAULT_NAME "default"
+#define LOCK_NAME_PREFIX "/lctags"
 
-#define toHelper(L)                                        \
-    ((helper_userData_t *)luaL_checkudata(L, 1, HELPER_ID))
+#define toString(L, ID)                         \
+    void * pUserData = lua_touserdata( L, 1 );  \
+    char buf[ 100 ];                            \
+    sprintf( buf, "<%s:%p>", ID, pUserData );     \
+    lua_pushstring( pLua, buf );                \
+    return 1;
+
+
+
+#define toDigest(L)                                        \
+    ((helper_digest_t *)luaL_checkudata(L, 1, DIGEST_ID))
+
+#define toLock(L)                                        \
+    ((helper_lock_t *)luaL_checkudata(L, 1, LOCK_ID))
 
 typedef struct {
     EVP_MD_CTX mctx;
@@ -22,7 +49,17 @@ typedef struct {
 
 typedef struct {
     helper_digestInfo_t * pInfo;
-} helper_userData_t;
+} helper_digest_t;
+
+typedef struct {
+    sem_t * pSem;
+    int depth;
+    char name[ NAME_MAX ];
+} helper_lockInfo_t;
+
+typedef struct {
+    helper_lockInfo_t * pInfo;
+} helper_lock_t;
 
 typedef const EVP_MD * (evp_md_func_t)(void);
 
@@ -33,6 +70,9 @@ typedef struct {
 
 
 static int helper_openDigest( lua_State * pLua );
+static int helper_createLock( lua_State * pLua );
+static int helper_deleteLock( lua_State * pLua );
+static int helper_getTime( lua_State * pLua );
 static int helper_msleep( lua_State * pLua );
 static int helper_chdir( lua_State * pLua );
 static int helper_mkdir( lua_State * pLua );
@@ -43,10 +83,16 @@ static int helper_tostring( lua_State * pLua );
 
 
 static int helper_digest_write( lua_State * pLua );
-static int helper_digest_get( lua_State * pLua );
 static int helper_digest_fix( lua_State * pLua );
 static int helper_digest_gc( lua_State * pLua );
 static int helper_digest_tostring( lua_State * pLua );
+
+
+static int helper_lock_begin( lua_State * pLua );
+static int helper_lock_fin( lua_State * pLua );
+static int helper_lock_isLocking( lua_State * pLua );
+static int helper_lock_gc( lua_State * pLua );
+static int helper_lock_tostring( lua_State * pLua );
 
 
 static helper_digestInfo_t * helper_setup( const EVP_MD * pEvpMd );
@@ -57,9 +103,12 @@ static void * helper_dispose( helper_digestInfo_t * pInfo );
 
 static const luaL_Reg s_if_lib[] = {
     { "openDigest", helper_openDigest },
+    { "createLock", helper_createLock },
+    { "deleteLock", helper_deleteLock },
     { "msleep", helper_msleep },
     { "chdir", helper_chdir },
     { "mkdir", helper_mkdir },
+    { "getTime", helper_getTime },
     { "getFileModTime", helper_getFileModTime },
     { "getCurrentTime", helper_getCurrentTime },
     { "getTempFilename", helper_getTempFilename },
@@ -67,13 +116,23 @@ static const luaL_Reg s_if_lib[] = {
     {NULL, NULL}
 };
 
-static const luaL_Reg s_obj_lib[] = {
+static const luaL_Reg s_digestObj_lib[] = {
     { "write", helper_digest_write },
     { "fix", helper_digest_fix },
     { "__gc", helper_digest_gc },
     {"__tostring", helper_digest_tostring },
     {NULL, NULL}
 };
+
+static const luaL_Reg s_lockObj_lib[] = {
+    { "begin", helper_lock_begin },
+    { "fin", helper_lock_fin },
+    { "isLocking", helper_lock_isLocking },
+    { "__gc", helper_lock_gc },
+    {"__tostring", helper_lock_tostring },
+    {NULL, NULL}
+};
+
 
 static const helper_typeMap_t s_typeMap[] = {
     { "md5", EVP_md5 },
@@ -88,28 +147,65 @@ static const helper_typeMap_t s_typeMap[] = {
 };
 
 
-int luaopen_lctags_Helper( lua_State * pLua )
+static void helper_setupObjMethod(
+    lua_State * pLua, const char * pName, const luaL_Reg * pReg )
 {
-    luaL_newmetatable(pLua, HELPER_ID );
+    luaL_newmetatable(pLua, pName );
     lua_pushvalue(pLua, -1);
     lua_setfield(pLua, -2, "__index");
 
 #if LUA_VERSION_NUM >= 502
-    luaL_setfuncs(pLua, s_obj_lib, 0);
+    luaL_setfuncs(pLua, pReg, 0);
 
     lua_pop(pLua, 1);
+#else
+    luaL_register(pLua, NULL, pReg );
 
+    lua_pop(pLua, 1);
+#endif
+}
+
+static void * helper_newUserData(
+    lua_State * pLua, const char * pName, size_t size )
+{
+    void * pBuf = lua_newuserdata( pLua, size );
+    if ( pBuf == NULL ) {
+        printf( "%s: lua_newuserdata() retrn NULL\n", __func__ );
+        return NULL;
+    }
+    
+#if LUA_VERSION_NUM >= 502
+    luaL_setmetatable( pLua, pName );
+#else
+    luaL_getmetatable( pLua, pName );
+    lua_setmetatable( pLua, -2 );
+#endif
+
+    return pBuf;
+}
+
+int luaopen_lctags_Helper( lua_State * pLua )
+{
+    helper_setupObjMethod( pLua, DIGEST_ID, s_digestObj_lib );
+    helper_setupObjMethod( pLua, LOCK_ID, s_lockObj_lib );
+
+#if LUA_VERSION_NUM >= 502
     luaL_newlib( pLua, s_if_lib );
 #else
-    luaL_register(pLua, NULL, s_obj_lib);
-
-    lua_pop(pLua, 1);
-
     luaL_register( pLua, "lctags.Helper", s_if_lib );
 #endif
     return 1;
 }
 
+
+static int helper_getTime( lua_State * pLua )
+{
+    struct timeval tm;
+    gettimeofday( &tm, NULL );
+    lua_pushinteger( pLua, tm.tv_sec );
+    lua_pushinteger( pLua, tm.tv_usec );
+    return 2;
+}
 
 static int helper_msleep( lua_State * pLua )
 {
@@ -198,25 +294,79 @@ static int helper_openDigest( lua_State * pLua )
         }
     }
     if ( pMd == NULL ) {
-        printf( "not found -- %s", pName );
+        printf( "not found -- %s\n", pName );
         return 0;
     }
     
     helper_digestInfo_t * pInfo = helper_setup( pMd );
-    helper_userData_t * pHelper =
-        lua_newuserdata( pLua, sizeof( *pHelper ) );
+    if ( pInfo == NULL ) {
+        return 0;
+    }
+    helper_digest_t * pHelper =
+        helper_newUserData( pLua, DIGEST_ID, sizeof( *pHelper ) );
     if ( pHelper == NULL ) {
         helper_dispose( pInfo );
         return 0;
     }
     pHelper->pInfo = pInfo;
+
+    return 1;
+}
+
+static int helper_deleteLock( lua_State * pLua )
+{
+    const char * pName = lua_tostring( pLua, 1 );
+    if ( pName == NULL ) {
+        pName = LOCK_NAME_PREFIX LOCK_DEFAULT_NAME;
+    }
+    sem_unlink( pName );
+    return 0;
+}
+
+static int helper_createLock( lua_State * pLua )
+{
+    const char * pName = lua_tostring( pLua, 1 );
+    if ( pName == NULL ) {
+        pName = LOCK_DEFAULT_NAME;
+    }
+    char name[ NAME_MAX - 3 ];
+    snprintf( name, sizeof( name ), LOCK_NAME_PREFIX "%s", pName );
+    name[ sizeof( name ) - 1 ] = '\0';
     
-#if LUA_VERSION_NUM >= 502
-    luaL_setmetatable( pLua, HELPER_ID );
-#else
-    luaL_getmetatable( pLua, HELPER_ID);
-    lua_setmetatable( pLua, -2 );
-#endif
+    helper_lock_t * pLock =
+        helper_newUserData( pLua, LOCK_ID, sizeof( helper_lock_t ) );
+    if ( pLock == NULL ) {
+        return 0;
+    }
+    pLock->pInfo = NULL;
+
+    // /dev/shm ˆÈ‰º‚Éƒtƒ@ƒCƒ‹‚ª¶¬‚³‚ê‚é
+    sem_t * pSem = sem_open(
+        name, O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, 1 );
+    if ( pSem == SEM_FAILED ) {
+        printf( "%s: sem_open() retrn NULL\n", __func__ );
+        return 0;
+    }
+
+    {
+	int val = 0;
+	sem_getvalue( pSem, &val );
+	if ( val > 1 ) {
+	    printf( "sem_getvalue - %d\n", val );
+	    exit( 1 );
+	}
+    }
+		      
+    helper_lockInfo_t * pInfo = malloc( sizeof( helper_lockInfo_t ) );
+    if ( pInfo == NULL ) {
+        printf( "%s: malloc() return NULL\n", __func__ );
+        sem_close( pSem );
+        return 0;
+    }
+    pLock->pInfo = pInfo;
+    pInfo->pSem = pSem;
+    pInfo->depth = 0;
+    strcpy( pInfo->name, name );
 
     return 1;
 }
@@ -258,7 +408,7 @@ static int helper_tostring( lua_State * pLua )
 
 static int helper_digest_write( lua_State * pLua )
 {
-    helper_userData_t * pHelper = toHelper( pLua );
+    helper_digest_t * pHelper = toDigest( pLua );
     size_t size;
     const char * pValue = lua_tolstring( pLua, 2, &size );
 
@@ -274,7 +424,7 @@ static int helper_digest_write( lua_State * pLua )
 
 static int helper_digest_fix( lua_State * pLua )
 {
-    helper_userData_t * pHelper = toHelper( pLua );
+    helper_digest_t * pHelper = toDigest( pLua );
     helper_digestInfo_t * pInfo = pHelper->pInfo;
     unsigned char * pBuf = malloc( pInfo->mdsize * 2 );
     if ( pBuf == NULL ) {
@@ -299,7 +449,7 @@ static int helper_digest_fix( lua_State * pLua )
 
 static int helper_digest_gc( lua_State * pLua )
 {
-    helper_userData_t * pHelper = toHelper( pLua );
+    helper_digest_t * pHelper = toDigest( pLua );
 
     helper_dispose( pHelper->pInfo );
 
@@ -308,11 +458,90 @@ static int helper_digest_gc( lua_State * pLua )
 
 static int helper_digest_tostring( lua_State * pLua )
 {
-    helper_userData_t * pHelper = toHelper( pLua );
-    char buf[ 100 ];
-    sprintf( buf, "<helper:%p>", pHelper );
-    lua_pushstring( pLua, buf );
+    toString( pLua, DIGEST_ID );
+}
+
+
+static int helper_lock_begin( lua_State * pLua )
+{
+    helper_lock_t * pLock = toLock( pLua );
+
+    if ( pLock->pInfo->depth > 0 ) {
+        pLock->pInfo->depth++;
+        return 0;
+    }
+    
+    
+
+    sem_wait( pLock->pInfo->pSem );
+
+    pLock->pInfo->depth++;
+
+    return 0;
+}
+
+static int helper_lock_fin( lua_State * pLua )
+{
+    helper_lock_t * pLock = toLock( pLua );
+
+    if ( pLock->pInfo->depth > 1 ) {
+        pLock->pInfo->depth--;
+        return 0;
+    }
+    if ( pLock->pInfo->depth < 0 ) {
+        printf( "no lock\n" );
+        return 0;
+    }
+
+    if ( sem_post( pLock->pInfo->pSem ) != 0 ) {
+	printf( "%s: post error %d\n", __func__, errno );
+    }
+
+    pLock->pInfo->depth = 0;
+
+    return 0;
+}
+
+static int helper_lock_isLocking( lua_State * pLua )
+{
+    helper_lock_t * pLock = toLock( pLua );
+
+    if ( pLock->pInfo->depth >= 1 ) {
+        lua_pushinteger( pLua, 1 );
+        return 1;
+    }
+
+    int val = 0;
+    sem_getvalue( pLock->pInfo->pSem, &val );
+
+    if ( val == 0 ) {
+        lua_pushinteger( pLua, 2 );
+    }
+    else {
+        lua_pushboolean( pLua, 0 );
+    }
     return 1;
+}
+
+
+static int helper_lock_gc( lua_State * pLua )
+{
+    helper_lock_t * pLock = toLock( pLua );
+
+    if ( pLock->pInfo != NULL ) {
+        if ( pLock->pInfo->depth > 0 ) {
+            sem_post( pLock->pInfo->pSem );
+        }
+	sem_close( pLock->pInfo->pSem );
+        sem_unlink( pLock->pInfo->name );
+        free( pLock->pInfo );
+    }
+    return 1;
+}
+
+static int helper_lock_tostring( lua_State * pLua )
+{
+    toString( pLua, LOCK_ID );
 }
 
 

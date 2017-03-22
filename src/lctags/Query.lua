@@ -119,7 +119,7 @@ function Query:execWithDb( db, query, target )
    end
 end
 
-function Query:exec( db, query, target, useGlogalFlag )
+function Query:exec( db, query, target )
    self:execWithDb( db, query, target )
 end
 

@@ -323,6 +323,17 @@ function Make:updateFor( dbPath, target, jobs, src )
    end
    db:close()
 
+   local opt = ""
+   if Option:isValidProfile() then
+      opt = "--lctags-prof"
+   end
+
+   if Option:isValidLockLog() then
+      opt = "--lctags-lockLog"
+   end
+   
+   
+
    fileHandle:write(
       string.format( 
 	 [[
@@ -341,8 +352,8 @@ second: $(SRCS)
 	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s
 ]],
 	 tmpName, arg[-1], arg[0], 
-	 target and ("--lctags-target " .. target ) or "", log( 0, -1 ), dbPath,
-	 Option:isValidProfile() and "--lctags-prof" or "" ) )
+	 target and ("--lctags-target " .. target ) or "",
+	 log( 0, -1 ), dbPath, opt ) )
 
    fileHandle:close()
 

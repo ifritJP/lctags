@@ -697,8 +697,8 @@ function Analyzer:openDBForReadOnly( currentDir )
    return DBCtrl:open( self.dbPath, true, currentDir or self.currentDir )
 end
 
-function Analyzer:openDBForWrite()
-   return DBCtrl:open( self.dbPath, false, self.currentDir )
+function Analyzer:openDBForWrite( message )
+   return DBCtrl:open( self.dbPath, false, self.currentDir, message )
 end
 
 function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
@@ -832,7 +832,7 @@ function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
    if result and ( needUpdateFlag or sameAsOtherTarget ) then
       -- uptodate で needUpdateFlag の場合、ファイルの更新日時だけ違う。
       -- 次回のチェック時間を短縮するため、updateTime を更新する。
-      db = self:openDBForWrite()
+      db = self:openDBForWrite( "update time" )
       db:setUpdateTime( targetFileInfo.id, Helper.getCurrentTime() )
       db:updateCompileOp( targetFileInfo, target, compileOp )
       db:close()
@@ -986,7 +986,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       { clang.core.CXCursor_Namespace }, targetKindList, targetFileList,  1 )
    log( 2, "visitChildren end", os.clock(), os.date() )
 
-   local db = self:openDBForWrite()
+   local db = self:openDBForWrite( "analyze" )
    if not db then
       log( 1, "db open error" )
       os.exit( 1 )
@@ -1151,7 +1151,13 @@ end
 
 function Analyzer:registerSpInfo( db, spInfo )
    if spInfo.fileInfo.id ~= db.systemFileId then
-      log( -1, string.gsub( spInfo.fileInfo.path, ".*/", "" ) .. ":" )
+      local targetName = string.gsub( self.targetFilePath, ".*/", "" )
+      local currentName = string.gsub( spInfo.fileInfo.path, ".*/", "" )
+      if targetName ~= currentName then
+	 log( -1, string.format( "%s:%s:", targetName, currentName ) )
+      else
+	 log( -1, string.format( "%s:", targetName ) )
+      end
    end
    
    log( 2, "-- macroDefList --", os.clock(), os.date()  )
@@ -1465,13 +1471,13 @@ function Analyzer:analyzeSource( path, options, target, unsavedFileTable )
       compileOp = compileOp .. option .. " "
    end
 
-   local includeList = self:getIncludeList( path, compileOp )
    
    local stdMode = self:getStdMode( options, path )
 
    local db = self:openDBForReadOnly()
    
    local newOptList = { table.unpack( options ) }
+   -- local includeList = self:getIncludeList( path, compileOp )
    -- for index, incPath in ipairs( includeList ) do
    --    local pchPath = db:getPchPath( incPath, target, stdMode )
    --    local modTime = Helper.getFileModTime( pchPath )

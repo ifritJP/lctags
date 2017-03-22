@@ -3,13 +3,11 @@
 local sqlite3 = require("lsqlite3")
 local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
+local Option = require( 'lctags.Option' )
 
 local DBAccess = {}
 
 local recordFile = nil
-function DBAccess:recordSql( fileHandle )
-   recordFile = fileHandle
-end
    
 function DBAccess:errorExit( level, ... )
    log( -2, "Sqlite ERROR:", self.db:errmsg(), ... )
@@ -17,6 +15,8 @@ function DBAccess:errorExit( level, ... )
 end
 
 function DBAccess:open( path, readonly, onMemoryFlag )
+   recordFile = Option:getRecordSqlObj()
+   
    log(3, "DBAccess:open" )
    local flag = nil
    if readonly then
@@ -37,6 +37,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 
    local obj = {
       db = db,
+      path = path,
       readonly = readonly,
       insertCount = 0,
       updateCount = 0,
@@ -44,8 +45,10 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       selectCount = 0,
       uniqueCount = 0,
       lockLogFlag = true,
+      beginFlag = false,
       time = 0,
       beginTime = 0,
+      lockObj = Helper.createLock(),
    }
    setmetatable( obj, { __index = DBAccess } )
 
@@ -55,7 +58,8 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 	    obj.lockLogFlag = false
 	    log( 2, "db is busy" )
 	 end
-	 Helper.msleep( 50 )
+	 obj.lockObj:begin()
+	 obj.lockObj:fin()
 	 return true
       end
    )
@@ -65,8 +69,9 @@ end
 
 function DBAccess:close()
    self.db:close()
-   log( 2, string.format(
-	   "time: %f, insert:%d, unique:%d, update:%d, delete:%d, select:%d",
+   log( 2,
+	string.format(
+	   "time=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
 	   self.time, self.insertCount, self.uniqueCount,
 	   self.updateCount, self.deleteCount, self.selectCount ) )
 end
@@ -128,17 +133,34 @@ function DBAccess:exec( stmt, errHandle )
    self.time = self.time + (os.clock() - prev)
 end
 
-function DBAccess:begin()
+function DBAccess:outputLog( message )
+   local fileObj = io.open( self.path .. ".log", "a+" )
+   local sec, usec = Helper.getTime()
+   local logPrefix = log( -3 ) or ""
+   fileObj:write( string.format( "%d.%06d %s %s\n",
+				 sec % 1000, usec, logPrefix, message ) )
+   fileObj:close()
+end   
+
+function DBAccess:begin( message )
    if self.readonly then
       log( 1, "db mode is read only" )
       os.exit( 1 )
       return
    end
 
+   self.lockObj:begin()
+
+   self.beginFlag = true
    self.lockLogFlag = true
    --self:commit()
    self:exec( "PRAGMA journal_mode = MEMORY" )
    self:exec( "BEGIN IMMEDIATE" )
+
+   if message and Option:isValidLockLog() then
+      self.lockLogMessage = message
+      self:outputLog( message )
+   end
 
    self.beginTime = os.clock()
    
@@ -149,6 +171,12 @@ function DBAccess:commit()
    if self.readonly then
       return
    end
+   if not self.beginFlag then
+      return
+   end
+   self.beginFlag = false
+      
+   
    self:exec(
       "COMMIT",
       function( db, stmt, message )
@@ -157,6 +185,16 @@ function DBAccess:commit()
 	 end
       end
    )
+   if self.lockLogMessage then
+      self:outputLog( "commit" )
+      self:outputLog(
+	 string.format(
+	    "time=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
+	    self.time, self.insertCount, self.uniqueCount,
+	    self.updateCount, self.deleteCount, self.selectCount ) )
+   end
+   
+   self.lockObj:fin()
    log( 2, "commit:", os.clock() - self.beginTime )
 end
 

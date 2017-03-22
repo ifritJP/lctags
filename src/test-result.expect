@@ -6,31 +6,31 @@ lua lctags/lctags.lua dump target
 1	-- table target -- 
 1	fileId	hasPch	target	path	compOp
 1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-1	3	1		/usr/include/features.h	c++98
-1	4	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
-1	5	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
-1	6	1		|/test/field.h	c++11
-1	7	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
-1	8	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
-1	9	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
-1	10	1		/usr/include/stdc-predef.h	c++98
-1	11	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
-1	12	1		/usr/include/libio.h	c++98
-1	13	1		/usr/include/wchar.h	c++98
-1	14	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
-1	15	1		/usr/include/stdio.h	c++98
-1	16	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
-1	17	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
-1	18	1		/usr/include/_G_config.h	c++98
-1	19	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
-1	20	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
-1	21	1		/usr/include/xlocale.h	c++98
-1	22	1		|/test/hoge.h	c++98
-1	23	1		/usr/include/time.h	c++98
-1	24	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+1	3	1		/usr/include/xlocale.h	c++98
+1	4	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
+1	5	1		/usr/include/libio.h	c++98
+1	6	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+1	7	1		/usr/include/_G_config.h	c++98
+1	8	1		|/test/field.h	c++11
+1	9	1		|/test/hoge.h	c++98
+1	10	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
+1	11	1		/usr/include/features.h	c++98
+1	12	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
+1	13	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
+1	14	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
+1	15	1		/usr/include/stdc-predef.h	c++98
+1	16	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
+1	17	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
+1	18	1		/usr/include/wchar.h	c++98
+1	19	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
+1	20	1		/usr/include/time.h	c++98
+1	21	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
+1	22	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
+1	23	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
+1	24	1		/usr/include/stdio.h	c++98
 1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	6	1	hoge	|/test/field.h	c++98
-1	22	1	hoge	|/test/hoge.h	c++98
+1	9	0	hoge	|/test/hoge.h	c++98
+1	8	0	hoge	|/test/field.h	c++98
 1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
 1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
 1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
@@ -45,40 +45,40 @@ lua lctags/lctags.lua dump target
 1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
 1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
 1	39	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
-1	40	1		|/test/inc3.h	c++11
-1	41	1		|/test/inc1.h	c++11
-1	42	1		|/test/inc2.h	c++11
+1	40	1		|/test/inc1.h	c++11
+1	41	1		|/test/inc2.h	c++11
+1	42	1		|/test/inc3.h	c++11
 lua lctags/lctags.lua dump file >> dump
 lua lctags/lctags.lua rm target hoge2
 lua lctags/lctags.lua dump target
 1	-- table target -- 
 1	fileId	hasPch	target	path	compOp
 1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-1	3	1		/usr/include/features.h	c++98
-1	4	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
-1	5	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
-1	6	1		|/test/field.h	c++11
-1	7	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
-1	8	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
-1	9	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
-1	10	1		/usr/include/stdc-predef.h	c++98
-1	11	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
-1	12	1		/usr/include/libio.h	c++98
-1	13	1		/usr/include/wchar.h	c++98
-1	14	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
-1	15	1		/usr/include/stdio.h	c++98
-1	16	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
-1	17	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
-1	18	1		/usr/include/_G_config.h	c++98
-1	19	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
-1	20	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
-1	21	1		/usr/include/xlocale.h	c++98
-1	22	1		|/test/hoge.h	c++98
-1	23	1		/usr/include/time.h	c++98
-1	24	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+1	3	1		/usr/include/xlocale.h	c++98
+1	4	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
+1	5	1		/usr/include/libio.h	c++98
+1	6	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+1	7	1		/usr/include/_G_config.h	c++98
+1	8	1		|/test/field.h	c++11
+1	9	1		|/test/hoge.h	c++98
+1	10	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
+1	11	1		/usr/include/features.h	c++98
+1	12	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
+1	13	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
+1	14	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
+1	15	1		/usr/include/stdc-predef.h	c++98
+1	16	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
+1	17	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
+1	18	1		/usr/include/wchar.h	c++98
+1	19	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
+1	20	1		/usr/include/time.h	c++98
+1	21	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
+1	22	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
+1	23	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
+1	24	1		/usr/include/stdio.h	c++98
 1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	6	1	hoge	|/test/field.h	c++98
-1	22	1	hoge	|/test/hoge.h	c++98
+1	9	0	hoge	|/test/hoge.h	c++98
+1	8	0	hoge	|/test/field.h	c++98
 1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
 1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
 1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
@@ -93,9 +93,9 @@ lua lctags/lctags.lua dump target
 1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
 1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
 1	39	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
-1	40	1		|/test/inc3.h	c++11
-1	41	1		|/test/inc1.h	c++11
-1	42	1		|/test/inc2.h	c++11
+1	40	1		|/test/inc1.h	c++11
+1	41	1		|/test/inc2.h	c++11
+1	42	1		|/test/inc3.h	c++11
 lua lctags/lctags.lua dump all >> dump
 lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {

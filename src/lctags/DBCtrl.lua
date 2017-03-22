@@ -342,7 +342,7 @@ function DBCtrl:getMiscPath( prefix, target, path )
    return miscPath
 end
 
-function DBCtrl:open( path, readonly, currentDir )
+function DBCtrl:open( path, readonly, currentDir, message )
    if not currentDir then
       log( 1, "open error. currentDir is nil" )
       return nil
@@ -367,7 +367,7 @@ function DBCtrl:open( path, readonly, currentDir )
    end
 
    if not readonly then
-      db:begin()
+      db:begin( message )
    end
 
    local projDirInfo = obj:getEtc( "projDir" )
@@ -432,7 +432,7 @@ function DBCtrl:commit()
       local writeDb = self.writeDb
       self.writeDb = self.db
 
-      self.db:begin()
+      self.db:begin( "merge" )
       log( 2, "merge begin:", os.clock(), os.date() )
 
       local tmpId2ActIdMap = {}
@@ -475,8 +475,13 @@ function DBCtrl:commit()
 	 if findIndex then
 	    local tmpId = string.gsub( val:sub( findIndex ), "^(%-%d+).*$", "%1" )
 	    local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
-	    val = string.format( "%s%s%s", val:sub( 1, findIndex - 1),
-				 actIdList[ 1 ], val:sub( findIndex + #tmpId ) )
+	    if actIdList then
+	       val = string.format( "%s%s%s", val:sub( 1, findIndex - 1),
+				    actIdList[ 1 ], val:sub( findIndex + #tmpId ) )
+	    else
+	       log( 1, "merge error", tmpId, val )
+	       os.exit( 1 )
+	    end
 	 end
 	 self:insert( insert[ 1 ], val )
       end
@@ -2488,8 +2493,10 @@ function DBCtrl:registerFromInfo( dbPath, target )
       local compDir = dependStream:read( '*l' )
       local compileOp = dependStream:read( '*l' )
 
-      local targetFileInfo = db:addFile(
-	 filePath, 0, "", compileOp, compDir, true, target )
+      local targetFileInfo = db:getFileInfo( nil, filePath )
+      targetFileInfo = db:addFile(
+	 filePath, targetFileInfo and targetFileInfo.updateTime or 0,
+	 "", compileOp, compDir, true, target )
 
       local incFileInfoList = {}
       while true do
@@ -2498,11 +2505,12 @@ function DBCtrl:registerFromInfo( dbPath, target )
 	    break
 	 end
 	 local fileInfo
-	 if not filePathSet[ path ] then
+	 fileInfo = db:getFileInfo( nil, path )
+	 if not filePathSet[ path ] or not fileInfo then
 	    filePathSet[ path ] = 1
-	    fileInfo = db:addFile( path, 0, "", "", compDir, false, target )
-	 else
-	    fileInfo = db:getFileInfo( nil, path )
+	    fileInfo = db:addFile(
+	       path, fileInfo and fileInfo.updateTime or 0,
+	       "", "", compDir, false, target )
 	 end
 	 table.insert( incFileInfoList, fileInfo )
       end

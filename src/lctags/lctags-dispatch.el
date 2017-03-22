@@ -10,6 +10,7 @@
 	    (:name "call-at" :bind "c" :action lctags-call-at)
 	    (:name "inc" :bind "i" :action lctags-list-inc-this-file)
 	    (:name "incSrc" :bind "I" :action lctags-list-incSrc-this-file)
+	    (:name "file" :bind "f" :action lctags-find-file)
 	    ))
     (:name "graph" :bind "g"
 	   :submenu
