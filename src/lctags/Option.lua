@@ -30,10 +30,11 @@ function Option:printUsage( message )
 usage:
  - build DB
    %s init projDir [-it] [-is] [-im]
-   %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] comp-op [...] src
+   %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] [--lctags-srv] comp-op [...] src
    %s update [-j jobs] pattrn
    %s register [--lctags-conf conf] [--lctags-target target] <-i|file>
    %s depIncs comp-op src
+   %s server [--lctags-target target] <start|stop>
  - query DB
    %s dump <all|target|file|ref|def> [path]
    %s ref-at[a] [--lctags-target target] [-i] file line column 
@@ -46,6 +47,7 @@ usage:
    %s -x[t|s|r][a]  [--use-global] symbol
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
+   %s stack
  - graph
    %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
    %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column
@@ -242,6 +244,10 @@ function Option:analyzeOption( argList )
 	 elseif arg == "depIncs" then
 	    lctagOptMap.mode = arg
 	    lctagOptMap.cc = "gcc"
+	 elseif arg == "server" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "stack" then
+	    lctagOptMap.mode = arg
 	 end
       else
 	 if skipArgNum > 0 then
@@ -274,6 +280,8 @@ function Option:analyzeOption( argList )
 		  self.profile = true
 	       elseif arg == "--lctags-lockLog" then
 		  self.lockLog = true
+	       elseif arg == "--lctags-srv" then
+		  self.serviceFlag = true
 	       else
 		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs"
 		  then
@@ -380,6 +388,10 @@ end
 
 function Option:getRecordSqlObj()
    return self.recordSqlObj
+end
+
+function Option:isValidService()
+   return self.serviceFlag
 end
 
 return Option

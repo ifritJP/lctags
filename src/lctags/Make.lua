@@ -24,21 +24,18 @@ local function searchNeedUpdateFiles( db, list, target )
 
 
    -- 更新が必要な古いファイル
-   local needUpdateFileMap = {}
+   local needUpdateSrcMap = {}
    -- fileId -> ファイルの更新時間マップ
    local fileId2ModTime = {}
    -- 更新が必要なインクルードファイルのセット
-   local needUpdateIncFileInfoSet = {}
+   local needUpdateIncFileInfoMap = {}
    -- 更新が必要なインクルードファイルのリスト
    local needUpdateIncIdList = {}
    -- 情報が新しいファイル
-   local uptodateFileList = {}
-   -- 情報の更新が必要になったファイルリスト
-   local appendUpdateFileList = {}
+   local uptodateFileMap = {}
    
+   log( 1, string.format( "check modified files", #list ) )
    for index, fileInfo in ipairs( list ) do
-      log( 1, string.format( "check modified (%d/%d) %s",
-			     index, #list, fileInfo.path ) )
       if db:hasTarget( fileInfo.id, target ) or fileInfo.incFlag ~= 0 then
 	 local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
 	 fileId2ModTime[ fileInfo.id ] = modTime
@@ -46,14 +43,14 @@ local function searchNeedUpdateFiles( db, list, target )
 	    if modTime > fileInfo.updateTime then
 	       -- 更新時間が古い場合はマップに登録
 	       if fileInfo.incFlag ~= 0 then
-		  needUpdateIncFileInfoSet[ fileInfo.id ] = fileInfo
+		  needUpdateIncFileInfoMap[ fileInfo.id ] = fileInfo
 		  table.insert( needUpdateIncIdList, fileInfo.id )
-		  log( 1, "modified", fileInfo.path, modTime )
+		  log( 3, "modified", fileInfo.path, modTime )
 	       else
-		  needUpdateFileMap[ fileInfo.id ] = fileInfo
+		  needUpdateSrcMap[ fileInfo.id ] = fileInfo
 	       end
 	    else
-	       table.insert( uptodateFileList, fileInfo )
+	       uptodateFileMap[ fileInfo.id ] = fileInfo
 	    end
 	 end
       else
@@ -61,82 +58,84 @@ local function searchNeedUpdateFiles( db, list, target )
       end
    end
 
+   local needUpdateIncNum = 0
+   for incId in pairs( needUpdateIncFileInfoMap ) do
+      needUpdateIncNum = needUpdateIncNum + 1
+   end
+
    -- 更新時間が新しいファイルがインクルードしているファイルの更新情報をチェックする。
    -- ソースファイルが更新されていなくても、インクルードファイルが更新されている場合は、
    -- ソースファイルを更新する必要がある
-   for index, fileInfo in ipairs( uptodateFileList ) do
-      log( 1, string.format( "check depending include files (%d/%d) %s",
-			     index, #uptodateFileList, fileInfo.path ) )
-      local prev = os.clock()
-      local incFileIdSet = db:getIncludeCache( fileInfo )
-      for fileId in pairs( incFileIdSet ) do
-	 local incFileInfo = db:getFileInfo( fileId )
-	 if incFileInfo.id ~= DBCtrl.systemFileId then
-	    modTime = fileId2ModTime[ fileId ]
-	    if not modTime then
-	       modTime = Helper.getFileModTime( db:getSystemPath( incFileInfo.path ) )
-	       fileId2ModTime[ fileId ] = modTime
-	    end
-	    if not modTime or modTime > incFileInfo.updateTime then
-	       -- インクルードファイルの更新時間が古い場合はマップに登録
-	       log( 1, "include file is modified", incFileInfo.path )
-	       table.insert( appendUpdateFileList, fileInfo )
-	       
-	       local removeList = {}
-	       for needUpdateIncFileId in pairs( needUpdateIncFileInfoSet ) do
-		  if incFileIdSet[ needUpdateIncFileId ] then
-		     table.insert( removeList, needUpdateIncFileId )
+
+   local isNeedUpdateFunc = function( fileInfo, incId )
+      if incId == DBCtrl.systemFileId then
+	 return false
+      end
+      if needUpdateIncFileInfoMap[ incId ] then
+	 return true
+      end
+      local incFileInfo = db:getFileInfo( incId )
+      modTime = fileId2ModTime[ incId ]
+      if not modTime then
+	 modTime = Helper.getFileModTime( db:getSystemPath( incFileInfo.path ) )
+	 fileId2ModTime[ incId ] = modTime
+      end
+      if not modTime or modTime > incFileInfo.updateTime then
+	 -- インクルードファイルの更新時間が古い場合はマップに登録
+	 return true
+      end
+      return false
+   end
+
+   local uptodateFileNum = 0
+   for fileId in pairs( uptodateFileMap ) do
+      uptodateFileNum = uptodateFileNum + 1
+   end
+   db:mapIncludeCache(
+      nil,
+      function( item )
+	 if needUpdateIncFileInfoMap[ item.id ] then
+	    local fileInfo = uptodateFileMap[ item.baseFileId ]
+	    if fileInfo then
+	       -- ソースの更新日時が新しくても、
+	       -- インクルードの更新日時が古い場合ソースファイルを更新対象にする
+	       if isNeedUpdateFunc( fileInfo, item.id ) then
+		  log( 1, "include file is modified", item.id )
+		  needUpdateSrcMap[ fileInfo.id ] = fileInfo
+
+		  log( 3, "excludeIncFile", removeId, fileInfo.path )
+		  uptodateFileMap[ item.baseFileId ] = nil
+		  uptodateFileNum = uptodateFileNum - 1
+		  needUpdateIncFileInfoMap[ item.id ] = nil
+		  needUpdateIncNum = needUpdateIncNum - 1
+		  if uptodateFileNum <= 0 or needUpdateIncNum <= 0 then
+		     return false
 		  end
 	       end
-	       for subIndex, removeId in ipairs( removeList ) do
-		  log( 3, "excludeIncFile", removeId, fileInfo.path )
-		  needUpdateIncFileInfoSet[ removeId ] = nil
-		  needUpdateFileMap[ removeId ] = nil
+	    else
+	       -- 更新対象のソースに、更新対象のインクルードが含まれている場合
+	       -- インクルードを除外する
+	       needUpdateIncFileInfoMap[ item.id ] = nil
+	       needUpdateIncNum = needUpdateIncNum - 1
+	       if needUpdateIncNum <= 0 then
+		  return false
 	       end
-	       break
 	    end
 	 end
+	 return true
       end
-   end
+   )
 
-   -- 更新するファイルが、更新が必要なインクルードファイルを
-   -- インクルードしているかどうかを確認する
-   local wokIndex = 0
-   for fileId, fileInfo in pairs( needUpdateFileMap ) do
-      log( 1, string.format( "check include files %d/%d %s",
-			     wokIndex, #uptodateFileList, fileInfo.path ) )
-      wokIndex = wokIndex + 1
-      local incFileIdSet = db:getIncludeCache( fileInfo )
-      local removeList = {}
-      for needUpdateIncFileId in pairs( needUpdateIncFileInfoSet ) do
-	 if fileId ~= needUpdateIncFileId and incFileIdSet[ needUpdateIncFileId ]
-	 then
-	    table.insert( removeList, needUpdateIncFileId )
-	 end
-      end
-      -- インクルードしているファイルを更新から除外
-      for index, removeId in ipairs( removeList ) do
-	 log( 3, "excludeIncFile", removeId, fileInfo.path )
-	 needUpdateIncFileInfoSet[ removeId ] = nil
-	 needUpdateFileMap[ removeId ] = nil
-      end
-   end
-
+   
    local needFileList = {}
-
-   for fileId, fileInfo in pairs ( needUpdateFileMap ) do
+   for fileId, fileInfo in pairs ( needUpdateSrcMap ) do
       table.insert( needFileList, fileInfo )
-      log( 1, "needUpdateFileMap:", fileInfo.path )
    end
-   for fileId, fileInfo in pairs ( appendUpdateFileList ) do
-      table.insert( needFileList, fileInfo )
-      log( 1, "appendUpdateFileList:", fileInfo.path )
-   end
-   for fileId, fileInfo in pairs ( needUpdateIncFileInfoSet ) do
+   for fileId, fileInfo in pairs ( needUpdateIncFileInfoMap ) do
       local srcFileInfo = db:getSrcForIncOne( fileInfo, target )
       if srcFileInfo then
 	 table.insert( needFileList, srcFileInfo )
-	 log( 1, "needUpdateIncFileInfoSet:", srcFileInfo.path )
+	 log( 1, "needUpdateIncFileInfoMap:", srcFileInfo.path )
       end
    end
    return needFileList, needUpdateIncIdList
@@ -159,12 +158,22 @@ function Make:decideOrderForMake( db, list, needUpdateIncIdList )
    for index, incId in ipairs( needUpdateIncIdList ) do
       needUpdateIncIdSet[ incId ] = 1
    end
-   -- list がインクルードしているファイルを needUpdateIncIdSet に追加する
-   for index, fileInfo in ipairs( list ) do
-      for incId in pairs( db:getIncludeCache( fileInfo ) ) do
-	 needUpdateIncIdSet[ incId ] = 1
-      end
+
+   local needUpdateSrcMap = {}
+   for fileId, fileInfo in pairs( list ) do
+      needUpdateSrcMap[ fileId ] = fileInfo
    end
+   -- list がインクルードしているファイルを needUpdateIncIdSet に追加する
+   log( 2, "decideOrderForMake: setup needUpdateIncIdSet" )
+   db:mapIncludeCache(
+      nil,
+      function( item )
+	 if needUpdateSrcMap[ item.baseFileId ] then
+	    needUpdateIncIdSet[ item.id ] = 1
+	 end
+	 return true
+      end
+   )
    
 
    local needUpdateSrcId2FileInfoMap = {}

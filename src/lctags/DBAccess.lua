@@ -4,6 +4,7 @@ local sqlite3 = require("lsqlite3")
 local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
 local Option = require( 'lctags.Option' )
+local Server = require( 'lctags.Server' )
 
 local DBAccess = {}
 
@@ -24,15 +25,27 @@ function DBAccess:open( path, readonly, onMemoryFlag )
    else
       flag = sqlite3.OPEN_READWRITE + sqlite3.OPEN_CREATE
    end
+
+   local transLockObj = Helper.createLock()
+   transLockObj:begin()
    local db
    if onMemoryFlag then
       db = sqlite3.open_memory()
    else
       db = sqlite3.open( path, flag )
    end
+   transLockObj:fin()
+   
+   
    if not db then
       log( 1, "open error." )
       return nil
+   end
+
+   local server
+   if Option:isValidService() then
+      server = Server
+      server:connect( string.gsub( path, "/", "" ) )
    end
 
    local obj = {
@@ -48,27 +61,79 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       beginFlag = false,
       time = 0,
       beginTime = 0,
-      lockObj = Helper.createLock(),
+      server = server,
+      inLockFlag = nil,
+      inActLockFlag = nil,
+      actDepth = 0,
+      transLockObj = transLockObj,
+      --actLockObj = Helper.createLock("act"),
+      writeAccessFlag = false,
    }
-   setmetatable( obj, { __index = DBAccess } )
+   --obj.actLockObj = obj.transLockObj
+   setmetatable(
+      obj,
+      {
+	 __index = DBAccess,
+	 __gc = function()
+	    if obj.inLockFlag then
+	       transLockObj:fin()
+	    end
+	 end,
+      }
+   )
+
+   --db:busy_timeout( 0 )
 
    db:busy_handler(
       function()
+	 -- 更新アクセスと読み込みアクセスがバッティングすると busy になる。
+	 -- 更新アクセス同士は、transLockObj で排他している。
+	 -- 読み込みアクセスのみの場合、 busy にならないはず。
 	 if obj.lockLogFlag then
 	    obj.lockLogFlag = false
-	    log( 2, "db is busy" )
+	    log( 2, "db is busy", obj.readonly, obj.writeAccessFlag,
+		 obj.beginFlag, obj.inLockFlag, obj.inActLockFlag, obj.actDepth )
 	 end
-	 obj.lockObj:begin()
-	 obj.lockObj:fin()
+	 if not obj.inLockFlag then
+	    -- 更新アクセスを優先し、読み込みアクセスは遅延させる。
+	    -- 更新アクセスを止めると、更新処理が溜っていって並列性が下がるため。
+	    obj:outputLog( "read busy " .. tostring( obj.transLockObj:isLocking() ) )
+	    obj.transLockObj:begin()
+	    obj:outputLog( "db is read busy" )
+	    log( 2, "db is read busy",
+	 	 obj.readonly, obj.writeAccessFlag, obj.inActLockFlag, obj.actDepth )
+	    obj.transLockObj:fin()
+	 elseif not obj.beginFlag then
+	    Helper.msleep( 10 )
+	 end
 	 return true
       end
    )
 
+   log( 3, "open", obj.server )
+
    return obj
 end
 
+function DBAccess:act( func, ... )
+   local result
+   --self.actLockObj:begin()
+   self.inActLockFlag = "act"
+   self.actDepth = self.actDepth + 1
+   result = { func( self.db, ... ) }
+   self.actDepth = self.actDepth - 1 
+   self.inActLockFlag = nil
+   --self.actLockObj:fin()
+   return table.unpack( result )
+end
+
 function DBAccess:close()
+   self.transLockObj:begin()
+   self.inLockFlag = "close"
    self.db:close()
+   self.inLockFlag = nil
+   self.transLockObj:fin()
+   
    log( 2,
 	string.format(
 	   "time=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
@@ -76,8 +141,28 @@ function DBAccess:close()
 	   self.updateCount, self.deleteCount, self.selectCount ) )
 end
 
-function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
-   self.selectCount = self.selectCount + 1
+
+function DBAccess:mapJoin( tableName, otherTable, on, condition, limit, attrib, func )
+   local query = nil
+   if not attrib then
+      attrib = "*"
+   end
+   if condition then
+      query = string.format( "SELECT %s FROM %s INNER JOIN %s ON %s WHERE %s",
+			     attrib, tableName, otherTable, on, condition )
+   else
+      query = string.format( "SELECT %s FROM %s INNER JOIN %s ON %s",
+			     attrib, tableName, otherTable, on )
+   end
+   if limit then
+      query = string.format( "%s LIMIT %d", query, limit )
+   end
+
+   self:mapQuery( query, func )
+end
+
+
+function DBAccess:mapRowList( tableName, condition, limit, attrib, func )
    local query = nil
    if not attrib then
       attrib = "*"
@@ -91,40 +176,101 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func, ... )
       query = string.format( "%s LIMIT %d", query, limit )
    end
 
-   local success, message = pcall(
-      function( params )
-	 for item in self.db:nrows( query ) do
-	    local continue = func( item, table.unpack( params ) )
+   self:mapQuery( query, func )
+end
+
+
+
+function DBAccess:mapQuery( query, func )
+   self.selectCount = self.selectCount + 1
+
+   self.writeAccessFlag = false
+
+   local success, message
+   if self.server then
+      local err
+      local result = Server:requestInq(
+	 query,
+	 function( item )
+	    local continue = func( item )
 	    if not continue then
 	       if continue == nil then
-		  self:errorExit( 3, "func returned nil" )
+		  err = true
+		  return false
 	       end
-	       break
 	    end
 	 end
-      end, { ... }
-   )
+      )
+      if err then
+	 self:errorExit( 3, "func returned nil" )
+      end
+      if result.err then
+	 success = false
+	 message = result.err
+      else
+	 success = true
+      end
+   else
+      success, message = pcall(
+	 function()
+	    -- 次の for 分を実行する。
+	    -- for item in self.db:nrows( query )
+	    -- self:act で排他をかけるために、 for in の文法を分解してコールする
+	    local loopFunc, param, prev = self:act( self.db.nrows, query )
+	    if loopFunc then
+	       while true do
+		  --self.actLockObj:begin()
+		  self.actDepth = self.actDepth + 1
+		  self.inActLockFlag = "inq"
+		  local item = loopFunc( param, prev )
+		  self.inActLockFlag = nil
+		  self.actDepth = self.actDepth - 1		  
+		  --self.actLockObj:fin()
+		  if not item then
+		     break
+		  end
+		  local continue = func( item )
+		  if not continue then
+		     if continue == nil then
+			self:errorExit( 3, "func returned nil" )
+		     end
+		     break
+		  end
+	       end
+	    end
+	 end
+      )
+   end
    if not success then
       self:errorExit( 3, message, query )
    end
 end
+
+
 
 function DBAccess:exec( stmt, errHandle )
    local prev = os.clock()
    if recordFile then
       recordFile:write( stmt .. "\n" )
    end
-   
-   if self.db:exec( stmt ) ~= sqlite3.OK then
+
+   self.writeAccessFlag = true
+
+   local errmsg
+   if self.server then
+      local reply = self.server:requestExec( stmt )
+      errmsg = reply.err
+   else
+      if self:act( self.db.exec, stmt ) ~= sqlite3.OK then
+	 errmsg = self:act( self.db.errmsg )
+      end
+   end
+   if errmsg then
       if recordFile then
-	 recordFile:write( self.db:errmsg() .. "\n" )
+	 recordFile:write( errmsg .. "\n" )
       end
       if errHandle then
-	 errHandle( self, stmt, self.db:errmsg() )
-	 
-	 -- local debugInfo = debug.getinfo( 2 )
-	 -- log( 1, "Sqlite ERROR:        ", self.db:errmsg(),
-	 --      debugInfo.short_src, debugInfo.currentline )
+	 errHandle( self, stmt, errmsg )
       else
 	 self:errorExit( 3, stmt )
       end
@@ -137,25 +283,30 @@ function DBAccess:outputLog( message )
    local fileObj = io.open( self.path .. ".log", "a+" )
    local sec, usec = Helper.getTime()
    local logPrefix = log( -3 ) or ""
-   fileObj:write( string.format( "%d.%06d %s %s\n",
-				 sec % 1000, usec, logPrefix, message ) )
+   fileObj:write( string.format( "%d.%06d	%s	%s\n",
+				 sec % 10000, usec, logPrefix, message ) )
    fileObj:close()
 end   
 
 function DBAccess:begin( message )
+   log( 2, "begin", message )
    if self.readonly then
       log( 1, "db mode is read only" )
       os.exit( 1 )
       return
    end
 
-   self.lockObj:begin()
-
+   self.transLockObj:begin()
+   self.inLockFlag = "begin"
+   
    self.beginFlag = true
    self.lockLogFlag = true
-   --self:commit()
-   self:exec( "PRAGMA journal_mode = MEMORY" )
-   self:exec( "BEGIN IMMEDIATE" )
+
+   if not self.server then
+      self:exec( "PRAGMA journal_mode = MEMORY" )
+      self:exec( "BEGIN IMMEDIATE" )
+      --self:exec( "BEGIN EXCLUSIVE" )
+   end
 
    if message and Option:isValidLockLog() then
       self.lockLogMessage = message
@@ -163,7 +314,6 @@ function DBAccess:begin( message )
    end
 
    self.beginTime = os.clock()
-   
    log( 2, "begin" )
 end
 
@@ -175,26 +325,28 @@ function DBAccess:commit()
       return
    end
    self.beginFlag = false
-      
-   
-   self:exec(
-      "COMMIT",
-      function( db, stmt, message )
-	 if not message:find( "no transaction is active" ) then
-	    self:errorExit( 5, message )
+
+   if not self.server then
+      self:exec(
+	 "COMMIT",
+	 function( db, stmt, message )
+	    if not message:find( "no transaction is active" ) then
+	       self:errorExit( 5, message )
+	    end
 	 end
-      end
-   )
+      )
+   end
    if self.lockLogMessage then
-      self:outputLog( "commit" )
       self:outputLog(
 	 string.format(
-	    "time=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
+	    "commit time=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
 	    self.time, self.insertCount, self.uniqueCount,
 	    self.updateCount, self.deleteCount, self.selectCount ) )
    end
-   
-   self.lockObj:fin()
+
+
+   self.inLockFlag = nil
+   self.transLockObj:fin()
    log( 2, "commit:", os.clock() - self.beginTime )
 end
 

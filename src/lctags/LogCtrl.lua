@@ -1,7 +1,7 @@
 -- Copyright (C) 2017 ifritJP
 
 local displayLevel = 1
-local prefix = ""
+local prefix = "lctags:"
 
 local LogCtrl = {}
 
@@ -29,6 +29,8 @@ LogCtrl.log = function( level, ... )
       return
    elseif logLevel == -3 then
       return prefix
+   elseif logLevel == -4 then
+      return displayLevel
    end
    if logLevel > displayLevel then
       return

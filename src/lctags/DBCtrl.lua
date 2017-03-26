@@ -354,6 +354,10 @@ function DBCtrl:open( path, readonly, currentDir, message )
    
    local obj = newObj( db, currentDir )
 
+   if not readonly then
+      db:begin( message )
+   end
+
    local item = obj:getRow( "etc", "keyName = 'version'" )
    if not item then
       log( 1, "unknown version" )
@@ -364,10 +368,6 @@ function DBCtrl:open( path, readonly, currentDir, message )
       log( 1, "not support version.", item.val )
       db:close()
       return nil
-   end
-
-   if not readonly then
-      db:begin( message )
    end
 
    local projDirInfo = obj:getEtc( "projDir" )
@@ -646,8 +646,12 @@ function DBCtrl:exists( tableName, condition )
 end
 
 
-function DBCtrl:mapRowList( tableName, condition, limit, attrib, func, ... )
-   self.db:mapRowList( tableName, condition, limit, attrib, func, ... )
+function DBCtrl:mapJoin( tableName, otherTable, on, condition, limit, attrib, func )
+   self.db:mapJoin( tableName, otherTable, on, condition, limit, attrib, func )
+end
+
+function DBCtrl:mapRowList( tableName, condition, limit, attrib, func )
+   self.db:mapRowList( tableName, condition, limit, attrib, func )
 end
 
 function DBCtrl:getRowList( tableName, condition, limit, attrib )
@@ -1642,12 +1646,12 @@ function DBCtrl:hasInc( fileInfo, cursor )
    return false
 end
 
-function DBCtrl:mapSymbolInfoList( tableName, symbol, func, ... )
+function DBCtrl:mapSymbolInfoList( tableName, symbol, func )
    local nsInfo = self:getNamespace( nil, symbol )
    if nsInfo then
       self:mapRowList(
 	 tableName,
-	 string.format( "nsId = %d", nsInfo.id ), nil, nil, func, ... )
+	 string.format( "nsId = %d", nsInfo.id ), nil, nil, func )
       return
    end
 
@@ -1658,7 +1662,7 @@ function DBCtrl:mapSymbolInfoList( tableName, symbol, func, ... )
 
    self:mapRowList(
       tableName,
-      string.format( "snameId = %d", snameInfo.id ), nil, nil, func, ... )
+      string.format( "snameId = %d", snameInfo.id ), nil, nil, func )
 end
 
 function DBCtrl:mapTargetInfo( condition, func )
@@ -1666,40 +1670,40 @@ function DBCtrl:mapTargetInfo( condition, func )
 end
 
 
-function DBCtrl:mapDeclInfoList( symbol, func, ... )
-   return self:mapSymbolInfoList( "symbolDecl", symbol, func, ... )
+function DBCtrl:mapDeclInfoList( symbol, func )
+   return self:mapSymbolInfoList( "symbolDecl", symbol, func )
 end
 
-function DBCtrl:mapDeclAtFile( fileId, func, ... )
+function DBCtrl:mapDeclAtFile( fileId, func )
    self:mapRowList(
-      "symbolDecl", "fileId = " .. tostring( fileId ), nil, nil, func, ... )
+      "symbolDecl", "fileId = " .. tostring( fileId ), nil, nil, func )
 end
 
-function DBCtrl:mapDeclForParent( parentId, func, ... )
+function DBCtrl:mapDeclForParent( parentId, func )
    self:mapRowList(
-      "symbolDecl", "parentId = " .. tostring( parentId ), nil, nil, func, ... )
+      "symbolDecl", "parentId = " .. tostring( parentId ), nil, nil, func )
 end
 
-function DBCtrl:mapDecl( nsId, func, ... )
+function DBCtrl:mapDecl( nsId, func )
    self:mapRowList(
-      "symbolDecl", "nsId = " .. tostring( nsId ), nil, nil, func, ... )
+      "symbolDecl", "nsId = " .. tostring( nsId ), nil, nil, func )
 end
 
-function DBCtrl:mapSymbolRefInfoList( symbol, func, ... )
-   return self:mapSymbolInfoList( "symbolRef", symbol, func, ... )
+function DBCtrl:mapSymbolRefInfoList( symbol, func )
+   return self:mapSymbolInfoList( "symbolRef", symbol, func )
 end
 
-function DBCtrl:mapSymbolRef( nsId, func, ... )
+function DBCtrl:mapSymbolRef( nsId, func )
    return self:mapRowList(
-      "symbolRef", "nsId = " .. tostring( nsId ), nil, nil, func, ... )
+      "symbolRef", "nsId = " .. tostring( nsId ), nil, nil, func )
 end
 
-function DBCtrl:mapSymbolRefFrom( nsId, func, ... )
+function DBCtrl:mapSymbolRefFrom( nsId, func )
    return self:mapRowList(
-      "symbolRef", "belongNsId = " .. tostring( nsId ), nil, nil, func, ... )
+      "symbolRef", "belongNsId = " .. tostring( nsId ), nil, nil, func )
 end
 
-function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
+function DBCtrl:SymbolRefInfoListForCursor( cursor, func )
    local fileId, line = self:getFileIdLocation( cursor )
    local snameInfo = self:getSimpleName( nil, cursor:getCursorSpelling() )
 
@@ -1720,22 +1724,22 @@ function DBCtrl:SymbolRefInfoListForCursor( cursor, func, ... )
    for index, symbolDecl in ipairs( symbolDeclInfoList ) do
       self:mapRowList(
 	 "symbolRef",
-	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func, ... )
+	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func )
    end
 end
 
-function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
+function DBCtrl:SymbolDefInfoListForCursor( cursor, func )
    local nsInfo = self:getNamespaceFromCursor( cursor )
    if nsInfo then
       self:mapRowList(
 	 "symbolDecl",
-	 string.format( "nsId = %d", nsInfo.id ), nil, nil, func, ... )
+	 string.format( "nsId = %d", nsInfo.id ), nil, nil, func )
       return
    end
 
    local kind = cursor:getCursorKind()
    if kind == clang.core.CXCursor_FunctionDecl then
-      self:mapDeclInfoList( cursor:getCursorSpelling(), func, ... )
+      self:mapDeclInfoList( cursor:getCursorSpelling(), func )
       return
    elseif kind == clang.core.CXCursor_VarDecl or
       kind == clang.core.CXCursor_ParmDecl
@@ -1751,7 +1755,7 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
       end
 
       if nsInfo then
-	 func( self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo ), ... )
+	 func( self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo ) )
       end
       return
    end
@@ -1762,14 +1766,13 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
    if snameInfo then
       log( 2, "SymbolDefInfoListForCursor", fileId, line, snameInfo.name, snameInfo.id )
       local findFlag = false
-      local params = { ... }
       self:mapRowList(
 	 "symbolDecl",
 	 string.format( "fileId = %d AND (line = %d OR endLine = %d) AND snameId = %d",
 			fileId, line, line, snameInfo.id ), nil, nil,
 	 function( item )
 	    findFlag = true
-	    return func( item, table.unpack( params ) )
+	    return func( item )
 	 end
       )
       if findFlag then
@@ -1782,11 +1785,11 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func, ... )
       "symbolDecl",
       string.format( "fileId = %d AND (line = %d OR endLine = %d) AND type = %d",
 		     fileId, line, line, cursor:getCursorKind() ),
-      nil, nil, func, ... )
+      nil, nil, func )
 end
 
 
-function DBCtrl:mapCallForCursor( cursor, func, ... )
+function DBCtrl:mapCallForCursor( cursor, func )
    local kind = cursor:getCursorKind()
    if kind == clang.core.CXCursor_ParmDecl or
       kind == clang.core.CXCursor_VarDecl or
@@ -1811,14 +1814,14 @@ function DBCtrl:mapCallForCursor( cursor, func, ... )
    for index, symbolDecl in ipairs( symbolDeclInfoList ) do
       self:mapRowList(
 	 "funcCall",
-	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func, ... )
+	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func )
    end
 end
 
 
-function DBCtrl:mapCall( condition, func, ... )
+function DBCtrl:mapCall( condition, func )
    self:mapRowList(
-      "funcCall", condition, nil, nil, func, ... )
+      "funcCall", condition, nil, nil, func )
 end
 
 
@@ -1935,7 +1938,7 @@ function DBCtrl:getFileInfo( id, path )
       if work then
 	 return work
       end
-      log( 3, "getFileInfo new", fileInfo.id, fileInfo.path )
+      log( 4, "getFileInfo new", fileInfo.id, fileInfo.path )
       self.path2fileInfoMap[ fileInfo.path ] = fileInfo
       self.fileId2fileInfoMap[ id ] = fileInfo
       fileInfo.incPosList = {}
@@ -1961,7 +1964,7 @@ function DBCtrl:getFileInfo( id, path )
    if work then
       return work
    end
-   log( 3, "getFileInfo new", fileInfo.id, fileInfo.path )
+   log( 4, "getFileInfo new", fileInfo.id, fileInfo.path )
    self.path2fileInfoMap[ path ] = fileInfo
    self.fileId2fileInfoMap[ fileInfo.id ] = fileInfo
    fileInfo.incPosList = {}
@@ -1980,13 +1983,10 @@ function DBCtrl:getFileOpt( filePath, target )
       target = ""
    end
    local compileOp = nil
-   local compInfo = self:mapTargetInfo(
-      string.format( "fileId = %d AND target = '%s'", fileInfo.id, target ),
-      function( item )
-	 compileOp = item.compOp
-	 return false
-      end
-   )
+   local compInfo = self:getRow(
+      "targetInfo",
+      string.format( "fileId = %d AND target = '%s'", fileInfo.id, target ) )
+   compileOp = compInfo and compInfo.compOp
    
    if not compileOp then
       return fileInfo, nil
@@ -2473,7 +2473,8 @@ function DBCtrl:registerFromJson( dbPath, target, json )
 end
 
 function DBCtrl:registerFromInfo( dbPath, target )
-   local db = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
+   local db = DBCtrl:open(
+      dbPath, false, os.getenv( "PWD" ), "register" )
 
    local dependRoot = db:getMiscPath( "depend", target )
 

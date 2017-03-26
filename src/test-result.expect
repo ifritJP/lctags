@@ -1,101 +1,307 @@
 make[1]: Entering directory 'PWD'
 lua lctags/lctags.lua shrink
-1	step6
-1	step7
+lctags:	1	step6
+lctags:	1	step7
 lua lctags/lctags.lua dump target
-1	-- table target -- 
-1	fileId	hasPch	target	path	compOp
-1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-1	3	1		/usr/include/xlocale.h	c++98
-1	4	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
-1	5	1		/usr/include/libio.h	c++98
-1	6	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
-1	7	1		/usr/include/_G_config.h	c++98
-1	8	1		|/test/field.h	c++11
-1	9	1		|/test/hoge.h	c++98
-1	10	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
-1	11	1		/usr/include/features.h	c++98
-1	12	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
-1	13	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
-1	14	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
-1	15	1		/usr/include/stdc-predef.h	c++98
-1	16	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
-1	17	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
-1	18	1		/usr/include/wchar.h	c++98
-1	19	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
-1	20	1		/usr/include/time.h	c++98
-1	21	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
-1	22	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
-1	23	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
-1	24	1		/usr/include/stdio.h	c++98
-1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	9	0	hoge	|/test/hoge.h	c++98
-1	8	0	hoge	|/test/field.h	c++98
-1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
-1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
-1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
-1	29	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
-1	30	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
-1	31	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
-1	32	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
-1	33	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
-1	34	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
-1	35	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-1	36	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
-1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
-1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
-1	39	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
-1	40	1		|/test/inc1.h	c++11
-1	41	1		|/test/inc2.h	c++11
-1	42	1		|/test/inc3.h	c++11
+lctags:	1	-- table target -- 
+lctags:	1	fileId	hasPch	target	path	compOp
+lctags:	1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
+lctags:	1	3	1		/usr/include/stdc-predef.h	c++98
+lctags:	1	4	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
+lctags:	1	5	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+lctags:	1	6	1		/usr/include/wchar.h	c++98
+lctags:	1	7	1		/usr/include/_G_config.h	c++98
+lctags:	1	8	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
+lctags:	1	9	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
+lctags:	1	10	1		/usr/include/time.h	c++98
+lctags:	1	11	1		/usr/include/xlocale.h	c++98
+lctags:	1	12	1		|/test/field.h	c++98
+lctags:	1	13	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
+lctags:	1	14	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
+lctags:	1	15	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
+lctags:	1	16	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
+lctags:	1	17	1		|/test/hoge.h	c++98
+lctags:	1	18	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
+lctags:	1	19	1		/usr/include/stdio.h	c++98
+lctags:	1	20	1		/usr/include/libio.h	c++98
+lctags:	1	21	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
+lctags:	1	22	1		/usr/include/features.h	c++98
+lctags:	1	23	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
+lctags:	1	24	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
+lctags:	1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
+lctags:	1	17	0	hoge	|/test/hoge.h	c++98
+lctags:	1	12	0	hoge	|/test/field.h	c++98
+lctags:	1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
+lctags:	1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
+lctags:	1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
+lctags:	1	29	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
+lctags:	1	30	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
+lctags:	1	31	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
+lctags:	1	32	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
+lctags:	1	33	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
+lctags:	1	34	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
+lctags:	1	35	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
+lctags:	1	36	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
+lctags:	1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+lctags:	1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
+lctags:	1	39	0		|/test/comp13.cpp	-Iclang -Itest -Iclang 
+lctags:	1	40	0		|/test/comp14.cpp	-Iclang -Itest -Iclang 
+lctags:	1	41	0		|/test/class2.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	42	0		|/test/class3.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	43	0		|/test/class4.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	44	1		/usr/include/c++/5.4.0/bits/cpp_type_traits.h	c++11
+lctags:	1	45	1		/usr/include/c++/5.4.0/ext/new_allocator.h	c++11
+lctags:	1	46	1		/usr/include/c++/5.4.0/ext/atomicity.h	c++11
+lctags:	1	47	1		/usr/include/x86_64-linux-gnu/sys/sysmacros.h	c++11
+lctags:	1	48	1		/usr/include/c++/5.4.0/cstdint	c++11
+lctags:	1	49	1		/usr/include/c++/5.4.0/bits/exception_defines.h	c++11
+lctags:	1	50	1		/usr/include/c++/5.4.0/cctype	c++11
+lctags:	1	51	1		/usr/include/c++/5.4.0/iosfwd	c++11
+lctags:	1	52	1		/usr/include/c++/5.4.0/bits/nested_exception.h	c++11
+lctags:	1	53	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++allocator.h	c++11
+lctags:	1	54	1		/usr/include/x86_64-linux-gnu/bits/waitstatus.h	c++11
+lctags:	1	55	1		/usr/include/c++/5.4.0/bits/stl_function.h	c++11
+lctags:	1	56	1		/usr/include/c++/5.4.0/bits/uses_allocator.h	c++11
+lctags:	1	57	1		/usr/include/c++/5.4.0/functional	c++11
+lctags:	1	58	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/cpu_defines.h	c++11
+lctags:	1	59	1		/usr/include/c++/5.4.0/bits/hash_bytes.h	c++11
+lctags:	1	60	1		/usr/include/c++/5.4.0/ext/string_conversions.h	c++11
+lctags:	1	61	1		/usr/include/c++/5.4.0/bits/basic_string.tcc	c++11
+lctags:	1	62	1		/usr/include/c++/5.4.0/clocale	c++11
+lctags:	1	63	1		/usr/include/sched.h	c++11
+lctags:	1	64	1		/usr/include/c++/5.4.0/bits/functional_hash.h	c++11
+lctags:	1	65	1		/usr/include/asm-generic/errno-base.h	c++11
+lctags:	1	66	1		/usr/include/c++/5.4.0/bits/stl_relops.h	c++11
+lctags:	1	67	1		/usr/include/asm-generic/errno.h	c++11
+lctags:	1	68	1		/usr/include/x86_64-linux-gnu/asm/errno.h	c++11
+lctags:	1	69	1		/usr/include/stdlib.h	c++11
+lctags:	1	70	1		/usr/include/x86_64-linux-gnu/bits/stdlib-float.h	c++11
+lctags:	1	71	1		/usr/include/c++/5.4.0/tuple	c++11
+lctags:	1	72	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/atomic_word.h	c++11
+lctags:	1	73	1		/usr/include/alloca.h	c++11
+lctags:	1	74	1		/usr/include/c++/5.4.0/ext/alloc_traits.h	c++11
+lctags:	1	75	1		/usr/include/c++/5.4.0/bits/localefwd.h	c++11
+lctags:	1	76	1		/usr/include/errno.h	c++11
+lctags:	1	77	1		/usr/include/x86_64-linux-gnu/bits/locale.h	c++11
+lctags:	1	78	1		/usr/include/c++/5.4.0/bits/atomic_lockfree_defines.h	c++11
+lctags:	1	79	1		/usr/include/endian.h	c++11
+lctags:	1	80	1		/usr/include/x86_64-linux-gnu/sys/select.h	c++11
+lctags:	1	81	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr-default.h	c++11
+lctags:	1	82	1		/usr/include/c++/5.4.0/array	c++11
+lctags:	1	83	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++config.h	c++11
+lctags:	1	84	1		/usr/include/c++/5.4.0/backward/binders.h	c++11
+lctags:	1	85	1		/usr/include/c++/5.4.0/type_traits	c++11
+lctags:	1	86	1		/usr/include/c++/5.4.0/cstdio	c++11
+lctags:	1	87	1		/usr/include/c++/5.4.0/bits/stl_algobase.h	c++11
+lctags:	1	88	1		/usr/include/c++/5.4.0/debug/debug.h	c++11
+lctags:	1	89	1		/usr/include/x86_64-linux-gnu/bits/wchar.h	c++11
+lctags:	1	90	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdint.h	c++11
+lctags:	1	91	1		/usr/include/c++/5.4.0/bits/allocator.h	c++11
+lctags:	1	92	1		/usr/include/c++/5.4.0/exception	c++11
+lctags:	1	93	1		/usr/include/linux/errno.h	c++11
+lctags:	1	94	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++locale.h	c++11
+lctags:	1	95	1		/usr/include/c++/5.4.0/bits/predefined_ops.h	c++11
+lctags:	1	96	1		/usr/include/x86_64-linux-gnu/bits/sigset.h	c++11
+lctags:	1	97	1		/usr/include/x86_64-linux-gnu/bits/select.h	c++11
+lctags:	1	98	1		/usr/include/c++/5.4.0/cstdlib	c++11
+lctags:	1	99	1		/usr/include/c++/5.4.0/bits/stl_pair.h	c++11
+lctags:	1	100	1		/usr/include/pthread.h	c++11
+lctags:	1	101	1		/usr/include/x86_64-linux-gnu/bits/waitflags.h	c++11
+lctags:	1	102	1		/usr/include/x86_64-linux-gnu/sys/types.h	c++11
+lctags:	1	103	1		/usr/include/c++/5.4.0/bits/alloc_traits.h	c++11
+lctags:	1	104	1		/usr/include/x86_64-linux-gnu/bits/errno.h	c++11
+lctags:	1	105	1		/usr/include/c++/5.4.0/bits/ostream_insert.h	c++11
+lctags:	1	106	1		/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h	c++11
+lctags:	1	107	1		/usr/include/c++/5.4.0/bits/stringfwd.h	c++11
+lctags:	1	108	1		/usr/include/c++/5.4.0/bits/ptr_traits.h	c++11
+lctags:	1	109	1		/usr/include/x86_64-linux-gnu/bits/sched.h	c++11
+lctags:	1	110	1		/usr/include/c++/5.4.0/bits/move.h	c++11
+lctags:	1	111	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr.h	c++11
+lctags:	1	112	1		/usr/include/c++/5.4.0/bits/basic_string.h	c++11
+lctags:	1	113	1		/usr/include/c++/5.4.0/bits/range_access.h	c++11
+lctags:	1	114	1		/usr/include/c++/5.4.0/cwchar	c++11
+lctags:	1	115	1		/usr/include/x86_64-linux-gnu/bits/endian.h	c++11
+lctags:	1	116	1		/usr/include/x86_64-linux-gnu/bits/setjmp.h	c++11
+lctags:	1	117	1		/usr/include/x86_64-linux-gnu/bits/byteswap-16.h	c++11
+lctags:	1	118	1		/usr/include/c++/5.4.0/bits/exception_ptr.h	c++11
+lctags:	1	119	1		/usr/include/x86_64-linux-gnu/bits/byteswap.h	c++11
+lctags:	1	120	1		/usr/include/c++/5.4.0/stdexcept	c++11
+lctags:	1	121	1		/usr/include/c++/5.4.0/bits/cxxabi_forced.h	c++11
+lctags:	1	122	1		/usr/include/ctype.h	c++11
+lctags:	1	123	1		/usr/include/locale.h	c++11
+lctags:	1	124	1		/usr/include/c++/5.4.0/cerrno	c++11
+lctags:	1	125	1		/usr/include/c++/5.4.0/ext/type_traits.h	c++11
+lctags:	1	126	1		/usr/include/c++/5.4.0/bits/postypes.h	c++11
+lctags:	1	127	1		/usr/include/c++/5.4.0/bits/memoryfwd.h	c++11
+lctags:	1	128	1		/usr/include/c++/5.4.0/new	c++11
+lctags:	1	129	1		/usr/include/c++/5.4.0/bits/stl_iterator.h	c++11
+lctags:	1	130	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/os_defines.h	c++11
+lctags:	1	131	1		/usr/include/c++/5.4.0/string	c++11
+lctags:	1	132	1		/usr/include/c++/5.4.0/utility	c++11
+lctags:	1	133	1		/usr/include/c++/5.4.0/initializer_list	c++11
+lctags:	1	134	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_funcs.h	c++11
+lctags:	1	135	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_types.h	c++11
+lctags:	1	136	1		/usr/include/stdint.h	c++11
+lctags:	1	137	1		/usr/include/c++/5.4.0/ext/numeric_traits.h	c++11
+lctags:	1	138	1		/usr/include/c++/5.4.0/bits/concept_check.h	c++11
+lctags:	1	139	1		/usr/include/c++/5.4.0/typeinfo	c++11
+lctags:	1	140	1		/usr/include/c++/5.4.0/bits/functexcept.h	c++11
+lctags:	1	141	1		/usr/include/c++/5.4.0/bits/char_traits.h	c++11
+lctags:	1	142	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	143	1		|/test/inc1.h	c++11
+lctags:	1	144	1		|/test/inc3.h	c++11
+lctags:	1	145	1		|/test/inc2.h	c++11
 lua lctags/lctags.lua dump file >> dump
 lua lctags/lctags.lua rm target hoge2
 lua lctags/lctags.lua dump target
-1	-- table target -- 
-1	fileId	hasPch	target	path	compOp
-1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-1	3	1		/usr/include/xlocale.h	c++98
-1	4	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
-1	5	1		/usr/include/libio.h	c++98
-1	6	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
-1	7	1		/usr/include/_G_config.h	c++98
-1	8	1		|/test/field.h	c++11
-1	9	1		|/test/hoge.h	c++98
-1	10	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
-1	11	1		/usr/include/features.h	c++98
-1	12	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
-1	13	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
-1	14	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
-1	15	1		/usr/include/stdc-predef.h	c++98
-1	16	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
-1	17	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
-1	18	1		/usr/include/wchar.h	c++98
-1	19	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
-1	20	1		/usr/include/time.h	c++98
-1	21	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
-1	22	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
-1	23	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
-1	24	1		/usr/include/stdio.h	c++98
-1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-1	9	0	hoge	|/test/hoge.h	c++98
-1	8	0	hoge	|/test/field.h	c++98
-1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
-1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
-1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
-1	29	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
-1	30	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
-1	31	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
-1	32	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
-1	33	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
-1	34	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
-1	35	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-1	36	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
-1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
-1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
-1	39	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
-1	40	1		|/test/inc1.h	c++11
-1	41	1		|/test/inc2.h	c++11
-1	42	1		|/test/inc3.h	c++11
+lctags:	1	-- table target -- 
+lctags:	1	fileId	hasPch	target	path	compOp
+lctags:	1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
+lctags:	1	3	1		/usr/include/stdc-predef.h	c++98
+lctags:	1	4	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
+lctags:	1	5	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
+lctags:	1	6	1		/usr/include/wchar.h	c++98
+lctags:	1	7	1		/usr/include/_G_config.h	c++98
+lctags:	1	8	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
+lctags:	1	9	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
+lctags:	1	10	1		/usr/include/time.h	c++98
+lctags:	1	11	1		/usr/include/xlocale.h	c++98
+lctags:	1	12	1		|/test/field.h	c++98
+lctags:	1	13	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
+lctags:	1	14	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
+lctags:	1	15	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
+lctags:	1	16	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
+lctags:	1	17	1		|/test/hoge.h	c++98
+lctags:	1	18	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
+lctags:	1	19	1		/usr/include/stdio.h	c++98
+lctags:	1	20	1		/usr/include/libio.h	c++98
+lctags:	1	21	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
+lctags:	1	22	1		/usr/include/features.h	c++98
+lctags:	1	23	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
+lctags:	1	24	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
+lctags:	1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
+lctags:	1	17	0	hoge	|/test/hoge.h	c++98
+lctags:	1	12	0	hoge	|/test/field.h	c++98
+lctags:	1	26	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
+lctags:	1	27	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
+lctags:	1	28	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
+lctags:	1	29	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
+lctags:	1	30	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
+lctags:	1	31	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
+lctags:	1	32	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
+lctags:	1	33	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
+lctags:	1	34	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
+lctags:	1	35	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
+lctags:	1	36	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
+lctags:	1	37	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
+lctags:	1	38	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
+lctags:	1	39	0		|/test/comp13.cpp	-Iclang -Itest -Iclang 
+lctags:	1	40	0		|/test/comp14.cpp	-Iclang -Itest -Iclang 
+lctags:	1	41	0		|/test/class2.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	42	0		|/test/class3.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	43	0		|/test/class4.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	44	1		/usr/include/c++/5.4.0/bits/cpp_type_traits.h	c++11
+lctags:	1	45	1		/usr/include/c++/5.4.0/ext/new_allocator.h	c++11
+lctags:	1	46	1		/usr/include/c++/5.4.0/ext/atomicity.h	c++11
+lctags:	1	47	1		/usr/include/x86_64-linux-gnu/sys/sysmacros.h	c++11
+lctags:	1	48	1		/usr/include/c++/5.4.0/cstdint	c++11
+lctags:	1	49	1		/usr/include/c++/5.4.0/bits/exception_defines.h	c++11
+lctags:	1	50	1		/usr/include/c++/5.4.0/cctype	c++11
+lctags:	1	51	1		/usr/include/c++/5.4.0/iosfwd	c++11
+lctags:	1	52	1		/usr/include/c++/5.4.0/bits/nested_exception.h	c++11
+lctags:	1	53	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++allocator.h	c++11
+lctags:	1	54	1		/usr/include/x86_64-linux-gnu/bits/waitstatus.h	c++11
+lctags:	1	55	1		/usr/include/c++/5.4.0/bits/stl_function.h	c++11
+lctags:	1	56	1		/usr/include/c++/5.4.0/bits/uses_allocator.h	c++11
+lctags:	1	57	1		/usr/include/c++/5.4.0/functional	c++11
+lctags:	1	58	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/cpu_defines.h	c++11
+lctags:	1	59	1		/usr/include/c++/5.4.0/bits/hash_bytes.h	c++11
+lctags:	1	60	1		/usr/include/c++/5.4.0/ext/string_conversions.h	c++11
+lctags:	1	61	1		/usr/include/c++/5.4.0/bits/basic_string.tcc	c++11
+lctags:	1	62	1		/usr/include/c++/5.4.0/clocale	c++11
+lctags:	1	63	1		/usr/include/sched.h	c++11
+lctags:	1	64	1		/usr/include/c++/5.4.0/bits/functional_hash.h	c++11
+lctags:	1	65	1		/usr/include/asm-generic/errno-base.h	c++11
+lctags:	1	66	1		/usr/include/c++/5.4.0/bits/stl_relops.h	c++11
+lctags:	1	67	1		/usr/include/asm-generic/errno.h	c++11
+lctags:	1	68	1		/usr/include/x86_64-linux-gnu/asm/errno.h	c++11
+lctags:	1	69	1		/usr/include/stdlib.h	c++11
+lctags:	1	70	1		/usr/include/x86_64-linux-gnu/bits/stdlib-float.h	c++11
+lctags:	1	71	1		/usr/include/c++/5.4.0/tuple	c++11
+lctags:	1	72	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/atomic_word.h	c++11
+lctags:	1	73	1		/usr/include/alloca.h	c++11
+lctags:	1	74	1		/usr/include/c++/5.4.0/ext/alloc_traits.h	c++11
+lctags:	1	75	1		/usr/include/c++/5.4.0/bits/localefwd.h	c++11
+lctags:	1	76	1		/usr/include/errno.h	c++11
+lctags:	1	77	1		/usr/include/x86_64-linux-gnu/bits/locale.h	c++11
+lctags:	1	78	1		/usr/include/c++/5.4.0/bits/atomic_lockfree_defines.h	c++11
+lctags:	1	79	1		/usr/include/endian.h	c++11
+lctags:	1	80	1		/usr/include/x86_64-linux-gnu/sys/select.h	c++11
+lctags:	1	81	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr-default.h	c++11
+lctags:	1	82	1		/usr/include/c++/5.4.0/array	c++11
+lctags:	1	83	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++config.h	c++11
+lctags:	1	84	1		/usr/include/c++/5.4.0/backward/binders.h	c++11
+lctags:	1	85	1		/usr/include/c++/5.4.0/type_traits	c++11
+lctags:	1	86	1		/usr/include/c++/5.4.0/cstdio	c++11
+lctags:	1	87	1		/usr/include/c++/5.4.0/bits/stl_algobase.h	c++11
+lctags:	1	88	1		/usr/include/c++/5.4.0/debug/debug.h	c++11
+lctags:	1	89	1		/usr/include/x86_64-linux-gnu/bits/wchar.h	c++11
+lctags:	1	90	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdint.h	c++11
+lctags:	1	91	1		/usr/include/c++/5.4.0/bits/allocator.h	c++11
+lctags:	1	92	1		/usr/include/c++/5.4.0/exception	c++11
+lctags:	1	93	1		/usr/include/linux/errno.h	c++11
+lctags:	1	94	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++locale.h	c++11
+lctags:	1	95	1		/usr/include/c++/5.4.0/bits/predefined_ops.h	c++11
+lctags:	1	96	1		/usr/include/x86_64-linux-gnu/bits/sigset.h	c++11
+lctags:	1	97	1		/usr/include/x86_64-linux-gnu/bits/select.h	c++11
+lctags:	1	98	1		/usr/include/c++/5.4.0/cstdlib	c++11
+lctags:	1	99	1		/usr/include/c++/5.4.0/bits/stl_pair.h	c++11
+lctags:	1	100	1		/usr/include/pthread.h	c++11
+lctags:	1	101	1		/usr/include/x86_64-linux-gnu/bits/waitflags.h	c++11
+lctags:	1	102	1		/usr/include/x86_64-linux-gnu/sys/types.h	c++11
+lctags:	1	103	1		/usr/include/c++/5.4.0/bits/alloc_traits.h	c++11
+lctags:	1	104	1		/usr/include/x86_64-linux-gnu/bits/errno.h	c++11
+lctags:	1	105	1		/usr/include/c++/5.4.0/bits/ostream_insert.h	c++11
+lctags:	1	106	1		/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h	c++11
+lctags:	1	107	1		/usr/include/c++/5.4.0/bits/stringfwd.h	c++11
+lctags:	1	108	1		/usr/include/c++/5.4.0/bits/ptr_traits.h	c++11
+lctags:	1	109	1		/usr/include/x86_64-linux-gnu/bits/sched.h	c++11
+lctags:	1	110	1		/usr/include/c++/5.4.0/bits/move.h	c++11
+lctags:	1	111	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr.h	c++11
+lctags:	1	112	1		/usr/include/c++/5.4.0/bits/basic_string.h	c++11
+lctags:	1	113	1		/usr/include/c++/5.4.0/bits/range_access.h	c++11
+lctags:	1	114	1		/usr/include/c++/5.4.0/cwchar	c++11
+lctags:	1	115	1		/usr/include/x86_64-linux-gnu/bits/endian.h	c++11
+lctags:	1	116	1		/usr/include/x86_64-linux-gnu/bits/setjmp.h	c++11
+lctags:	1	117	1		/usr/include/x86_64-linux-gnu/bits/byteswap-16.h	c++11
+lctags:	1	118	1		/usr/include/c++/5.4.0/bits/exception_ptr.h	c++11
+lctags:	1	119	1		/usr/include/x86_64-linux-gnu/bits/byteswap.h	c++11
+lctags:	1	120	1		/usr/include/c++/5.4.0/stdexcept	c++11
+lctags:	1	121	1		/usr/include/c++/5.4.0/bits/cxxabi_forced.h	c++11
+lctags:	1	122	1		/usr/include/ctype.h	c++11
+lctags:	1	123	1		/usr/include/locale.h	c++11
+lctags:	1	124	1		/usr/include/c++/5.4.0/cerrno	c++11
+lctags:	1	125	1		/usr/include/c++/5.4.0/ext/type_traits.h	c++11
+lctags:	1	126	1		/usr/include/c++/5.4.0/bits/postypes.h	c++11
+lctags:	1	127	1		/usr/include/c++/5.4.0/bits/memoryfwd.h	c++11
+lctags:	1	128	1		/usr/include/c++/5.4.0/new	c++11
+lctags:	1	129	1		/usr/include/c++/5.4.0/bits/stl_iterator.h	c++11
+lctags:	1	130	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/os_defines.h	c++11
+lctags:	1	131	1		/usr/include/c++/5.4.0/string	c++11
+lctags:	1	132	1		/usr/include/c++/5.4.0/utility	c++11
+lctags:	1	133	1		/usr/include/c++/5.4.0/initializer_list	c++11
+lctags:	1	134	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_funcs.h	c++11
+lctags:	1	135	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_types.h	c++11
+lctags:	1	136	1		/usr/include/stdint.h	c++11
+lctags:	1	137	1		/usr/include/c++/5.4.0/ext/numeric_traits.h	c++11
+lctags:	1	138	1		/usr/include/c++/5.4.0/bits/concept_check.h	c++11
+lctags:	1	139	1		/usr/include/c++/5.4.0/typeinfo	c++11
+lctags:	1	140	1		/usr/include/c++/5.4.0/bits/functexcept.h	c++11
+lctags:	1	141	1		/usr/include/c++/5.4.0/bits/char_traits.h	c++11
+lctags:	1	142	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
+lctags:	1	143	1		|/test/inc1.h	c++11
+lctags:	1	144	1		|/test/inc3.h	c++11
+lctags:	1	145	1		|/test/inc2.h	c++11
 lua lctags/lctags.lua dump all >> dump
 lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
@@ -111,7 +317,6 @@ sub                46 ./test/comp8.cpp     int sub()
 sub                46 ./test/comp9.cpp     int sub()
 sub                46 ./test/comp10.cpp     int sub()
 lua lctags/lctags.lua -x ccccc
-ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
@@ -594,7 +799,7 @@ lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 </endPos>
 </candidate>
 </complete>
-lua lctags/lctags.lua comp-at test/comp6.cpp 48 5
+lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
 <complete>
 <prefix>TE</prefix>
 
@@ -1633,6 +1838,223 @@ lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
 </startPos>
 <endPos>
 <line>3</line>
+<column>11</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/comp13.cpp 3 8
+<complete>
+<prefix>m_val</prefix>
+
+<candidate>
+<canonical>::CCCC::m_val</canonical>
+<simple>m_val</simple>
+<kind>m</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp13.cpp</file>
+<startPos>
+<line>7</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>7</line>
+<column>0</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
+<complete>
+<prefix></prefix>
+
+<candidate>
+<canonical>func</canonical>
+<simple>func</simple>
+<kind>f</kind>
+<type>CCCC *()</type>
+<val></val>
+<file>PWD/test/comp14.cpp</file>
+<startPos>
+<line>2</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>5</line>
+<column>4</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>m_val</canonical>
+<simple>m_val</simple>
+<kind>m</kind>
+<type>CCCC *</type>
+<val></val>
+<file>PWD/test/comp14.cpp</file>
+<startPos>
+<line>7</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>7</line>
+<column>15</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/class2.cpp 13 10
+<complete>
+<prefix></prefix>
+
+<candidate>
+<canonical>val1</canonical>
+<simple>val1</simple>
+<kind>m</kind>
+<type>int</type>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>2</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>2</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val2</canonical>
+<simple>val2</simple>
+<kind>m</kind>
+<type>int</type>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>6</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>6</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val3</canonical>
+<simple>val3</simple>
+<kind>m</kind>
+<type>int</type>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>11</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>11</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>func</canonical>
+<simple>func</simple>
+<kind>f</kind>
+<type>void ()</type>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>12</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>14</line>
+<column>4</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/class3.cpp 16 10
+<complete>
+<prefix></prefix>
+
+<candidate>
+<canonical>val1</canonical>
+<simple>val1</simple>
+<kind>m</kind>
+<type>int</type>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>3</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>3</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val2</canonical>
+<simple>val2</simple>
+<kind>m</kind>
+<type>T</type>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>8</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>8</line>
+<column>9</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val3</canonical>
+<simple>val3</simple>
+<kind>m</kind>
+<type>T</type>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>14</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>14</line>
+<column>9</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>func</canonical>
+<simple>func</simple>
+<kind>f</kind>
+<type>Super2&lt;T&gt; (T)</type>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>15</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>17</line>
+<column>4</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/class4.cpp 11 7
+<complete>
+<prefix></prefix>
+
+<candidate>
+<canonical>eeee</canonical>
+<simple>eeee</simple>
+<kind>m</kind>
+<type>int</type>
+<val></val>
+<file>PWD/test/class4.cpp</file>
+<startPos>
+<line>4</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>4</line>
 <column>11</column>
 </endPos>
 </candidate>

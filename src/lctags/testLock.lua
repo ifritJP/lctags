@@ -1,6 +1,6 @@
 local Helper = require( 'lctags.Helper' )
 
-local lock = Helper.createLock()
+local lock = Helper.createLock( "act" )
 
 print( lock )
 

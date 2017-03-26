@@ -10,6 +10,8 @@ local Make = require( 'lctags.Make' )
 local Complete = require( 'lctags.Complete' )
 local Option = require( 'lctags.Option' )
 local Json = require( 'lctags.Json' )
+local Server = require( 'lctags.Server' )
+local StackCalc = require( 'lctags.StackCalc' )
 
 if not arg[1] then
    Option:printUsage( "" )
@@ -39,7 +41,7 @@ if not lctagOptMap.dbPath then
       local dbFile = io.open( dbPath, "r" )
       if dbFile then
 	 dbFile:close()
-	 lctagOptMap.dbPath = dbPath
+	 lctagOptMap.dbPath = DBCtrl:convFullpath( dbPath, os.getenv( "PWD" ) )
 	 break
       end
       dir = string.gsub( dir, "/[^/]*$", "" )
@@ -49,6 +51,17 @@ if not lctagOptMap.dbPath then
          lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
       end
    end
+end
+
+if lctagOptMap.mode == "server" then
+   if srcList[ 1 ] == "stop" then
+      Server:connect( lctagOptMap.dbPath )
+      Server:requestEnd()
+   else
+      Server:new( lctagOptMap.dbPath,
+		  DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) ) )
+   end
+   os.exit( 0 )
 end
 
 if lctagOptMap.mode == "init" then
@@ -180,6 +193,11 @@ if lctagOptMap.mode == "register" then
    os.exit( 0 )
 end
 
+if lctagOptMap.mode == "stack" then
+   StackCalc:dumpInfo( lctagOptMap.dbPath )
+   os.exit( 0 )
+end
+
 
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
@@ -271,7 +289,8 @@ if lctagOptMap.mode == "comp-at" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Complete:at( analyzer, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ],
+   Complete:at( analyzer, srcList[ 1 ],
+		tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		lctagOptMap.target, fileContents )
    os.exit( 0 )
 end
@@ -282,7 +301,8 @@ if lctagOptMap.mode == "inq-at" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Complete:inqAt( analyzer, srcList[ 1 ], srcList[ 2 ], srcList[ 3 ],
+   Complete:inqAt( analyzer, srcList[ 1 ],
+		   tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		   lctagOptMap.target, fileContents )
    os.exit( 0 )
 end

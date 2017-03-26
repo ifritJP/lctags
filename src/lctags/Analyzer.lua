@@ -14,7 +14,7 @@ local function dumpCursorInfo( cursor, depth, prefix, cursorOffset )
    local cursorKind = cursor:getCursorKind()
    local txt = cursor:getCursorSpelling()
 
-   log( 4,
+   log( 5,
 	function()
 	   return string.format(
 	      "%s %s%s %s(%d) %d %s %s",
@@ -1536,9 +1536,11 @@ function Analyzer:analyzeSourceAtWithFunc(
 	targetFullPath, line, column )
    
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
-   local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
-      targetFullPath, args:getLength(), args:getPtr(),
-      unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
+   local transUnit = self.clangIndex:parseTranslationUnit(
+      targetFullPath, args:getPtr(), args:getLength(), 
+      unsavedFileArray:getPtr(), unsavedFileArray:getLength(),
+      clang.core.CXTranslationUnit_DetailedPreprocessingRecord +
+	 clang.core.CXTranslationUnit_Incomplete )
 
    log( 2, "createTranslationUnitFromSourceFile: end" )
    
@@ -1879,5 +1881,8 @@ function Analyzer:dumpIncludeList( path, options, unsavedFileTable )
       unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
 end
 
+function Analyzer:convFullpath( path )
+   return DBCtrl:convFullpath( path, self.currentDir )
+end
 
 return Analyzer

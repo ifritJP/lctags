@@ -61,8 +61,13 @@ ifdef LCTAGS_PROF
 LCTAGS_PROF_OP = --lctags-prof
 endif
 
+LCTAGS_LOCKLOG=y
 ifdef LCTAGS_LOCKLOG
 LOCKLOG = --lctags-lockLog
+endif
+
+ifdef LCTAGS_SERVER_ON
+LCTAGS_SERVER=--lctags-srv
 endif
 
 LUA_LIB:=$(addprefix $(PWD)/,$(LUA_LIB))
@@ -171,28 +176,40 @@ endif
 
 test-dbbuild:
 	mkdir -p sql
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.hoge.cpp $(LOCKLOG) --lctags-log 4 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.1.cpp $(LOCKLOG) --lctags-log 2  --lctags-target hoge >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.2.cpp $(LOCKLOG) --lctags-log 2  --lctags-target hoge1 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.3.cpp $(LOCKLOG) --lctags-log 2  --lctags-target hoge2 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp-2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp-2.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp2.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp3.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp3.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp4.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp4.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp5.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp5.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp6.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp6.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp7.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp7.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp8.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp8.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp9.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp9.cpp $(LOCKLOG) --lctags-log 4 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp10.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp10.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp11.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp11.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp12.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp12.cpp $(LOCKLOG) --lctags-log 3 >> dump
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc -std=c++11 test/inc1.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.inc1.cpp $(LOCKLOG) --lctags-log 4 >> dump
-#	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/class.cpp -std=c++11 -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.class.cpp $(LOCKLOG) --lctags-log 3 >> dump
-#	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
-#	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
-#	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) --lctags-log 3 --lctags-target hoge | tee --append dump | grep -e '^[12][[:space:]]'
+ifdef LCTAGS_SERVER_ON
+	$(LUA_COMMAND) $(LCTAGS_LUA) server start $(LOCKLOG) --lctags-log 2 &
+	sleep 1
+endif	
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.hoge.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 4 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.1.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 2  --lctags-target hoge >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.2.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 2  --lctags-target hoge1 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.3.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 2  --lctags-target hoge2 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp-2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp-2.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp2.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp3.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp3.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp4.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp4.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp5.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp5.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp6.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp6.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp7.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp7.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp8.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp8.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp9.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp9.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 4 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp10.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp10.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp11.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp11.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp12.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp12.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp13.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp13.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp14.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp14.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc -std=c++11 test/class2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.class2.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 4 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc -std=c++11 test/class3.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.class3.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 4 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc -std=c++11 test/class4.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.class4.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 4 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc -std=c++11 test/inc1.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.inc1.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 4 >> dump
+#	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/class.cpp -std=c++11 -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.class.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
+#	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
+#	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
+#	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 --lctags-target hoge | tee --append dump | grep -e '^[12][[:space:]]'
+ifdef LCTAGS_SERVER_ON
+	$(LUA_COMMAND) $(LCTAGS_LUA) server stop --lctags-log 4
+endif
 	mv sql.* sql
 	sleep 1
 	echo 'int ccccc;' >> test/field.h
@@ -240,13 +257,18 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp3.cpp 31 25
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp4.cpp 31 17
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp5.cpp 31 18
-	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp6.cpp 48 5
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp6.cpp 48 6
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp7.cpp 48 17
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp8.cpp 48 13
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp9.cpp 48 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp10.cpp 48 6
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp11.cpp 10 2
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp12.cpp 11 5
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp13.cpp 3 8
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp14.cpp 4 12
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class2.cpp 13 10
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class3.cpp 16 10
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class4.cpp 11 7
 
 test-at-lua:
 ifeq ($(shell which lctags),)
@@ -261,10 +283,17 @@ endif
 	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=clean
 ifdef BATCH
 	LUA_DIR_SCRIPT=$(PWD)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(PWD)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) --lctags-only-reg $(LOCKLOG) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
-	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags register -i $(LOCKLOG) --lctags-log ${LCTAGS_LOG} ) | tee --append dump | grep -e '^[12][[:space:]]' -e ':[[:space:]][12][[:space:]]'
-	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} ) | tee --append dump | grep -e '^[12][[:space:]]' -e ':[[:space:]][12][[:space:]]'
+	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags register -i $(LOCKLOG) --lctags-log ${LCTAGS_LOG} ) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
+	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} -j 3) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
 else
-	LUA_DIR_SCRIPT=$(PWD)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(PWD)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) $(LOCKLOG) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+ifdef LCTAGS_SERVER_ON
+	(cd $(TEST_LUA_DIR); $(PWD)/lctags/lctags server start --lctags-log 2 &)
+	sleep 1
+endif
+	LUA_DIR_SCRIPT=$(PWD)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(PWD)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+ifdef LCTAGS_SERVER_ON
+	(cd $(TEST_LUA_DIR); $(PWD)/lctags/lctags server stop)
+endif
 endif
 	mkdir -p $(TEST_LUA_DIR)/digest $(TEST_LUA_DIR)/sql
 	-mv $(TEST_LUA_DIR)/digest.* $(TEST_LUA_DIR)/digest

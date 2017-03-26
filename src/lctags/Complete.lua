@@ -292,11 +292,15 @@ function Complete:concatToken(
 end
 
 -- tokenInfoList に格納されているトークンから解析用ソースコードを生成する
-function Complete:createSourceForAnalyzing( fileContents, tokenInfoList, mode )
+function Complete:createSourceForAnalyzing(
+      fileContents, tokenInfoList, mode, targetIndex )
+
+   log( 2, "createSourceForAnalyzing: targetIndex", targetIndex )
    
    -- clang の解析対象にする token を決定する
-   local checkIndex = #tokenInfoList
-   local targetIndex = #tokenInfoList
+   local orgTargetIndex = targetIndex
+   local checkIndex = targetIndex
+   local targetIndex = targetIndex
    local prefix = nil
    local compMode = "member"
 
@@ -369,14 +373,87 @@ function Complete:createSourceForAnalyzing( fileContents, tokenInfoList, mode )
       end
    end
 
-   if rawEndTokenIndex > 0 then
-      -- 元ソースを展開する
-      local lineNo = 1
-      local crIndex = 0
-      for lineNo = 1, rawEndLine do
-	 crIndex = string.find( fileContents, "\n", crIndex + 1, true )
+   local depthList = {}
+   if rawEndTokenIndex <= 0 then
+      os.exit( 0 )
+   end
+
+   -- 元ソースを展開する
+   local lineNo = 1
+   local crIndex = 0
+   for lineNo = 1, rawEndLine do
+      crIndex = string.find( fileContents, "\n", crIndex + 1, true )
+   end
+   fileHandle:write( fileContents:sub( 1, crIndex ) )
+
+   for index = 1, rawEndTokenIndex do
+      token = tokenInfoList[ index ].token
+      if token == "(" or token == "{" then
+	 table.insert( depthList, 1, token )
+      elseif token == ")" or token == "}" then
+	 table.remove( depthList, 1 )
       end
-      fileHandle:write( fileContents:sub( 1, crIndex ) )
+   end
+
+
+   local tailTxt = ""
+   if #depthList > 0 then
+      -- C++ のクラスは、後方で宣言したメンバーにアクセスできるので、
+      -- 解析位置より後のソースも解析に含める必要がある。
+
+      local rdepthList = {}
+      local illegalTailFlag = false
+
+      for index = #tokenInfoList, orgTargetIndex, -1 do
+	 token = tokenInfoList[ index ].token
+	 if token == "(" or token == "{" then
+	    if #rdepthList > 0 then
+	       local token = tokenInfoList[ #rdepthList ].token
+	       if token == "(" and prevToken == ")" or
+		  token == "{" and prevToken == "}"
+	       then
+		  table.remove( rdepthList )
+	       else
+		  illegalTailFlag = true
+		  break
+	       end
+	    else
+	       illegalTailFlag = true
+	       break
+	    end
+	 elseif token == ")" or token == "}" then
+	    table.insert( rdepthList, index )
+	 end
+      end
+
+      log( 2, "depthList, illegalTailFlag",
+	   #depthList, #rdepthList, illegalTailFlag,
+	   orgTargetIndex, #tokenInfoList )
+      if #rdepthList == #depthList and not illegalTailFlag then
+
+	 for index, token in ipairs( depthList ) do
+	    local rToken = tokenInfoList[ rdepthList[ index ] ].token
+	    if token == "(" and rToken == ")" or
+	       token == "{" and rToken == "}"
+	    then
+	       ;
+	    else
+	       log( 2, "illegalTailFlag", rToken, token )
+	    end
+	 end
+	 if not illegalTailFlag then
+	    local targetLine = tokenInfoList[ targetIndex ].line
+	    for lineNo = rawEndLine + 1, targetLine do
+	       crIndex = string.find( fileContents, "\n", crIndex + 1, true )
+	    end
+	    tailTxt = fileContents:sub( crIndex )
+	    log( 2, tailTxt )
+	 end
+      else
+	 for index, rIndex in ipairs( rdepthList ) do
+	    log( 3, rIndex, tokenInfoList[ rIndex ].token )
+	 end
+      end
    end
    log( 2, "rawEnd", rawEndLine, rawEndTokenIndex )
    
@@ -384,8 +461,6 @@ function Complete:createSourceForAnalyzing( fileContents, tokenInfoList, mode )
    -- 解析に不要な情報を削除して、 token を展開する
    local newLineNo = rawEndTokenIndex + 1
    local newColmun = 0
-
-   local depthList = {}
 
    local targetLine
    local targetColmun
@@ -420,14 +495,17 @@ function Complete:createSourceForAnalyzing( fileContents, tokenInfoList, mode )
       targetColmun = newColmun + 1
    end
 
-   for index, depth in ipairs( depthList ) do
-      if depth == '(' then
-	 fileHandle:write( ')' )
-      else
-	 fileHandle:write( '}' )
+   if tailTxt == "" then
+      for index, depth in ipairs( depthList ) do
+	 if depth == '(' then
+	    fileHandle:write( ')' )
+	 else
+	    fileHandle:write( '}' )
+	 end
       end
+   else
+      fileHandle.__txt = fileHandle.__txt .. tailTxt
    end
-
    
    log( 3, fileHandle.__txt )
    log( 3, "tgt:", targetLine, targetColmun )
@@ -685,12 +763,19 @@ function Complete:completeMember(
 
    local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
       local name = aCursor:getCursorSpelling()
-      local memberKind = aCursor:getCursorKind()
+      local childKind = aCursor:getCursorKind()
       log( 2, "visitFunc", aCursor:getCursorSpelling(),
-	   clang.getCursorKindSpelling( memberKind ) )
-      if memberKind == clang.core.CXCursor_FieldDecl or
-	 memberKind == clang.core.CXCursor_CXXMethod or
-	 memberKind == clang.core.CXCursor_EnumConstantDecl
+	   clang.getCursorKindSpelling( childKind ) )
+      if childKind == clang.core.CXCursor_CXXBaseSpecifier then
+	 local superDecl = aCursor:getCursorReferenced()
+	 log( 2, "super", superDecl:getCursorSpelling() )
+	 clang.visitChildrenFast(
+	    superDecl, visitFunc, anonymousDeclList, nil, 1 )
+	 return
+      end
+      if childKind == clang.core.CXCursor_FieldDecl or
+	 childKind == clang.core.CXCursor_CXXMethod or
+	 childKind == clang.core.CXCursor_EnumConstantDecl
       then
 	 local cxtype = aCursor:getCursorType()
 	 local typeDecl = cxtype:getTypeDeclaration()
@@ -709,15 +794,15 @@ function Complete:completeMember(
 	 
 	 if prefix == "" or string.find( name, prefix, 1, true ) == 1 then
 	    print( createCandidate(
-		      name, name, memberKind, typeName,
+		      name, name, childKind, typeName,
 		      db:getSystemPath( fileInfo.path ),
 		      startInfo and startInfo[ 2 ],
 		      startInfo and startInfo[ 3 ],
 		      endInfo and endInfo[ 2 ],
 		      endInfo and endInfo[ 3 ] ) )
 	 end
-      elseif memberKind == clang.core.CXCursor_StructDecl or
-	 memberKind == clang.core.CXCursor_UnionDecl
+      elseif childKind == clang.core.CXCursor_StructDecl or
+	 childKind == clang.core.CXCursor_UnionDecl
       then
 	 if name == "" then
 	    table.insert( anonymousDeclList, aCursor )
@@ -757,7 +842,10 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
       target = ""
    end
 
-   local analyzerForTokenize = analyzer:newAs( false, false )
+   path = analyzer:convFullpath( path )
+   
+   local analyzerForTokenize = analyzer:newAs(
+      log( -4 ) >= 2 and true or false, false )
    local unit, compileOp, newAnalyzer =
       analyzerForTokenize:createUnit( path, target, false, fileContents )
 
@@ -766,14 +854,20 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
 
    local cxfile = unit:getFile( path )
    local currentLoc = unit:getLocation( cxfile, line, column + 1 )
+
+   if not fileContents then
+      fileContents = io.open( path ):read( '*a' )
+   end
    
    local beginPos = unit:getLocationForOffset( cxfile, 0 )
-   local endPos = unit:getLocationForOffset( cxfile, 130 )
+   local fileSize = #fileContents
+   currentLoc = unit:getLocationForOffset( cxfile, fileSize )
    local range = beginPos:getRange( currentLoc )
    local num = unit:tokenize( range, tokenP:getPtr() )
 
    local cxtokenArray = clang.mkCXTokenArray( tokenP:getItem( 0 ), num )
    local tokenInfoList = {}
+   local targetIndex 
    for index = 0, num - 1 do
       local cxtoken = clang.CXToken:new( cxtokenArray:getItem( index ) )
       local loc = unit:getTokenLocation( cxtoken )
@@ -785,22 +879,24 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
       table.insert( tokenInfoList,
 		    { token = token, kind = tokenKind,
 		      line = aLine, column = aColumn, offset = anOffset } )
+      if aLine < line or aLine == line and aColumn <= column + 1
+      then
+	 targetIndex = #tokenInfoList
+      end
+      
       log( 3, index + 1, getTokenKindSpelling( tokenKind ), token )
    end
    unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 
-   if not fileContents then
-      fileContents = io.open( path ):read( '*a' )
-   end
-
    local fileTxt, targetLine, targetColmun, prefix, compMode, frontSyntax =
-      self:createSourceForAnalyzing( fileContents, tokenInfoList, mode )
+      self:createSourceForAnalyzing( fileContents, tokenInfoList, mode, targetIndex )
 
    if targetLine then
       --newAnalyzer:update( path, target )
       newAnalyzer:queryAtFunc(
 	 path, targetLine, targetColmun, target, false, fileTxt,
 	 function( db, targetFileId, nsInfo, declCursor, cursor )
+	    log( "analyzeAt: mode", mode, compMode )
 	    local kind = cursor:getCursorKind()
 
 	    if mode == "comp" then

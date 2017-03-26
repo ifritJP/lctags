@@ -48,12 +48,25 @@ libs.clang_visitChildren = function( cxCursor, func, exInfo )
    return libs.visitChildrenLow( cxCursor, wrapFunc, exInfo )
 end
 
+libs.getVisitAppendInfo = function( append )
+   return {
+      fileChangeFlag = append[ 1 ],
+      offset = append[ 2 ],
+      line = append[ 3 ],
+      column = append[ 4 ],
+      endLine = append[ 5 ],
+      endColumn = append[ 6 ],
+      endOffset = append[ 7 ],
+   }
+end
 
 libs.visitChildrenFast = function( cursor, func, exInfo, kindList, callbackResult )
    local result, list = libs.getChildrenList( cursor, kindList, callbackResult )
    
    for index, info in ipairs( list ) do
-      func( info[ 1 ], info[ 2 ], exInfo, info[ 3 ] )
+      if func( info[ 1 ], info[ 2 ], exInfo, info[ 3 ] ) == 0 then
+	 break
+      end
    end
    return result
 end
@@ -65,7 +78,9 @@ libs.visitChildrenFast2 = function(
       cursor, kindList, callbackResult, kindList2, cxfileList )
    
    for index, info in ipairs( list ) do
-      func( info[ 1 ], info[ 2 ], exInfo, info[ 3 ] )
+      if func( info[ 1 ], info[ 2 ], exInfo, info[ 3 ] ) == 0 then
+	 break
+      end
    end
    return result
 end
@@ -223,6 +238,10 @@ libs.getFileLocation = function( obj, func, ... )
    return cxFile, table.unpack( result )
 end
 
+libs.getLocation = function( location )
+   return libs.getFileLocation( location.__ptr, libclangcore.clang_getFileLocation )
+end
+
 libs.getCursorLocation = function( cursor )
    local location = cursor:getCursorLocation()
    return libs.getFileLocation(
@@ -252,10 +271,14 @@ end
 libs.mapCurosrPlainText = function( cursor, func, ... )
    local srcRange = libclangcore.clang_getCursorExtent( cursor )
    local unit = libclangcore.clang_Cursor_getTranslationUnit( cursor )
+   libs.mapRangePlainText( unit, srcRange, func, ... )
+end
+
+libs.mapRangePlainText = function( cxUnit, cxRange, func, ... )
+   local unit = cxUnit
    local tokenPBuf = libclangcore.new_CXTokenPArray( 1 )
-   local tokenNum = libclangcore.clang_tokenize( unit, srcRange, tokenPBuf )
+   local tokenNum = libclangcore.clang_tokenize( unit, cxRange, tokenPBuf )
    local tokenArray = libclangcore.CXTokenPArray_getitem( tokenPBuf, 0 )
-   local txt = ""
    for index = 0, tokenNum - 1 do
       local token = libclangcore.CXTokenArray_getitem( tokenArray, index )
       func( libs.cx2string( libclangcore.clang_getTokenSpelling( unit, token ) ), ... )
@@ -263,6 +286,7 @@ libs.mapCurosrPlainText = function( cursor, func, ... )
    libclangcore.clang_disposeTokens( unit, tokenArray, tokenNum )
    libclangcore.delete_CXTokenPArray( tokenPBuf )
 end
+
 
 libs.getDeclCursorFromType = function( cxtype )
    while true do

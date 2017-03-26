@@ -41,6 +41,9 @@ function JsonStream:readToPattern( func, pattern, index )
    local txt = self.buf:sub( index, index )
    index = index + 1
    while true do
+      if not self.buf then
+	 return txt
+      end
       local endIndex = string.find( self.buf, pattern, index )
       if endIndex then
 	 self.index = endIndex + 1
@@ -162,6 +165,8 @@ function JsonStream:readString( startIndex, endIndex )
    if endIndex > startIndex then
       txt = string.sub( self.buf, startIndex, endIndex - 1 )
    end
+   oneChar = string.sub( self.buf, endIndex + 1, endIndex + 1 )
+   print( oneChar )
    if oneChar == '\\' then
       txt = txt .. '\\'
    elseif oneChar == '"' then
@@ -189,6 +194,9 @@ end
 local Json = {}
 
 function Json:fromText( text )
+   if not text then
+      return nil
+   end
    local obj = {
       read = function()
 	 local txt = text
@@ -218,6 +226,58 @@ function Json:convertFrom( txt )
       return nil
    end
    return json:readValue()
+end
+
+function Json:convertTo( obj )
+   local txt = ""
+   local typeId = type( obj )
+   if typeId == "table" then
+      if obj[ 1 ] then
+	 txt = "["
+	 for index, val in ipairs( obj ) do
+	    if index ~= 1 then
+	       txt = txt .. ", "
+	    end
+	    txt = txt .. self:convertTo( val )
+	 end
+	 return txt .. "]"
+      end
+      txt = "{"
+      local index = 0
+      for key, val in pairs( obj ) do
+	 index = index + 1
+	 if index ~= 1 then
+	    txt = txt .. ", "
+	 end
+	 txt = txt .. string.format( '"%s": %s',
+				     key, self:convertTo( val ) )
+      end
+      return txt .. "}"
+   end
+
+   if typeId == "string" then
+      if string.find( obj, '\"', 1, true ) then
+	 print( "find " )
+      end
+      obj = string.gsub( obj, "\n", "\\n" )
+      obj = string.gsub( obj, '%"', '"' )
+      obj = string.gsub( obj, '\\\\', '\\' )
+      return '"' .. obj .. '"'
+   end
+
+   if typeId == "number" then
+      return tostring( obj )
+   end
+
+   if obj then
+      return "true"
+   end
+
+   if obj == false then
+      return "false"
+   end
+
+   return "null"
 end
 
 

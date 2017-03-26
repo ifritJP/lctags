@@ -15,6 +15,8 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <time.h>
+#include <mqueue.h>
 
 #ifndef NAME_MAX
 #define NAME_MAX 256
@@ -22,10 +24,22 @@
 
 #define DIGEST_ID "lctags.digest"
 #define LOCK_ID "lctags.lock"
+#define MQUEUE_ID "lctags.mqueue"
 
 
 #define LOCK_DEFAULT_NAME "default"
 #define LOCK_NAME_PREFIX "/lctags"
+#define MQUEUE_NAME_PREFIX "/lctags"
+
+#define MQUEUE_MSG_SIZE 2 * 1024
+
+
+#define ERROR_DEF( E ) { E, #E }
+
+typedef struct {
+    int errorNo;
+    const char * pName;
+} helper_errorName;
 
 #define toString(L, ID)                         \
     void * pUserData = lua_touserdata( L, 1 );  \
@@ -41,6 +55,9 @@
 
 #define toLock(L)                                        \
     ((helper_lock_t *)luaL_checkudata(L, 1, LOCK_ID))
+
+#define toMQueue(L)                                        \
+    ((helper_mqueue_t *)luaL_checkudata(L, 1, MQUEUE_ID))
 
 typedef struct {
     EVP_MD_CTX mctx;
@@ -61,6 +78,16 @@ typedef struct {
     helper_lockInfo_t * pInfo;
 } helper_lock_t;
 
+
+typedef struct {
+    mqd_t mqueue;
+    char buf[ MQUEUE_MSG_SIZE ];
+} helper_mqueueInfo_t;
+
+typedef struct {
+    helper_mqueueInfo_t * pInfo;
+} helper_mqueue_t;
+
 typedef const EVP_MD * (evp_md_func_t)(void);
 
 typedef struct {
@@ -70,6 +97,8 @@ typedef struct {
 
 
 static int helper_openDigest( lua_State * pLua );
+static int helper_createMQueue( lua_State * pLua );
+static int helper_deleteMQueue( lua_State * pLua );
 static int helper_createLock( lua_State * pLua );
 static int helper_deleteLock( lua_State * pLua );
 static int helper_getTime( lua_State * pLua );
@@ -94,6 +123,10 @@ static int helper_lock_isLocking( lua_State * pLua );
 static int helper_lock_gc( lua_State * pLua );
 static int helper_lock_tostring( lua_State * pLua );
 
+static int helper_mqueue_put( lua_State * pLua );
+static int helper_mqueue_get( lua_State * pLua );
+static int helper_mqueue_gc( lua_State * pLua );
+static int helper_mqueue_tostring( lua_State * pLua );
 
 static helper_digestInfo_t * helper_setup( const EVP_MD * pEvpMd );
 static int helper_write( helper_digestInfo_t * pInfo, const void * pData, int size );
@@ -105,6 +138,8 @@ static const luaL_Reg s_if_lib[] = {
     { "openDigest", helper_openDigest },
     { "createLock", helper_createLock },
     { "deleteLock", helper_deleteLock },
+    { "createMQueue", helper_createMQueue },
+    { "deleteMQueue", helper_deleteMQueue },
     { "msleep", helper_msleep },
     { "chdir", helper_chdir },
     { "mkdir", helper_mkdir },
@@ -133,6 +168,14 @@ static const luaL_Reg s_lockObj_lib[] = {
     {NULL, NULL}
 };
 
+static const luaL_Reg s_mqueueObj_lib[] = {
+    { "put", helper_mqueue_put },
+    { "get", helper_mqueue_get },
+    { "__gc", helper_mqueue_gc },
+    {"__tostring", helper_mqueue_tostring },
+    {NULL, NULL}
+};
+
 
 static const helper_typeMap_t s_typeMap[] = {
     { "md5", EVP_md5 },
@@ -146,6 +189,30 @@ static const helper_typeMap_t s_typeMap[] = {
     { NULL, NULL }
 };
 
+static const helper_errorName s_helper_errorName[] = {
+    ERROR_DEF( EACCES ),
+    ERROR_DEF( EEXIST ),
+    ERROR_DEF( ENOENT ),
+    ERROR_DEF( ENOSPC ),
+    ERROR_DEF( ENOTDIR ),
+    ERROR_DEF( EROFS ),
+    ERROR_DEF( EINVAL ),
+    ERROR_DEF( ENAMETOOLONG ),
+    ERROR_DEF( ENFILE ),
+    ERROR_DEF( ENOMEM ),
+
+    { 0, NULL }
+};
+
+static const char * helper_getErrorTxt( int errorNo ) {
+    int index;
+    for ( index = 0; s_helper_errorName[ index ].pName != NULL; index++ ) {
+        if ( s_helper_errorName[ index ].errorNo == errorNo ) {
+            return s_helper_errorName[ index ].pName;
+        }
+    }
+    return NULL;
+}
 
 static void helper_setupObjMethod(
     lua_State * pLua, const char * pName, const luaL_Reg * pReg )
@@ -188,6 +255,7 @@ int luaopen_lctags_Helper( lua_State * pLua )
 {
     helper_setupObjMethod( pLua, DIGEST_ID, s_digestObj_lib );
     helper_setupObjMethod( pLua, LOCK_ID, s_lockObj_lib );
+    helper_setupObjMethod( pLua, MQUEUE_ID, s_mqueueObj_lib );
 
 #if LUA_VERSION_NUM >= 502
     luaL_newlib( pLua, s_if_lib );
@@ -224,35 +292,20 @@ static int helper_chdir( lua_State * pLua )
     return 1;
 }
 
+
 static int helper_mkdir( lua_State * pLua )
 {
     if ( mkdir( lua_tostring( pLua, 1 ), 0777 ) == 0 ) {
 	lua_pushinteger( pLua, 0 );
     }
     else {
-	switch ( errno ) {
-	case EACCES:
-	    lua_pushstring( pLua, "EACCES" );
-	    break;
-	case EEXIST:
-	    lua_pushstring( pLua, "EEXIST" );
-	    break;
-	case ENOENT:
-	    lua_pushstring( pLua, "ENOENT" );
-	    break;
-	case ENOSPC:
-	    lua_pushstring( pLua, "ENOSPC" );
-	    break;
-	case ENOTDIR:
-	    lua_pushstring( pLua, "ENOTDIR" );
-	    break;
-	case EROFS:
-	    lua_pushstring( pLua, "EROFS" );
-	    break;
-	default:
+        const char * pErr = helper_getErrorTxt( errno );
+        if ( pErr != NULL ) {
+	    lua_pushstring( pLua, pErr );
+        }
+        else {
 	    lua_pushinteger( pLua, errno );
-	    break;
-	}
+        }
     }
     return 1;
 }
@@ -345,6 +398,7 @@ static int helper_createLock( lua_State * pLua )
         name, O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, 1 );
     if ( pSem == SEM_FAILED ) {
         printf( "%s: sem_open() retrn NULL\n", __func__ );
+	exit( 1 );
         return 0;
     }
 
@@ -360,6 +414,7 @@ static int helper_createLock( lua_State * pLua )
     helper_lockInfo_t * pInfo = malloc( sizeof( helper_lockInfo_t ) );
     if ( pInfo == NULL ) {
         printf( "%s: malloc() return NULL\n", __func__ );
+	exit( 1 );
         sem_close( pSem );
         return 0;
     }
@@ -370,6 +425,69 @@ static int helper_createLock( lua_State * pLua )
 
     return 1;
 }
+
+static int helper_deleteMQueue( lua_State * pLua )
+{
+    const char * pName = lua_tostring( pLua, 1 );
+    char name[ NAME_MAX - 3 ];
+    snprintf( name, sizeof( name ), MQUEUE_NAME_PREFIX "%s", pName );
+    name[ sizeof( name ) - 1 ] = '\0';
+
+    mq_unlink( name );
+
+    return 0;
+}
+
+static int helper_createMQueue( lua_State * pLua )
+{
+    const char * pName = lua_tostring( pLua, 1 );
+    char name[ NAME_MAX - 3 ];
+    snprintf( name, sizeof( name ), MQUEUE_NAME_PREFIX "%s", pName );
+    name[ sizeof( name ) - 1 ] = '\0';
+    
+    helper_mqueue_t * pMqueue =
+        helper_newUserData( pLua, MQUEUE_ID, sizeof( helper_mqueue_t ) );
+    if ( pMqueue == NULL ) {
+        return 0;
+    }
+    pMqueue->pInfo = NULL;
+
+    struct mq_attr attr;
+    attr.mq_flags = 0;
+    attr.mq_maxmsg = 1;
+    attr.mq_msgsize = MQUEUE_MSG_SIZE;
+    attr.mq_curmsgs = 0;
+    int oflag = O_RDWR;
+    if ( !lua_isnil( pLua, 2 ) ) {
+        oflag |= O_CREAT;
+    }
+    mqd_t mqueue = mq_open(
+        name, oflag, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, &attr );
+    if ( mqueue == (mqd_t)-1 ) {
+        const char * pErr = helper_getErrorTxt( errno );
+        printf( "%s: failed to mq_open(), %d, %s\n", __func__, errno, pErr );
+        lua_pushnil( pLua );
+        if ( pErr != NULL ) {
+	    lua_pushstring( pLua, pErr );
+        }
+        else {
+	    lua_pushinteger( pLua, errno );
+        }
+        return 2;
+    }
+
+    helper_mqueueInfo_t * pInfo = malloc( sizeof( helper_mqueueInfo_t ) );
+    if ( pInfo == NULL ) {
+        printf( "%s: malloc() return NULL\n", __func__ );
+        mq_close( mqueue );
+        return 0;
+    }
+    pMqueue->pInfo = pInfo;
+    pInfo->mqueue = mqueue;
+
+    return 1;
+}
+
 
 static int helper_getTempFilename( lua_State * pLua )
 {
@@ -470,10 +588,18 @@ static int helper_lock_begin( lua_State * pLua )
         pLock->pInfo->depth++;
         return 0;
     }
-    
-    
 
     sem_wait( pLock->pInfo->pSem );
+
+    {
+        int val = 0;
+        sem_getvalue( pLock->pInfo->pSem, &val );
+        if ( val >= 1 ) {
+            printf( "%s: lock val is illegal -- %d", __func__, val );
+            exit( 1 );
+        }
+    }
+    
 
     pLock->pInfo->depth++;
 
@@ -495,6 +621,15 @@ static int helper_lock_fin( lua_State * pLua )
 
     if ( sem_post( pLock->pInfo->pSem ) != 0 ) {
 	printf( "%s: post error %d\n", __func__, errno );
+    }
+
+    {
+        int val = 0;
+        sem_getvalue( pLock->pInfo->pSem, &val );
+        if ( val > 1 ) {
+            printf( "%s: lock val is illegal -- %d", __func__, val );
+            exit( 1 );
+        }
     }
 
     pLock->pInfo->depth = 0;
@@ -531,9 +666,11 @@ static int helper_lock_gc( lua_State * pLua )
     if ( pLock->pInfo != NULL ) {
         if ( pLock->pInfo->depth > 0 ) {
             sem_post( pLock->pInfo->pSem );
+            printf( "%s: lock val is locking", __func__ );
+            exit( 1 );
         }
 	sem_close( pLock->pInfo->pSem );
-        sem_unlink( pLock->pInfo->name );
+        //sem_unlink( pLock->pInfo->name );
         free( pLock->pInfo );
     }
     return 1;
@@ -542,6 +679,46 @@ static int helper_lock_gc( lua_State * pLua )
 static int helper_lock_tostring( lua_State * pLua )
 {
     toString( pLua, LOCK_ID );
+}
+
+static int helper_mqueue_put( lua_State * pLua )
+{
+    helper_mqueue_t * pMqueue = toMQueue( pLua );
+    size_t length = 0;
+    const char * pMessage = lua_tolstring( pLua, 2 , &length );
+
+    mq_send( pMqueue->pInfo->mqueue, pMessage, length, 0 );
+    
+    return 0;
+}
+
+static int helper_mqueue_get( lua_State * pLua )
+{
+    helper_mqueue_t * pMqueue = toMQueue( pLua );
+    ssize_t length = 0;
+
+    length = mq_receive( pMqueue->pInfo->mqueue, pMqueue->pInfo->buf,
+                MQUEUE_MSG_SIZE, NULL );
+
+    lua_pushlstring( pLua, pMqueue->pInfo->buf, length );
+    
+    return 1;
+}
+
+static int helper_mqueue_gc( lua_State * pLua )
+{
+    helper_mqueue_t * pMqueue = toMQueue( pLua );
+
+    if ( pMqueue->pInfo != NULL ) {
+	mq_close( pMqueue->pInfo->mqueue );
+        free( pMqueue->pInfo );
+    }
+    return 1;
+}
+
+static int helper_mqueue_tostring( lua_State * pLua )
+{
+    toString( pLua, MQUEUE_ID );
 }
 
 

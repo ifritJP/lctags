@@ -53,9 +53,14 @@ end
 function Util:printLocate(
       db, symbol, fileId, line, absFlag, printLine, fileContents )
    local fileInfo = db:getFileInfo( fileId )
-   if fileInfo.path == "" then
-      log( 2, "skip system file" )
-      return
+   if fileInfo then
+      if fileInfo.path == "" then
+	 log( 2, "skip system file" )
+	 return
+      end
+   else
+	 log( 2, "unknown fileId", fileId )
+	 return
    end
    
    local baseDir = absFlag and "" or os.getenv( "PWD" )
