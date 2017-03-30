@@ -12,9 +12,17 @@ local Option = require( 'lctags.Option' )
 local Json = require( 'lctags.Json' )
 local Server = require( 'lctags.Server' )
 local StackCalc = require( 'lctags.StackCalc' )
+local Helper = require( 'lctags.Helper' )
 
 if not arg[1] then
    Option:printUsage( "" )
+end
+
+local lockObj = Helper.createLock()
+if not lockObj then
+   Helper.deleteLock()
+else
+   lockObj = nil
 end
 
 local srcList, optList, lctagOptMap = Option:analyzeOption( arg )

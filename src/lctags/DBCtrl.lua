@@ -479,7 +479,7 @@ function DBCtrl:commit()
 	       val = string.format( "%s%s%s", val:sub( 1, findIndex - 1),
 				    actIdList[ 1 ], val:sub( findIndex + #tmpId ) )
 	    else
-	       log( 1, "merge error", tmpId, val )
+	       log( 1, "merge error", insert[ 1 ], tmpId, val, insert[ 2 ] )
 	       os.exit( 1 )
 	    end
 	 end

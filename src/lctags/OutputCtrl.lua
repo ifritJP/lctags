@@ -22,6 +22,7 @@ function obj.dot(
    end
    local dotFile = outputFile .. ".dot"
    fileHandle = io.open( dotFile, "w" )
+   log( 2, "dotFile", dotFile )
 
    if not fileHandle then
       log( 1, "failed to open image file" )
@@ -160,7 +161,7 @@ function obj.dot(
 	 local dstTxt = tonumber( id ) .. ':' .. relIf:getName( id )
 	 fileHandle:write(
 	    string.format(
-	       '"%s" -> "%s";\n',
+	       '"%s" -> "%s" ;\n',
 	       relIf.reverseFlag and baseTxt or dstTxt,
 	       relIf.reverseFlag and dstTxt or baseTxt ) )
       end

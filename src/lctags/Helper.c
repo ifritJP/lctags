@@ -407,7 +407,7 @@ static int helper_createLock( lua_State * pLua )
 	sem_getvalue( pSem, &val );
 	if ( val > 1 ) {
 	    printf( "sem_getvalue - %d\n", val );
-	    exit( 1 );
+	    return 0;
 	}
     }
 		      
@@ -619,8 +619,10 @@ static int helper_lock_fin( lua_State * pLua )
         return 0;
     }
 
+    pLock->pInfo->depth = 0;
     if ( sem_post( pLock->pInfo->pSem ) != 0 ) {
 	printf( "%s: post error %d\n", __func__, errno );
+        exit( 1 );
     }
 
     {
@@ -631,8 +633,6 @@ static int helper_lock_fin( lua_State * pLua )
             exit( 1 );
         }
     }
-
-    pLock->pInfo->depth = 0;
 
     return 0;
 }
