@@ -18,7 +18,7 @@ end
 local rootNsId = 1
 local userNsId = 2
 local systemFileId = 1
-local DB_VERSION = 6
+local DB_VERSION = 7
 
 local DBCtrl = {
    rootNsId = rootNsId,
@@ -533,11 +533,11 @@ CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE bina
 INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '', 1 );
 
 CREATE TABLE targetInfo ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary, hasPch INTEGER, PRIMARY KEY ( fileId, target, compOp ) );
-CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, PRIMARY KEY( nsId, fileId, line ) );
-INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '' );
+CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, hasBodyFlag INTEGER, PRIMARY KEY( nsId, fileId, line ) );
+INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '', 0 );
 
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
-CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize, PRIMARY KEY( nsId, belongNsId ) );
+CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, PRIMARY KEY( nsId, belongNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER, PRIMARY KEY ( id, nsId ) );
@@ -860,7 +860,7 @@ function DBCtrl:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
    return item
 end
 
-function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
+function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo, hasBodyFlag )
    self.hashCursor2FullnameMap[ cursor:hashCursor() ] = nsInfo.name
    self.hashCursor2NSMap[ cursor:hashCursor() ] = nsInfo
 
@@ -869,18 +869,19 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo )
 
    log( 3,
 	function()
-	   return "addSymbolDecl", fileInfo.id, fileInfo.uptodate, nsInfo.name, cursor:hashCursor()
+	   return "addSymbolDecl", fileInfo.id, fileInfo.uptodate, nsInfo.name, cursor:hashCursor(), hasBodyFlag
 	end
    )
 
    if not fileInfo.uptodate then
       self:insert(
 	 "symbolDecl",
-	 string.format( "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, '%s'",
+	 string.format( "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, '%s', %d",
 			item.nsId, item.snameId, item.parentId, item.type,
 			item.fileId, item.line, item.column,
 			item.endLine, item.endColumn, item.charSize,
-			item.comment and "has" or "none" ) )
+			item.comment and "has" or "none",
+			hasBodyFlag and 1 or 0 ) )
    else
       log( 3, "skip addSymbolDecl", nsInfo.name )
    end
@@ -901,7 +902,8 @@ end
 
 
 function DBCtrl:addNamespaceOne(
-      cursor, digest, fileId, parentId, simpleName, namespace, otherName )
+      cursor, digest, fileId, parentId,
+      simpleName, namespace, otherName, hasBodyFlag )
    if not otherName then
       otherName = namespace
    end
@@ -915,13 +917,13 @@ function DBCtrl:addNamespaceOne(
       if not cursor then
 	 return nsInfo
       end
-      return nsInfo, self:addSymbolDecl( cursor, fileId, nsInfo )
+      return nsInfo, self:addSymbolDecl( cursor, fileId, nsInfo, hasBodyFlag )
    end
 
       
    local snameInfo = self:addSimpleName( simpleName )
 
-   log( 3, "addNamespaceOne: ", namespace )
+   log( 3, "addNamespaceOne: ", namespace, hasBodyFlag )
    
    local item = self:getNamespace( nil, namespace )
    if not item then
@@ -936,7 +938,7 @@ function DBCtrl:addNamespaceOne(
       return item
    end
    
-   return item, self:addSymbolDecl( cursor, fileId, item )
+   return item, self:addSymbolDecl( cursor, fileId, item, hasBodyFlag )
 end
 
 function DBCtrl:getFileFromCursor( cursor )
@@ -953,7 +955,7 @@ function DBCtrl:getFileFromCursor( cursor )
    return self:getFileInfo( nil, fileName )
 end
 
-function DBCtrl:addNamespace( cursor )
+function DBCtrl:addNamespace( cursor, hasBodyFlag )
    local fileInfo = self:getFileFromCursor( cursor )
    if fileInfo.id == systemFileId then
       log( 3, "addNamespace skip for system", cursor:getCursorSpelling() )
@@ -965,7 +967,7 @@ function DBCtrl:addNamespace( cursor )
       log( "update namespace:", fullname, cursor:hashCursor() )
       return
    end
-   self:addNamespaceSub( cursor, fileInfo, "", "" )
+   self:addNamespaceSub( cursor, fileInfo, "", "", nil, hasBodyFlag )
 end
 
 function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
@@ -1025,13 +1027,14 @@ function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
    return fullname, nsList, simpleName
 end
 
-function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typedefName )
+function DBCtrl:addNamespaceSub(
+      cursor, fileInfo, digest, anonymousName, typedefName, hasBodyFlag )
    local spell = cursor:getCursorSpelling()
 
    log( 3,
 	function()
 	   local kind = clang.getCursorKindSpelling( cursor:getCursorKind() )
-	   return "addNamespaceSub:", spell, kind
+	   return "addNamespaceSub:", spell, kind, hasBodyFlag
 	end
    )
    
@@ -1068,7 +1071,7 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
 
    local symbolDecl
    if uptodate then
-      symbolDecl = self:addSymbolDecl( cursor, fileId, nsInfo )
+      symbolDecl = self:addSymbolDecl( cursor, fileId, nsInfo, hasBodyFlag )
    else
       local namespace = ""
       local parentNs = { id = 1 }
@@ -1086,7 +1089,7 @@ function DBCtrl:addNamespaceSub( cursor, fileInfo, digest, anonymousName, typede
 	 nsInfo, symbolDecl = self:addNamespaceOne(
 	    isLastName and cursor or nil, digest,
 	    fileId, parentNs.id,
-	    isLastName and simpleName or name, namespace, workNS )
+	    isLastName and simpleName or name, namespace, workNS, hasBodyFlag )
 	 namespace = workNS
 	 parentNs = nsInfo
       end
@@ -1182,6 +1185,7 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    end
 
    local hasIncFlag = self:hasInc( fileInfo, decl )
+   local memberList = nsObj and nsObj.memberList or {}
    
    if fileInfo.uptodate and not hasIncFlag then
       -- ファイルが変更なしで、構造体内でインクルードしていない場合
@@ -1200,7 +1204,7 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
 
       local declNs, symbolDecl
       declNs, symbolDecl, structUptodate = self:addNamespaceSub(
-	 decl, fileInfo, digest, anonymousName, typedefName )
+	 decl, fileInfo, digest, anonymousName, typedefName, #memberList ~= 0 )
       fullnameBase = declNs.name
       otherNameBase = declNs.otherName
       baseNsId = declNs.id
@@ -1232,7 +1236,7 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    local workFileInfo = fileInfo
 
    local prevFile = nil
-   for index, info in ipairs( nsObj and nsObj.memberList or {} ) do
+   for index, info in ipairs( memberList ) do
       local cursor = info[ 1 ]
       local cxfile = info[ 2 ]
       local cursorKind = cursor:getCursorKind()
@@ -1250,7 +1254,7 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       else
 	 local otherName = otherNameBase .. "::" .. name
 	 self:addNamespaceOne( cursor, "", workFileInfo.id,
-			       baseNsId, name, fullname, otherName )
+			       baseNsId, name, fullname, otherName, false )
       end
    end
    
@@ -1353,7 +1357,7 @@ function DBCtrl:addReference( refInfo )
       )
       
       nsInfo = self:addNamespaceOne(
-	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
+	 declCursor, "", systemFileId, rootNsId, name, "::" .. name, false )
    end
 
    log( 3, "symbolRef", nsInfo.id, nsInfo.snameId, nsInfo.name )
@@ -1443,7 +1447,7 @@ function DBCtrl:addCall( cursor, namespace )
 	      end
       )
       nsInfo = self:addNamespaceOne(
-	 declCursor, "", systemFileId, rootNsId, name, "::" .. name )
+	 declCursor, "", systemFileId, rootNsId, name, "::" .. name, false )
    end
 
    if fileInfo.uptodate then
@@ -2195,13 +2199,13 @@ end
 
 function DBCtrl:dumpSymbolDecl( level, path )
    log( level, "-- table symbolDecl -- " )
-   log( level, "nsId", "snameId", "type", "file", "line", "column", "eLine", "eColumn", "size", "comment", "name" )
+   log( level, "nsId", "snameId", "type", "hasBody", "file", "line", "column", "eLine", "eColumn", "size", "comment", "name" )
    
    self:mapRowList(
       "symbolDecl", self:getFileIdCondition( path ), nil, nil,
       function( row ) 
 	 local nsInfo = self:getNamespace( row.nsId )
-	 log( level, row.nsId, row.snameId, row.type, row.fileId,
+	 log( level, row.nsId, row.snameId, row.type, row.hasBodyFlag, row.fileId,
 	      row.line, row.column, row.endLine, row.endColumn, row.charSize,
 	      row.comment, nsInfo and nsInfo.otherName )
 	 return true

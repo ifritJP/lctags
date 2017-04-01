@@ -11,7 +11,7 @@ local Complete = require( 'lctags.Complete' )
 local Option = require( 'lctags.Option' )
 local Json = require( 'lctags.Json' )
 local Server = require( 'lctags.Server' )
-local StackCalc = require( 'lctags.StackCalc' )
+local DynamicCall = require( 'lctags.DynamicCall' )
 local Helper = require( 'lctags.Helper' )
 
 if not arg[1] then
@@ -201,8 +201,8 @@ if lctagOptMap.mode == "register" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "stack" then
-   StackCalc:dumpInfo( lctagOptMap.dbPath )
+if lctagOptMap.mode == "dcall" then
+   DynamicCall:dumpInfo( lctagOptMap.dbPath )
    os.exit( 0 )
 end
 

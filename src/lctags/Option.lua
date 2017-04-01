@@ -36,7 +36,7 @@ usage:
    %s depIncs comp-op src
    %s server [--lctags-target target] <start|stop>
  - query DB
-   %s dump <all|target|file|ref|def> [path]
+   %s dump <all|target|file|ref|def|call|inc> [path]
    %s ref-at[a] [--lctags-target target] [-i] file line column 
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
@@ -47,7 +47,7 @@ usage:
    %s -x[t|s|r][a]  [--use-global] symbol
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
-   %s stack
+   %s dcall
  - graph
    %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
    %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column
@@ -246,7 +246,7 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.cc = "gcc"
 	 elseif arg == "server" then
 	    lctagOptMap.mode = arg
-	 elseif arg == "stack" then
+	 elseif arg == "dcall" then
 	    lctagOptMap.mode = arg
 	 end
       else

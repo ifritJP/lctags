@@ -41,6 +41,7 @@ end
 local function isFuncDecl( cursorKind )
    return cursorKind == clang.core.CXCursor_CXXMethod or
       cursorKind == clang.core.CXCursor_Destructor or
+      cursorKind == clang.core.CXCursor_Constructor or
       cursorKind == clang.core.CXCursor_FunctionDecl
 end
 
@@ -101,6 +102,7 @@ local targetKindList = {
    clang.core.CXCursor_TemplateRef,
    clang.core.CXCursor_VarDecl,
    clang.core.CXCursor_CallExpr,
+   clang.core.CXCursor_CompoundStmt,
 }
 
 
@@ -262,8 +264,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
    if not recursiveFlag then
       if isNamespaceDecl( cursorKind ) then
 	 analyzer:enterNs( cursor, cursorKind )
-	 table.insert( endProcess,
-		       function() analyzer:exitNs() end )
+	 table.insert( endProcess, function() analyzer:exitNs() end )
       end
    end
 
@@ -432,6 +433,9 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       cursorKind == clang.core.CXCursor_EnumConstantDecl
    then
       analyzer:addMember( cursor, cursorKind, cursorOffset, exInfo )
+   elseif cursorKind == clang.core.CXCursor_CompoundStmt then
+      local nsCursor = analyzer:getNowNs()
+      analyzer.hasBodyHashSet[ nsCursor:hashCursor() ] = 1
    end
 
    if not recursiveFlag then
@@ -531,6 +535,7 @@ function Analyzer:new(
       macroDefList = {},
       macroRefList = {},
       callList = {},
+      hasBodyHashSet = {},
 
       -- 解析中関数のカーソル
       currentFunc = nil,
@@ -1067,7 +1072,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    
    log( 2, "-- nsList --", os.clock(), os.date() )
    for index, cursor in ipairs( self.nsList ) do
-      db:addNamespace( cursor )
+      db:addNamespace( cursor, false )
    end
 
    local fileId2IncFileInfoListMap = {}
@@ -1139,14 +1144,6 @@ function Analyzer:processStructEnum( db, info, anonymousForm, kind )
 
    db:addEnumStructDecl(
       cursor, string.format( anonymousForm, anonymousId ), typedefName, kind, nsObj )
-
-   -- local tmpTypeList = info[ 3 ]
-   -- if tmpTypeList then
-   --    log( 3, "-- tmpTypeList --", os.clock(), os.date()  )
-   --    for index, cursor in ipairs( tmpTypeList ) do
-   -- 	 db:addNamespace( cursor )
-   --    end
-   -- end
 end
 
 function Analyzer:registerSpInfo( db, spInfo )
@@ -1162,7 +1159,7 @@ function Analyzer:registerSpInfo( db, spInfo )
    
    log( 2, "-- macroDefList --", os.clock(), os.date()  )
    for index, macroDef in ipairs( spInfo.macroDefList ) do
-      db:addNamespace( macroDef )
+      db:addNamespace( macroDef, true )
    end
 
    -- typedef を先に処理する
@@ -1171,7 +1168,7 @@ function Analyzer:registerSpInfo( db, spInfo )
       log( info:getCursorSpelling(),
 	   clang.getCursorKindSpelling( info:getCursorKind() ) )
       
-      db:addNamespace( info )
+      db:addNamespace( info, true )
    end
    
    log( 2, "-- classList --", os.clock(), os.date()  )
@@ -1182,8 +1179,10 @@ function Analyzer:registerSpInfo( db, spInfo )
    
    log( 2, "-- funcList --", os.clock(), os.date()  )
    for index, funcDecl in ipairs( spInfo.funcList ) do
-      log( funcDecl:getCursorSpelling() )
-      db:addNamespace( funcDecl )
+      log( funcDecl:getCursorSpelling(),
+	   self.hasBodyHashSet[ funcDecl:hashCursor() ] )
+      db:addNamespace(
+	 funcDecl, self.hasBodyHashSet[ funcDecl:hashCursor() ] )
    end
    
 
@@ -1209,7 +1208,7 @@ function Analyzer:registerSpInfo( db, spInfo )
    for index, info in ipairs( spInfo.wideAreaValList ) do
       log( info:getCursorSpelling(),
 	   clang.getCursorKindSpelling( info:getCursorKind() ) )
-      db:addNamespace( info )
+      db:addNamespace( info, false )
    end
 end
 
