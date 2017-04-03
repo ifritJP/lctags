@@ -11,6 +11,7 @@ local Complete = require( 'lctags.Complete' )
 local Option = require( 'lctags.Option' )
 local Json = require( 'lctags.Json' )
 local Server = require( 'lctags.Server' )
+local StatusServer = require( 'lctags.StatusServer' )
 local DynamicCall = require( 'lctags.DynamicCall' )
 local Helper = require( 'lctags.Helper' )
 
@@ -65,12 +66,49 @@ if lctagOptMap.mode == "server" then
    if srcList[ 1 ] == "stop" then
       Server:connect( lctagOptMap.dbPath )
       Server:requestEnd()
-   else
+   elseif srcList[ 1 ] == "start" then
       Server:new( lctagOptMap.dbPath,
 		  DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) ) )
+   else
+      Option:printUsage( "stop or start" )
    end
    os.exit( 0 )
 end
+
+if lctagOptMap.mode == "statusServer" then
+   if srcList[ 1 ] == "stop" then
+      StatusServer:connect( lctagOptMap.dbPath )
+      StatusServer:requestEnd()
+   elseif srcList[ 1 ] == "start" then
+      StatusServer:new( lctagOptMap.dbPath )
+   else
+      Option:printUsage( "stop or start" )
+   end
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "status" then
+   StatusServer:connect( lctagOptMap.dbPath )
+
+
+   local TermCtrl = require( 'lctags.TermCtrl' )
+   
+   while true do
+      local statusList = StatusServer:requestGetStatus()
+      if not statusList or #statusList == 0 then
+	 break
+      end
+      TermCtrl:clr()
+      for index, status in ipairs( statusList ) do
+	 TermCtrl:gotoAt( 1, index )
+	 TermCtrl:clrLine()
+	 print( status.name, status.state )
+      end
+      Helper.msleep( 500 )
+   end
+   os.exit( 0 )
+end
+
 
 if lctagOptMap.mode == "init" then
    DBCtrl:init(
@@ -262,8 +300,13 @@ if lctagOptMap.mode == "updateForMake" then
    end
 
    log( 3, "src:", src, "target:", lctagOptMap.target )
+   StatusServer:connect( lctagOptMap.dbPath )
+   local statusName = string.gsub( src, ".*/", "" )
+   log:setStatusServer( StatusServer, statusName )
    
    analyzer:update( src, lctagOptMap.target )
+
+   StatusServer:requestEndStatus( statusName )
    os.exit( 0 )
 end
 

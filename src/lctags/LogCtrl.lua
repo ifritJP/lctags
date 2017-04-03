@@ -5,7 +5,7 @@ local prefix = "lctags:"
 
 local LogCtrl = {}
 
-LogCtrl.log = function( level, ... )
+function LogCtrl:log( level, ... )
    local logLevel = level
    local param = { ... }
    
@@ -36,13 +36,13 @@ LogCtrl.log = function( level, ... )
       return
    end
    if #param == 1 and type( param[ 1 ] ) == "function" then
-      LogCtrl.raw( logLevel, param[ 1 ]() )
+      self:raw( logLevel, param[ 1 ]() )
    else
-      LogCtrl.raw( logLevel, table.unpack( param ) )
+      self:raw( logLevel, table.unpack( param ) )
    end
 end
 
-LogCtrl.raw = function( logLevel, ... )
+function LogCtrl:raw( logLevel, ... )
    if logLevel > displayLevel then
       return
    end
@@ -50,6 +50,13 @@ LogCtrl.raw = function( logLevel, ... )
       print( prefix, logLevel, ... )
    else
       print( logLevel, ... )
+   end
+   if logLevel <= 2 and self.server then
+      local message = ""
+      for index, val in ipairs( table.pack( ... ) ) do
+	 message = message .. "\t" .. tostring( val )
+      end
+      self.server:requestUpdateStatus( self.statusName, message )
    end
    if logLevel == -2 then
       local debugInfo = debug.getinfo( 2 )
@@ -67,7 +74,12 @@ LogCtrl.raw = function( logLevel, ... )
    end
 end
 
+function LogCtrl:setStatusServer( server, name )
+   self.server = server
+   self.statusName = name
+end
 
-setmetatable( LogCtrl, { __call = function( func, ... ) return LogCtrl.log( ... ) end  } )
+
+setmetatable( LogCtrl, { __call = function( func, ... ) return LogCtrl:log( ... ) end  } )
 
 return LogCtrl

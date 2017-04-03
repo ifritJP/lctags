@@ -107,6 +107,11 @@ static enum CXChildVisitResult CXCursorVisitor_wrap(
 
 	clang_getFileLocation( endLoc,  &cxfile, &endLine, &endColumn, &endOffset );
 	clang_getFileLocation( startLoc,  &cxfile, &line, &column, &offset );
+        if ( endLine < 0 || endColumn < 0 || endOffset < 0 ) {
+            endLine = line;
+            endColumn = column;
+            endOffset = offset;
+        }
 
 	if ( !anyFileFlag ) {
 	  findFlag = 0;

@@ -24,6 +24,9 @@ function Server:setup( name, serverFlag )
       end
       self.requestQueue = Helper.createMQueue( name .. "request" )
       self.replyQueue = Helper.createMQueue( name .. "reply" )
+      if not self.requestQueue or not self.replyQueue then
+	 os.exit( 1 )
+      end
    end
    log( 1, "setup", serverFlag )
 end
@@ -41,6 +44,8 @@ function Server:new( name, db )
       if not message then
 	 db:commit()
 	 db:close()
+	 Helper.deleteMQueue( name .. "request" )
+	 Helper.deleteMQueue( name .. "reply" )
 	 log( 1, "server end" )
 	 os.exit( 0 )
       end

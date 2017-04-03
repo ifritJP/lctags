@@ -35,6 +35,8 @@ usage:
    %s register [--lctags-conf conf] [--lctags-target target] <-i|file>
    %s depIncs comp-op src
    %s server [--lctags-target target] <start|stop>
+   %s statusServer <start|stop>
+   %s status
  - query DB
    %s dump <all|target|file|ref|def|call|inc> [path]
    %s ref-at[a] [--lctags-target target] [-i] file line column 
@@ -245,6 +247,10 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	    lctagOptMap.cc = "gcc"
 	 elseif arg == "server" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "statusServer" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "status" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "dcall" then
 	    lctagOptMap.mode = arg

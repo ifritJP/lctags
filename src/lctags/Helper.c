@@ -454,11 +454,11 @@ static int helper_createMQueue( lua_State * pLua )
 
     struct mq_attr attr;
     attr.mq_flags = 0;
-    attr.mq_maxmsg = 1;
+    attr.mq_maxmsg = 10;
     attr.mq_msgsize = MQUEUE_MSG_SIZE;
     attr.mq_curmsgs = 0;
     int oflag = O_RDWR;
-    if ( !lua_isnil( pLua, 2 ) ) {
+    if ( !lua_isnil( pLua, 2 ) && lua_toboolean( pLua, 2 ) ) {
         oflag |= O_CREAT;
     }
     mqd_t mqueue = mq_open(
@@ -686,8 +686,29 @@ static int helper_mqueue_put( lua_State * pLua )
     helper_mqueue_t * pMqueue = toMQueue( pLua );
     size_t length = 0;
     const char * pMessage = lua_tolstring( pLua, 2 , &length );
+    size_t index = 0;
+    size_t chunkSize = MQUEUE_MSG_SIZE - 2;
+    size_t restSize = length;
 
-    mq_send( pMqueue->pInfo->mqueue, pMessage, length, 0 );
+    int needZeroFlag = 0;
+    for ( index = 0; index < length; index += chunkSize ) {
+        size_t size = restSize;
+	needZeroFlag = 0;
+        if ( size > chunkSize ) {
+            size = chunkSize;
+        }
+	else if ( size == chunkSize ) {
+	    needZeroFlag = 1;
+	}
+	restSize -= size;
+	memcpy( pMqueue->pInfo->buf + 2, pMessage + index, size );
+	*(short*)pMqueue->pInfo->buf = size;
+        mq_send( pMqueue->pInfo->mqueue, pMqueue->pInfo->buf, size + 2, 0 );
+    }
+    if ( needZeroFlag ) {
+	*(short*)pMqueue->pInfo->buf = 0;
+        mq_send( pMqueue->pInfo->mqueue, pMqueue->pInfo->buf, 2, 0 );
+    }
     
     return 0;
 }
@@ -697,10 +718,34 @@ static int helper_mqueue_get( lua_State * pLua )
     helper_mqueue_t * pMqueue = toMQueue( pLua );
     ssize_t length = 0;
 
-    length = mq_receive( pMqueue->pInfo->mqueue, pMqueue->pInfo->buf,
-                MQUEUE_MSG_SIZE, NULL );
+    luaL_Buffer buffer;
+    luaL_buffinit( pLua, &buffer );
+    
+    while ( 1 ) {
+        length = mq_receive( pMqueue->pInfo->mqueue, pMqueue->pInfo->buf,
+                             MQUEUE_MSG_SIZE, NULL );
+        if ( length < 2 ) {
+            printf( "%s: mq_receive %s\n",
+                    __func__, helper_getErrorTxt( errno ) );
+            return 0;
+        }
 
-    lua_pushlstring( pLua, pMqueue->pInfo->buf, length );
+	int size = *(short*)pMqueue->pInfo->buf;
+	if ( size + 2 != length ) {
+            printf( "%s: illegal size %d, %ld\n",
+                    __func__, size, length );
+            exit( 1 );
+	}
+	if ( size == 0 ) {
+	    break;
+	}
+	
+        luaL_addlstring( &buffer, pMqueue->pInfo->buf + 2, size );
+        if ( length < MQUEUE_MSG_SIZE ) {
+            break;
+        }
+    }
+    luaL_pushresult( &buffer );
     
     return 1;
 }

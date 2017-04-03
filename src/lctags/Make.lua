@@ -349,8 +349,13 @@ function Make:updateFor( dbPath, target, jobs, src )
 FIRST := $(addsuffix .lc, $(FIRST))
 SRCS := $(addsuffix .lc, $(SRCS))
 
-all: first
+all: setup
+	$(MAKE) -f %s first
 	$(MAKE) -f %s second
+	%s %s statusServer stop --lctags-db %s
+
+setup:
+	%s %s statusServer start --lctags-db %s &
 
 first: $(FIRST)
 
@@ -360,7 +365,8 @@ second: $(SRCS)
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
 	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s
 ]],
-	 tmpName, arg[-1], arg[0], 
+	 tmpName, tmpName, arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
+	 arg[-1], arg[0], 
 	 target and ("--lctags-target " .. target ) or "",
 	 log( 0, -1 ), dbPath, opt ) )
 

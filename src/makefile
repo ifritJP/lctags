@@ -56,6 +56,7 @@ LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_LIB))
 LUA_MOD_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
 
 LCTAGS_LOG=4
+JOBS=3
 
 ifdef LCTAGS_PROF
 LCTAGS_PROF_OP = --lctags-prof
@@ -284,7 +285,7 @@ endif
 ifdef BATCH
 	LUA_DIR_SCRIPT=$(PWD)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(PWD)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) --lctags-only-reg $(LOCKLOG) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql $$<.sql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags register -i $(LOCKLOG) --lctags-log ${LCTAGS_LOG} ) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
-	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} -j 3) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
+	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} -j $(JOBS)) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
 else
 ifdef LCTAGS_SERVER_ON
 	(cd $(TEST_LUA_DIR); $(PWD)/lctags/lctags server start --lctags-log 2 &)

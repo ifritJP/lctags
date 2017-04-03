@@ -18,7 +18,7 @@ end
 local rootNsId = 1
 local userNsId = 2
 local systemFileId = 1
-local DB_VERSION = 7
+local DB_VERSION = 8
 
 local DBCtrl = {
    rootNsId = rootNsId,
@@ -444,9 +444,9 @@ function DBCtrl:commit()
 	 self:insert(
 	    "namespace",
 	    string.format(
-	       "NULL, %d, %d, '%s', '%s', '%s'",
+	       "NULL, %d, %d, '%s', '%s', '%s', %d",
 	       snameInfo.id, tmpInfo.parentId, tmpInfo.digest,
-	       tmpInfo.name, tmpInfo.otherName ) )
+	       tmpInfo.name, tmpInfo.otherName, tmpInfo.virtual ) )
 	 local nsInfo = self:getNamespace( nil, tmpInfo.name )
 	 if nsInfo.parentId < 0 then
 	    correctParentIdSet[ nsInfo.parentId ] = 1
@@ -525,8 +525,8 @@ INSERT INTO etc VALUES( 'projDir', '' );
 INSERT INTO etc VALUES( 'individualStructFlag', '0' );
 INSERT INTO etc VALUES( 'individualTypeFlag', '0' );
 INSERT INTO etc VALUES( 'individualMacroFlag', '0' );
-CREATE TABLE namespace ( id INTEGER PRIMARY KEY, snameId INTEGER, parentId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary);
-INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '' );
+CREATE TABLE namespace ( id INTEGER PRIMARY KEY, snameId INTEGER, parentId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary, virtual INTEGER);
+INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '', 0 );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE binary);
 CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary, invalidSkip INTEGER);
@@ -538,6 +538,7 @@ INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '', 0 );
 
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, PRIMARY KEY( nsId, belongNsId ) );
+CREATE TABLE inherit( nsId INTEGER, baseNsId INTEGER, PRIMARY KEY( nsId, baseNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER, PRIMARY KEY ( id, nsId ) );
@@ -835,6 +836,7 @@ function DBCtrl:makeNsInfo( nsId, snameId, parentId, digest, namespace, otherNam
       digest = digest,
       name = namespace, 
       otherName = otherName,
+      virtual = 0,
    }
    return nsInfo
 end
@@ -929,7 +931,7 @@ function DBCtrl:addNamespaceOne(
    if not item then
       self:insert(
 	 "namespace",
-	 string.format( "NULL, %d, %d, '%s', '%s', '%s'",
+	 string.format( "NULL, %d, %d, '%s', '%s', '%s', 0",
 			snameInfo.id, parentId, digest, namespace, otherName ) )
       item = self:getNamespace( nil, namespace )
    end
