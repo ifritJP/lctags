@@ -1,7 +1,9 @@
 local Server = require( 'lctags.Server' )
 local DBCtrl = require( 'lctags.DBCtrl' )
 
-local db = DBCtrl:open( 'lctags.sqlite3', false, os.getenv( "PWD" ) )
+local currentDir = os.getenv( "PWD" )
+DBCtrl:init( 'lctags.sqlite3', currentDir, '.', false, false, false )
+local db = DBCtrl:open( 'lctags.sqlite3', false, currentDir )
 
 print( 0, os.clock(), os.date() )
 

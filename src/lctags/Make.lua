@@ -349,13 +349,23 @@ function Make:updateFor( dbPath, target, jobs, src )
 FIRST := $(addsuffix .lc, $(FIRST))
 SRCS := $(addsuffix .lc, $(SRCS))
 
+#SRV=--lctags-srv
+
 all: setup
 	$(MAKE) -f %s first
 	$(MAKE) -f %s second
 	%s %s statusServer stop --lctags-db %s
+	echo server stop
+ifdef SRV
+	%s %s server stop --lctags-db %s
+endif
 
 setup:
 	%s %s statusServer start --lctags-db %s &
+	%s %s statusServer wait --lctags-db %s
+ifdef SRV
+	%s %s server start --lctags-db %s &
+endif
 
 first: $(FIRST)
 
@@ -363,9 +373,11 @@ second: $(SRCS)
 
 %%.lc:
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
-	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s
+	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV)
 ]],
 	 tmpName, tmpName, arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
+	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
+	 arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], 
 	 target and ("--lctags-target " .. target ) or "",
 	 log( 0, -1 ), dbPath, opt ) )

@@ -39,8 +39,10 @@ print( 1, os.clock(), os.date() )
 
 for index = 1, 1 do
    local item = Server:requestInq(
-      "SELECT * FROM etc WHERE keyName = 'projDir' LIMIT 1",
+      "SELECT * FROM filePath WHERE id > 10 LIMIT 10",
       function( item )
+	 print( item.id, item.path )
+	 return true
       end
    )
 end

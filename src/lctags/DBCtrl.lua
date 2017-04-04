@@ -349,6 +349,7 @@ function DBCtrl:open( path, readonly, currentDir, message )
    end
    local db = DBAccess:open( path, readonly )
    if not db then
+      log( 1, "DBAccess:open error" )
       return nil
    end
    
@@ -427,6 +428,7 @@ function DBCtrl:beginForTemp()
    self.writeDb = obj
 end
 
+
 function DBCtrl:commit()
    if self.writeDb ~= self.db then
       local writeDb = self.writeDb
@@ -448,6 +450,7 @@ function DBCtrl:commit()
 	       snameInfo.id, tmpInfo.parentId, tmpInfo.digest,
 	       tmpInfo.name, tmpInfo.otherName, tmpInfo.virtual ) )
 	 local nsInfo = self:getNamespace( nil, tmpInfo.name )
+	 
 	 if nsInfo.parentId < 0 then
 	    correctParentIdSet[ nsInfo.parentId ] = 1
 	 end
@@ -1364,6 +1367,10 @@ function DBCtrl:addReference( refInfo )
 
    log( 3, "symbolRef", nsInfo.id, nsInfo.snameId, nsInfo.name )
 
+   local charSize = startInfo and endInfo and ( endInfo[ 4 ] - startInfo[ 4 ] ) or 0
+   if charSize < 0 then
+      charSize = 1
+   end
    self:insert(
       "symbolRef",
       string.format( "%d, %d, %d, %d, %d, %d, %d, %d, %d",
@@ -1371,8 +1378,7 @@ function DBCtrl:addReference( refInfo )
 		     startInfo and startInfo[ 3 ] or 0,
 		     endInfo and endInfo[ 2 ] or 0,
 		     endInfo and endInfo[ 3 ] or 0,
-		     startInfo and endInfo and endInfo[ 4 ] - startInfo[ 4 ],
-		     parentNsInfo and parentNsInfo.id or 0 ) )
+		     charSize, parentNsInfo and parentNsInfo.id or 0 ) )
 end
 
 
@@ -1588,7 +1594,15 @@ function DBCtrl:addIncBelong( incBelong )
    if not incBelong.namespace then
       return
    end
-   belongNsId = self:getNamespaceFromCursor( incBelong.namespace ).id
+   local belongNsInfo = self:getNamespaceFromCursor( incBelong.namespace )
+   if not belongNsInfo then
+      local cxfile, line, column = getFileLocation( incBelong.namespace )
+      log( 1, "incBelong: not found ns",
+	   incBelong.namespace:getCursorSpelling(),
+	   cxfile:getFileName(), line, column )
+      os.exit( 1 )
+   end
+   belongNsId = belongNsInfo.id
 
    local baseFileId = self:getFileIdLocation( incBelong.namespace )
    if fileInfo.id == baseFileId then
@@ -2301,6 +2315,9 @@ function DBCtrl:dump( level )
       function( row ) 
 	 local fileInfo = self:getFileInfo( row.id )
 	 local belongNs = self:getNamespace( row.nsId )
+	 if not belongNs then
+	    log( 1, "not found ns", row.nsId )
+	 end
 	 log( level, row.id, row.baseFileId, row.nsId, belongNs.name, fileInfo.path )
 	 return true
       end

@@ -140,11 +140,11 @@ local function checkChangeFile( analyzer, cursor )
 	 path = DBCtrl:convFullpath( cxfile:getFileName(), analyzer.currentDir )
       end
 
-      if not analyzer.checkPreproFlag then
-	 table.insert(
-	    analyzer.incBelongList,
-	    { cxfile = cxfile, namespace = analyzer:getNowNs() } )
-      end
+      -- if not analyzer.checkPreproFlag then
+      -- 	 table.insert(
+      -- 	    analyzer.incBelongList,
+      -- 	    { cxfile = cxfile, namespace = analyzer:getNowNs() } )
+      -- end
 
       analyzer.currentFile = cxfile
       local spInfo = analyzer.path2InfoMap[ path ]
@@ -522,7 +522,6 @@ function Analyzer:new(
       hash2NsObj = {},
       
       incList = {},
-      incBelong = {},
       classList = {},
       funcList = {},
       refList = {},
@@ -945,6 +944,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
 		    fullname, nsInfo and nsInfo.id or "none" )
 
 	       belongNsName = fullname
+	       calcDigestTxt( fullname, spInfo )
 	       break
 	    end
 	 end
@@ -1214,6 +1214,11 @@ end
 
 function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
 
+   if not Option:isValidService() then
+      db:commit()
+      db:beginForTemp()
+   end
+   
    db:setFuncToGetFileInfoFromCursor(
       function( db, cursor )
 	 local spInfo = self.cursorHash2SpInfoMap[ cursor:hashCursor() ]
@@ -1240,6 +1245,7 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
       end
    )
 
+   
    for filePath, spInfo in pairs( self.path2InfoMap ) do
       -- ヘッダの情報を登録する。
       -- 影響の少ないソースファイル内の定義は、
@@ -1253,14 +1259,14 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
       end
    end
 
-   db:commit()
+   -- db:commit()
 
 
    --- DB のロック時間を少しでも削減するため、
    --- これ以降は、DB に直接記録しないでメモリ上に格納しておき、
    --- 最後に DB に反映する。
    
-   db:beginForTemp()
+   -- db:beginForTemp()
 
    self:registerSpInfo( db, targetSpInfo )
 
@@ -1269,11 +1275,11 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
       db:addReference( macroRef )
    end
 
-   log( 2, "-- incBelong --", os.clock(), os.date() )
-   for index, incBelong in ipairs( self.incBelongList ) do
-      db:addIncBelong( incBelong )
-   end
-
+   -- log( 2, "-- incBelong --", os.clock(), os.date() )
+   -- for index, incBelong in ipairs( self.incBelongList ) do
+   --    db:addIncBelong( incBelong )
+   -- end
+   
    log( 2, "-- incCache --", os.clock(),  os.date() )
    db:addIncludeCache(
       db:getFileInfo( nil, self.targetFile:getFileName() ),

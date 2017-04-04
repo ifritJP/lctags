@@ -185,6 +185,7 @@ endif
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.1.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 2  --lctags-target hoge >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.2.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 2  --lctags-target hoge1 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.3.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 2  --lctags-target hoge2 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/sub2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.sub.3.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 5 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp-2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp-2.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/comp2.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql sql.comp2.cpp $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log 3 >> dump

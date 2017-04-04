@@ -6,7 +6,7 @@ local StatusServer = {}
 
 --local socket = require( "socket" )
 
-function StatusServer:setup( name, serverFlag )
+function StatusServer:setup( name, serverFlag, createFlag )
    name = string.gsub( name, "/", "" )
    self.name = name
    if socket then
@@ -22,8 +22,10 @@ function StatusServer:setup( name, serverFlag )
 	 Helper.deleteMQueue( self.name .. "requestStatus" )
 	 Helper.deleteMQueue( self.name .. "replyStatus" )
       end
-      self.requestQueue = Helper.createMQueue( name .. "requestStatus", serverFlag )
-      self.replyQueue = Helper.createMQueue( name .. "replyStatus", serverFlag )
+      self.requestQueue = Helper.createMQueue(
+	 name .. "requestStatus", serverFlag or createFlag )
+      self.replyQueue = Helper.createMQueue(
+	 name .. "replyStatus", serverFlag or createFlag )
       if not self.requestQueue or not self.replyQueue then
 	 os.exit( 1 )
       end
@@ -33,7 +35,7 @@ function StatusServer:setup( name, serverFlag )
       self.statusList = {}
    end
    
-   log( 1, "setup", serverFlag )
+   log( 1, "StatusServer:setup", serverFlag )
 end
 
 function StatusServer:new( name )
@@ -43,7 +45,7 @@ function StatusServer:new( name )
       if not message then
 	 Helper.deleteMQueue( self.name .. "requestStatus" )
 	 Helper.deleteMQueue( self.name .. "replyStatus" )
-	 log( 1, "server end" )
+	 log( 1, "StatusServer:server end" )
 	 os.exit( 0 )
       end
       
@@ -92,8 +94,8 @@ function StatusServer:getReply()
    return obj
 end
 
-function StatusServer:connect( name )
-   self:setup( name, false )
+function StatusServer:connect( name, createFlag )
+   self:setup( name, false, createFlag )
 end
 
 
@@ -114,7 +116,7 @@ function StatusServer:exit()
    self:reply( { endFlag = true } )
    Helper.deleteMQueue( self.name .. "requestStatus" )
    Helper.deleteMQueue( self.name .. "replyStatus" )
-   log( 1, "server end" )
+   log( 1, "StatusServer:server end" )
    os.exit( 0 )
 end
 

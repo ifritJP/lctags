@@ -9,6 +9,8 @@ local Server = {}
 
 function Server:setup( name, serverFlag )
    name = string.gsub( name, "/", "" )
+   self.name = name
+   self.serverFlag = serverFlag
    if socket then
       if serverFlag then
 	 local server = assert(socket.bind("*", 5000))
@@ -19,9 +21,10 @@ function Server:setup( name, serverFlag )
       end
    else
       if serverFlag then
-	 Helper.deleteMQueue( name .. "request" )
-	 Helper.deleteMQueue( name .. "reply" )
+	 self:release()
       end
+      self.lockObj = Helper.createLock( name .. "lock" )
+      log( 1, "lockObj = ", self.lockObj, name, Helper.createLock )
       self.requestQueue = Helper.createMQueue( name .. "request" )
       self.replyQueue = Helper.createMQueue( name .. "reply" )
       if not self.requestQueue or not self.replyQueue then
@@ -31,7 +34,15 @@ function Server:setup( name, serverFlag )
    log( 1, "setup", serverFlag )
 end
 
-
+function Server:release()
+   if self.serverFlag then
+      if not socket then
+	 Helper.deleteLock( self.name .. "lock" )
+	 Helper.deleteMQueue( self.name .. "request" )
+	 Helper.deleteMQueue( self.name .. "reply" )
+      end
+   end
+end
 
 function Server:new( name, db )
    if not db then
@@ -40,18 +51,21 @@ function Server:new( name, db )
    self.db = db.db
    self:setup( name, true )
    while true do
-      local message = Json:convertFrom( self:get() )
-      if not message then
+      local messageTxt = self:get()
+      local message = Json:convertFrom( messageTxt )
+      if message == nil then
 	 db:commit()
 	 db:close()
-	 Helper.deleteMQueue( name .. "request" )
-	 Helper.deleteMQueue( name .. "reply" )
-	 log( 1, "server end" )
+	 self:release()
+	 log( 1, "server end for illegal message" )
 	 os.exit( 0 )
       end
       
       --log( 3, "Server: command", message.command, message.value )
-      self[ message.command ]( self, message.value )
+      if type( message ) == "table" and message.command then
+	 log( 2, "server command", message.command )
+	 self[ message.command ]( self, message.value )
+      end
    end
 end
 
@@ -101,9 +115,22 @@ function Server:requestEnd()
    self:request( "exit" )
 end
 
+
+function Server:requestCommit()
+   self:request( "commit" )
+end
+
+function Server:commit()
+   self.db:commit()
+   self.db:begin()
+end
+
 function Server:requestExec( stmt )
+   self.lockObj:begin()
    self:request( "exec", stmt )
-   return self:getReply()
+   local reply = self:getReply()
+   self.lockObj:fin()
+   return reply
 end
 
 function Server:requestTest( )
@@ -114,6 +141,7 @@ end
 function Server:exit()
    self.db:commit()
    self.db:close()
+   self:release()
    log( 1, "server end" )
    os.exit( 0 )
 end
@@ -140,7 +168,8 @@ function Server:inq( query )
       function()
 	 for item in self.db.db:nrows( query ) do
 	    self:reply( { item = item } )
-	    if self:get() ~= "true" then
+	    local contFlag = self:get()
+	    if not contFlag then
 	       break
 	    end
 	 end
@@ -154,14 +183,21 @@ function Server:inq( query )
 end
 
 function Server:requestInq( query, func )
+   self.lockObj:begin()
+   
    self:request( "inq", query )
    while true do
       local info = self:getReply()
       if info.err or info.fin then
+	 if info.err then
+	    log( 1, "requestInq: err", info.err, query )
+	    os.exit( 1) 
+	 end
+	 self.lockObj:fin()
 	 return info
       end
       self.requestQueue:put(
-	 func( info.item ) and "true" or "" )
+	 func( info.item ) and "true" or "false" )
    end
 end
 

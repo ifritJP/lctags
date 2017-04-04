@@ -369,8 +369,14 @@ static int helper_openDigest( lua_State * pLua )
 static int helper_deleteLock( lua_State * pLua )
 {
     const char * pName = lua_tostring( pLua, 1 );
+    char name[ NAME_MAX - 3 ];
     if ( pName == NULL ) {
         pName = LOCK_NAME_PREFIX LOCK_DEFAULT_NAME;
+    }
+    else {
+        snprintf( name, sizeof( name ), LOCK_NAME_PREFIX "%s", pName );
+        name[ sizeof( name ) - 1 ] = '\0';
+        pName = name;
     }
     sem_unlink( pName );
     return 0;
@@ -385,10 +391,11 @@ static int helper_createLock( lua_State * pLua )
     char name[ NAME_MAX - 3 ];
     snprintf( name, sizeof( name ), LOCK_NAME_PREFIX "%s", pName );
     name[ sizeof( name ) - 1 ] = '\0';
-    
+
     helper_lock_t * pLock =
         helper_newUserData( pLua, LOCK_ID, sizeof( helper_lock_t ) );
     if ( pLock == NULL ) {
+        printf( "%s: 1  helper_newUserData() retrn NULL\n", __func__ );
         return 0;
     }
     pLock->pInfo = NULL;
@@ -397,7 +404,7 @@ static int helper_createLock( lua_State * pLua )
     sem_t * pSem = sem_open(
         name, O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, 1 );
     if ( pSem == SEM_FAILED ) {
-        printf( "%s: sem_open() retrn NULL\n", __func__ );
+        printf( "%s: 1  sem_open() retrn NULL\n", __func__ );
 	exit( 1 );
         return 0;
     }
@@ -406,16 +413,16 @@ static int helper_createLock( lua_State * pLua )
 	int val = 0;
 	sem_getvalue( pSem, &val );
 	if ( val > 1 ) {
-	    printf( "sem_getvalue - %d\n", val );
+	    printf( ": 1       sem_getvalue - %d\n", val );
 	    return 0;
 	}
     }
 		      
     helper_lockInfo_t * pInfo = malloc( sizeof( helper_lockInfo_t ) );
     if ( pInfo == NULL ) {
-        printf( "%s: malloc() return NULL\n", __func__ );
-	exit( 1 );
+        printf( "%s: 1 malloc() return NULL\n", __func__ );
         sem_close( pSem );
+	exit( 1 );
         return 0;
     }
     pLock->pInfo = pInfo;
@@ -444,7 +451,7 @@ static int helper_createMQueue( lua_State * pLua )
     char name[ NAME_MAX - 3 ];
     snprintf( name, sizeof( name ), MQUEUE_NAME_PREFIX "%s", pName );
     name[ sizeof( name ) - 1 ] = '\0';
-    
+
     helper_mqueue_t * pMqueue =
         helper_newUserData( pLua, MQUEUE_ID, sizeof( helper_mqueue_t ) );
     if ( pMqueue == NULL ) {
@@ -667,6 +674,16 @@ static int helper_lock_gc( lua_State * pLua )
         if ( pLock->pInfo->depth > 0 ) {
             sem_post( pLock->pInfo->pSem );
             printf( "%s: lock val is locking", __func__ );
+
+            {
+                int val = 0;
+                sem_getvalue( pLock->pInfo->pSem, &val );
+                if ( val > 1 ) {
+                    printf( "%s: lock val is illegal -- %d", __func__, val );
+                    exit( 1 );
+                }
+            }
+            
             exit( 1 );
         }
 	sem_close( pLock->pInfo->pSem );
@@ -689,6 +706,11 @@ static int helper_mqueue_put( lua_State * pLua )
     size_t index = 0;
     size_t chunkSize = MQUEUE_MSG_SIZE - 2;
     size_t restSize = length;
+
+    if ( length == 0 ) {
+        mq_send( pMqueue->pInfo->mqueue, "", 0, 0 );
+        return 0;
+    }
 
     int needZeroFlag = 0;
     for ( index = 0; index < length; index += chunkSize ) {

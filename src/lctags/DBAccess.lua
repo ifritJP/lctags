@@ -27,14 +27,14 @@ function DBAccess:open( path, readonly, onMemoryFlag )
    end
 
    local transLockObj = Helper.createLock()
-   transLockObj:begin()
+   -- transLockObj:begin()
    local db
    if onMemoryFlag then
       db = sqlite3.open_memory()
    else
       db = sqlite3.open( path, flag )
    end
-   transLockObj:fin()
+   -- transLockObj:fin()
    
    
    if not db then
@@ -43,7 +43,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
    end
 
    local server
-   if Option:isValidService() then
+   if not readonly and Option:isValidService() then
       server = Server
       server:connect( string.gsub( path, "/", "" ) )
    end
@@ -97,12 +97,13 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 	 if not obj.inLockFlag then
 	    -- 更新アクセスを優先し、読み込みアクセスは遅延させる。
 	    -- 更新アクセスを止めると、更新処理が溜っていって並列性が下がるため。
-	    obj:outputLog( "read busy " .. tostring( obj.transLockObj:isLocking() ) )
-	    obj.transLockObj:begin()
-	    obj:outputLog( "db is read busy" )
-	    log( 2, "db is read busy",
-	 	 obj.readonly, obj.writeAccessFlag, obj.inActLockFlag, obj.actDepth )
-	    obj.transLockObj:fin()
+	    Helper.msleep( 50 )
+	    -- obj:outputLog( "read busy " .. tostring( obj.transLockObj:isLocking() ) )
+	    -- obj.transLockObj:begin()
+	    -- obj:outputLog( "db is read busy" )
+	    -- log( 2, "db is read busy",
+	    -- 	 obj.readonly, obj.writeAccessFlag, obj.inActLockFlag, obj.actDepth )
+	    -- obj.transLockObj:fin()
 	 elseif not obj.beginFlag then
 	    Helper.msleep( 10 )
 	 end
@@ -128,11 +129,11 @@ function DBAccess:act( func, ... )
 end
 
 function DBAccess:close()
-   self.transLockObj:begin()
-   self.inLockFlag = "close"
+   -- self.transLockObj:begin()
+   -- self.inLockFlag = "close"
    self.db:close()
-   self.inLockFlag = nil
-   self.transLockObj:fin()
+   -- self.inLockFlag = nil
+   -- self.transLockObj:fin()
    
    log( 2,
 	string.format(
@@ -189,7 +190,7 @@ function DBAccess:mapQuery( query, func )
    local success, message
    if self.server then
       local err
-      local result = Server:requestInq(
+      local result = self.server:requestInq(
 	 query,
 	 function( item )
 	    local continue = func( item )
@@ -335,6 +336,8 @@ function DBAccess:commit()
 	    end
 	 end
       )
+   else
+      self.server:requestCommit()
    end
    if self.lockLogMessage then
       self:outputLog(

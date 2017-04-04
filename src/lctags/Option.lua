@@ -35,7 +35,7 @@ usage:
    %s register [--lctags-conf conf] [--lctags-target target] <-i|file>
    %s depIncs comp-op src
    %s server [--lctags-target target] <start|stop>
-   %s statusServer <start|stop>
+   %s statusServer <start|stop|wait>
    %s status
  - query DB
    %s dump <all|target|file|ref|def|call|inc> [path]

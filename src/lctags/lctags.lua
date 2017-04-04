@@ -58,6 +58,8 @@ if not lctagOptMap.dbPath then
    if not lctagOptMap.dbPath then
       if lctagOptMap.mode == "init" then
          lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
+      else
+	 Option:printUsage( "not found lctags.sqlite3" )
       end
    end
 end
@@ -81,6 +83,8 @@ if lctagOptMap.mode == "statusServer" then
       StatusServer:requestEnd()
    elseif srcList[ 1 ] == "start" then
       StatusServer:new( lctagOptMap.dbPath )
+   elseif srcList[ 1 ] == "wait" then
+      StatusServer:connect( lctagOptMap.dbPath )
    else
       Option:printUsage( "stop or start" )
    end
