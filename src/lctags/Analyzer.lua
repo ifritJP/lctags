@@ -248,7 +248,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
    local uptodateFlag
    local cursorOffset = tostring( exInfo[ 2 ] )
 
-   dumpCursorInfo( cursor, analyzer.depth, nil, cursorOffset )
+   dumpCursorInfo( cursor, depthLevel or analyzer.depth, nil, cursorOffset )
 
    if exInfo[ 1 ] or analyzer.returnVisit then
       analyzer.returnVisit = false
@@ -434,8 +434,10 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
    then
       analyzer:addMember( cursor, cursorKind, cursorOffset, exInfo )
    elseif cursorKind == clang.core.CXCursor_CompoundStmt then
-      local nsCursor = analyzer:getNowNs()
-      analyzer.hasBodyHashSet[ nsCursor:hashCursor() ] = 1
+      if not analyzer.recursiveBaseKind then
+	 local nsCursor = analyzer:getNowNs()
+	 analyzer.hasBodyHashSet[ nsCursor:hashCursor() ] = 1
+      end
    end
 
    if not recursiveFlag then
@@ -1285,7 +1287,7 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
       db:getFileInfo( nil, self.targetFile:getFileName() ),
       fileId2IncFileInfoListMap )
 
-   log( 2, "-- refList --", os.clock(), os.date()  )
+   log( 2, "-- refList --", #self.refList, os.clock(), os.date()  )
    for index, refInfo in ipairs( self.refList ) do
       log( refInfo.cursor:getCursorSpelling(),
 	   clang.getCursorKindSpelling( refInfo.cursor:getCursorKind() ) )

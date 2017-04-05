@@ -323,6 +323,8 @@ function Make:updateFor( dbPath, target, jobs, src )
       local group
       if index == 1 then
 	 group = "FIRST"
+      elseif index == 2 then
+	 group = "SECOND"
       else
 	 group = "SRCS"
       end
@@ -334,11 +336,11 @@ function Make:updateFor( dbPath, target, jobs, src )
 
    local opt = ""
    if Option:isValidProfile() then
-      opt = "--lctags-prof"
+      opt = opt .. " --lctags-prof"
    end
 
    if Option:isValidLockLog() then
-      opt = "--lctags-lockLog"
+      opt = opt .. " --lctags-lockLog"
    end
    
    
@@ -347,6 +349,7 @@ function Make:updateFor( dbPath, target, jobs, src )
       string.format( 
 	 [[
 FIRST := $(addsuffix .lc, $(FIRST))
+SECOND := $(addsuffix .lc, $(SECOND))
 SRCS := $(addsuffix .lc, $(SRCS))
 
 #SRV=--lctags-srv
@@ -354,6 +357,7 @@ SRCS := $(addsuffix .lc, $(SRCS))
 all: setup
 	$(MAKE) -f %s first
 	$(MAKE) -f %s second
+	$(MAKE) -f %s other
 	%s %s statusServer stop --lctags-db %s
 	echo server stop
 ifdef SRV
@@ -369,13 +373,15 @@ endif
 
 first: $(FIRST)
 
-second: $(SRCS)
+second: $(SECOND)
+
+other: $(SRCS)
 
 %%.lc:
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
 	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV)
 ]],
-	 tmpName, tmpName, arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
+	 tmpName, tmpName, tmpName, arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], 

@@ -33,6 +33,13 @@ function LogCtrl:log( level, ... )
       return displayLevel
    end
    if logLevel > displayLevel then
+      if logLevel <= 2 and self.server then
+	 local message = ""
+	 for index, val in ipairs( table.pack( ... ) ) do
+	    message = message .. "\t" .. tostring( val )
+	 end
+	 self.server:requestUpdateStatus( self.statusName, message )
+      end
       return
    end
    if #param == 1 and type( param[ 1 ] ) == "function" then

@@ -1,309 +1,4 @@
 make[1]: Entering directory 'PWD'
-lua lctags/lctags.lua shrink
-lctags:	1	step6
-lctags:	1	step7
-lua lctags/lctags.lua dump target
-lctags:	1	-- table target -- 
-lctags:	1	fileId	hasPch	target	path	compOp
-lctags:	1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-lctags:	1	3	1		/usr/include/stdio.h	c++98
-lctags:	1	4	1		/usr/include/libio.h	c++98
-lctags:	1	5	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
-lctags:	1	6	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
-lctags:	1	7	1		/usr/include/stdc-predef.h	c++98
-lctags:	1	8	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
-lctags:	1	9	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
-lctags:	1	10	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
-lctags:	1	11	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
-lctags:	1	12	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
-lctags:	1	13	1		/usr/include/features.h	c++98
-lctags:	1	14	1		/usr/include/xlocale.h	c++98
-lctags:	1	15	1		|/test/field.h	c++98
-lctags:	1	16	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
-lctags:	1	17	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
-lctags:	1	18	1		/usr/include/wchar.h	c++98
-lctags:	1	19	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
-lctags:	1	20	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
-lctags:	1	21	1		|/test/hoge.h	c++98
-lctags:	1	22	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
-lctags:	1	23	1		/usr/include/_G_config.h	c++98
-lctags:	1	24	1		/usr/include/time.h	c++98
-lctags:	1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-lctags:	1	21	0	hoge	|/test/hoge.h	c++98
-lctags:	1	15	0	hoge	|/test/field.h	c++98
-lctags:	1	26	0		|/test/sub2.cpp	-Iclang -Itest -Iclang 
-lctags:	1	27	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
-lctags:	1	28	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
-lctags:	1	29	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
-lctags:	1	30	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
-lctags:	1	31	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
-lctags:	1	32	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
-lctags:	1	33	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
-lctags:	1	34	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
-lctags:	1	35	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
-lctags:	1	36	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-lctags:	1	37	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
-lctags:	1	38	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
-lctags:	1	39	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
-lctags:	1	40	0		|/test/comp13.cpp	-Iclang -Itest -Iclang 
-lctags:	1	41	0		|/test/comp14.cpp	-Iclang -Itest -Iclang 
-lctags:	1	42	0		|/test/class2.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	43	0		|/test/class3.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	44	0		|/test/class4.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	45	1		/usr/include/errno.h	c++11
-lctags:	1	46	1		/usr/include/c++/5.4.0/bits/cpp_type_traits.h	c++11
-lctags:	1	47	1		/usr/include/x86_64-linux-gnu/bits/waitflags.h	c++11
-lctags:	1	48	1		/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h	c++11
-lctags:	1	49	1		/usr/include/asm-generic/errno-base.h	c++11
-lctags:	1	50	1		/usr/include/c++/5.4.0/bits/concept_check.h	c++11
-lctags:	1	51	1		/usr/include/c++/5.4.0/cwchar	c++11
-lctags:	1	52	1		/usr/include/c++/5.4.0/bits/stl_iterator.h	c++11
-lctags:	1	53	1		/usr/include/c++/5.4.0/bits/uses_allocator.h	c++11
-lctags:	1	54	1		/usr/include/x86_64-linux-gnu/bits/endian.h	c++11
-lctags:	1	55	1		/usr/include/x86_64-linux-gnu/asm/errno.h	c++11
-lctags:	1	56	1		/usr/include/asm-generic/errno.h	c++11
-lctags:	1	57	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++allocator.h	c++11
-lctags:	1	58	1		/usr/include/c++/5.4.0/bits/functional_hash.h	c++11
-lctags:	1	59	1		/usr/include/linux/errno.h	c++11
-lctags:	1	60	1		/usr/include/x86_64-linux-gnu/bits/errno.h	c++11
-lctags:	1	61	1		/usr/include/c++/5.4.0/bits/functexcept.h	c++11
-lctags:	1	62	1		/usr/include/c++/5.4.0/cerrno	c++11
-lctags:	1	63	1		/usr/include/c++/5.4.0/bits/postypes.h	c++11
-lctags:	1	64	1		/usr/include/x86_64-linux-gnu/bits/locale.h	c++11
-lctags:	1	65	1		/usr/include/x86_64-linux-gnu/bits/wchar.h	c++11
-lctags:	1	66	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr.h	c++11
-lctags:	1	67	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdint.h	c++11
-lctags:	1	68	1		/usr/include/c++/5.4.0/cstdio	c++11
-lctags:	1	69	1		/usr/include/x86_64-linux-gnu/sys/select.h	c++11
-lctags:	1	70	1		/usr/include/x86_64-linux-gnu/bits/setjmp.h	c++11
-lctags:	1	71	1		/usr/include/c++/5.4.0/bits/cxxabi_forced.h	c++11
-lctags:	1	72	1		/usr/include/x86_64-linux-gnu/bits/select.h	c++11
-lctags:	1	73	1		/usr/include/c++/5.4.0/cstdint	c++11
-lctags:	1	74	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++locale.h	c++11
-lctags:	1	75	1		/usr/include/c++/5.4.0/cstdlib	c++11
-lctags:	1	76	1		/usr/include/alloca.h	c++11
-lctags:	1	77	1		/usr/include/c++/5.4.0/bits/stl_function.h	c++11
-lctags:	1	78	1		/usr/include/c++/5.4.0/cctype	c++11
-lctags:	1	79	1		/usr/include/x86_64-linux-gnu/sys/sysmacros.h	c++11
-lctags:	1	80	1		/usr/include/c++/5.4.0/bits/exception_defines.h	c++11
-lctags:	1	81	1		/usr/include/x86_64-linux-gnu/bits/sigset.h	c++11
-lctags:	1	82	1		/usr/include/x86_64-linux-gnu/sys/types.h	c++11
-lctags:	1	83	1		/usr/include/x86_64-linux-gnu/bits/waitstatus.h	c++11
-lctags:	1	84	1		/usr/include/c++/5.4.0/utility	c++11
-lctags:	1	85	1		/usr/include/stdlib.h	c++11
-lctags:	1	86	1		/usr/include/c++/5.4.0/ext/string_conversions.h	c++11
-lctags:	1	87	1		/usr/include/c++/5.4.0/bits/alloc_traits.h	c++11
-lctags:	1	88	1		/usr/include/c++/5.4.0/bits/atomic_lockfree_defines.h	c++11
-lctags:	1	89	1		/usr/include/c++/5.4.0/array	c++11
-lctags:	1	90	1		/usr/include/c++/5.4.0/bits/stringfwd.h	c++11
-lctags:	1	91	1		/usr/include/c++/5.4.0/exception	c++11
-lctags:	1	92	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/atomic_word.h	c++11
-lctags:	1	93	1		/usr/include/x86_64-linux-gnu/bits/stdlib-float.h	c++11
-lctags:	1	94	1		/usr/include/x86_64-linux-gnu/bits/byteswap-16.h	c++11
-lctags:	1	95	1		/usr/include/c++/5.4.0/clocale	c++11
-lctags:	1	96	1		/usr/include/c++/5.4.0/typeinfo	c++11
-lctags:	1	97	1		/usr/include/c++/5.4.0/backward/binders.h	c++11
-lctags:	1	98	1		/usr/include/x86_64-linux-gnu/bits/sched.h	c++11
-lctags:	1	99	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_types.h	c++11
-lctags:	1	100	1		/usr/include/sched.h	c++11
-lctags:	1	101	1		/usr/include/c++/5.4.0/bits/nested_exception.h	c++11
-lctags:	1	102	1		/usr/include/x86_64-linux-gnu/bits/byteswap.h	c++11
-lctags:	1	103	1		/usr/include/c++/5.4.0/bits/allocator.h	c++11
-lctags:	1	104	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_funcs.h	c++11
-lctags:	1	105	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr-default.h	c++11
-lctags:	1	106	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/os_defines.h	c++11
-lctags:	1	107	1		/usr/include/c++/5.4.0/ext/atomicity.h	c++11
-lctags:	1	108	1		/usr/include/c++/5.4.0/bits/basic_string.h	c++11
-lctags:	1	109	1		/usr/include/stdint.h	c++11
-lctags:	1	110	1		/usr/include/c++/5.4.0/functional	c++11
-lctags:	1	111	1		/usr/include/c++/5.4.0/bits/range_access.h	c++11
-lctags:	1	112	1		/usr/include/c++/5.4.0/bits/ostream_insert.h	c++11
-lctags:	1	113	1		/usr/include/ctype.h	c++11
-lctags:	1	114	1		/usr/include/c++/5.4.0/bits/char_traits.h	c++11
-lctags:	1	115	1		/usr/include/c++/5.4.0/bits/basic_string.tcc	c++11
-lctags:	1	116	1		/usr/include/c++/5.4.0/string	c++11
-lctags:	1	117	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++config.h	c++11
-lctags:	1	118	1		/usr/include/c++/5.4.0/iosfwd	c++11
-lctags:	1	119	1		/usr/include/c++/5.4.0/bits/stl_relops.h	c++11
-lctags:	1	120	1		/usr/include/c++/5.4.0/ext/type_traits.h	c++11
-lctags:	1	121	1		/usr/include/c++/5.4.0/bits/stl_algobase.h	c++11
-lctags:	1	122	1		/usr/include/c++/5.4.0/tuple	c++11
-lctags:	1	123	1		/usr/include/pthread.h	c++11
-lctags:	1	124	1		/usr/include/c++/5.4.0/bits/ptr_traits.h	c++11
-lctags:	1	125	1		/usr/include/c++/5.4.0/initializer_list	c++11
-lctags:	1	126	1		/usr/include/c++/5.4.0/type_traits	c++11
-lctags:	1	127	1		/usr/include/c++/5.4.0/bits/memoryfwd.h	c++11
-lctags:	1	128	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/cpu_defines.h	c++11
-lctags:	1	129	1		/usr/include/locale.h	c++11
-lctags:	1	130	1		/usr/include/c++/5.4.0/debug/debug.h	c++11
-lctags:	1	131	1		/usr/include/c++/5.4.0/bits/localefwd.h	c++11
-lctags:	1	132	1		/usr/include/c++/5.4.0/bits/move.h	c++11
-lctags:	1	133	1		/usr/include/c++/5.4.0/bits/hash_bytes.h	c++11
-lctags:	1	134	1		/usr/include/c++/5.4.0/stdexcept	c++11
-lctags:	1	135	1		/usr/include/c++/5.4.0/ext/new_allocator.h	c++11
-lctags:	1	136	1		/usr/include/c++/5.4.0/bits/exception_ptr.h	c++11
-lctags:	1	137	1		/usr/include/c++/5.4.0/bits/stl_pair.h	c++11
-lctags:	1	138	1		/usr/include/c++/5.4.0/bits/predefined_ops.h	c++11
-lctags:	1	139	1		/usr/include/c++/5.4.0/ext/numeric_traits.h	c++11
-lctags:	1	140	1		/usr/include/c++/5.4.0/ext/alloc_traits.h	c++11
-lctags:	1	141	1		/usr/include/c++/5.4.0/new	c++11
-lctags:	1	142	1		/usr/include/endian.h	c++11
-lctags:	1	143	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	144	1		|/test/inc3.h	c++11
-lctags:	1	145	1		|/test/inc2.h	c++11
-lctags:	1	146	1		|/test/inc1.h	c++11
-lua lctags/lctags.lua dump file >> dump
-lua lctags/lctags.lua rm target hoge2
-lua lctags/lctags.lua dump target
-lctags:	1	-- table target -- 
-lctags:	1	fileId	hasPch	target	path	compOp
-lctags:	1	2	0		|/test/hoge.cpp	-Iclang -Itest -Iclang 
-lctags:	1	3	1		/usr/include/stdio.h	c++98
-lctags:	1	4	1		/usr/include/libio.h	c++98
-lctags:	1	5	1		/usr/include/x86_64-linux-gnu/bits/types.h	c++98
-lctags:	1	6	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stddef.h	c++98
-lctags:	1	7	1		/usr/include/stdc-predef.h	c++98
-lctags:	1	8	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdarg.h	c++98
-lctags:	1	9	1		/usr/include/x86_64-linux-gnu/bits/timex.h	c++98
-lctags:	1	10	1		/usr/include/x86_64-linux-gnu/bits/typesizes.h	c++98
-lctags:	1	11	1		/usr/include/x86_64-linux-gnu/gnu/stubs.h	c++98
-lctags:	1	12	1		/usr/include/x86_64-linux-gnu/sys/cdefs.h	c++98
-lctags:	1	13	1		/usr/include/features.h	c++98
-lctags:	1	14	1		/usr/include/xlocale.h	c++98
-lctags:	1	15	1		|/test/field.h	c++98
-lctags:	1	16	1		/usr/include/x86_64-linux-gnu/bits/wordsize.h	c++98
-lctags:	1	17	1		/usr/include/x86_64-linux-gnu/gnu/stubs-64.h	c++98
-lctags:	1	18	1		/usr/include/wchar.h	c++98
-lctags:	1	19	1		/usr/include/x86_64-linux-gnu/bits/time.h	c++98
-lctags:	1	20	1		/usr/include/x86_64-linux-gnu/bits/sys_errlist.h	c++98
-lctags:	1	21	1		|/test/hoge.h	c++98
-lctags:	1	22	1		/usr/include/x86_64-linux-gnu/bits/stdio_lim.h	c++98
-lctags:	1	23	1		/usr/include/_G_config.h	c++98
-lctags:	1	24	1		/usr/include/time.h	c++98
-lctags:	1	25	0	hoge	|/test/sub.cpp	-Iclang -Itest -Iclang 
-lctags:	1	21	0	hoge	|/test/hoge.h	c++98
-lctags:	1	15	0	hoge	|/test/field.h	c++98
-lctags:	1	26	0		|/test/sub2.cpp	-Iclang -Itest -Iclang 
-lctags:	1	27	0		|/test/comp.cpp	-Iclang -Itest -Iclang 
-lctags:	1	28	0		|/test/comp-2.cpp	-Iclang -Itest -Iclang 
-lctags:	1	29	0		|/test/comp2.cpp	-Iclang -Itest -Iclang 
-lctags:	1	30	0		|/test/comp3.cpp	-Iclang -Itest -Iclang 
-lctags:	1	31	0		|/test/comp4.cpp	-Iclang -Itest -Iclang 
-lctags:	1	32	0		|/test/comp5.cpp	-Iclang -Itest -Iclang 
-lctags:	1	33	0		|/test/comp6.cpp	-Iclang -Itest -Iclang 
-lctags:	1	34	0		|/test/comp7.cpp	-Iclang -Itest -Iclang 
-lctags:	1	35	0		|/test/comp8.cpp	-Iclang -Itest -Iclang 
-lctags:	1	36	0		|/test/comp9.cpp	-Iclang -Itest -Iclang 
-lctags:	1	37	0		|/test/comp10.cpp	-Iclang -Itest -Iclang 
-lctags:	1	38	0		|/test/comp11.cpp	-Iclang -Itest -Iclang 
-lctags:	1	39	0		|/test/comp12.cpp	-Iclang -Itest -Iclang 
-lctags:	1	40	0		|/test/comp13.cpp	-Iclang -Itest -Iclang 
-lctags:	1	41	0		|/test/comp14.cpp	-Iclang -Itest -Iclang 
-lctags:	1	42	0		|/test/class2.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	43	0		|/test/class3.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	44	0		|/test/class4.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	45	1		/usr/include/errno.h	c++11
-lctags:	1	46	1		/usr/include/c++/5.4.0/bits/cpp_type_traits.h	c++11
-lctags:	1	47	1		/usr/include/x86_64-linux-gnu/bits/waitflags.h	c++11
-lctags:	1	48	1		/usr/include/x86_64-linux-gnu/bits/pthreadtypes.h	c++11
-lctags:	1	49	1		/usr/include/asm-generic/errno-base.h	c++11
-lctags:	1	50	1		/usr/include/c++/5.4.0/bits/concept_check.h	c++11
-lctags:	1	51	1		/usr/include/c++/5.4.0/cwchar	c++11
-lctags:	1	52	1		/usr/include/c++/5.4.0/bits/stl_iterator.h	c++11
-lctags:	1	53	1		/usr/include/c++/5.4.0/bits/uses_allocator.h	c++11
-lctags:	1	54	1		/usr/include/x86_64-linux-gnu/bits/endian.h	c++11
-lctags:	1	55	1		/usr/include/x86_64-linux-gnu/asm/errno.h	c++11
-lctags:	1	56	1		/usr/include/asm-generic/errno.h	c++11
-lctags:	1	57	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++allocator.h	c++11
-lctags:	1	58	1		/usr/include/c++/5.4.0/bits/functional_hash.h	c++11
-lctags:	1	59	1		/usr/include/linux/errno.h	c++11
-lctags:	1	60	1		/usr/include/x86_64-linux-gnu/bits/errno.h	c++11
-lctags:	1	61	1		/usr/include/c++/5.4.0/bits/functexcept.h	c++11
-lctags:	1	62	1		/usr/include/c++/5.4.0/cerrno	c++11
-lctags:	1	63	1		/usr/include/c++/5.4.0/bits/postypes.h	c++11
-lctags:	1	64	1		/usr/include/x86_64-linux-gnu/bits/locale.h	c++11
-lctags:	1	65	1		/usr/include/x86_64-linux-gnu/bits/wchar.h	c++11
-lctags:	1	66	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr.h	c++11
-lctags:	1	67	1		/usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdint.h	c++11
-lctags:	1	68	1		/usr/include/c++/5.4.0/cstdio	c++11
-lctags:	1	69	1		/usr/include/x86_64-linux-gnu/sys/select.h	c++11
-lctags:	1	70	1		/usr/include/x86_64-linux-gnu/bits/setjmp.h	c++11
-lctags:	1	71	1		/usr/include/c++/5.4.0/bits/cxxabi_forced.h	c++11
-lctags:	1	72	1		/usr/include/x86_64-linux-gnu/bits/select.h	c++11
-lctags:	1	73	1		/usr/include/c++/5.4.0/cstdint	c++11
-lctags:	1	74	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++locale.h	c++11
-lctags:	1	75	1		/usr/include/c++/5.4.0/cstdlib	c++11
-lctags:	1	76	1		/usr/include/alloca.h	c++11
-lctags:	1	77	1		/usr/include/c++/5.4.0/bits/stl_function.h	c++11
-lctags:	1	78	1		/usr/include/c++/5.4.0/cctype	c++11
-lctags:	1	79	1		/usr/include/x86_64-linux-gnu/sys/sysmacros.h	c++11
-lctags:	1	80	1		/usr/include/c++/5.4.0/bits/exception_defines.h	c++11
-lctags:	1	81	1		/usr/include/x86_64-linux-gnu/bits/sigset.h	c++11
-lctags:	1	82	1		/usr/include/x86_64-linux-gnu/sys/types.h	c++11
-lctags:	1	83	1		/usr/include/x86_64-linux-gnu/bits/waitstatus.h	c++11
-lctags:	1	84	1		/usr/include/c++/5.4.0/utility	c++11
-lctags:	1	85	1		/usr/include/stdlib.h	c++11
-lctags:	1	86	1		/usr/include/c++/5.4.0/ext/string_conversions.h	c++11
-lctags:	1	87	1		/usr/include/c++/5.4.0/bits/alloc_traits.h	c++11
-lctags:	1	88	1		/usr/include/c++/5.4.0/bits/atomic_lockfree_defines.h	c++11
-lctags:	1	89	1		/usr/include/c++/5.4.0/array	c++11
-lctags:	1	90	1		/usr/include/c++/5.4.0/bits/stringfwd.h	c++11
-lctags:	1	91	1		/usr/include/c++/5.4.0/exception	c++11
-lctags:	1	92	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/atomic_word.h	c++11
-lctags:	1	93	1		/usr/include/x86_64-linux-gnu/bits/stdlib-float.h	c++11
-lctags:	1	94	1		/usr/include/x86_64-linux-gnu/bits/byteswap-16.h	c++11
-lctags:	1	95	1		/usr/include/c++/5.4.0/clocale	c++11
-lctags:	1	96	1		/usr/include/c++/5.4.0/typeinfo	c++11
-lctags:	1	97	1		/usr/include/c++/5.4.0/backward/binders.h	c++11
-lctags:	1	98	1		/usr/include/x86_64-linux-gnu/bits/sched.h	c++11
-lctags:	1	99	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_types.h	c++11
-lctags:	1	100	1		/usr/include/sched.h	c++11
-lctags:	1	101	1		/usr/include/c++/5.4.0/bits/nested_exception.h	c++11
-lctags:	1	102	1		/usr/include/x86_64-linux-gnu/bits/byteswap.h	c++11
-lctags:	1	103	1		/usr/include/c++/5.4.0/bits/allocator.h	c++11
-lctags:	1	104	1		/usr/include/c++/5.4.0/bits/stl_iterator_base_funcs.h	c++11
-lctags:	1	105	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/gthr-default.h	c++11
-lctags:	1	106	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/os_defines.h	c++11
-lctags:	1	107	1		/usr/include/c++/5.4.0/ext/atomicity.h	c++11
-lctags:	1	108	1		/usr/include/c++/5.4.0/bits/basic_string.h	c++11
-lctags:	1	109	1		/usr/include/stdint.h	c++11
-lctags:	1	110	1		/usr/include/c++/5.4.0/functional	c++11
-lctags:	1	111	1		/usr/include/c++/5.4.0/bits/range_access.h	c++11
-lctags:	1	112	1		/usr/include/c++/5.4.0/bits/ostream_insert.h	c++11
-lctags:	1	113	1		/usr/include/ctype.h	c++11
-lctags:	1	114	1		/usr/include/c++/5.4.0/bits/char_traits.h	c++11
-lctags:	1	115	1		/usr/include/c++/5.4.0/bits/basic_string.tcc	c++11
-lctags:	1	116	1		/usr/include/c++/5.4.0/string	c++11
-lctags:	1	117	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/c++config.h	c++11
-lctags:	1	118	1		/usr/include/c++/5.4.0/iosfwd	c++11
-lctags:	1	119	1		/usr/include/c++/5.4.0/bits/stl_relops.h	c++11
-lctags:	1	120	1		/usr/include/c++/5.4.0/ext/type_traits.h	c++11
-lctags:	1	121	1		/usr/include/c++/5.4.0/bits/stl_algobase.h	c++11
-lctags:	1	122	1		/usr/include/c++/5.4.0/tuple	c++11
-lctags:	1	123	1		/usr/include/pthread.h	c++11
-lctags:	1	124	1		/usr/include/c++/5.4.0/bits/ptr_traits.h	c++11
-lctags:	1	125	1		/usr/include/c++/5.4.0/initializer_list	c++11
-lctags:	1	126	1		/usr/include/c++/5.4.0/type_traits	c++11
-lctags:	1	127	1		/usr/include/c++/5.4.0/bits/memoryfwd.h	c++11
-lctags:	1	128	1		/usr/include/x86_64-linux-gnu/c++/5.4.0/bits/cpu_defines.h	c++11
-lctags:	1	129	1		/usr/include/locale.h	c++11
-lctags:	1	130	1		/usr/include/c++/5.4.0/debug/debug.h	c++11
-lctags:	1	131	1		/usr/include/c++/5.4.0/bits/localefwd.h	c++11
-lctags:	1	132	1		/usr/include/c++/5.4.0/bits/move.h	c++11
-lctags:	1	133	1		/usr/include/c++/5.4.0/bits/hash_bytes.h	c++11
-lctags:	1	134	1		/usr/include/c++/5.4.0/stdexcept	c++11
-lctags:	1	135	1		/usr/include/c++/5.4.0/ext/new_allocator.h	c++11
-lctags:	1	136	1		/usr/include/c++/5.4.0/bits/exception_ptr.h	c++11
-lctags:	1	137	1		/usr/include/c++/5.4.0/bits/stl_pair.h	c++11
-lctags:	1	138	1		/usr/include/c++/5.4.0/bits/predefined_ops.h	c++11
-lctags:	1	139	1		/usr/include/c++/5.4.0/ext/numeric_traits.h	c++11
-lctags:	1	140	1		/usr/include/c++/5.4.0/ext/alloc_traits.h	c++11
-lctags:	1	141	1		/usr/include/c++/5.4.0/new	c++11
-lctags:	1	142	1		/usr/include/endian.h	c++11
-lctags:	1	143	0		|/test/inc1.cpp	-std=c++11 -Iclang -Itest -Iclang 
-lctags:	1	144	1		|/test/inc3.h	c++11
-lctags:	1	145	1		|/test/inc2.h	c++11
-lctags:	1	146	1		|/test/inc1.h	c++11
 lua lctags/lctags.lua dump all >> dump
 lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
@@ -332,8 +27,8 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 44 8
 lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
 ::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
 lua lctags/lctags.lua ref-at test/hoge.cpp 237 23
-::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
 ::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
+::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
 lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
 lua lctags/lctags.lua def-at test/hoge.cpp 204 18
@@ -341,10 +36,10 @@ lua lctags/lctags.lua def-at test/hoge.cpp 204 18
 lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
 lua lctags/lctags.lua call-at test/hoge.cpp 267 15
-::Callback_t      196 ./test/hoge.cpp              callback( NULL );
-::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
-::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
+::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
+::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
+::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::2  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua lctags/lctags.lua def-at test/hoge.cpp 231 20
@@ -854,18 +549,18 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns1::TEST61</canonical>
-<simple>TEST61</simple>
+<canonical>::ns1::TEST63</canonical>
+<simple>TEST63</simple>
 <kind>c</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
-<line>20</line>
+<line>22</line>
 <column>3</column>
 </startPos>
 <endPos>
-<line>20</line>
+<line>22</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -886,66 +581,18 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns1::TEST63</canonical>
-<simple>TEST63</simple>
+<canonical>::ns1::TEST61</canonical>
+<simple>TEST61</simple>
 <kind>c</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp6.cpp</file>
 <startPos>
-<line>22</line>
+<line>20</line>
 <column>3</column>
 </startPos>
 <endPos>
-<line>22</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns1::ns2::TEST611</canonical>
-<simple>TEST611</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp6.cpp</file>
-<startPos>
-<line>31</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>31</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns1::ns2::TEST612</canonical>
-<simple>TEST612</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp6.cpp</file>
-<startPos>
-<line>32</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>32</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns1::ns2::TEST613</canonical>
-<simple>TEST613</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp6.cpp</file>
-<startPos>
-<line>33</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>33</line>
+<line>20</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -994,6 +641,54 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
 </startPos>
 <endPos>
 <line>6</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns1::ns2::TEST613</canonical>
+<simple>TEST613</simple>
+<kind>c</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp6.cpp</file>
+<startPos>
+<line>33</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>33</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns1::ns2::TEST612</canonical>
+<simple>TEST612</simple>
+<kind>c</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp6.cpp</file>
+<startPos>
+<line>32</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>32</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns1::ns2::TEST611</canonical>
+<simple>TEST611</simple>
+<kind>c</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp6.cpp</file>
+<startPos>
+<line>31</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>31</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -1115,50 +810,18 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns71::ns72::enum_TEST72</canonical>
-<simple>enum_TEST72</simple>
-<kind>t</kind>
+<canonical>::ns71::ns72::sub</canonical>
+<simple>sub</simple>
+<kind>f</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
-<line>25</line>
+<line>46</line>
 <column>5</column>
 </startPos>
 <endPos>
-<line>29</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns71::ns72::TEST711</canonical>
-<simple>TEST711</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp7.cpp</file>
-<startPos>
-<line>31</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>31</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns71::ns72::TEST712</canonical>
-<simple>TEST712</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp7.cpp</file>
-<startPos>
-<line>32</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>32</line>
+<line>49</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -1179,18 +842,50 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns71::ns72::sub</canonical>
-<simple>sub</simple>
-<kind>f</kind>
+<canonical>::ns71::ns72::TEST712</canonical>
+<simple>TEST712</simple>
+<kind>c</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp7.cpp</file>
 <startPos>
-<line>46</line>
+<line>32</line>
 <column>5</column>
 </startPos>
 <endPos>
-<line>49</line>
+<line>32</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns71::ns72::TEST711</canonical>
+<simple>TEST711</simple>
+<kind>c</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp7.cpp</file>
+<startPos>
+<line>31</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>31</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns71::ns72::enum_TEST72</canonical>
+<simple>enum_TEST72</simple>
+<kind>t</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp7.cpp</file>
+<startPos>
+<line>25</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>29</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -1248,18 +943,18 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <prefix>TE</prefix>
 
 <candidate>
-<canonical>::ns81::TEST81</canonical>
-<simple>TEST81</simple>
+<canonical>::ns81::TEST83</canonical>
+<simple>TEST83</simple>
 <kind>c</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
-<line>20</line>
+<line>22</line>
 <column>3</column>
 </startPos>
 <endPos>
-<line>20</line>
+<line>22</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -1280,18 +975,18 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns81::TEST83</canonical>
-<simple>TEST83</simple>
+<canonical>::ns81::TEST81</canonical>
+<simple>TEST81</simple>
 <kind>c</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp8.cpp</file>
 <startPos>
-<line>22</line>
+<line>20</line>
 <column>3</column>
 </startPos>
 <endPos>
-<line>22</line>
+<line>20</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -1530,18 +1225,18 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns101::TEST101</canonical>
-<simple>TEST101</simple>
+<canonical>::ns101::TEST103</canonical>
+<simple>TEST103</simple>
 <kind>c</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
-<line>20</line>
+<line>22</line>
 <column>3</column>
 </startPos>
 <endPos>
-<line>20</line>
+<line>22</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -1562,66 +1257,18 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns101::TEST103</canonical>
-<simple>TEST103</simple>
+<canonical>::ns101::TEST101</canonical>
+<simple>TEST101</simple>
 <kind>c</kind>
 <type></type>
 <val></val>
 <file>PWD/test/comp10.cpp</file>
 <startPos>
-<line>22</line>
+<line>20</line>
 <column>3</column>
 </startPos>
 <endPos>
-<line>22</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns101::ns102::TEST1011</canonical>
-<simple>TEST1011</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp10.cpp</file>
-<startPos>
-<line>31</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>31</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns101::ns102::TEST1012</canonical>
-<simple>TEST1012</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp10.cpp</file>
-<startPos>
-<line>32</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>32</line>
-<column>0</column>
-</endPos>
-</candidate>
-<candidate>
-<canonical>::ns101::ns102::TEST1013</canonical>
-<simple>TEST1013</simple>
-<kind>c</kind>
-<type></type>
-<val></val>
-<file>PWD/test/comp10.cpp</file>
-<startPos>
-<line>33</line>
-<column>5</column>
-</startPos>
-<endPos>
-<line>33</line>
+<line>20</line>
 <column>0</column>
 </endPos>
 </candidate>
@@ -1670,6 +1317,54 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 </startPos>
 <endPos>
 <line>6</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns101::ns102::TEST1013</canonical>
+<simple>TEST1013</simple>
+<kind>c</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>33</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>33</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns101::ns102::TEST1012</canonical>
+<simple>TEST1012</simple>
+<kind>c</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>32</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>32</line>
+<column>0</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>::ns101::ns102::TEST1011</canonical>
+<simple>TEST1011</simple>
+<kind>c</kind>
+<type></type>
+<val></val>
+<file>PWD/test/comp10.cpp</file>
+<startPos>
+<line>31</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>31</line>
 <column>0</column>
 </endPos>
 </candidate>

@@ -68,6 +68,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       transLockObj = transLockObj,
       --actLockObj = Helper.createLock("act"),
       writeAccessFlag = false,
+      lockCount = 0,
    }
    --obj.actLockObj = obj.transLockObj
    setmetatable(
@@ -97,7 +98,8 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 	 if not obj.inLockFlag then
 	    -- 更新アクセスを優先し、読み込みアクセスは遅延させる。
 	    -- 更新アクセスを止めると、更新処理が溜っていって並列性が下がるため。
-	    Helper.msleep( 50 )
+	    Helper.msleep( 10 )
+	    obj.lockCount = obj.lockCount + 1
 	    -- obj:outputLog( "read busy " .. tostring( obj.transLockObj:isLocking() ) )
 	    -- obj.transLockObj:begin()
 	    -- obj:outputLog( "db is read busy" )
@@ -106,6 +108,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 	    -- obj.transLockObj:fin()
 	 elseif not obj.beginFlag then
 	    Helper.msleep( 10 )
+	    obj.lockCount = obj.lockCount + 1
 	 end
 	 return true
       end
@@ -137,8 +140,8 @@ function DBAccess:close()
    
    log( 2,
 	string.format(
-	   "time=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
-	   self.time, self.insertCount, self.uniqueCount,
+	   "time=%f, lock = %d, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
+	   self.time, self.lockCount, self.insertCount, self.uniqueCount,
 	   self.updateCount, self.deleteCount, self.selectCount ) )
 end
 
@@ -315,7 +318,7 @@ function DBAccess:begin( message )
    end
 
    self.beginTime = os.clock()
-   log( 2, "begin" )
+   log( 2, "beginLock" )
 end
 
 function DBAccess:commit()

@@ -141,7 +141,7 @@ class TestClass {
 
 public:
     TestClass() { }
-    
+
 public:
     int func() {
         return 0; 
@@ -310,3 +310,13 @@ namespace {
   }
 }
 
+class TestClass2
+{
+public:
+    ~TestClass2()
+    {
+      YYYY aYYYYY = { 0 };
+      int val = 0;
+      int val2[] = { 0 };
+    }
+} CLASS2, CLASS3;

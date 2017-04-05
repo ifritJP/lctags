@@ -113,14 +113,37 @@ libs.getChildrenList = function( cursor, kindList, callbackResult, kindList2, cx
    local result = libs.visitChildrenLow( cursor.__ptr, list, kindArray, cxfileList )
    libclangcore.delete_intArray( kindArray )
 
+
+
+   -- local parentDepth = {}
+   -- local hash2Parent = {}
+
    local cursorList = {}
    for index, info in ipairs( list ) do
+      local cursor = libs.CXCursor:new( info[ 1 ] )
+      local parent = libs.CXCursor:new( info[ 2 ] )
+
+      -- if callbackResult == 2 then
+      --         -- 深さを確認する
+      -- 	 local parentHash = parent:hashCursor()
+      -- 	 if not hash2Parent[ parentHash ] then
+      -- 	    table.insert( parentDepth, parent )
+      -- 	    hash2Parent[ parentHash ] = #parentDepth
+      -- 	 else
+      -- 	    local depth = hash2Parent[ parentHash ]
+      -- 	    if depth ~= #parentDepth then
+      -- 	       for index = depth + 1, #parentDepth do
+      -- 		  local depthParent = parentDepth[ depth + 1 ]
+      -- 		  hash2Parent[ depthParent:hashCursor() ] = nil
+      -- 		  table.remove( parentDepth, depth + 1 )
+      -- 	       end
+      -- 	    end
+      -- 	 end
+      -- end
       table.insert(
 	 cursorList,
-	 { libs.CXCursor:new( info[ 1 ] ),
-	   libs.CXCursor:new( info[ 2 ] ),
-	   table.pack( index == 1 or info[ 3 ],
-		       table.unpack( info, 4 ) ) } )
+	 { cursor, parent, table.pack( index == 1 or info[ 3 ],
+				       table.unpack( info, 4 ) ) } )
    end
    return result, cursorList
 end
@@ -146,6 +169,24 @@ libs.clang_getInclusions = function( unit, func, exInfo )
    end
    return libs.getInclusionsLow( cursor, wrapFunc, exInfo )
 end
+
+libs.visitFieldsLow = function( cxtype, func, exInfo )
+   if not __libclang_visit then
+      __libclang_visit = {}
+   end
+   table.insert( __libclang_visit, { func, exInfo } )
+   libclangcore.clang_Type_visitFields( cxtype, nil )
+
+   table.remove( __libclang_visit )
+end
+
+libs.visitFields = function( cxtype, func, exInfo )
+   local wrapFunc = function( cursor, client_data )
+      return func( libs.CXCursor:new( cursor ), exInfo )
+   end
+   return libs.visitFieldsLow( cxtype.__ptr, wrapFunc, exInfo )
+end
+
 
 libs.mkCharArray = function( strArray )
    local array = {

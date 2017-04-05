@@ -252,8 +252,6 @@ static void CXInclusionVisitor_wrap(
 {
     lua_State * pLua = (lua_State *)client_data;
 
-    printf( "%s\n", __func__ );
-
     // param = __libclang_visit[#__libclang_visit]
     lua_checkstack( pLua, 4 );
     lua_getglobal( pLua, "__libclang_visit" );
@@ -298,8 +296,76 @@ static void CXInclusionVisitor_wrap(
 %typemap(in) (CXInclusionVisitor visitor, CXClientData client_data) {
   $1 = CXInclusionVisitor_wrap;
   $2 = L;
-  printf( "%s\n", __func__ );
 }
+
+%{
+enum CXVisitorResult CXFieldVisitor_wrap(CXCursor cursor, CXClientData client_data )
+{
+    lua_State * pLua = (lua_State *)client_data;
+
+    // param = __libclang_visit[#__libclang_visit]
+    lua_checkstack( pLua, 4 );
+    lua_getglobal( pLua, "__libclang_visit" );
+    lua_pushinteger( pLua, LUA_LEN( pLua, -1 ) );
+    lua_gettable( pLua, -2 );
+    lua_remove( pLua, -2 );
+    // func = param[1]
+    lua_pushinteger( pLua, 1 );
+    lua_gettable( pLua, -2 );
+
+    {
+        CXCursor * resultptr;
+        resultptr = (CXCursor *) malloc(sizeof(CXCursor));
+        memmove(resultptr, &cursor, sizeof(CXCursor));
+        SWIG_NewPointerObj( pLua,(void *) resultptr,SWIGTYPE_p_CXCursor,1);
+    }
+
+    // exInfo = param[2]
+    lua_pushinteger( pLua, 2 );
+    lua_gettable( pLua, -4 );
+    lua_remove( pLua, -4 );
+
+    int hasErr = lua_pcall( pLua, 2, 1, 0 );
+    if ( hasErr != 0 ) {
+        const char * pMessage = lua_tostring( pLua, -1 );
+        if ( pMessage == NULL ) {
+            pMessage = "";
+        }
+        printf( "visit error: %s\n", pMessage );
+    }
+    static int orrurError = 0;
+    if ( hasErr != 0 ) {
+        orrurError = 1;
+        const char * pMessage = lua_tostring( pLua, -1 );
+        if ( pMessage == NULL ) {
+            pMessage = "";
+        }
+        printf( "visit error: %s\n", pMessage );
+        lua_pop( pLua, 1 );
+        return CXChildVisit_Break;
+    }
+    if ( !lua_isnumber( pLua, -1 ) ) {
+        orrurError = 1;
+        lua_pop( pLua, 1 );
+        printf( "visit error: return code is not number.\n" );
+        return CXChildVisit_Break;
+    }
+    enum CXVisitorResult result = lua_tointeger( pLua, -1 );
+    lua_pop( pLua, 1 );
+
+    if ( orrurError ) {
+        return CXChildVisit_Break;
+    }
+
+    return result;
+}
+%}
+
+%typemap(in) (CXFieldVisitor visitor, CXClientData client_data) {
+  $1 = CXFieldVisitor_wrap;
+  $2 = L;
+}
+
 
 
 %typemap(out) time_t {
@@ -310,7 +376,7 @@ static void CXInclusionVisitor_wrap(
 
 %include "clang-c/Platform.h"
 %include "clang-c/CXString.h"
-%include "clang-c/CXErrorCode.h"
+ //%include "clang-c/CXErrorCode.h"
 %include "clang-c/Index.h"
  //%include "clang-c/CXCompilationDatabase.h"
 

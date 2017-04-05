@@ -84,7 +84,7 @@ if lctagOptMap.mode == "statusServer" then
    elseif srcList[ 1 ] == "start" then
       StatusServer:new( lctagOptMap.dbPath )
    elseif srcList[ 1 ] == "wait" then
-      StatusServer:connect( lctagOptMap.dbPath )
+      StatusServer:connect( lctagOptMap.dbPath, true )
    else
       Option:printUsage( "stop or start" )
    end

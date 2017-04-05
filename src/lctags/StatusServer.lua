@@ -27,6 +27,7 @@ function StatusServer:setup( name, serverFlag, createFlag )
       self.replyQueue = Helper.createMQueue(
 	 name .. "replyStatus", serverFlag or createFlag )
       if not self.requestQueue or not self.replyQueue then
+	 print( "failed to mqueue", serverFlag, createFlag )
 	 os.exit( 1 )
       end
    end
@@ -104,7 +105,7 @@ function StatusServer:requestEnd()
 end
 
 function StatusServer:requestUpdateStatus( name, state )
-   self:request( "updateStatus", { name = name, state = state } )
+   self:request( "updateStatus", { name = name, state = state, time = os.clock() } )
 end
 
 function StatusServer:requestEndStatus( name )
@@ -141,10 +142,11 @@ function StatusServer:updateStatus( info )
    end
 
    if not findIndex then
-      table.insert( self.statusList, info )
-   else
-      self.statusList[ findIndex ] = info
+      table.insert( self.statusList,
+		    { name = info.name, basetime = info.time, info = info } )
+      findIndex = #self.statusList
    end
+   self.statusList[ findIndex ].info = info
 end
 
 function StatusServer:getStatus()

@@ -472,7 +472,8 @@ static int helper_createMQueue( lua_State * pLua )
         name, oflag, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, &attr );
     if ( mqueue == (mqd_t)-1 ) {
         const char * pErr = helper_getErrorTxt( errno );
-        printf( "%s: failed to mq_open(), %d, %s\n", __func__, errno, pErr );
+        printf( "%s: failed to mq_open(), %s, %d, %s\n",
+                __func__, name, errno, pErr );
         lua_pushnil( pLua );
         if ( pErr != NULL ) {
 	    lua_pushstring( pLua, pErr );

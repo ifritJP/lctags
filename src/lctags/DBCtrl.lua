@@ -439,7 +439,11 @@ function DBCtrl:commit()
 
       local tmpId2ActIdMap = {}
       local correctParentIdSet = {}
-      for index, tmpInfo in ipairs( writeDb.nsInfoList ) do
+      local tmpId2TmpInfoListMap = {}
+      -- parentId が確定していないものは除外して登録する
+      local nsInfoList = writeDb.nsInfoList
+
+      local addNsFunc = function( tmpInfo )
 	 self:insert( "simpleName",
 		      string.format( "NULL, '%s'", tmpInfo.simpleName ) )
 	 local snameInfo = self:getSimpleName( nil, tmpInfo.simpleName )
@@ -450,20 +454,57 @@ function DBCtrl:commit()
 	       snameInfo.id, tmpInfo.parentId, tmpInfo.digest,
 	       tmpInfo.name, tmpInfo.otherName, tmpInfo.virtual ) )
 	 local nsInfo = self:getNamespace( nil, tmpInfo.name )
-	 
-	 if nsInfo.parentId < 0 then
-	    correctParentIdSet[ nsInfo.parentId ] = 1
-	 end
-
 	 tmpId2ActIdMap[ tmpInfo.id ] = { nsInfo.id, snameInfo.id }
       end
-      for parentId in pairs( correctParentIdSet ) do
-	 self:update(
-	    "namespace",
-	    "parentId = " .. tostring( tmpId2ActIdMap[ parentId ][ 1 ] ),
-	    "parentId = " .. tostring( parentId ) )
+
+      local hasTmpParentFlag = false
+      for index, tmpInfo in ipairs( nsInfoList ) do
+	 if tmpInfo.parentId < 0 then
+	    hasTmpParentFlag = true
+	    local tmpInfoList = tmpId2TmpInfoListMap[ tmpInfo.parentId ]
+	    if not tmpInfoList then
+	       tmpInfoList = {}
+	       tmpId2TmpInfoListMap[ tmpInfo.parentId ] = tmpInfoList
+	    end
+	    table.insert( tmpInfoList, tmpInfo )
+	    --    correctParentIdSet[ nsInfo.parentId ] = 1
+	 else
+	    addNsFunc( tmpInfo )
+	 end
+      end
+      while hasTmpParentFlag do
+	 -- 親が tmpId のものがある場合、確定した親の情報に更新する
+	 nsInfoList = {}
+	 local correctedIdList = {}
+	 hasTmpParentFlag = false
+	 for tmpId, tmpInfoList in pairs( tmpId2TmpInfoListMap ) do
+	    hasTmpParentFlag = true
+	    local actIdInfo = tmpId2ActIdMap[ tmpId ]
+	    if actIdInfo then
+	       -- 親が確定している場合
+	       for index, tmpInfo in ipairs( tmpInfoList ) do
+		  tmpInfo.parentId = actIdInfo[ 1 ]
+		  table.insert( correctedIdList, tmpId )
+		  addNsFunc( tmpInfo )
+	       end
+	    end
+	 end
+	 -- 確定したものは除外する
+	 for index, tmpId in ipairs( correctedIdList ) do
+	    tmpId2TmpInfoListMap[ tmpId ] = nil
+	 end
       end
 
+      -- log( 2, "merge namespace update begin:", os.clock(), os.date() )
+      
+      -- for parentId in pairs( correctParentIdSet ) do
+      -- 	 self:update(
+      -- 	    "namespace",
+      -- 	    "parentId = " .. tostring( tmpId2ActIdMap[ parentId ][ 1 ] ),
+      -- 	    "parentId = " .. tostring( parentId ) )
+      -- end
+
+      log( 2, "merge insert begin:", os.clock(), os.date() )
       for index, insert in ipairs( writeDb.insertList ) do
 	 local val = insert[ 2 ]
 	 if string.find( val, "^%-" ) then
@@ -489,6 +530,7 @@ function DBCtrl:commit()
 	 self:insert( insert[ 1 ], val )
       end
 
+      log( 2, "merge update begin:", os.clock(), os.date() )
       for index, update in ipairs( writeDb.updateList ) do
 	 if update[ 1 ] == "namespace" then
 	    local val = update[ 3 ]
@@ -1266,8 +1308,7 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    log( 3, "addEnumStructDecl end", os.clock() )
 end
 
-
-function DBCtrl:getNamespaceFromCursor( cursor )
+function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
    if not cursor or cursor:getCursorKind() == clang.core.CXCursor_InvalidFile then
       return self:getNamespace( rootNsId, nil )
    end
@@ -1289,8 +1330,27 @@ function DBCtrl:getNamespaceFromCursor( cursor )
    nsInfo = self:getNamespace( nil, fullname )
 
    if not nsInfo then
+      if not self.fileId2SymbolDeclListMap then
+	 self.fileId2SymbolDeclListMap = {}	 
+      end
+      local symbolDeclList
+      if validCacheFlag then
+	 symbolDeclList = self.fileId2SymbolDeclListMap[ fileId ]
+	 if not symbolDeclList then
+	    local fileInfo = self:getFileInfo( fileId )
+	    symbolDeclList = self:getRowList(
+	       "symbolDecl", "fileId = " .. tostring( fileId ) )
+	    self.fileId2SymbolDeclListMap[ fileId ] = symbolDeclList
+	    table.sort( symbolDeclList,
+			function( item1, item2 )
+			   return item1.line < item2.line
+			end
+	    )
+	 end
+      end
       symbolDeclInfo = self:infoAt(
-	 "symbolDecl", fileId, line, column, cursor:getCursorKind() )
+	 "symbolDecl", fileId, line, column,
+	 cursor:getCursorKind(), nil, symbolDeclList )
       if symbolDeclInfo then
 	 nsInfo = self:getNamespace( symbolDeclInfo.nsId )
       end
@@ -1298,6 +1358,11 @@ function DBCtrl:getNamespaceFromCursor( cursor )
    self.hashCursor2FullnameMap[ hash ] = fullname
    self.hashCursor2NSMap[ hash ] = nsInfo
    return nsInfo
+end
+
+
+function DBCtrl:getNamespaceFromCursor( cursor )
+   return self:getNamespaceFromCursorCache( cursor, false )
 end
 
 
@@ -1335,8 +1400,8 @@ function DBCtrl:addReference( refInfo )
    local fileInfo = startInfo and self:getFileInfo( nil, filePath )
    local fileId = fileInfo and fileInfo.id or systemFileId
 
-   local parentNsInfo = self:getNamespaceFromCursor( refInfo.namespace )
-   local nsInfo = self:getNamespaceFromCursor( declCursor )
+   local parentNsInfo = self:getNamespaceFromCursorCache( refInfo.namespace, true )
+   local nsInfo = self:getNamespaceFromCursorCache( declCursor, true )
    local kind = declCursor:getCursorKind()
    if not nsInfo then
       -- 宣言のないもの
@@ -2022,8 +2087,8 @@ function DBCtrl:getFileOpt( filePath, target )
 end
 
 
-function DBCtrl:infoAt( tableName, fileId, line, column, kind, sameLineFlag )
-
+function DBCtrl:infoAt(
+      tableName, fileId, line, column, kind, sameLineFlag, cacheList )
    if not fileId or not line or not column then
       log( 2, "infoAt: illegal param", fileId, line, column )
       return nil
@@ -2035,28 +2100,66 @@ function DBCtrl:infoAt( tableName, fileId, line, column, kind, sameLineFlag )
    if kind then
       condition = condition .. " AND type = " .. tostring( kind )
    end
-   self:mapRowList(
-      tableName, condition, nil, nil,
-      function( item )
-	 if item.line < line and item.endLine > line or
-	    ( item.line == line and item.endLine == line and
-		 item.column <= column and item.endColumn >= column ) or
-	    ( item.line == line and item.column <= column and item.endLine > line ) or
-	    ( item.line < line and item.endLine == line and item.endColumn >= column ) 
+
+   local checkFunc = function( item )
+      if item.line < line and item.endLine > line or
+	 ( item.line == line and item.endLine == line and
+	      item.column <= column and item.endColumn >= column ) or
+	 ( item.line == line and item.column <= column and item.endLine > line ) or
+	 ( item.line < line and item.endLine == line and item.endColumn >= column ) 
+      then
+	 if not sameLineFlag or
+	    item.line == line and item.endLine == line 
 	 then
-	    if not sameLineFlag or
-	       item.line == line and item.endLine == line 
-	    then
-	       if not info then
-		  info = item
-	       elseif info.charSize > item.charSize then
-		  info = item
-	       end
+	    if not info then
+	       info = item
+	    elseif info.charSize > item.charSize then
+	       info = item
 	    end
 	 end
-	 return true
       end
-   )
+      return true
+   end
+
+   if cacheList then
+      if #cacheList == 0 then
+	 return nil
+      end
+      -- cacheList は line で昇順ソート済み
+      local startIndex = 1
+      local endIndex = #cacheList
+      local index = math.floor( ( startIndex + endIndex ) / 2 )
+      while index ~= 0 and cacheList[ index ].line ~= line do
+	 local item = cacheList[ index ]
+	 if item.line > line then
+	    endIndex = index
+	 else
+	    startIndex = index
+	 end
+	 if startIndex + 1 >= endIndex then
+	    break
+	 end
+	 index = math.floor( ( startIndex + endIndex ) / 2 )
+      end
+      if index == 0 then
+	 index = 1
+      end
+      while index > 1 and cacheList[ index ].line == line do
+	 index = index - 1
+      end
+      local fileInfo = self:getFileInfo( fileId )
+      for itemIndex = index, #cacheList do
+	 local item = cacheList[ itemIndex ]
+	 if item.line > line then
+	    break
+	 end
+	 if not kind or item.type == kind then
+	    checkFunc( item )
+	 end
+      end
+   else
+      self:mapRowList( tableName, condition, nil, nil, checkFunc )
+   end
    if info then
       log( 3, "infoAt", tableName, line, column, info.nsId,
 	   info.line, info.column, info.endLine, info.endColumn, info.charSize )

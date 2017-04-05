@@ -744,12 +744,31 @@ function Complete:completeMember(
 	clang.getCursorKindSpelling( typeCursor:getCursorKind() ),
 	declCursor:getCursorSpelling() )
 
+   if typeCursor:getCursorKind() == clang.core.CXCursor_ClassDecl then
+      -- テンプレートクラスの場合、
+      -- typeCursor ではメンバーを列挙できないので AST を解析しなおす
+      clang.visitChildrenFast(
+   	 typeCursor:getCursorSemanticParent(),
+   	 function( aCursor, parent, anonymousDeclList, appendInfo )
+   	    local cursorKind = aCursor:getCursorKind()
+   	    if ( cursorKind == clang.core.CXCursor_ClassDecl or
+   		    cursorKind == clang.core.CXCursor_ClassTemplate ) and
+   	       aCursor:getCursorSpelling() == typeCursor:getCursorSpelling()
+   	    then
+   	       log( 2, "completeMember: found class" )
+   	       typeCursor = aCursor
+   	    end
+   	    return 1
+   	 end, anonymousDeclList, nil, 1 )
+   end
+   
    while typeCursor:getCursorKind() == clang.core.CXCursor_TypedefDecl do
       local cxtype = typeCursor:getTypedefDeclUnderlyingType()
       typeCursor = cxtype:getTypeDeclaration()
       log( 2, "cxtype", typeCursor, typeCursor:getCursorSpelling(),
 	   clang.getCursorKindSpelling( typeCursor:getCursorKind() ) )
    end
+
    
    if not prefix then
       prefix = ""
