@@ -38,7 +38,7 @@ usage:
    %s statusServer <start|stop|wait>
    %s status
  - query DB
-   %s dump <all|target|file|ref|def|call|inc> [path]
+   %s dump <all|target|file|ref|def|call|inc|digest|prepro> [path]
    %s ref-at[a] [--lctags-target target] [-i] file line column 
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
@@ -214,6 +214,10 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.query = "dumpCall"
 	    elseif argList[ index + 1 ] == "inc" then
 	       lctagOptMap.query = "dumpInc"
+	    elseif argList[ index + 1 ] == "digest" then
+	       lctagOptMap.query = "dumpDigest"
+	    elseif argList[ index + 1 ] == "prepro" then
+	       lctagOptMap.query = "dumpPrepro"
 	    else
 	       self:printUsage( "unknown dump option" )
 	    end
@@ -276,8 +280,7 @@ function Option:analyzeOption( argList )
 	       elseif arg == "--lctags-digestRec" then
 		  lctagOptMap.recordDigestSrcFlag = true
 	       elseif arg == "--lctags-recSql" then
-		  skipArgNum = 1
-		  self.recordSqlObj = io.open( argList[ index + 1 ], "w" )
+		  self.recordSql = true
 	       elseif arg == "--use-global" then
 		  lctagOptMap.useGlobalFlag = true
 	       elseif arg == "--lctags-quiet" then
@@ -392,8 +395,8 @@ function Option:isValidLockLog()
    return self.lockLog
 end
 
-function Option:getRecordSqlObj()
-   return self.recordSqlObj
+function Option:isValidRecordSql()
+   return self.recordSql
 end
 
 function Option:isValidService()

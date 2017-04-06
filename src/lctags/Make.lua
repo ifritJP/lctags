@@ -262,11 +262,20 @@ function Make:decideOrderForMake( db, list, needUpdateIncIdList )
       fileId2SrcInfoMap[ maxSrcId ] = nil
    end
 
-   -- 残りのソースを追加する
+   -- 残りのソースを追加する。
+   -- ディレクトリがバラけた方がインクルードや解析時間の傾向が分散して
+   -- 並列実行する際に効率が良くなるので、ランダムに追加する。
+   restFileInfoList = {}
    for srcId, fileInfo in pairs( needUpdateSrcId2FileInfoMap ) do
-      table.insert( buildList, fileInfo )
+      table.insert( restFileInfoList, fileInfo )
    end
-
+   while #restFileInfoList > 0 do
+      local index = math.random( #restFileInfoList )
+      local fileInfo = restFileInfoList[ index ]
+      table.insert( buildList, fileInfo )
+      table.remove( restFileInfoList, index )
+   end
+   
    return buildList
 end
 
@@ -338,9 +347,11 @@ function Make:updateFor( dbPath, target, jobs, src )
    if Option:isValidProfile() then
       opt = opt .. " --lctags-prof"
    end
-
    if Option:isValidLockLog() then
       opt = opt .. " --lctags-lockLog"
+   end
+   if Option:isValidRecordSql() then
+      opt = opt .. " --lctags-recSql"
    end
    
    
@@ -359,7 +370,7 @@ all: setup
 	$(MAKE) -f %s second
 	$(MAKE) -f %s other
 	%s %s statusServer stop --lctags-db %s
-	echo server stop
+	@echo server stop
 ifdef SRV
 	%s %s server stop --lctags-db %s
 endif

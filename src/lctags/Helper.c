@@ -270,6 +270,12 @@ static int helper_getTime( lua_State * pLua )
 {
     struct timeval tm;
     gettimeofday( &tm, NULL );
+
+    if ( lua_toboolean( pLua, 1 ) ) {
+        lua_pushnumber( pLua, tm.tv_sec + tm.tv_usec / 1000000.0 );
+        return 1;
+    }
+
     lua_pushinteger( pLua, tm.tv_sec );
     lua_pushinteger( pLua, tm.tv_usec );
     return 2;
@@ -400,7 +406,7 @@ static int helper_createLock( lua_State * pLua )
     }
     pLock->pInfo = NULL;
 
-    // /dev/shm ˆÈ‰º‚Éƒtƒ@ƒCƒ‹‚ª¶¬‚³‚ê‚é
+    // /dev/shm ä»¥ä¸‹ã«ãƒ•ã‚¡ã‚¤ãƒ«ãŒç”Ÿæˆã•ã‚Œã‚‹
     sem_t * pSem = sem_open(
         name, O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, 1 );
     if ( pSem == SEM_FAILED ) {

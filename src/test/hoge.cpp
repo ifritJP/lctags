@@ -315,8 +315,9 @@ class TestClass2
 public:
     ~TestClass2()
     {
+      enum { INN };
       YYYY aYYYYY = { 0 };
-      int val = 0;
+      int val = INN;
       int val2[] = { 0 };
     }
 } CLASS2, CLASS3;

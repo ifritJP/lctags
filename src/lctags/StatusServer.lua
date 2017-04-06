@@ -134,7 +134,6 @@ end
 function StatusServer:updateStatus( info )
    local findIndex = self:searchStatus( info )
    if info.endFlag then
-      print( "findIndex", findIndex )
       if findIndex then
 	 table.remove( self.statusList, findIndex )
       end

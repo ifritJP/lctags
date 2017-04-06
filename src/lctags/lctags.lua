@@ -106,7 +106,7 @@ if lctagOptMap.mode == "status" then
       for index, status in ipairs( statusList ) do
 	 TermCtrl:gotoAt( 1, index )
 	 TermCtrl:clrLine()
-	 print( status.name, status.state )
+	 print( status.info.time - status.basetime, status.name, status.info.state )
       end
       Helper.msleep( 500 )
    end

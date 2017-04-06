@@ -61,7 +61,8 @@ function newObj( db, currentDir )
       individualTypeFlag = false,
       -- true の場合、同名のマクロシンボルを個々に扱う
       individualMacroFlag = false,
-      getFileInfoFromCursor = function() return nil end
+      getFileInfoFromCursor = function() return nil end,
+      fileId2SymbolDeclListMap = {},
    }
    setmetatable( obj, { __index = DBCtrl } )
 
@@ -113,11 +114,11 @@ function DBCtrl:forceUpdate( dbPath )
       return false
    end
 
-   
-   
    local obj = newObj( db, currentDir )
 
    obj:update( "filePath", "updateTime = 0", "incFlag = 0" )
+   obj:delete( "tokenDigest", string.format( "fileId <> %d", systemFileId ) )
+   obj:delete( "preproDigest", string.format( "fileId <> %d", systemFileId ) )
 
    obj:close()
 
@@ -886,7 +887,7 @@ function DBCtrl:makeNsInfo( nsId, snameId, parentId, digest, namespace, otherNam
    return nsInfo
 end
 
-function DBCtrl:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
+function DBCtrl:makeSymbolDeclInfo( cursor, fileInfo, nsInfo, hasBodyFlag )
    
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
    local line, column =  startInfo[2], startInfo[3]
@@ -902,7 +903,8 @@ function DBCtrl:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
    item.endLine = endInfo[2]
    item.endColumn = endInfo[3]
    item.charSize = endInfo[4] - startInfo[4]
-   item.comment = cursor:getRawCommentText()
+   item.comment = cursor:getRawCommentText() and "has" or "none"
+   item.hasBodyFlag = hasBodyFlag and 1 or 0
 
    return item
 end
@@ -912,7 +914,7 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo, hasBodyFlag )
    self.hashCursor2NSMap[ cursor:hashCursor() ] = nsInfo
 
    local fileInfo = self:getFileInfo( fileId )
-   local item = self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo )
+   local item = self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo, hasBodyFlag )
 
    log( 3,
 	function()
@@ -927,8 +929,7 @@ function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo, hasBodyFlag )
 			item.nsId, item.snameId, item.parentId, item.type,
 			item.fileId, item.line, item.column,
 			item.endLine, item.endColumn, item.charSize,
-			item.comment and "has" or "none",
-			hasBodyFlag and 1 or 0 ) )
+			item.comment, item.hasBodyFlag ) )
    else
       log( 3, "skip addSymbolDecl", nsInfo.name )
    end
@@ -1330,9 +1331,6 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
    nsInfo = self:getNamespace( nil, fullname )
 
    if not nsInfo then
-      if not self.fileId2SymbolDeclListMap then
-	 self.fileId2SymbolDeclListMap = {}	 
-      end
       local symbolDeclList
       if validCacheFlag then
 	 symbolDeclList = self.fileId2SymbolDeclListMap[ fileId ]
@@ -1840,7 +1838,7 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func )
       end
 
       if nsInfo then
-	 func( self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo ) )
+	 func( self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo, false ) )
       end
       return
    end
@@ -2141,12 +2139,14 @@ function DBCtrl:infoAt(
 	 end
 	 index = math.floor( ( startIndex + endIndex ) / 2 )
       end
+      local index2 = index
       if index == 0 then
 	 index = 1
       end
-      while index > 1 and cacheList[ index ].line == line do
+      while index > 1 and cacheList[ index ].line >= line do
 	 index = index - 1
       end
+      local index3 = index
       local fileInfo = self:getFileInfo( fileId )
       for itemIndex = index, #cacheList do
 	 local item = cacheList[ itemIndex ]
@@ -2155,6 +2155,18 @@ function DBCtrl:infoAt(
 	 end
 	 if not kind or item.type == kind then
 	    checkFunc( item )
+	 end
+      end
+      if not info then
+	 for index, item in ipairs( cacheList ) do
+	    if not kind or item.type == kind then
+	       checkFunc( item )
+	    end
+	 end
+	 if not info then
+	    log( 3, "not found symbolDecl",
+		 tableName, fileInfo.path, fileInfo.id, line, column, kind )
+	    return nil
 	 end
       end
    else
@@ -2658,6 +2670,10 @@ end
 
 function DBCtrl:getPchPath( path, target, stdMode )
    return self:getMiscPath( "pch", target, path ) .. ".pch." .. stdMode
+end
+
+function DBCtrl:setRecordSqlObj( obj )
+   self.db:setRecordSqlObj( obj )
 end
 
 return DBCtrl

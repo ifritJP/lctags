@@ -703,8 +703,19 @@ function Analyzer:openDBForReadOnly( currentDir )
    return DBCtrl:open( self.dbPath, true, currentDir or self.currentDir )
 end
 
-function Analyzer:openDBForWrite( message )
-   return DBCtrl:open( self.dbPath, false, self.currentDir, message )
+function Analyzer:openDBForWrite( message, target, targetPath )
+   local db = DBCtrl:open( self.dbPath, false, self.currentDir, message )
+   if not db then
+      return nil
+   end
+
+   if Option:isValidRecordSql() then
+      local dependFilePath = db:getMiscPath( "sql", target, targetPath .. ".sql" )
+      Util:mkdirWithParent( string.gsub( dependFilePath, "/[^/]+$", "" ) )
+      db:setRecordSqlObj( io.open( dependFilePath, "w" ) )
+   end
+   
+   return db
 end
 
 function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
@@ -838,7 +849,7 @@ function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
    if result and ( needUpdateFlag or sameAsOtherTarget ) then
       -- uptodate で needUpdateFlag の場合、ファイルの更新日時だけ違う。
       -- 次回のチェック時間を短縮するため、updateTime を更新する。
-      db = self:openDBForWrite( "update time" )
+      db = self:openDBForWrite( "update time", target, filePath )
       db:setUpdateTime( targetFileInfo.id, Helper.getCurrentTime() )
       db:updateCompileOp( targetFileInfo, target, compileOp )
       db:close()
@@ -993,7 +1004,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       { clang.core.CXCursor_Namespace }, targetKindList, targetFileList,  1 )
    log( 2, "visitChildren end", os.clock(), os.date() )
 
-   local db = self:openDBForWrite( "analyze" )
+   local db = self:openDBForWrite( "analyze", target, targetPath )
    if not db then
       log( 1, "db open error" )
       os.exit( 1 )
@@ -1263,7 +1274,6 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
 
    -- db:commit()
 
-
    --- DB のロック時間を少しでも削減するため、
    --- これ以降は、DB に直接記録しないでメモリ上に格納しておき、
    --- 最後に DB に反映する。
@@ -1271,6 +1281,7 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
    -- db:beginForTemp()
 
    self:registerSpInfo( db, targetSpInfo )
+
 
    log( 2, "-- macroRefList --", os.clock(), os.date()  )
    for index, macroRef in ipairs( self.macroRefList ) do

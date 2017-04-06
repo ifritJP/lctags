@@ -15,9 +15,11 @@ function DBAccess:errorExit( level, ... )
    os.exit( 1 )
 end
 
+function DBAccess:setRecordSqlObj( obj )
+   recordFile = obj
+end
+
 function DBAccess:open( path, readonly, onMemoryFlag )
-   recordFile = Option:getRecordSqlObj()
-   
    log(3, "DBAccess:open" )
    local flag = nil
    if readonly then
@@ -318,7 +320,7 @@ function DBAccess:begin( message )
    end
 
    self.beginTime = os.clock()
-   log( 2, "beginLock" )
+   log( 2, "beginLock", os.date() )
 end
 
 function DBAccess:commit()
@@ -330,6 +332,9 @@ function DBAccess:commit()
    end
    self.beginFlag = false
 
+   local startTime = Helper.getTime( true )
+   log( 2, "commit: start", os.date() )
+   
    if not self.server then
       self:exec(
 	 "COMMIT",
@@ -353,7 +358,8 @@ function DBAccess:commit()
 
    self.inLockFlag = nil
    self.transLockObj:fin()
-   log( 2, "commit:", os.clock() - self.beginTime )
+
+   log( 2, "commit: end", Helper.getTime( true ) - startTime, os.date() )
 end
 
 function DBAccess:insert( tableName, values )
