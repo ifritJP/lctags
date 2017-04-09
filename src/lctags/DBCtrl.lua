@@ -18,7 +18,7 @@ end
 local rootNsId = 1
 local userNsId = 2
 local systemFileId = 1
-local DB_VERSION = 8
+local DB_VERSION = 9
 
 local DBCtrl = {
    rootNsId = rootNsId,
@@ -184,10 +184,10 @@ function DBCtrl:changeProjDir( path, currentDir, projDir )
 	 if fileInfo.id ~= systemFileId then
 	    local digest = obj:calcFileDigest( obj:getSystemPath( fileInfo.path ) )
 	    if digest == fileInfo.digest then
-	       obj:setUpdateTime( fileInfo.id, currentTime )
+	       obj:setUpdateTime( fileInfo.id, nil, currentTime )
 	    else
 	       log( 1, "digest is difference", fileInfo.path )
-	       obj:setUpdateTime( fileInfo.id, 0 )
+	       obj:setUpdateTime( fileInfo.id, nil, 0 )
 	    end
 	 end
 	 return true
@@ -441,7 +441,6 @@ function DBCtrl:commit()
       local tmpId2ActIdMap = {}
       local correctParentIdSet = {}
       local tmpId2TmpInfoListMap = {}
-      -- parentId が確定していないものは除外して登録する
       local nsInfoList = writeDb.nsInfoList
 
       local addNsFunc = function( tmpInfo )
@@ -458,6 +457,7 @@ function DBCtrl:commit()
 	 tmpId2ActIdMap[ tmpInfo.id ] = { nsInfo.id, snameInfo.id }
       end
 
+      -- parentId が確定していないものは除外して登録する
       local hasTmpParentFlag = false
       for index, tmpInfo in ipairs( nsInfoList ) do
 	 if tmpInfo.parentId < 0 then
@@ -575,10 +575,10 @@ CREATE TABLE namespace ( id INTEGER PRIMARY KEY, snameId INTEGER, parentId INTEG
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '', 0 );
 
 CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE binary);
-CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, updateTime INTEGER, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary, invalidSkip INTEGER);
-INSERT INTO filePath VALUES( NULL, '', 0, 0, '', '', 1 );
+CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary, invalidSkip INTEGER);
+INSERT INTO filePath VALUES( NULL, '', 0, '', '', 1 );
 
-CREATE TABLE targetInfo ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary, hasPch INTEGER, PRIMARY KEY ( fileId, target, compOp ) );
+CREATE TABLE targetInfo ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary, hasPch INTEGER, updateTime INTEGER, PRIMARY KEY ( fileId, target, compOp ) );
 CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, hasBodyFlag INTEGER, PRIMARY KEY( nsId, fileId, line ) );
 INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '', 0 );
 
@@ -762,10 +762,22 @@ function DBCtrl:equalsCompOp( fileInfo, compileOp, target )
    return targetInfo.compOp == compileOp
 end
 
-function DBCtrl:setUpdateTime( fileId, time )
+function DBCtrl:setUpdateTime( fileId, target, time )
+   local targetCond = ""
+   if target and target ~= "" then
+      targetCond = " target = 'target'"
+   end
+
+   if target then
+      local targetInfo = self:getTargetInfo( fileId, target )
+      if targetInfo and targetInfo.updateTime == time then
+	 return
+      end
+   end
+   
    self:update(
-      "filePath", "updateTime = " .. tostring( time ),
-      "id = " .. tostring( fileId ) )
+      "targetInfo", "updateTime = " .. tostring( time ),
+      "fileId = " .. tostring( fileId ) .. targetCond )
 end
 
 function DBCtrl:updateCompileOp( fileInfo, target, compileOp )
@@ -775,14 +787,15 @@ function DBCtrl:updateCompileOp( fileInfo, target, compileOp )
 		     fileInfo.id, target ) )
 end
 
-function DBCtrl:insertTargetInfo( fileId, target, compileOp, hasPchFlag )
+function DBCtrl:insertTargetInfo(
+      fileId, target, compileOp, hasPchFlag, updateTime )
    if not target then
       target = ""
    end
    self:insert(
       "targetInfo",
-      string.format( "%d, '%s', '%s', %d",
-		     fileId, target, compileOp, hasPchFlag and 1 or 0 ) )
+      string.format( "%d, '%s', '%s', %d, %d", fileId, target,
+		     compileOp, hasPchFlag and 1 or 0, updateTime ) )
 end
       
 
@@ -808,13 +821,13 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
       if isTarget then
 	 self.targetFileInfo = fileInfo
       end
-      local equalsCompOpResult = self:equalsCompOp( fileInfo, compileOp, target )
-      if equalsCompOpResult == nil then
-	 self:insertTargetInfo(fileInfo.id, target, compileOp, hasPchFlag )
+      local targetInfo = self:getTargetInfo( fileInfo.id, target )
+      if targetInfo == nil then
+	 self:insertTargetInfo(fileInfo.id, target, compileOp, hasPchFlag, 0 )
 	 log( 2, "new target", fileInfo.path )
-      elseif not equalsCompOpResult then
+      elseif targetInfo.compOp ~= compileOp then
 	 self:updateCompileOp( fileInfo, target, compileOp )
-	 log( 2, "new compileOp", fileInfo.path )
+	 log( 2, "new compileOp", fileInfo.path, compileOp, targetInfo.compOp )
       else
 	 if isTarget then
 	    -- コンパイルオプションが等しいので、
@@ -826,9 +839,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
       end
 
       local modTime = Helper.getFileModTime( self:getSystemPath( fileInfo.path ) )
-      if modTime > fileInfo.updateTime or
-	 modTime > self.targetFileInfo.updateTime 
-      then
+      if modTime > targetInfo.updateTime then
 	 -- ファイルの更新日時が違う
 	 local fileDigest = self:calcFileDigest( filePath )
 	 if fileDigest ~= fileInfo.digest then
@@ -852,14 +863,14 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
 	 --self:addTokenDigest( fileInfo.id, digest )
       end
       
-      self:setUpdateTime( fileInfo.id, time )
+      self:setUpdateTime( fileInfo.id, target, time )
       return fileInfo
    end
 
    self:insert(
       "filePath",
       string.format(
-	 "NULL, '%s', %d, %d, '%s', '%s', 0", filePath, time, isTarget and 0 or 1,
+	 "NULL, '%s', %d, '%s', '%s', 0", filePath, isTarget and 0 or 1,
 	 self:calcFileDigest( filePath ),
 	 isTarget and self:convPath( currentDir ) or "" ) )
 
@@ -869,7 +880,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
       --self:addTokenDigest( fileInfo.id, digest )
       self.targetFileInfo = fileInfo
    end
-   self:insertTargetInfo( fileInfo.id, target, compileOp, not isTarget )
+   self:insertTargetInfo( fileInfo.id, target, compileOp, not isTarget, 0 )
    
    return fileInfo
 end
@@ -1261,7 +1272,8 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       -- メンバー参照の nsInfo の解決が正常にできないので
       -- ヘッダ解析の skip は無効にする。
       local condition = string.format(
-	 "nsId <> %d AND fileId = %d AND line = %d AND column = %d AND endLine = %d AND endColumn = %d AND type = %d",
+	 "nsId <> %d AND fileId = %d AND line = %d AND column = %d " ..
+	    "AND endLine = %d AND endColumn = %d AND type = %d",
 	 symbolDecl.nsId, symbolDecl.fileId,
 	 symbolDecl.line, symbolDecl.column,
 	 symbolDecl.endLine, symbolDecl.endColumn, symbolDecl.type )
@@ -2066,10 +2078,10 @@ function DBCtrl:getFileOpt( filePath, target )
       target = ""
    end
    local compileOp = nil
-   local compInfo = self:getRow(
+   local targetInfo = self:getRow(
       "targetInfo",
       string.format( "fileId = %d AND target = '%s'", fileInfo.id, target ) )
-   compileOp = compInfo and compInfo.compOp
+   compileOp = targetInfo and targetInfo.compOp
    
    if not compileOp then
       return fileInfo, nil
@@ -2081,7 +2093,7 @@ function DBCtrl:getFileOpt( filePath, target )
       table.insert( optionList, option )
    end
 
-   return fileInfo, optionList
+   return fileInfo, optionList, targetInfo.updateTime
 end
 
 
@@ -2233,13 +2245,13 @@ end
 
 function DBCtrl:dumpTargetInfo( level, path )
    log( level, "-- table target -- " )
-   log( level, "fileId", "hasPch", "target", "path", "compOp" )
+   log( level, "fileId", "hasPch", "upTime", "target", "path", "compOp" )
 
    self:mapRowList(
       "targetInfo", self:getFileIdCondition( path ), nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
-	 log( level, row.fileId, row.hasPch,
+	 log( level, row.fileId, row.hasPch, row.upTime,
 	      row.target, fileInfo.path, row.compOp )
 	 return true
       end
@@ -2248,14 +2260,14 @@ end
 
 function DBCtrl:dumpFile( level, path )
    log( level, "-- table filePath -- " )
-   log( level, "id", "incFlag", "skip", "upTime", "digest" .. string.rep( ' ', 32 - 6 ),
+   log( level, "id", "incFlag", "skip", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
 
    self:mapRowList(
       "filePath", self:getFileIdCondition( path ), nil, nil,
       function( row ) 
 	 log( level, row.id, row.incFlag, row.invalidSkip == 0 and 'o' or 'x',
-	      row.updateTime, row.digest, row.path, row.currentDir )
+	      row.digest, row.path, row.currentDir )
 	 return true
       end
    )
@@ -2467,11 +2479,15 @@ function DBCtrl:remove( dbPath, mode, target )
 end
 
 function DBCtrl:hasTarget( fileId, target )
+   return self:getTargetInfo( fileId, target ) ~= nil
+end
+
+function DBCtrl:getTargetInfo( fileId, target )
    local condition = string.format( "target = '%s'", target )
    if fileId then
       condition = condition .. " AND fileId = " .. tostring( fileId )
    end
-   return self:exists( "targetInfo", condition )
+   return self:getRow( "targetInfo", condition )
 end
 
 -- fileInfo をインクルードしているソースファイルでターゲットが target のものを1つ返す。
@@ -2634,8 +2650,7 @@ function DBCtrl:registerFromInfo( dbPath, target )
 
       local targetFileInfo = db:getFileInfo( nil, filePath )
       targetFileInfo = db:addFile(
-	 filePath, targetFileInfo and targetFileInfo.updateTime or 0,
-	 "", compileOp, compDir, true, target )
+	 filePath, 0, "", compileOp, compDir, true, target )
 
       local incFileInfoList = {}
       while true do
@@ -2648,8 +2663,7 @@ function DBCtrl:registerFromInfo( dbPath, target )
 	 if not filePathSet[ path ] or not fileInfo then
 	    filePathSet[ path ] = 1
 	    fileInfo = db:addFile(
-	       path, fileInfo and fileInfo.updateTime or 0,
-	       "", "", compDir, false, target )
+	       path, 0, "", "", compDir, false, target )
 	 end
 	 table.insert( incFileInfoList, fileInfo )
       end

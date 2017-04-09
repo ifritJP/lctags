@@ -2,4 +2,5 @@ lua-*
 lua_redis
 luasql-firebird
 redis-3.2.8
-Firebird-3.0.0.32483-0.i686
+Firebird-*
+h2

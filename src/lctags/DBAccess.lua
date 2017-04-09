@@ -20,13 +20,13 @@ function DBAccess:setRecordSqlObj( obj )
 end
 
 function DBAccess:open( path, readonly, onMemoryFlag )
-   log(3, "DBAccess:open" )
    local flag = nil
    if readonly then
       flag = sqlite3.OPEN_READONLY
    else
       flag = sqlite3.OPEN_READWRITE + sqlite3.OPEN_CREATE
    end
+   log(3, "DBAccess:open", flag )
 
    local transLockObj = Helper.createLock()
    -- transLockObj:begin()
@@ -217,35 +217,44 @@ function DBAccess:mapQuery( query, func )
 	 success = true
       end
    else
-      success, message = pcall(
-	 function()
-	    -- 次の for 分を実行する。
-	    -- for item in self.db:nrows( query )
-	    -- self:act で排他をかけるために、 for in の文法を分解してコールする
-	    local loopFunc, param, prev = self:act( self.db.nrows, query )
-	    if loopFunc then
-	       while true do
-		  --self.actLockObj:begin()
-		  self.actDepth = self.actDepth + 1
-		  self.inActLockFlag = "inq"
-		  local item = loopFunc( param, prev )
-		  self.inActLockFlag = nil
-		  self.actDepth = self.actDepth - 1		  
-		  --self.actLockObj:fin()
-		  if not item then
-		     break
-		  end
-		  local continue = func( item )
-		  if not continue then
-		     if continue == nil then
-			self:errorExit( 3, "func returned nil" )
+      while true do
+	 success, message = pcall(
+	    function()
+	       -- 次の for 分を実行する。
+	       -- for item in self.db:nrows( query )
+	       -- self:act で排他をかけるために、 for in の文法を分解してコールする
+	       local loopFunc, param, prev = self:act( self.db.nrows, query )
+	       if loopFunc then
+		  while true do
+		     --self.actLockObj:begin()
+		     self.actDepth = self.actDepth + 1
+		     self.inActLockFlag = "inq"
+		     local item = loopFunc( param, prev )
+		     self.inActLockFlag = nil
+		     self.actDepth = self.actDepth - 1		  
+		     --self.actLockObj:fin()
+		     if not item then
+			break
 		     end
-		     break
+		     local continue = func( item )
+		     if not continue then
+			if continue == nil then
+			   self:errorExit( 3, "func returned nil" )
+			end
+			break
+		     end
 		  end
 	       end
 	    end
+	 )
+	 if success then
+	    break
 	 end
-      )
+	 if not string.find( message, " is locked", 1, true ) then
+	    log( 1, message )
+	    break
+	 end
+      end
    end
    if not success then
       self:errorExit( 3, message, query )
@@ -302,14 +311,15 @@ function DBAccess:begin( message )
       return
    end
 
-   self.transLockObj:begin()
-   self.inLockFlag = "begin"
+   -- self.transLockObj:begin()
+   -- self.inLockFlag = "begin"
    
    self.beginFlag = true
    self.lockLogFlag = true
 
    if not self.server then
       self:exec( "PRAGMA journal_mode = MEMORY" )
+      self:exec( "PRAGMA synchronous = OFF" )
       self:exec( "BEGIN IMMEDIATE" )
       --self:exec( "BEGIN EXCLUSIVE" )
    end
@@ -356,8 +366,8 @@ function DBAccess:commit()
    end
 
 
-   self.inLockFlag = nil
-   self.transLockObj:fin()
+   -- self.inLockFlag = nil
+   -- self.transLockObj:fin()
 
    log( 2, "commit: end", Helper.getTime( true ) - startTime, os.date() )
 end
@@ -367,7 +377,9 @@ function DBAccess:insert( tableName, values )
    self:exec(
       string.format( "INSERT INTO %s VALUES ( %s );", tableName, values ),
       function( db, stmt, message )
-	 if not message:find( "UNIQUE constraint failed" ) then
+	 if not message:find( "UNIQUE constraint failed" ) and
+	    not message:find( " not unique" )
+	 then
 	    self:errorExit( 5, message )
 	 else
 	    self.uniqueCount = self.uniqueCount + 1

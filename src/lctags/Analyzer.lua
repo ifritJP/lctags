@@ -718,6 +718,14 @@ function Analyzer:openDBForWrite( message, target, targetPath )
    return db
 end
 
+function Analyzer:getCurrentTime()
+   local time = Option:getUpdateTime()
+   if time then
+      return time
+   end
+   return Helper.getCurrentTime()
+end
+
 function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
 
    local targetFileInfo
@@ -747,8 +755,9 @@ function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
 	 end
 
 	 local targetSystemPath = db:getSystemPath( targetFileInfo.path )
+	 local targetInfo = db:getTargetInfo( targetSystemPath.id, target )
 	 if unsavedFile or
-	    targetFileInfo.updateTime < Helper.getFileModTime( targetSystemPath )
+	    targetInfo.updateTime < Helper.getFileModTime( targetSystemPath )
 	 then
 	    local digest
 	    if unsavedFile then
@@ -775,11 +784,11 @@ function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
 	    local systemPath = db:getSystemPath( fileInfo.path )
 	    local modTime = Helper.getFileModTime( systemPath )
 	    if fileInfo.path ~= "" and
-	       ( not modTime or targetFileInfo.updateTime < modTime )
+	       ( not modTime or targetInfo.updateTime < modTime )
 	    then
 	       uptodateFlag = false
 	       log( 1, "detect modified", fileInfo.path,
-		    targetFileInfo.updateTime, systemPath, modTime )
+		    targetInfo.updateTime, systemPath, modTime )
 	    end
 	    fileId2updateInfoMap[ fileInfo.id ] = {
 	       -- このファイルの宣言に影響を与えるファイルの Set
@@ -850,7 +859,7 @@ function Analyzer:isUptodate( db, filePath, compileOp, target, unsavedFile )
       -- uptodate で needUpdateFlag の場合、ファイルの更新日時だけ違う。
       -- 次回のチェック時間を短縮するため、updateTime を更新する。
       db = self:openDBForWrite( "update time", target, filePath )
-      db:setUpdateTime( targetFileInfo.id, Helper.getCurrentTime() )
+      db:setUpdateTime( targetFileInfo.id, target, self:getCurrentTime() )
       db:updateCompileOp( targetFileInfo, target, compileOp )
       db:close()
    end
@@ -970,7 +979,11 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
 	       fileInfo.id ~= systemFileId
 	    then
 	       local modTime = Helper.getFileModTime( incFullPath )
-	       if fileInfo.updateTime >= modTime then
+	       local targetInfo = db:getTargetInfo( fileInfo.id, target )
+	       if targetInfo and
+		  targetInfo.updateTime >= modTime and
+		  targetInfo.compOp >= compileOp
+	       then
 		  alreadyFlag = true
 		  log( 3, "already analyzed", fileInfo.path )
 	       end
@@ -1069,7 +1082,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    end
    targetSpInfo.fixDigest = targetSpInfo.digest:fix()
    targetSpInfo.fileInfo = db:addFile(
-      targetPath, Helper.getCurrentTime(), targetSpInfo.fixDigest,
+      targetPath, self:getCurrentTime(), targetSpInfo.fixDigest,
       compileOp, self.currentDir, true, target, 0 )
    
    -- 残りのヘッダファイルを登録
@@ -1078,7 +1091,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
       if not cxfile or not cxfile:isEqual( self.targetFile ) then
 	 spInfo.fixDigest = spInfo.digest:fix()
 	 spInfo.fileInfo = db:addFile(
-	    filePath, Helper.getCurrentTime(), spInfo.fixDigest,
+	    filePath, self:getCurrentTime(), spInfo.fixDigest,
 	    stdMode, nil, false, target, spInfo.hasPch )
       end
    end
@@ -1227,7 +1240,7 @@ end
 
 function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
 
-   if not Option:isValidService() then
+   if not Option:isValidService() and not Option:isIndivisualWrite() then
       db:commit()
       db:beginForTemp()
    end
@@ -1594,11 +1607,11 @@ function Analyzer:queryAtFunc(
    local db = self:openDBForReadOnly()
 
    -- filePath の target に対応するコンパイルオプションを取得
-   local fileInfo, optionList = db:getFileOpt( filePath, target )
+   local fileInfo, optionList, updateTime = db:getFileOpt( filePath, target )
 
    local equalDigestFlag
-   if fileInfo.incFlag == 0 and
-      fileInfo.updateTime >= Helper.getFileModTime( filePath )
+   if fileInfo.incFlag == 0 and updateTime and
+      updateTime >= Helper.getFileModTime( filePath )
    then
       -- ソースで解析後に編集していない
       if fileContents then

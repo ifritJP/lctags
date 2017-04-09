@@ -36,11 +36,12 @@ local function searchNeedUpdateFiles( db, list, target )
    
    log( 1, string.format( "check modified files", #list ) )
    for index, fileInfo in ipairs( list ) do
-      if db:hasTarget( fileInfo.id, target ) or fileInfo.incFlag ~= 0 then
+      local targetInfo = db:getTargetInfo( fileInfo.id, target )
+      if targetInfo or fileInfo.incFlag ~= 0 then
 	 local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
 	 fileId2ModTime[ fileInfo.id ] = modTime
 	 if modTime then
-	    if modTime > fileInfo.updateTime then
+	    if modTime > targetInfo.updateTime then
 	       -- 更新時間が古い場合はマップに登録
 	       if fileInfo.incFlag ~= 0 then
 		  needUpdateIncFileInfoMap[ fileInfo.id ] = fileInfo
@@ -67,7 +68,7 @@ local function searchNeedUpdateFiles( db, list, target )
    -- ソースファイルが更新されていなくても、インクルードファイルが更新されている場合は、
    -- ソースファイルを更新する必要がある
 
-   local isNeedUpdateFunc = function( fileInfo, incId )
+   local isNeedUpdateFunc = function( fileInfo, incId, targetInfo )
       if incId == DBCtrl.systemFileId then
 	 return false
       end
@@ -80,7 +81,7 @@ local function searchNeedUpdateFiles( db, list, target )
 	 modTime = Helper.getFileModTime( db:getSystemPath( incFileInfo.path ) )
 	 fileId2ModTime[ incId ] = modTime
       end
-      if not modTime or modTime > incFileInfo.updateTime then
+      if not modTime or modTime > targetInfo.updateTime then
 	 -- インクルードファイルの更新時間が古い場合はマップに登録
 	 return true
       end
@@ -91,6 +92,16 @@ local function searchNeedUpdateFiles( db, list, target )
    for fileId in pairs( uptodateFileMap ) do
       uptodateFileNum = uptodateFileNum + 1
    end
+   local fileId2TargetInfoMap = {}
+
+   db:mapTargetInfo(
+      string.format( "target = '%s'", target ),
+      function( item )
+	 fileId2TargetInfoMap[ item.fileId ] = item
+	 return true
+      end
+   )
+      
    db:mapIncludeCache(
       nil,
       function( item )
@@ -99,7 +110,8 @@ local function searchNeedUpdateFiles( db, list, target )
 	    if fileInfo then
 	       -- ソースの更新日時が新しくても、
 	       -- インクルードの更新日時が古い場合ソースファイルを更新対象にする
-	       if isNeedUpdateFunc( fileInfo, item.id ) then
+	       if isNeedUpdateFunc( fileInfo, item.id,
+				    fileId2TargetInfoMap[ item.id ] ) then
 		  log( 1, "include file is modified", item.id )
 		  needUpdateSrcMap[ fileInfo.id ] = fileInfo
 
@@ -327,13 +339,16 @@ function Make:updateFor( dbPath, target, jobs, src )
    end
 
    -- 最初のファイルは共通インクルードが多いので並列に処理せずにビルドし、
-   -- 他のファイルを並列処理するように make を生成する
+   -- 他のファイルを並列処理するように make を生成する。
+   -- 共通インクルードが多い序盤は並列処理を半分にする。
    for index, fileInfo in ipairs( list ) do
       local group
       if index == 1 then
 	 group = "FIRST"
       elseif index == 2 then
 	 group = "SECOND"
+      elseif index < (#list / 10) then
+	 group = "THIRD"
       else
 	 group = "SRCS"
       end
@@ -343,7 +358,7 @@ function Make:updateFor( dbPath, target, jobs, src )
    end
    db:close()
 
-   local opt = ""
+   local opt = "--lctags-uptime " .. tostring( Helper.getCurrentTime() )
    if Option:isValidProfile() then
       opt = opt .. " --lctags-prof"
    end
@@ -353,7 +368,13 @@ function Make:updateFor( dbPath, target, jobs, src )
    if Option:isValidRecordSql() then
       opt = opt .. " --lctags-recSql"
    end
-   
+   if Option:isIndivisualWrite() then
+      opt = opt .. " --lctags-indiv"
+   end
+
+   if not jobs then
+      jobs = 1
+   end
    
 
    fileHandle:write(
@@ -361,6 +382,7 @@ function Make:updateFor( dbPath, target, jobs, src )
 	 [[
 FIRST := $(addsuffix .lc, $(FIRST))
 SECOND := $(addsuffix .lc, $(SECOND))
+THIRD := $(addsuffix .lc, $(THIRD))
 SRCS := $(addsuffix .lc, $(SRCS))
 
 #SRV=--lctags-srv
@@ -368,7 +390,8 @@ SRCS := $(addsuffix .lc, $(SRCS))
 all: setup
 	$(MAKE) -f %s first
 	$(MAKE) -f %s second
-	$(MAKE) -f %s other
+	$(MAKE) -j%d -f %s third
+	$(MAKE) -j%d -f %s other
 	%s %s statusServer stop --lctags-db %s
 	@echo server stop
 ifdef SRV
@@ -386,13 +409,17 @@ first: $(FIRST)
 
 second: $(SECOND)
 
+third: $(THIRD)
+
 other: $(SRCS)
 
 %%.lc:
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
 	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV)
 ]],
-	 tmpName, tmpName, tmpName, arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
+	 tmpName, tmpName, math.floor(((jobs>1) and jobs or 2) / 2), tmpName ,
+	 jobs, tmpName,
+	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], 
@@ -403,8 +430,7 @@ other: $(SRCS)
 
    -- make の実行
    log( 1, "-j:", jobs )
-   if not os.execute( "make -f " .. tmpName .. " " ..
-		      (jobs and ("-j" .. tostring( jobs )) or "" )) then
+   if not os.execute( "make -f " .. tmpName ) then
       os.exit( 1 )
    end
    --os.remove( tmpName )

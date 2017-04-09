@@ -30,7 +30,7 @@ function Option:printUsage( message )
 usage:
  - build DB
    %s init projDir [-it] [-is] [-im]
-   %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] [--lctags-srv] comp-op [...] src
+   %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] [--lctags-srv] [--lctags-indiv] comp-op [...] src
    %s update [-j jobs] pattrn
    %s register [--lctags-conf conf] [--lctags-target target] <-i|file>
    %s depIncs comp-op src
@@ -291,6 +291,11 @@ function Option:analyzeOption( argList )
 		  self.lockLog = true
 	       elseif arg == "--lctags-srv" then
 		  self.serviceFlag = true
+	       elseif arg == "--lctags-indiv" then
+		  self.indivisualWriteFlag = true
+	       elseif arg == "--lctags-uptime" then
+		  skipArgNum = 1
+		  self.updateTime = tonumber( argList[ index + 1 ] )
 	       else
 		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs"
 		  then
@@ -401,6 +406,14 @@ end
 
 function Option:isValidService()
    return self.serviceFlag
+end
+
+function Option:isIndivisualWrite()
+   return self.indivisualWriteFlag
+end
+
+function Option:getUpdateTime()
+   return self.updateTime
 end
 
 return Option

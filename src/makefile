@@ -48,6 +48,8 @@ LIBCLANG_SO=-lclang
 # http://lua.sqlite.org/index.cgi/index
 
 LUASQLITE3_DIR=../external/luasqlite3/lsqlite3_fsl09x
+#USE_BDB_SQLITE=y
+
 
 
 ####### make rules ######
@@ -147,10 +149,16 @@ $(CORE_SO): swig/libClangLua_wrap.o $(LUA_LIB)
 sqlite3: lsqlite3.so
 
 ifeq ($(shell $(LUA_COMMAND) -e 'print( require( "lsqlite3" ) )' 2> /dev/null),)
-lsqlite3.so:
+lsqlite3.so: $(LUASQLITE3_DIR)/lsqlite3.c $(LUASQLITE3_DIR)/sqlite3.c
+ifeq ($(USE_BDB_SQLITE),y)
+	gcc -std=c99 -fPIC -shared $(OPT_OP) -o lsqlite3.so \
+		$(LUASQLITE3_DIR)/lsqlite3.c lctags/lsqlite3.dummy.c \
+		-I$(LUA_INC) $(LUA_LIB) -lpthread -ldb_sql-5.3
+else
 	gcc -std=c99 -fPIC -shared $(OPT_OP) -o lsqlite3.so \
 		$(LUASQLITE3_DIR)/lsqlite3.c $(LUASQLITE3_DIR)/sqlite3.c \
 		-I$(LUA_INC) $(LUA_LIB) -lpthread
+endif
 else
 lsqlite3.so:
 	@echo lsqlite3 is ready
@@ -180,10 +188,15 @@ ifdef BATCH
 BATCH_OP=--lctags-only-reg
 endif
 
+ifeq ($(INDIV),y)
+INDIV_OP=--lctags-indiv
+endif
+
+
 test-dbbuild:
 	mkdir -p sql
 ifdef LCTAGS_SERVER_ON
-	$(LUA_COMMAND) $(LCTAGS_LUA) server start $(LOCKLOG) --lctags-log 2 &
+	$(LUA_COMMAND) $(LCTAGS_LUA) server start $(LOCKLOG) $(INDIV_OP) --lctags-log 2 &
 	sleep 1
 endif
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 5 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
@@ -290,6 +303,7 @@ ifeq ($(shell which lctags),)
 	@exit 1
 endif
 	rm -rf $(TEST_LUA_DIR)/.lctags/pch
+	rm -rf $(TEST_LUA_DIR)/lctags.sqlite3-journal
 	sync
 ifndef NO_INIT
 	$(LUA_COMMAND) $(LCTAGS_LUA) init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 $(LOCKLOG) --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
@@ -298,7 +312,7 @@ endif
 ifdef BATCH
 	LUA_DIR_SCRIPT=$(PWD)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(PWD)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) --lctags-only-reg $(LOCKLOG) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags register -i $(LOCKLOG) --lctags-log ${LCTAGS_LOG} ) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
-	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} -j $(JOBS) $(LCTAGS_PROF_OP)) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
+	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} -j $(JOBS) $(LCTAGS_PROF_OP) $(INDIV_OP) --lctags-recSql) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
 else
 ifdef LCTAGS_SERVER_ON
 	(cd $(TEST_LUA_DIR); $(PWD)/lctags/lctags server start --lctags-log 2 &)
@@ -317,10 +331,12 @@ endif
 #	touch $(TEST_LUA_DIR)/lauxlib.h
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 #	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
+ifndef SKIP_DUMP
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump all --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 	$(call dumpDB, $(TEST_LUA_DIR)/lctags.sqlite3, db.dump)
-	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 	diff db.dump db.dump.expect
+endif
 
 install: build
 	$(MAKE) install-lib
