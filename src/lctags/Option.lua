@@ -148,9 +148,11 @@ function Option:analyzeOption( argList )
 	 end
       end
    end
-   
+
    skipArgNum = 0
    for index, arg in ipairs( argList ) do
+   io.open( "/tmp/dump", "a+" ):write( arg .. "\n" )
+   
       if index == 1 then
 	 if arg == "build" then
 	    lctagOptMap.mode = "build"
@@ -225,9 +227,11 @@ function Option:analyzeOption( argList )
 	 elseif string.find( arg, "-x", 1, true ) then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = arg
+	    lctagOptMap.compatibleGlobal = true
 	 elseif string.find( arg, "-c", 1, true ) then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = arg
+	    lctagOptMap.compatibleGlobal = true
 	 elseif string.find( arg, "list", 1, true ) then
 	    lctagOptMap.mode = "list"
 	    lctagOptMap.query = argList[ index + 1 ]
@@ -327,6 +331,10 @@ function Option:analyzeOption( argList )
 		  elseif lctagOptMap.mode == "register" then
 		     if arg == "-i" then
 			lctagOptMap.registerFromInfo = true
+		     end
+		  elseif lctagOptMap.mode == "query" then
+		     if string.find( arg, "--encode-path=", 1, true ) then
+			skipArgNum = 1
 		     end
 		  else
 		     if arg == "-i" then

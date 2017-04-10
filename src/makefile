@@ -175,7 +175,8 @@ endif
 	sync
 	rm -rf .lctags/pch
 	$(MAKE) test-dbbuild
-	$(call dumpDB, lctags.sqlite3, test-result)
+	rm test-result
+	$(call dumpDB, lctags.sqlite3, test-result, test/*.cpp, test/*.h)
 	LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(PWD)@PWD@g" | \
@@ -334,7 +335,8 @@ endif
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 ifndef SKIP_DUMP
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump all --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
-	$(call dumpDB, $(TEST_LUA_DIR)/lctags.sqlite3, db.dump)
+	rm db.dump
+	$(call dumpDB, $(TEST_LUA_DIR)/lctags.sqlite3, db.dump, $(TEST_LUA_DIR)/*.cpp $(TEST_LUA_DIR)/*.h)
 	diff db.dump db.dump.expect
 endif
 
@@ -384,9 +386,9 @@ ifneq ($(LUA_INST_DIR),)
 endif
 
 define dumpDB
-	$(LUA_COMMAND) $(LCTAGS_LUA) dump call --lctags-db $1 | awk '//{print( $$7, $$8, $$9 )}' | sed 's/::[0-9]\+//g' | sort > $2
-	$(LUA_COMMAND) $(LCTAGS_LUA) dump def --lctags-db $1  | awk '//{print( $$8, $$9, $$10, $$11, $$12, $$13, $$14 )}' | sed 's/::[0-9]\+//g' | sort >> $2
-	$(LUA_COMMAND) $(LCTAGS_LUA) dump ref --lctags-db $1 | awk '//{print( $$6, $$7, $$8, $$9, $$10, $$12, $$13 )}' | sed 's/::[0-9]\+//g' | sort >> $2
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump call --lctags-db $1 $3 | awk '//{print( $$7, $$8, $$9 )}' | sed 's/::[0-9]\+//g' | sort -n >> $2
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump def --lctags-db $1 $3| awk '//{print( $$8, $$9, $$10, $$11, $$12, $$13, $$14 )}' | sed 's/::[0-9]\+//g' | sort -n >> $2
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump ref --lctags-db $1 $3 | awk '//{print( $$6, $$7, $$8, $$9, $$10, $$12, $$13 )}' | sed 's/::[0-9]\+//g' | sort -n >> $2
 endef
 
 define build-test

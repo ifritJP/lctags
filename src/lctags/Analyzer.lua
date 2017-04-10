@@ -1136,6 +1136,12 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
 	    self:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
 	 end, "profi." .. string.gsub( targetPath, ".*/", "" ) )
    end
+
+   log( 2, "-- update targetInfo updateTime -- ",
+	self:getCurrentTime(), os.clock(), os.date() )
+   for filePath, spInfo in pairs( self.path2InfoMap ) do
+      db:setUpdateTime( spInfo.fileInfo.id, target, self:getCurrentTime() )
+   end
    
    log( 2, "close", os.clock(), os.date()  )
    db:close()

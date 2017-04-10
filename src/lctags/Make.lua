@@ -41,7 +41,7 @@ local function searchNeedUpdateFiles( db, list, target )
 	 local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
 	 fileId2ModTime[ fileInfo.id ] = modTime
 	 if modTime then
-	    if modTime > targetInfo.updateTime then
+	    if not targetInfo or modTime > targetInfo.updateTime then
 	       -- 更新時間が古い場合はマップに登録
 	       if fileInfo.incFlag ~= 0 then
 		  needUpdateIncFileInfoMap[ fileInfo.id ] = fileInfo
@@ -417,7 +417,7 @@ other: $(SRCS)
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
 	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV)
 ]],
-	 tmpName, tmpName, math.floor(((jobs>1) and jobs or 2) / 2), tmpName ,
+	 tmpName, tmpName, math.floor(((jobs>=3) and jobs or 3) / 3), tmpName,
 	 jobs, tmpName,
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,

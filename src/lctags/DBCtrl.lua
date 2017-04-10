@@ -418,7 +418,9 @@ function DBCtrl:beginForTemp()
       table.insert( self.insertList, { tableName, values } )
    end
    function obj:update( tableName, set, condition )
-      if tableName == "filePath" or tableName == "namespace" then
+      if tableName == "filePath" or tableName == "namespace" or
+	 tableName == "targetInfo"
+      then
 	 table.insert( self.updateList, { tableName, set, condition } )
       else
 	 log( -2, "not support", tableName )
@@ -765,7 +767,7 @@ end
 function DBCtrl:setUpdateTime( fileId, target, time )
    local targetCond = ""
    if target and target ~= "" then
-      targetCond = " target = 'target'"
+      targetCond = string.format( " AND target = '%s'", target )
    end
 
    if target then
@@ -774,7 +776,7 @@ function DBCtrl:setUpdateTime( fileId, target, time )
 	 return
       end
    end
-   
+
    self:update(
       "targetInfo", "updateTime = " .. tostring( time ),
       "fileId = " .. tostring( fileId ) .. targetCond )
@@ -838,17 +840,19 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
 	 end
       end
 
-      local modTime = Helper.getFileModTime( self:getSystemPath( fileInfo.path ) )
-      if modTime > targetInfo.updateTime then
-	 -- ファイルの更新日時が違う
-	 local fileDigest = self:calcFileDigest( filePath )
-	 if fileDigest ~= fileInfo.digest then
-	    -- ファイルの digest も違う場合は、登録情報を全て更新
-	    log( 2, "detect mismatch digest", filePath, fileDigest )
-	    self:updateFile( fileInfo )
-	    self:update(
-	       "filePath", "digest = '" .. fileDigest .. "'",
-	       string.format( "id = %d", fileInfo.id ) )
+      if targetInfo then
+	 local modTime = Helper.getFileModTime( self:getSystemPath( fileInfo.path ) )
+	 if modTime > targetInfo.updateTime then
+	    -- ファイルの更新日時が違う
+	    local fileDigest = self:calcFileDigest( filePath )
+	    if fileDigest ~= fileInfo.digest then
+	       -- ファイルの digest も違う場合は、登録情報を全て更新
+	       log( 2, "detect mismatch digest", filePath, fileDigest )
+	       self:updateFile( fileInfo )
+	       self:update(
+		  "filePath", "digest = '" .. fileDigest .. "'",
+		  string.format( "id = %d", fileInfo.id ) )
+	    end
 	 end
       end
 
@@ -2251,7 +2255,7 @@ function DBCtrl:dumpTargetInfo( level, path )
       "targetInfo", self:getFileIdCondition( path ), nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
-	 log( level, row.fileId, row.hasPch, row.upTime,
+	 log( level, row.fileId, row.hasPch, row.updateTime,
 	      row.target, fileInfo.path, row.compOp )
 	 return true
       end

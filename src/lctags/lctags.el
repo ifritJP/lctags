@@ -363,6 +363,7 @@ This parameter can set function and string.
     (let ((db-path lctags-db)
 	  (target lctags-target)
 	  (config lctags-conf)
+	  (use-global lctags-use-global)
 	  new-arg-list)
       (setq new-arg-list
 	    (append (list lctags-command)
@@ -373,7 +374,10 @@ This parameter can set function and string.
 	(when (and lctags-target (functionp lctags-target))
 	  (setq target (funcall lctags-target)))
 	(when (and lctags-conf (functionp lctags-conf))
-	  (setq config (funcall lctags-conf))))
+	  (setq config (funcall lctags-conf)))
+	(when (and lctags-use-global (functionp lctags-use-global))
+	  (setq use-global (funcall lctags-use-global)))
+	)
 
       (when db-path
 	(setq new-arg-list
@@ -387,6 +391,12 @@ This parameter can set function and string.
 	(setq new-arg-list
 	      (append new-arg-list
 		      (list "--lctags-conf" config))))
+      (when (and use-global
+      		 (or (posix-string-match "^-c" (nth 4 arg-list))
+		     (posix-string-match "^-x" (nth 4 arg-list))))
+	(setq new-arg-list
+      	      (append new-arg-list
+      		      (list "--use-global"))))
       new-arg-list)))
 
 (defadvice call-process (around lctags-call-process activate)

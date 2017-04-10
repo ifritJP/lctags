@@ -58,6 +58,8 @@ if not lctagOptMap.dbPath then
    if not lctagOptMap.dbPath then
       if lctagOptMap.mode == "init" then
          lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
+      elseif lctagOptMap.compatibleGlobal then
+	 ;
       else
 	 Option:printUsage( "not found lctags.sqlite3" )
       end
@@ -160,8 +162,14 @@ if lctagOptMap.mode == "query" then
       end
       os.exit( 0 )
    end
-   
-   Query:exec( db, lctagOptMap.query, srcList[ 1 ] )
+
+   if #srcList > 0 then
+      for index, pattern in ipairs( srcList ) do
+	 Query:exec( db, lctagOptMap.query, pattern )
+      end
+   else
+      Query:exec( db, lctagOptMap.query, nil )
+   end
 
    db:close()
    os.exit( 0 )

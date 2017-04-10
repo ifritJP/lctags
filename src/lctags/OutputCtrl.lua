@@ -139,7 +139,7 @@ function obj.dot(
 	       fileHandle:write(
 		  string.format( "subgraph cluster_0%d {", fileIdList[ 1 ] ) )
 	       fileHandle:write(
-		  string.format( 'label = "%s"; fontcolor = "green";\n', dirPath ) )
+		  string.format( 'label = "%s"; fontcolor = "red";\n', dirPath ) )
 	    
 	       for index, fileId in pairs( fileIdList ) do
 		  fileClusterFunc( fileId )
