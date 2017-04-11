@@ -151,8 +151,6 @@ function Option:analyzeOption( argList )
 
    skipArgNum = 0
    for index, arg in ipairs( argList ) do
-   io.open( "/tmp/dump", "a+" ):write( arg .. "\n" )
-   
       if index == 1 then
 	 if arg == "build" then
 	    lctagOptMap.mode = "build"
