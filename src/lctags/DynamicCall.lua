@@ -872,6 +872,23 @@ function DynamicCall:dumpInfo( dbPath, target )
       end
    )
 
+   for fileId, indirectList in pairs( fileId2IndirectListMap ) do
+      local fileInfo = db:getFileInfo( fileId )
+
+      for index, item in ipairs( indirectList ) do
+	 local nsInfo = db:getNamespace( item.nsId )
+	 log( 1, nsInfo.name, fileInfo and fileInfo.path or fileId,
+	      item.line, item.column )
+	 if not fileInfo then
+	    log( 1, "illegal file id" )
+	 end
+	 
+      end
+   end
+
+   os.exit( 0 )
+   
+
    db:close()
    db = nil
 

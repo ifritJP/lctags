@@ -14,6 +14,7 @@ local Server = require( 'lctags.Server' )
 local StatusServer = require( 'lctags.StatusServer' )
 local DynamicCall = require( 'lctags.DynamicCall' )
 local Helper = require( 'lctags.Helper' )
+local StackCalc = require( 'lctags.StackCalc' )
 
 if not arg[1] then
    Option:printUsage( "" )
@@ -368,4 +369,8 @@ if lctagOptMap.mode == "inq-at" then
 		   tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		   lctagOptMap.target, fileContents )
    os.exit( 0 )
+end
+
+if lctagOptMap.mode == "stack" then
+   StackCalc:analyze( srcList[ 1 ], lctagOptMap.target, analyzer )
 end

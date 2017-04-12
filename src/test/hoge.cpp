@@ -131,7 +131,7 @@ void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] )
     struct_value_t * stValP;
     struct_value_t stValA[ ARRAY_LENGTH ];
     struct_value_t * stValPA[ ARRAY_LENGTH ];
-    struct_value2_t stVal2;
+    struct_value2_t stVal2, stVal3;
     stVal.longValue = 0;
     stVal2.longValue = 0;
 }

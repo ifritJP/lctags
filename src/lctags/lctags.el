@@ -163,10 +163,13 @@ This parameter can set function and string.
 		  lctags-opt2
 		  lctags-opt-list
 		  (list tag
-			(when (and tag (not (eq tag "")))
-			  (number-to-string line))
-			(when (and tag (not (eq tag "")))
-			  (number-to-string column)))))
+			(when (not (posix-string-match "^-x" lctags-opt))
+			  (when (and tag (not (eq tag "")))
+			    (number-to-string line)))
+			(when (not (posix-string-match "^-x" lctags-opt))
+			  (when (and tag (not (eq tag "")))
+			    (number-to-string column)))
+			)))
     (apply 'lctags-execute opt-list)
 
     (with-current-buffer buffer

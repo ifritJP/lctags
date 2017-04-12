@@ -260,6 +260,8 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	 elseif arg == "dcall" then
 	    lctagOptMap.mode = arg
+	 elseif arg == "stack" then
+	    lctagOptMap.mode = arg
 	 end
       else
 	 if skipArgNum > 0 then
