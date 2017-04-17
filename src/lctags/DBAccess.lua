@@ -139,12 +139,14 @@ function DBAccess:close()
    self.db:close()
    -- self.inLockFlag = nil
    -- self.transLockObj:fin()
-   
-   log( 2,
-	string.format(
-	   "time=%f, lock = %d, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
-	   self.time, self.lockCount, self.insertCount, self.uniqueCount,
-	   self.updateCount, self.deleteCount, self.selectCount ) )
+
+   if not self.readonly then
+      log( 2,
+	   string.format(
+	      "time=%f, lock = %d, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
+	      self.time, self.lockCount, self.insertCount, self.uniqueCount,
+	      self.updateCount, self.deleteCount, self.selectCount ) )
+   end
 end
 
 

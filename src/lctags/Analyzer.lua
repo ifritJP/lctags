@@ -434,8 +434,8 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
    then
       analyzer:addMember( cursor, cursorKind, cursorOffset, exInfo )
    elseif cursorKind == clang.core.CXCursor_CompoundStmt then
-      if not analyzer.recursiveBaseKind then
-	 local nsCursor = analyzer:getNowNs()
+      local nsCursor = analyzer:getNowNs()
+      if nsCursor then
 	 analyzer.hasBodyHashSet[ nsCursor:hashCursor() ] = 1
       end
    end
@@ -581,6 +581,9 @@ end
 
 
 function Analyzer:getNowNs()
+   if #self.nsLevelList == 0 then
+      return nil
+   end
    return self.nsLevelList[ #self.nsLevelList ].cursor
 end
 
@@ -1211,10 +1214,9 @@ function Analyzer:registerSpInfo( db, spInfo )
    
    log( 2, "-- funcList --", os.clock(), os.date()  )
    for index, funcDecl in ipairs( spInfo.funcList ) do
-      log( funcDecl:getCursorSpelling(),
-	   self.hasBodyHashSet[ funcDecl:hashCursor() ] )
-      db:addNamespace(
-	 funcDecl, self.hasBodyHashSet[ funcDecl:hashCursor() ] )
+      local hash = funcDecl:hashCursor()
+      log( funcDecl:getCursorSpelling(), self.hasBodyHashSet[ hash ], hash )
+      db:addNamespace( funcDecl, self.hasBodyHashSet[ hash ] )
    end
    
 

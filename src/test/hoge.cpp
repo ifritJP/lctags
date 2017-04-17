@@ -306,6 +306,7 @@ namespace {
     
     if ( 1 ) {
       rootval = 1;
+      ns1::sub2();
     }
   }
 }

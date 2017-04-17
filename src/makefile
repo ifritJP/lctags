@@ -176,13 +176,17 @@ endif
 	rm -rf .lctags/pch
 	$(MAKE) test-dbbuild
 	rm test-result
-	$(call dumpDB, lctags.sqlite3, test-result, test/*.cpp, test/*.h)
 	LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(PWD)@PWD@g" | \
 		sed "s@$(LUA_COMMAND)@lua@g" | \
 		tee -a test-result
 	diff -c test-result.expect test-result && echo OK
+ifndef SKIP_DUMP
+	rm -f db.dump
+	$(call dumpDB, lctags.sqlite3, db.dump, test/*.cpp, test/*.h)
+	diff -c db.dump test-db.dump.expect
+endif
 
 
 ifdef BATCH

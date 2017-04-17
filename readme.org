@@ -21,23 +21,34 @@ lctags コマンドを使用します。
 usage:
  - build DB
    lctags init projDir [-it] [-is] [-im]
-   lctags build compiler  [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] comp-op [...] src
-   lctags shrink [--lctags-db path]
-   lctags chg-proj projDir [--lctags-db path]
-   lctags update pattrn
+   lctags build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] [--lctags-srv] [--lctags-indiv] comp-op [...] src
+   lctags update [-j jobs] pattrn
+   lctags register [--lctags-conf conf] [--lctags-target target] <-i|file>
+   lctags depIncs comp-op src
+   lctags server [--lctags-target target] <start|stop>
+   lctags statusServer <start|stop|wait>
+   lctags status
  - query DB
-   lctags dump
-   lctags ref-at[a] [--lctags-target target] file line column 
-   lctags def-at[a] [--lctags-target target] file line column 
-   lctags call-at[a] [--lctags-target target] file line column
+   lctags dump <all|target|file|ref|def|call|inc|digest|prepro> [path]
+   lctags ref-at[a] [--lctags-target target] [-i] file line column 
+   lctags def-at[a] [--lctags-target target] [-i] file line column 
+   lctags call-at[a] [--lctags-target target] [-i] file line column
+   lctags ns-at [--lctags-target target] [-i] file line column
+   lctags comp-at [--lctags-target target] [-i] file line column
+   lctags inq-at [--lctags-target target] [-i] file line column
    lctags list <incSrc|inc> [-d depth] name
-   lctags ns-at [--lctags-target target] file line column
    lctags -x[t|s|r][a]  [--use-global] symbol
    lctags -xP[a]  [--use-global] file
    lctags -c  [--use-global] symbol
+   lctags dcall
  - graph
    lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
-   lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
+   lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column
+ - modify db
+   lctags rm <file|tgt> name
+   lctags shrink [--lctags-db path]
+   lctags chkFiles [--lctags-db path]
+   lctags chg-proj projDir [--lctags-db path]
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -47,6 +58,7 @@ usage:
      build: build DB for "src".
             "compiler" is "gcc" or "cc" or ....
             "comp-op" is compiler option. This include source file path.
+     register: register source file from json.
      shrink: shrink DB.
      chg-proj: change project directory.
      dump: dump DB.
@@ -61,6 +73,7 @@ usage:
      def-at: symbol declaration at position
      ref-at: symbol reference at position
      call:at: function call at position
+     -i: input from stdin for source file contents.
      --use-global: use GNU global when db is not found.
      graph: draw graph.
      graph-at: draw graph at position.
@@ -87,6 +100,8 @@ $ lctags init .
 
 *** ソースの解析
 
+**** lctags build を実行する場合
+    
 $ lctags build compiler [--lctags-target target] comp-op [...] src
 
 ソースの解析を行ないます。コンパイルは行ないません。
@@ -122,12 +137,61 @@ lctags は解析時に使用したコンパイルオプションを記憶し、
 --lctags-target オプションを指定することで、
 コンパイルオプションを識別する名前を設定することができます。
 
+
+**** ソースの構成を登録してから解析を行なう
+
+上で説明した解析方法では、ソースの登録と解析を同時に行ないます。
+この場合、ソースファイルが大量にある場合に解析効率が悪くなることがあります。
+
+ソースの登録と解析を分割することで、解析効率を改善できます。
+
+ソースの登録には、次の 2 つの方法があります。
+
+- build に --lctags-only-reg オプションを追加する
+- cmake が生成する JSON ファイルを利用する
+
+
+--lctags-only-reg オプションを利用する場合、
+全てのソースファイルに対して build --lctags-only-reg を実行後、
+次のコマンドを実行することで、ソースの登録が行なえます。
+
+#+BEGIN_SRC txt
+lctags register -i
+#+END_SRC
+
+JSON ファイルを利用する場合、
+次のコマンドを実行することで、ソースの登録が行なえます。
+
+#+BEGIN_SRC txt
+lctags register compile_commands.json
+#+END_SRC
+
+ソース登録後、次のコマンドを実行することでソースの解析を行ないます。
+
+#+BEGIN_SRC txt
+lctags update -j 3 dir
+#+END_SRC
+
+このコマンドは内部的に make を呼び出します。
+
+ここで 3 は make の並列ジョブ数を指定します。
+環境に合せて指定してください。
+dir は、解析対象のディレクトリ、あるいはファイルを指定します。
+
+
+ソースの追加・削除がなく、コンパイルオプションの変更がない限り、
+lctags update コマンドだけでソース解析を行なえます。
+
+ソース登録と解析に分けない build で解析した場合でも、
+lctags update コマンドを使用することで、変更したファイルだけ解析することができます。
+
+
 *** インデックス問い合わせ
 
 次のパターンを利用できます。
     
 #+BEGIN_SRC txt
-$ lctags -x[r|t][a] [--use-global] symbol
+$ lctags -x[r|t|P][a] [--use-global] symbol
 $ lctags ref-at[a] [--lctags-target target] file line column
 $ lctags def-at[a] [--lctags-target target] file line column
 #+END_SRC txt
@@ -138,9 +202,13 @@ r は、シンボルの参照場所をリストします。
 
 t は、シンボルの定義場所をリストします。
 
+P は、ファイルをリストします。
+
 a は、表示する場所のファイルパスをフルパスにします。
-このモードでは、シンボル名だけを使用して問い合わせするので、
+
+-x を指定した場合、シンボル名だけを使用して問い合わせするので、
 型を認識した検索には向きません。
+ただし、完全限定名を指定することで型指定可能です。
 
 --use-global を指定することで、
 lctags の DB が存在しない場合に GNU global を実行します。
