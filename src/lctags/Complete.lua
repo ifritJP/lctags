@@ -737,6 +737,9 @@ local function getRootType( cursor )
 
    if kind == clang.core.CXCursor_TypedefDecl then
       cxtype = cursor:getTypedefDeclUnderlyingType()
+      while clang.isPointerType( cxtype ) do
+	 cxtype = cxtype:getPointeeType()
+      end
       local resultType = cxtype:getResultType()
       local work = clang.getDeclCursorFromType( cxtype )
       if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
@@ -753,7 +756,6 @@ local function getRootTypeCursor( cursor )
 
    if kind == clang.core.CXCursor_TypedefDecl then
       cxtype = cursor:getTypedefDeclUnderlyingType()
-      local resultType = cxtype:getResultType()
       local work = clang.getDeclCursorFromType( cxtype )
       if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
 	 return cursor
@@ -770,46 +772,53 @@ local function calcDigest( txt )
    return digest:fix()
 end
 
-
-local function outputCandidate( db, prefix, typeCursor, hash2typeMap )
-   local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
-      local name = aCursor:getCursorSpelling()
-      local childKind = aCursor:getCursorKind()
-      log( 2, "visitFunc", aCursor:getCursorSpelling(),
-	   clang.getCursorKindSpelling( childKind ) )
-      if childKind == clang.core.CXCursor_CXXBaseSpecifier then
-	 local superDecl = aCursor:getCursorReferenced()
-	 log( 2, "super", superDecl:getCursorSpelling() )
-	 clang.visitChildrenFast(
-	    superDecl, visitFunc, anonymousDeclList, nil, 1 )
-	 return
-      end
-      if childKind == clang.core.CXCursor_FieldDecl or
-	 childKind == clang.core.CXCursor_CXXMethod or
-	 childKind == clang.core.CXCursor_EnumConstantDecl
-      then
-	 local cxtype = aCursor:getCursorType()
-	 local typeDecl = cxtype:getTypeDeclaration()
-	 
-	 for index, anonymousDecl in ipairs( anonymousDeclList ) do
-	    if anonymousDecl:hashCursor() == typeDecl:hashCursor() then
-	       table.remove( anonymousDeclList, index )
-	       break
-	    end
+local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
+   local name = aCursor:getCursorSpelling()
+   local childKind = aCursor:getCursorKind()
+   log( 2, "outputCandidate", aCursor:getCursorSpelling(),
+	clang.getCursorKindSpelling( childKind ) )
+   if childKind == clang.core.CXCursor_CXXBaseSpecifier then
+      local superDecl = aCursor:getCursorReferenced()
+      log( 2, "super", superDecl:getCursorSpelling() )
+      clang.visitChildrenFast(
+	 superDecl, visitFunc, anonymousDeclList, nil, 1 )
+      return
+   end
+   if childKind == clang.core.CXCursor_FieldDecl or
+      childKind == clang.core.CXCursor_CXXMethod or
+      childKind == clang.core.CXCursor_FunctionDecl or
+      childKind == clang.core.CXCursor_EnumConstantDecl
+   then
+      local cxtype = aCursor:getCursorType()
+      local typeDecl = cxtype:getTypeDeclaration()
+      
+      for index, anonymousDecl in ipairs( anonymousDeclList ) do
+	 if anonymousDecl:hashCursor() == typeDecl:hashCursor() then
+	    table.remove( anonymousDeclList, index )
+	    break
 	 end
-	 
-	 local typeName = cxtype:getTypeSpelling()
-	 local startInfo, endInfo = db:getRangeFromCursor( aCursor )
-	 local fileInfo = startInfo and startInfo[ 1 ] and db:getFileInfo(
-	    nil, startInfo[ 1 ]:getFileName() )
-	 
-	 if prefix == "" or string.find( name, prefix, 1, true ) == 1 then
+      end
+      
+      local typeName = cxtype:getTypeSpelling()
+      local startInfo, endInfo = db:getRangeFromCursor( aCursor )
+      local fileInfo = startInfo and startInfo[ 1 ] and db:getFileInfo(
+	 nil, startInfo[ 1 ]:getFileName() )
 
-	    local typeCursor = clang.getDeclCursorFromType( cxtype )
-	    local rootType = getRootType( typeCursor )
+      if prefix == "" or string.find( name, prefix, 1, true ) == 1 then
+
+	 local typeCursor
+	 local digest = ""
+	 local expand = ""
+	 local rootType
+	 if childKind == clang.core.CXCursor_CXXMethod or
+	    childKind == clang.core.CXCursor_FunctionDecl
+	 then
+	    typeCursor = aCursor
+	    rootType = cxtype
+	 else
+	    typeCursor = clang.getDeclCursorFromType( cxtype )
+	    rootType = getRootType( typeCursor )
 	    local rootTypeSpell = rootType:getTypeSpelling()
-	    local expand = ""
-	    local digest = ""
 	    if rootTypeSpell ~= "" then
 	       digest = calcDigest( rootTypeSpell )
 	       hash2typeMap[ digest ] = rootType
@@ -819,36 +828,60 @@ local function outputCandidate( db, prefix, typeCursor, hash2typeMap )
 		  expand = "."
 	       end
 	    end
+	 end
 
-	    local resultType = rootType:getResultType()
-	    if resultType.kind ~= clang.core.CXType_Invalid then
+	 local resultType = rootType:getResultType()
+	 log( 2, "outputCandidate: rootType",
+	      rootType:getTypeSpelling(), resultType:getTypeSpelling() )
+	 if resultType.kind ~= clang.core.CXType_Invalid then
+	    local str
+	 
+	    if childKind == clang.core.CXCursor_CXXMethod or
+	       childKind == clang.core.CXCursor_FunctionDecl
+	    then
+	       if childKind == clang.core.CXCursor_CXXMethod then
+		  str = typeName
+	       else
+		  str = clang.getCurosrPlainText( typeCursor.__ptr )
+		  str = string.gsub( str, '{.*$', '' )
+	       end
+	       str = string.gsub( str, '.*%(', "(" )
+	       str = string.gsub( str, "const$", "" )
+	    else
 	       childKind = clang.core.CXCursor_FunctionDecl
 	       local rootCursor = getRootTypeCursor( typeCursor )
-	       local str = clang.getCurosrPlainText( rootCursor.__ptr )
-	       str = string.gsub( str, '.*' .. name .. '.*%(', "(" )
-	       local args = string.gsub( str, ";", "" )
-	       args = string.gsub( args, "[\n\t]", ' ' )
-	       args = string.gsub( args, " +", " " )
-	       args = string.gsub( args, " +$", "" )
-	       name = name .. args
+	       str = clang.getCurosrPlainText( rootCursor.__ptr )
+	       str = string.gsub( str, '.*%).*%(', "(" )
 	    end
+	    local args = string.gsub( str, ";", "" )
+	    args = string.gsub( args, "[\n\t]", ' ' )
+	    args = string.gsub( args, " +", " " )
+	    args = string.gsub( args, " +$", "" )
+	    args = string.gsub( args, "%( *void *%)$", "()" )
+	    name = name .. args
+	 end
 
-	    
-	    print( createCandidate(
-		      name, name, expand, childKind, typeName, digest,
-		      fileInfo and db:getSystemPath( fileInfo.path ) or "",
-		      startInfo and startInfo[ 2 ],
-		      startInfo and startInfo[ 3 ],
-		      endInfo and endInfo[ 2 ],
-		      endInfo and endInfo[ 3 ] ) )
-	 end
-      elseif childKind == clang.core.CXCursor_StructDecl or
-	 childKind == clang.core.CXCursor_UnionDecl
-      then
-	 if name == "" then
-	    table.insert( anonymousDeclList, aCursor )
-	 end
+	 
+	 print( createCandidate(
+		   name, name, expand, childKind, typeName, digest,
+		   fileInfo and db:getSystemPath( fileInfo.path ) or "",
+		   startInfo and startInfo[ 2 ],
+		   startInfo and startInfo[ 3 ],
+		   endInfo and endInfo[ 2 ],
+		   endInfo and endInfo[ 3 ] ) )
       end
+   elseif childKind == clang.core.CXCursor_StructDecl or
+      childKind == clang.core.CXCursor_UnionDecl
+   then
+      if name == "" then
+	 table.insert( anonymousDeclList, aCursor )
+      end
+   end
+end
+
+local function outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
+   local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
+      outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
    end
 
 
@@ -929,7 +962,7 @@ function Complete:completeMember(
 ]=], prefix ) )
 
 
-   outputCandidate( db, prefix, typeCursor, hash2typeMap )
+   outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
    
 
    local knownTypeHash = {}
@@ -943,7 +976,7 @@ function Complete:completeMember(
 <typeInfo>
 <hash>%s</hash>
 ]], hash ) )
-	 outputCandidate(
+	 outputMemberCandidate(
 	    db, "", clang.getDeclCursorFromType( cxtype ), newHash2TypeMap )
 	 print( "</typeInfo>" )
       end
@@ -1092,6 +1125,8 @@ function Complete:inqCursor( db, path, cursor )
 		      aCursor:getEnumConstantDeclUnsignedValue() ) )
       	 end, nil, nil, 1 )
       print( '</complete>' )
+   else
+      outputCandidate( db, "", cursor, {}, {} )
    end
 end
 
