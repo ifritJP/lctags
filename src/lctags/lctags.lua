@@ -261,6 +261,23 @@ end
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
+local db = analyzer:openDBForReadOnly( os.getenv( "PWD" ) )
+
+local modOptList = {}
+for index, opt in ipairs( optList ) do
+   if string.find( opt, "-I", 1, true ) then
+      local path = opt:sub( 3 )
+      if not string.find( path, "|", 1, true ) then
+	 path = db:convRelativePath( path, os.getenv( "PWD" ) )
+      end
+      opt = "-I" .. path
+   end
+   table.insert( modOptList, opt )
+end
+optList = modOptList
+
+db:close()
+
 if lctagOptMap.mode == "depIncs" then
    analyzer:dumpIncludeList( srcList[ 1 ], optList, nil )
    os.exit( 0 )

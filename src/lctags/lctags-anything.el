@@ -1,3 +1,4 @@
+(require 'anything)
 (setq lctags-anything t)
 
 (setq anything-c-source-gtags-select

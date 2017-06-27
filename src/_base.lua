@@ -329,6 +329,16 @@ libs.mapRangePlainText = function( cxUnit, cxRange, func, ... )
 end
 
 
+libs.isPointerType = function( cxtype )
+   local baseType = cxtype and cxtype:getPointeeType()
+   return baseType.__ptr.kind ~= libclangcore.CXType_Invalid
+end
+
+libs.isArrayType = function( cxtype )
+   local baseType = cxtype and cxtype:getElementType()
+   return baseType.__ptr.kind ~= libclangcore.CXType_Invalid
+end
+
 libs.getDeclCursorFromType = function( cxtype )
    while true do
       local baseType = cxtype and cxtype:getPointeeType()

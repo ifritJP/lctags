@@ -16,6 +16,8 @@ function Query:execWithDb( db, query, target )
       db:dump( 1, target )
    elseif query == "dumpTarget" then
       db:dumpTargetInfo( 1, target )
+   elseif query == "dumpVersion" then
+      db:dumpVersion( 1 )
    elseif query == "dumpFile" then
       db:dumpFile( 1, target )
    elseif query == "dumpRef" then

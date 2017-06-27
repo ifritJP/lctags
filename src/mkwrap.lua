@@ -566,7 +566,13 @@ function libs.%s:new( ptr, invalidDisposeFlag )
    setmetatable(
       obj,
       {
-         __index = libs.%s,
+         __index = function( tbl, key )
+	    local member = libs.%s[key]
+	    if member then
+	       return member
+	    end
+	    return tbl.__ptr[ key ]
+	 end,
          __gc = function( self )
             if self.__needDisposeFlag then
                %s

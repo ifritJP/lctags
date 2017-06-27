@@ -38,7 +38,7 @@ usage:
    %s statusServer <start|stop|wait>
    %s status
  - query DB
-   %s dump <all|target|file|ref|def|call|inc|digest|prepro> [path]
+   %s dump <ver|all|target|file|ref|def|call|inc|digest|prepro> [path]
    %s ref-at[a] [--lctags-target target] [-i] file line column 
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
@@ -122,7 +122,9 @@ function Option:analyzeOption( argList )
 	 lctagOptMap.dbPath = argList[ index + 1 ]
 	 local confPath = string.gsub(
 	    lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
-	 lctagOptMap.conf = loadConfig( confPath, false )
+	 if not lctagOptMap.conf then
+	    lctagOptMap.conf = loadConfig( confPath, false )
+	 end
       end
    end
 
@@ -218,6 +220,8 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.query = "dumpDigest"
 	    elseif argList[ index + 1 ] == "prepro" then
 	       lctagOptMap.query = "dumpPrepro"
+	    elseif argList[ index + 1 ] == "ver" then
+	       lctagOptMap.query = "dumpVersion"
 	    else
 	       self:printUsage( "unknown dump option" )
 	    end

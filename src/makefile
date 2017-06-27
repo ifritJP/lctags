@@ -181,6 +181,7 @@ endif
 		sed "s@$(PWD)@PWD@g" | \
 		sed "s@$(LUA_COMMAND)@lua@g" | \
 		tee -a test-result
+	$(MAKE) test-stack
 	diff -c test-result.expect test-result && echo OK
 ifndef SKIP_DUMP
 	rm -f db.dump
@@ -229,6 +230,7 @@ endif
 	$(call build-test, test/class4.cpp )
 	$(call build-test, test/class5.cpp )
 	$(call build-test, test/inc1.cpp )
+	$(call build-test, test/stack.cpp )
 #	$(call build-test, test/class.cpp )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -301,6 +303,10 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class3.cpp 16 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class4.cpp 11 7
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class5.cpp 24 6
+
+test-stack:
+	$(LUA_COMMAND) $(LCTAGS_LUA) stack test/hoge.cpp --lctags-log 4
+	$(LUA_COMMAND) $(LCTAGS_LUA) stack test/stack.cpp --lctags-log 4
 
 test-at-lua:
 ifeq ($(shell which lctags),)

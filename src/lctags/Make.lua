@@ -387,16 +387,22 @@ SRCS := $(addsuffix .lc, $(SRCS))
 
 #SRV=--lctags-srv
 
-all: setup
+all:
+
+build:
 	$(MAKE) -f %s first
 	$(MAKE) -f %s second
 	$(MAKE) -j%d -f %s third
 	$(MAKE) -j%d -f %s other
-	%s %s statusServer stop --lctags-db %s
+
+all: setup
+	-$(MAKE) -f %s build
 	@echo server stop
+	%s %s statusServer stop --lctags-db %s
 ifdef SRV
 	%s %s server stop --lctags-db %s
 endif
+
 
 setup:
 	%s %s statusServer start --lctags-db %s &
@@ -419,6 +425,7 @@ other: $(SRCS)
 ]],
 	 tmpName, tmpName, math.floor(((jobs>=3) and jobs or 3) / 3), tmpName,
 	 jobs, tmpName,
+	 tmpName,
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath,

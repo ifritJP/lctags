@@ -128,10 +128,10 @@ static int helper_mqueue_get( lua_State * pLua );
 static int helper_mqueue_gc( lua_State * pLua );
 static int helper_mqueue_tostring( lua_State * pLua );
 
-static helper_digestInfo_t * helper_setup( const EVP_MD * pEvpMd );
-static int helper_write( helper_digestInfo_t * pInfo, const void * pData, int size );
-static int helper_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size );
-static void * helper_dispose( helper_digestInfo_t * pInfo );
+static helper_digestInfo_t * helper_digestLib_setup( const EVP_MD * pEvpMd );
+static int helper_digestLib_write( helper_digestInfo_t * pInfo, const void * pData, int size );
+static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size );
+static void * helper_digestLib_dispose( helper_digestInfo_t * pInfo );
 
 
 static const luaL_Reg s_if_lib[] = {
@@ -214,7 +214,7 @@ static const char * helper_getErrorTxt( int errorNo ) {
     return NULL;
 }
 
-static void helper_setupObjMethod(
+static void helper_digestLib_setupObjMethod(
     lua_State * pLua, const char * pName, const luaL_Reg * pReg )
 {
     luaL_newmetatable(pLua, pName );
@@ -253,9 +253,9 @@ static void * helper_newUserData(
 
 int luaopen_lctags_Helper( lua_State * pLua )
 {
-    helper_setupObjMethod( pLua, DIGEST_ID, s_digestObj_lib );
-    helper_setupObjMethod( pLua, LOCK_ID, s_lockObj_lib );
-    helper_setupObjMethod( pLua, MQUEUE_ID, s_mqueueObj_lib );
+    helper_digestLib_setupObjMethod( pLua, DIGEST_ID, s_digestObj_lib );
+    helper_digestLib_setupObjMethod( pLua, LOCK_ID, s_lockObj_lib );
+    helper_digestLib_setupObjMethod( pLua, MQUEUE_ID, s_mqueueObj_lib );
 
 #if LUA_VERSION_NUM >= 502
     luaL_newlib( pLua, s_if_lib );
@@ -335,7 +335,6 @@ static int helper_getCurrentTime( lua_State * pLua )
 }
 
 
-
 static int helper_openDigest( lua_State * pLua )
 {
     int index;
@@ -357,14 +356,14 @@ static int helper_openDigest( lua_State * pLua )
         return 0;
     }
     
-    helper_digestInfo_t * pInfo = helper_setup( pMd );
+    helper_digestInfo_t * pInfo = helper_digestLib_setup( pMd );
     if ( pInfo == NULL ) {
         return 0;
     }
     helper_digest_t * pHelper =
         helper_newUserData( pLua, DIGEST_ID, sizeof( *pHelper ) );
     if ( pHelper == NULL ) {
-        helper_dispose( pInfo );
+        helper_digestLib_dispose( pInfo );
         return 0;
     }
     pHelper->pInfo = pInfo;
@@ -544,7 +543,7 @@ static int helper_digest_write( lua_State * pLua )
     size_t size;
     const char * pValue = lua_tolstring( pLua, 2, &size );
 
-    if ( helper_write( pHelper->pInfo, pValue, (int)size ) ) {
+    if ( helper_digestLib_write( pHelper->pInfo, pValue, (int)size ) ) {
         lua_pushboolean( pLua, 1 );
     }
     else {
@@ -562,7 +561,7 @@ static int helper_digest_fix( lua_State * pLua )
     if ( pBuf == NULL ) {
         return 0;
     }
-    if ( helper_fix( pHelper->pInfo, pBuf, pInfo->mdsize ) ) {
+    if ( helper_digestLib_fix( pHelper->pInfo, pBuf, pInfo->mdsize ) ) {
         int index;
         for ( index = pInfo->mdsize - 1; index >= 0 ; index-- ) {
             char buf[ 3 ];
@@ -583,7 +582,7 @@ static int helper_digest_gc( lua_State * pLua )
 {
     helper_digest_t * pHelper = toDigest( pLua );
 
-    helper_dispose( pHelper->pInfo );
+    helper_digestLib_dispose( pHelper->pInfo );
 
     return 0;
 }
@@ -797,7 +796,7 @@ static int helper_mqueue_tostring( lua_State * pLua )
 
 
 
-static helper_digestInfo_t * helper_setup( const EVP_MD * pEvpMd )
+static helper_digestInfo_t * helper_digestLib_setup( const EVP_MD * pEvpMd )
 {
     if ( pEvpMd == NULL ) {
         return NULL;
@@ -820,12 +819,12 @@ static helper_digestInfo_t * helper_setup( const EVP_MD * pEvpMd )
     return pInfo;
 }
 
-static int helper_write( helper_digestInfo_t * pInfo, const void * pData, int size )
+static int helper_digestLib_write( helper_digestInfo_t * pInfo, const void * pData, int size )
 {
     return EVP_DigestUpdate( &pInfo->mctx, pData, size );
 }
 
-static int helper_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size )
+static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size )
 {
     if ( size < pInfo->mdsize ) {
         return 0;
@@ -837,7 +836,7 @@ static int helper_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size )
     return 1;
 }
 
-static void * helper_dispose( helper_digestInfo_t * pInfo )
+static void * helper_digestLib_dispose( helper_digestInfo_t * pInfo )
 {
     EVP_MD_CTX_cleanup( &pInfo->mctx );
 
@@ -846,17 +845,17 @@ static void * helper_dispose( helper_digestInfo_t * pInfo )
     
 #ifdef HELPER_STAND_ALONE
 int main(){
-    helper_digestInfo_t * pInfo = helper_setup( EVP_md5() );
+    helper_digestInfo_t * pInfo = helper_digestLib_setup( EVP_md5() );
 
     if ( pInfo == NULL ) {
         return 1;
     }
 
-    helper_write( pInfo, "123", 3 );
+    helper_digestLib_write( pInfo, "123", 3 );
 
     unsigned char * pData = malloc( pInfo->mdsize );
 
-    helper_fix( pInfo, pData, pInfo->mdsize );
+    helper_digestLib_fix( pInfo, pData, pInfo->mdsize );
 
     int index;
     for ( index = 0; index < pInfo->mdsize; index++ ) {
@@ -864,6 +863,6 @@ int main(){
     }
     printf( "\n" );
 
-    helper_dispose( pInfo );
+    helper_digestLib_dispose( pInfo );
 }
 #endif

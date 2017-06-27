@@ -1945,6 +1945,28 @@ function DBCtrl:getSystemPath( path, baseDir )
    return path
 end
 
+function DBCtrl:convRelativePath( path, currentDir )
+   path = self:getSystemPath( self:convFullpath( path, currentDir ) )
+   if not self:isInProjFile( currentDir ) then
+      -- 現在のディレクトリがプロジェクトディレクトリ外なら除外
+      return path
+   end
+   if not self:isInProjFile( path ) then
+      -- path がプロジェクトディレクトリ外なら除外
+      return path
+   end
+   -- プロジェクトディレクトリからの相対
+   local relative = path:sub( #self.projDir + 2 )
+
+   -- プロジェクトディレクトリからカレントまでの相対
+   local currentDir = currentDir:sub( #self.projDir + 1 )
+   local prefix = ""
+   for name in string.gmatch( currentDir, "[^/]+" ) do
+      prefix = prefix .. "../"
+   end
+   return prefix .. relative
+end
+
 function DBCtrl:convFullpath( path, currentDir )
    if path == "" then
       return ""
@@ -2245,6 +2267,10 @@ function DBCtrl:getFileIdCondition( path, keyName )
       condition = condition .. tostring( fileInfo.id )
    end
    return condition
+end
+
+function DBCtrl:dumpVersion()
+   print( DB_VERSION, self.projDir )
 end
 
 function DBCtrl:dumpTargetInfo( level, path )

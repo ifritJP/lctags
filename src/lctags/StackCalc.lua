@@ -5,6 +5,12 @@ local DynamicCall = require( 'lctags.DynamicCall' )
 
 local StackCalc = { funcNsId2StackInfo = {} }
 
+-- アドレスサイズ. 4Byte ( 32bit )
+local addrSize = 4
+
+-- ループする関数コール(再帰呼び出し等)が最大何回ループするかを指定。
+-- この回数分でスタックを計算する。
+local loopMaxCount = 2
 
 local CompInfo = {}
 function CompInfo:new()
@@ -54,20 +60,21 @@ end
 -- ループしている関数呼び出しを、1度呼び出した場合のスタック使用量を計算する
 function CompInfo:tryLoopFix( parentSize, checkedNsIdSet, funcNsId2StackInfoMap )
    if self.grossMaxSizeLoop1 then
-      return self.grossMaxSizeLoop1
+      return parentSize + self.grossMaxSizeLoop1
    end
    local loopStackSize = self.maxSize
    local calleeForLoopMax
    if not self.maxSize then
       -- 呼び出し関数の最大スタックを解析
       for calleeId, nsInfo in pairs( self.calleeId2NsInfoMap ) do
-	 if checkedNsIdSet[ calleeId ] then
+	 local checkedCount = checkedNsIdSet[ calleeId ] or 0
+	 if checkedCount >= loopMaxCount then
 	    -- loop で解析中
 	    log( 2, "tryLoopFix skip analyzing", nsInfo.name )
 	    loopStackSize = parentSize + self.size
 	 else
 	    log( 2, "tryLoopFix analyzing", nsInfo.name )
-	    checkedNsIdSet[ calleeId ] = -1
+	    checkedNsIdSet[ calleeId ] = checkedCount + 1
 	    local stackInfo = funcNsId2StackInfoMap[ calleeId ]
 	    if stackInfo then
 	       compInfo = stackInfo.comp[1]
@@ -79,7 +86,7 @@ function CompInfo:tryLoopFix( parentSize, checkedNsIdSet, funcNsId2StackInfoMap 
 		  -- 確定していない場合その関数を解決する
 		  log( 2, "tryLoopFix", parentSize + self.size, nsInfo.name )
 		  loopFixSize = compInfo:tryLoopFix(
-		     parentSize + self.size + 4, checkedNsIdSet,
+		     parentSize + self.size + addrSize, checkedNsIdSet,
 		     funcNsId2StackInfoMap )
 	       end
 	       if not loopStackSize or loopFixSize > loopStackSize then
@@ -149,8 +156,8 @@ function CompInfo:tryFix( parentSize, funcNsId2StackInfoMap )
 	 if stackInfo then
 	    compInfo = stackInfo.comp[1]
 	    if compInfo.grossMaxSize then
-	       if calleeMaxSize < compInfo.grossMaxSize + 4 then
-		  calleeMaxSize = compInfo.grossMaxSize + 4
+	       if calleeMaxSize < compInfo.grossMaxSize + addrSize then
+		  calleeMaxSize = compInfo.grossMaxSize + addrSize
 		  calleeForMax = nsInfo
 	       end
 	       table.insert( fixedCalleeList, calleeId )
@@ -168,7 +175,7 @@ function CompInfo:tryFix( parentSize, funcNsId2StackInfoMap )
 	 -- 全ての呼び出し関数のサイズが確定したらサイズを更新する
 	 self.maxSize = parentSize + self.size + calleeMaxSize
 	 self.calleeForMax = calleeForMax
-	 log( 2, "tryFix maxSize", calleeForMax and calleeForMax.name )
+	 log( 2, "tryFix maxSize", self.maxSize, calleeForMax and calleeForMax.name )
       end
    end
    
@@ -199,6 +206,8 @@ function CompInfo:tryFix( parentSize, funcNsId2StackInfoMap )
 	 self.grossMaxSize = parentSize + self.childMaxSize
 	 self.grossCalleeForMax = self.childCalleeForMax
       end
+      self.grossMaxSizeLoop1 = self.grossMaxSize
+      self.grossCalleeForMaxLoop1 = self.grossCalleeForMax
       return true
    end
 
@@ -286,14 +295,24 @@ function dumpStack( compInfo, parentSize )
    if not parentSize then
       parentSize = 0
    end
-   -- if #compInfo.child > 0 then
-   --    for index, childInfo in ipairs( compInfo.child ) do
-   -- 	 dumpStack( childInfo, parentSize + compInfo.size )
-   --    end
-   -- end
-   log( 1, "stack size = ", compInfo.size + parentSize, 
-	compInfo.grossMaxSizeLoop1,
-	compInfo.grossCalleeForMaxLoop1 and compInfo.grossCalleeForMaxLoop1.name )
+
+   if compInfo.grossMaxSizeLoop1 then
+      log( 1, "stack size loop1 = ", compInfo.size + parentSize, 
+	   compInfo.grossMaxSizeLoop1,
+	   compInfo.grossCalleeForMaxLoop1 and compInfo.grossCalleeForMaxLoop1.name )
+   else
+      log( 1, "stack size = ", compInfo.size + parentSize, 
+	   compInfo.grossMaxSize,
+	   compInfo.grossCalleeForMax and compInfo.grossCalleeForMax.name )
+      if #compInfo.child > 0 then
+	 for index, childInfo in ipairs( compInfo.child ) do
+	    dumpStack( childInfo, parentSize + compInfo.size )
+	 end
+      end
+      for calleeId, nsInfo in pairs( compInfo.calleeId2NsInfoMap ) do
+	 log( 2, "callee", nsInfo.name )
+      end
+   end
 end
 
 function visitFunc( cursor, parent, stackCalc, exInfo )
@@ -348,7 +367,9 @@ function StackCalc:addVarSize( cursor )
       if stackInfo then
 	 local compInfo = stackInfo.comp[ #stackInfo.comp ]
 	 compInfo.size = compInfo.size + size
-      end	 
+      end
+   else
+      log( 2, "cound not getsize", cxtype:getTypeSpelling() )
    end
 end
 
