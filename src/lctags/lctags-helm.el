@@ -3,18 +3,16 @@
 
 (defvar lctags-anything nil)
 
-(when (not lctags-anything)
-  (require 'helm))
-  
-
 (defvar lctags-heml-map
-  (let (map)
-    (if lctags-anything
-	(setq map (copy-keymap anything-map))
-      (setq map (copy-keymap helm-map)))
-    (define-key map (kbd "C-M-f")   'lctags-helm-type-forward)
-    (define-key map (kbd "C-M-b")   'lctags-helm-type-backward)
-    (delq nil map))
+  (if lctags-anything
+      (let ((map (copy-keymap anything-map)))
+	(define-key map (kbd "C-M-f")   'lctags-anything-type-forward)
+	(define-key map (kbd "C-M-b")   'lctags-anything-type-backward)
+	(delq nil map))
+    (let ((map (copy-keymap helm-map)))
+	(define-key map (kbd "C-M-f")   'lctags-heml-type-forward)
+	(define-key map (kbd "C-M-b")   'lctags-heml-type-backward)
+	(delq nil map)))
   "Keymap")
 
 (defun lctags-helm-select (item)
@@ -131,7 +129,7 @@
 	    (setq preselect
 		  (car (lctags-helm-make-candidates
 			(plist-get (car lctags-candidate-history) :select))))
-	    (with-current-buffer (lctags-get-helm-current-buffer)
+	    (with-current-buffer anything-current-buffer
 	      (delete-region (plist-get prev :point) (point)))
 	    (setq lctags-candidate-history (cdr lctags-candidate-history))
 	    ))
@@ -272,22 +270,10 @@
       (backward-char))))
 
 
-(when lctags-anything
-  (defalias helm-get-selection anything-get-selection)
-  (defalias helm-exit-minibuffer anything-exit-minibuffer)
-  )
-
-(defun lctags-get-helm-current-buffer ()
-  (if lctags-anything
-      anything-current-buffer
-    helm-current-buffer))
-
-
-
-(defun* lctags-helm-type-forward (&optional (attr 'persistent-action) onewindow)
+(defun* lctags-anything-type-forward (&optional (attr 'persistent-action) onewindow)
   (interactive)
 
-  (let ((info (helm-get-selection))
+  (let ((info (anything-get-selection))
 	hash typeInfo)
     (setq hash (lctags-candidate-item-get-hash info))
     (setq typeInfo (lctags-candidate-get-typeInfo
@@ -297,7 +283,7 @@
 				(symbol-function 'lctags-helm-make-candidates)
 				(car typeInfo))))
       (setq lctags-candidate-expand :forward)
-      (with-current-buffer (lctags-get-helm-current-buffer)
+      (with-current-buffer anything-current-buffer
 	(setq lctags-candidate-history
 	      (append `((:candidate ((name . ,(format "expand:%s"
 						     (lctags-candidate-item-get-type info)))
@@ -307,14 +293,14 @@
 				    :point ,(point)
 				    ))
 		      lctags-candidate-history))))
-    (helm-exit-minibuffer)
+    (anything-exit-minibuffer)
     )
   )
 
-(defun* lctags-helm-type-backward (&optional (attr 'persistent-action) onewindow)
+(defun* lctags-anything-type-backward (&optional (attr 'persistent-action) onewindow)
   (interactive)
   (setq lctags-candidate-expand :back)
-  (helm-exit-minibuffer)
+  (anything-exit-minibuffer)
   )
 
 

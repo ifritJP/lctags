@@ -314,6 +314,10 @@ lctags.el は、マイナーモードの機能を提供します。
 
 [[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8557f03cd8d88d3329998db13b6567f37d706120/complete.gif]]
 
+メンバーが構造体の場合、 C-M-f でさらに展開します。 C-M-b で展開を戻します。
+
+https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif
+
 ファイルを変更している場合、補完が正常に動作しない場合があります。
 一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
 
