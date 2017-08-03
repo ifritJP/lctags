@@ -126,6 +126,7 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <complete>
 <prefix></prefix>
+<frontExpr>pClass-></frontExpr>
 
 <candidate>
 <canonical>pCallback( TEST * pTest )</canonical>
@@ -225,6 +226,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <complete>
 <prefix></prefix>
+<frontExpr>val.</frontExpr>
 
 <candidate>
 <canonical>pCallback( TEST * pTest )</canonical>
@@ -405,6 +407,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <complete>
 <prefix>me</prefix>
+<frontExpr>pTest1-></frontExpr>
 
 <candidate>
 <canonical>member</canonical>
@@ -428,6 +431,7 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <complete>
 <prefix></prefix>
+<frontExpr>pTest1->pTest-></frontExpr>
 
 <candidate>
 <canonical>pTest</canonical>
@@ -549,6 +553,7 @@ lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <complete>
 <prefix>f</prefix>
+<frontExpr>hoge()-></frontExpr>
 
 <candidate>
 <canonical>func()</canonical>
@@ -572,6 +577,7 @@ lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <complete>
 <prefix>s</prefix>
+<frontExpr>hoge(1,2)-></frontExpr>
 
 <candidate>
 <canonical>sub()</canonical>
@@ -595,6 +601,7 @@ lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <complete>
 <prefix></prefix>
+<frontExpr>((Test1*)NULL)-></frontExpr>
 
 <candidate>
 <canonical>member</canonical>
@@ -654,6 +661,7 @@ lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <complete>
 <prefix>f</prefix>
+<frontExpr>((Test1*)NULL)-></frontExpr>
 
 <candidate>
 <canonical>func()</canonical>
@@ -1805,6 +1813,7 @@ lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
 lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
 <complete>
 <prefix></prefix>
+<frontExpr>aaa.</frontExpr>
 
 <candidate>
 <canonical>val1</canonical>
@@ -1869,6 +1878,7 @@ lua lctags/lctags.lua comp-at test/comp13.cpp 3 8
 lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
 <complete>
 <prefix></prefix>
+<frontExpr>func()-></frontExpr>
 
 <candidate>
 <canonical>func()</canonical>
@@ -1950,6 +1960,245 @@ lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
 lua lctags/lctags.lua comp-at test/class2.cpp 13 10
 <complete>
 <prefix></prefix>
+<frontExpr>this-></frontExpr>
 
-makefile:258: recipe for target 'test-query' failed
+<candidate>
+<canonical>val1</canonical>
+<simple>val1</simple>
+<expand></expand>
+<kind>m</kind>
+<type>int</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>2</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>2</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val2</canonical>
+<simple>val2</simple>
+<expand></expand>
+<kind>m</kind>
+<type>int</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>6</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>6</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val3</canonical>
+<simple>val3</simple>
+<expand></expand>
+<kind>m</kind>
+<type>int</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>11</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>11</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>func()</canonical>
+<simple>func()</simple>
+<expand></expand>
+<kind>f</kind>
+<type>void ()</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class2.cpp</file>
+<startPos>
+<line>12</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>14</line>
+<column>4</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/class3.cpp 16 10
+<complete>
+<prefix></prefix>
+<frontExpr>this-></frontExpr>
+
+<candidate>
+<canonical>val1</canonical>
+<simple>val1</simple>
+<expand></expand>
+<kind>m</kind>
+<type>int</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>3</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>3</line>
+<column>11</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val2</canonical>
+<simple>val2</simple>
+<expand></expand>
+<kind>m</kind>
+<type>T</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>8</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>8</line>
+<column>9</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>val3</canonical>
+<simple>val3</simple>
+<expand></expand>
+<kind>m</kind>
+<type>T</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>14</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>14</line>
+<column>9</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>func(T)</canonical>
+<simple>func(T)</simple>
+<expand></expand>
+<kind>f</kind>
+<type>Super2&lt;T&gt; (T)</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class3.cpp</file>
+<startPos>
+<line>15</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>17</line>
+<column>4</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/class4.cpp 11 7
+<complete>
+<prefix></prefix>
+<frontExpr>val.</frontExpr>
+
+<candidate>
+<canonical>eeee</canonical>
+<simple>eeee</simple>
+<expand></expand>
+<kind>m</kind>
+<type>int</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class4.cpp</file>
+<startPos>
+<line>4</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>4</line>
+<column>11</column>
+</endPos>
+</candidate>
+</complete>
+lua lctags/lctags.lua comp-at test/class5.cpp 24 6
+<complete>
+<prefix></prefix>
+<frontExpr>tmp.</frontExpr>
+
+<candidate>
+<canonical>s_val</canonical>
+<simple>s_val</simple>
+<expand>.</expand>
+<kind>m</kind>
+<type>const tmp_t</type>
+<hash>ce499dea30cfce118f4fe85da0227e83</hash>
+<val></val>
+<file>PWD/test/class5.cpp</file>
+<startPos>
+<line>5</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>5</line>
+<column>20</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>aaaaaa(const T1 &amp;)</canonical>
+<simple>aaaaaa(const T1 &amp;)</simple>
+<expand></expand>
+<kind>f</kind>
+<type>T2 (const T1 &amp;) const</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class5.cpp</file>
+<startPos>
+<line>10</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>13</line>
+<column>4</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>bbbbbb(const T1 &amp;)</canonical>
+<simple>bbbbbb(const T1 &amp;)</simple>
+<expand></expand>
+<kind>f</kind>
+<type>T2 (const T1 &amp;) const</type>
+<hash></hash>
+<val></val>
+<file>PWD/test/class5.cpp</file>
+<startPos>
+<line>15</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>18</line>
+<column>4</column>
+</endPos>
+</candidate>
+<typeInfo>
+<hash>ce499dea30cfce118f4fe85da0227e83</hash>
+
+</typeInfo>
+</complete>
 make[1]: Leaving directory 'PWD'

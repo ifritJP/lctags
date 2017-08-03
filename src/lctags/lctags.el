@@ -65,7 +65,7 @@ This parameter can set function and string.
   (run-hooks 'lctags-mode-hook)
   )
 
-(defun lctags-execute (src-buf lctags-buf input &rest lctags-opts)
+(defun lctags-execute-op (src-buf lctags-buf input async lctags-opts)
   (let ((db-path lctags-db)
 	(target lctags-target)
 	(config lctags-conf)
@@ -94,15 +94,31 @@ This parameter can set function and string.
 			  )))
       (when input
 	(insert input))
-      (setq command
-	    (append (list (point-min) (point-max) lctags-command
-			  nil lctags-buf nil )
-		    command))
-	    
-      (apply 'call-process-region command))
+      (if async
+	  (let (process)
+	    (setq command
+		  (append (list "lctags-process" lctags-buf lctags-command)
+			  command))
+	    (setq process (apply 'start-process command))
+	    (process-send-string process (buffer-string))
+	    (run-with-timer 1 nil 'lctags-process-scroll lctags-buf) )
+	(setq command
+	      (append (list (point-min) (point-max) lctags-command
+			    nil lctags-buf nil )
+		      command))
+	(apply 'call-process-region command)))
     (with-current-buffer lctags-buf
-      (goto-char 1))))
+      (goto-char (point-min))
+      )))
 
+(defun lctags-execute (src-buf lctags-buf input &rest lctags-opts)
+  (lctags-execute-op src-buf lctags-buf input nil lctags-opts))
+
+(defun lctags-process-scroll (lctags-buf)
+  (with-current-buffer lctags-buf
+    (goto-char (point-max))
+    (recenter)
+    ))
 
 (defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
   (let ((save (current-buffer))
@@ -280,8 +296,9 @@ This parameter can set function and string.
   (let ((buffer (lctags-get-process-buffer t))
 	(org-buf (current-buffer))
 	(file-name (buffer-file-name)))
-    (with-current-buffer buffer
-      (lctags-execute org-buf buffer nil "update" file-name "--lctags-log" "2" ))))
+    (switch-to-buffer-other-window buffer)
+    (lctags-execute-op org-buf buffer nil t
+		       (list "update" file-name "--lctags-log" "2" ))))
 
 (defun lctags-get-namespace-at ()
   (let ((line (1- (current-line)))

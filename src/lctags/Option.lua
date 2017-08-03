@@ -38,7 +38,7 @@ usage:
    %s statusServer <start|stop|wait>
    %s status
  - query DB
-   %s dump <ver|all|target|file|ref|def|call|inc|digest|prepro> [path]
+   %s dump <ver|all|target|targetList|file|ref|def|call|inc|digest|prepro> [path]
    %s ref-at[a] [--lctags-target target] [-i] file line column 
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
@@ -58,6 +58,7 @@ usage:
    %s shrink [--lctags-db path]
    %s chkFiles [--lctags-db path]
    %s chg-proj projDir [--lctags-db path]
+   %s set-projDir projDir [--lctags-db path]
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -204,6 +205,8 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.query = "dump"
 	    if argList[ index + 1 ] == "target" then
 	       lctagOptMap.query = "dumpTarget"
+	    elseif argList[ index + 1 ] == "targetList" then
+	       lctagOptMap.query = "dumpTargetList"
 	    elseif argList[ index + 1 ] == "file" then
 	       lctagOptMap.query = "dumpFile"
 	    elseif argList[ index + 1 ] == "all" then
@@ -241,9 +244,15 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.depth = 100
 	    end
 	    skipArgNum = 1
+	 elseif arg == "set-projDir" then
+	    lctagOptMap.mode = arg
+	    lctagOptMap.projDir = argList[ index + 1 ]
+	    skipArgNum = 1
 	 elseif arg == "comp-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "inq-at" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "expand" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "chkFiles" then
 	    lctagOptMap.mode = arg
@@ -375,7 +384,8 @@ function Option:analyzeOption( argList )
 	       end
 	       local argType, argTxt = converter:convert( arg )
 	       if argType == "src" then
-		  table.insert( srcList, argTxt )	       elseif argType == "opt" then
+		  table.insert( srcList, argTxt )
+	       elseif argType == "opt" then
 		  table.insert( optList, argTxt )
 	       end
 	    elseif processMode == nil then

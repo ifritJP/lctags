@@ -85,7 +85,8 @@ local function createCandidate(
 end
 
 
--- startIndex 以降で () の終端を検索する
+-- startIndex 以降から lastIndex までで ) を検索する。
+-- 途中に () ペアがある場合は無視する
 function Complete:searchParenEnd( tokenInfoList, startIndex, lastIndex )
    local num = 1
    for index = startIndex, lastIndex do
@@ -102,7 +103,7 @@ function Complete:searchParenEnd( tokenInfoList, startIndex, lastIndex )
    return nil
 end
 
--- startIndex 以前で () の開始を検索する
+-- lastIndex 以前から startIndex の間で、閉じられていない ( を検索する。 
 function Complete:searchParenBegin( tokenInfoList, startIndex, lastIndex )
    log( 2, "searchParenBegin", startIndex, lastIndex )
    local num = 1
@@ -121,8 +122,21 @@ function Complete:searchParenBegin( tokenInfoList, startIndex, lastIndex )
 end
 
 
+-- lastIndex 以前から startIndex の間で token を検索する。 
+function Complete:searchToken( tokenInfoList, startIndex, lastIndex, targetToken )
+   log( 2, "searchChar", startIndex, lastIndex )
+   for index = lastIndex, startIndex, -1 do
+      local token = tokenInfoList[ index ].token
+      if token == targetToken then
+	 return index
+      end
+   end
+   return nil
+end
+
+
 function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
-   -- 解析対象の式を決定する
+   -- startIndex 〜 checkIndex の中で解析対象の式を決定する
 
 
    local blockStartIndex
@@ -146,11 +160,12 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
       blockStartIndex = startIndex
    end
    
-   -- blockStartIndex 〜 checkIndex までにはブロックはない
-   -- blockStartIndex 〜 checkIndex の式を分離
+   -- blockStartIndex 〜 checkIndex までにはブロックはない。
+   -- 以降で blockStartIndex 〜 checkIndex の式を分離する
 
    local statementStartIndex = blockStartIndex
    log( 2, "statementStartIndex", statementStartIndex, checkIndex )
+
    
    local index = blockStartIndex
    while index < checkIndex do
@@ -164,33 +179,27 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 	 else
 	    local endIndex = self:searchParenEnd( tokenInfoList, index + 1, checkIndex )
 	    if not endIndex then
-	       -- 条件式の中が補完対象
-	       if token == "if" or token == "while" then
-		  local parenIndex = self:checkStatement(
-		     tokenInfoList, index + 1, checkIndex )
-		  if parenIndex then
-		     if parenIndex < checkIndex then
-			parenIndex = parenIndex + 1
-		     end
-		     return statementStartIndex, parenIndex, statementStartIndex
-		  end
-	       end
-	       
-	       log( 2, "this is in condition. not support" )
-	       return nil, index, statementStartIndex
+	       -- 条件式の中が補完対象。
+	       -- この場合は "(" の token 処理にまかせる。
+	       index = index + 1
+	    else
+	       -- 補完対象は条件式内に無いので、条件式は処理対象から外す。
+	       index = endIndex + 1
 	    end
-	    index = endIndex + 1
 	 end
       elseif token == "(" then
 	 local endIndex = self:searchParenEnd( tokenInfoList, index + 1, checkIndex )
 	 if not endIndex then
 	    -- カッコ中が補完対象
-	    local parenIndex = self:checkStatement(
+	    log( 2, "paren start" )
+	    local parenIndex, incompletionIndex, syntaxStartIndex = self:checkStatement(
 	       tokenInfoList, index + 1, checkIndex )
+	    log( 2, "paren", parenIndex, incompletionIndex, syntaxStartIndex )
 	    if parenIndex then
-	       if parenIndex < checkIndex then
-		  parenIndex = parenIndex + 1
+	       if incompletionIndex then
+		  parenIndex = incompletionIndex
 	       end
+	       log( 2, "paren2", statementStartIndex, parenIndex )
 	       return statementStartIndex, parenIndex
 	    end
 	    
@@ -230,7 +239,7 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 	 index = index - 1
       elseif string.find( token, "[%+%-%/%%%^%*%&%|%>%<%=%(,;]" ) then
 	 -- + - * / % ^ & | > < = ( , ; の場合
-	 log( 2, "search end", statementStartIndex, index + 1 )
+	 log( 2, "search end", statementStartIndex, index + 1, token )
 	 return statementStartIndex, index + 1, statementStartIndex
       else
 	 index = index - 1
@@ -246,9 +255,11 @@ end
 
 function Complete:concatToken(
       fileHandle, depthList, tokenInfoList, targetIndex,
-      startIndex, endIndex, newLineNo, newColmun )
+      startIndex, endIndex, newLineNo, newColmun, compMode )
 
-   log( 2, "concatToken", targetIndex, startIndex, endIndex )
+   log( 2, "concatToken", targetIndex, startIndex, endIndex, compMode )
+
+   local targetToken
    
    local targetLine
    local targetColmun
@@ -272,12 +283,25 @@ function Complete:concatToken(
 	 else
 	    fileHandle:write( string.rep( ' ', aColumn - newColmun ) )
 	 end
-	 fileHandle:write( token )
-	 newColmun = aColumn + #token
+
+	 if compMode == "expand" and index == targetIndex then
+	    -- 型名だけだと clang の解析に失敗するので sizeof を付ける
+	    local sizeofToken = "sizeof(" .. token .. ")"
+	    fileHandle:write( sizeofToken )
+	    newColmun = aColumn + #sizeofToken
+	 else
+	    fileHandle:write( token )
+	    newColmun = aColumn + #token
+	 end
 
 	 if index == targetIndex then
 	    targetLine = newLineNo
-	    targetColmun = newColmun - 1
+	    if compMode == "expand" then
+	       targetColmun = newColmun - 2
+	    else
+	       targetColmun = newColmun - 1
+	    end
+	    targetToken = token
 	    log( 2, "decide target pos", token, targetLine, targetColmun )
 	 end
 
@@ -291,7 +315,7 @@ function Complete:concatToken(
 
    log( 2, newLineNo, newColmun, targetLine, targetColmun, prevLine )
    
-   return newLineNo, newColmun, targetLine, targetColmun, prevLine
+   return newLineNo, newColmun, targetLine, targetColmun, targetToken
 end
 
 -- tokenInfoList に格納されているトークンから解析用ソースコードを生成する
@@ -316,6 +340,13 @@ function Complete:createSourceForAnalyzing(
 	 prefix = ""
 	 targetIndex = checkIndex - 1
 	 checkIndex = checkIndex - 1
+      elseif tokenInfoList[ checkIndex ].token == '=' or
+	 tokenInfoList[ checkIndex ].token == '=='
+      then
+	 compMode = "set"
+	 prefix = ""
+	 targetIndex = checkIndex - 1
+	 checkIndex = checkIndex - 1
       elseif string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
 	 -- シンボル
 	 compMode = "symbol"
@@ -332,6 +363,9 @@ function Complete:createSourceForAnalyzing(
 	    checkIndex = checkIndex - 1
 	 end
       end
+   elseif mode == "expand" then
+      compMode = "expand"
+      prefix = ""
    else
       if string.find( tokenInfoList[ checkIndex ].token, "^[%a_]+" ) then
 	 -- シンボル
@@ -351,7 +385,7 @@ function Complete:createSourceForAnalyzing(
       self:checkStatement( tokenInfoList, nil, checkIndex )
 
    log( 2, "decide statementStartIndex",
-	statementStartIndex, incompletionIndex, targetIndex, checkIndex )
+	statementStartIndex, incompletionIndex, targetIndex, checkIndex, syntaxStartIndex )
 
 
    local fileHandle = {
@@ -467,19 +501,20 @@ function Complete:createSourceForAnalyzing(
 
    local targetLine
    local targetColmun
+   local targetToken
    
    local frontSyntax = ""
-   newLineNo, newColmun, targetLine, targetColmun = self:concatToken(
+   newLineNo, newColmun, targetLine, targetColmun, targetToken = self:concatToken(
       fileHandle, depthList, tokenInfoList, targetIndex,
-      rawEndTokenIndex + 1, statementStartIndex, newLineNo, newColmun )
+      rawEndTokenIndex + 1, statementStartIndex, newLineNo, newColmun, compMode )
 
    if incompletionIndex then
-      newLineNo, newColmun, targetLine, targetColmun = self:concatToken(
+      newLineNo, newColmun, targetLine, targetColmun, targetToken = self:concatToken(
 	 fileHandle, depthList, tokenInfoList, targetIndex,
-	 incompletionIndex, checkIndex, newLineNo, newColmun )
+	 incompletionIndex, checkIndex, newLineNo, newColmun, compMode )
    end
 
-   if compMode == "member" and syntaxStartIndex then
+   if ( compMode == "member" or compMode == "expand" ) and syntaxStartIndex then
       local workHandle = {
 	 __txt = "",
 	 write = function( self, txt )
@@ -490,6 +525,7 @@ function Complete:createSourceForAnalyzing(
 	 workHandle, depthList, tokenInfoList, targetIndex,
 	 syntaxStartIndex, checkIndex, newLineNo, newColmun )
       frontSyntax = string.gsub( workHandle.__txt, "%s", "" )
+      log( 2, "frontSyntax", frontSyntax )
    end
 
    fileHandle:write( ';' )
@@ -511,13 +547,38 @@ function Complete:createSourceForAnalyzing(
    end
    
    log( 3, fileHandle.__txt )
-   log( 3, "tgt:", targetLine, targetColmun )
+   log( 2, "tgt:", targetLine, targetColmun, prefix, targetToken )
 
-   return fileHandle.__txt, targetLine, targetColmun, prefix, compMode, frontSyntax
+   return fileHandle.__txt, targetLine, targetColmun, prefix, compMode, frontSyntax, targetToken
 end
 
 
 function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
+   print( string.format(
+	     [=[
+<complete>
+<prefix>%s</prefix>
+]=], prefix ) )
+
+   self:completeSymbolFunc(
+      db, path, cursor, compMode, prefix, frontSyntax,
+      function( item, nsInfo )
+	 local fileInfo = db:getFileInfo( item.fileId )
+	 local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
+	 simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
+	 print( createCandidate(
+		   nsInfo.name, simpleName, "",
+		   item.type, "", "", db:getSystemPath( fileInfo.path ),
+		   item.line, item.column, item.endLine, item.endColmun ) )
+      end
+   )
+			    
+   print( '</complete>' )
+end
+
+
+function Complete:completeSymbolFunc(
+      db, path, cursor, compMode, prefix, frontSyntax, func )
    if compMode == "symbol" then
       frontSyntax = ""
    end
@@ -622,12 +683,6 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
    local incFileIdSet = db:getIncludeCache( fileInfo )
    incFileIdSet[ fileInfo.id ] = 1
    
-   print( string.format(
-	     [=[
-<complete>
-<prefix>%s</prefix>
-]=], prefix ) )
-
    if enumCount > 100 then
       -- enum 値の場合、DB の問い合わせを削減するため親の enum 型の定義情報を使う
       local readyCount = 0
@@ -643,15 +698,7 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
 		     readyCount = readyCount + 1
 		     readyEnumNsInfoSet[ item.nsId ] = 1
 		     if incFileIdSet[ item.fileId ] and workNsInfo then
-			local fileInfo = db:getFileInfo( item.fileId )
-			local simpleName = string.gsub( workNsInfo.name, "::%d+$", "" )
-			simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
-			print( createCandidate(
-				  workNsInfo.name, simpleName, "",
-				  item.type, "", "",
-				  db:getSystemPath( fileInfo.path ),
-				  item.line, item.column, item.endLine,
-				  item.endColmun ) )
+			func( item, workNsInfo )
 		     end
 		  end
 		  return true
@@ -681,13 +728,7 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
 	    log( 3, "decl", nsInfo.id, item.fileId, nsInfo.name, fileInfo.path )
 
 	    if incFileIdSet[ item.fileId ] then
-	       local fileInfo = db:getFileInfo( item.fileId )
-	       local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
-	       simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
-	       print( createCandidate(
-			 nsInfo.name, simpleName, "",
-			 item.type, "", "", db:getSystemPath( fileInfo.path ),
-			 item.line, item.column, item.endLine, item.endColmun ) )
+	       func( item, nsInfo )
 	       return false
 	    end
 	    return true
@@ -706,22 +747,16 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
 	    nsInfo.id,
 	    function( item )
 	       log( 3, "decl", nsInfo.id, item.fileId, nsInfo.name )
-	       local fileInfo = db:getFileInfo( item.fileId )
-	       local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
-	       simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
-	       print( createCandidate(
-			 nsInfo.name, simpleName, "",
-			 item.type, "", "", db:getSystemPath( fileInfo.path ),
-			 item.line, item.column, item.endLine, item.endColmun ) )
+	       func( item, nsInfo )
 	       return false
 	    end
 	 )
       end
    end
-
-   
-   print( '</complete>' )
 end
+
+
+
 
 
 local function getCursorAt( transUnit, filepath, line, column )
@@ -736,7 +771,10 @@ local function getRootType( cursor )
    local kind = cursor:getCursorKind()
 
    if kind == clang.core.CXCursor_TypedefDecl then
-      cxtype = cursor:getTypedefDeclUnderlyingType()
+      local cxtype = cursor:getTypedefDeclUnderlyingType()
+      while clang.isPointerType( cxtype ) do
+	 cxtype = cxtype:getPointeeType()
+      end
       local resultType = cxtype:getResultType()
       local work = clang.getDeclCursorFromType( cxtype )
       if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
@@ -744,7 +782,11 @@ local function getRootType( cursor )
       end
       return getRootType( work )
    end
-   return cursor:getCursorType()
+   local cxtype = cursor:getCursorType()
+   while clang.isPointerType( cxtype ) do
+      cxtype = cxtype:getPointeeType()
+   end
+   return cxtype
 end
 
 -- cursor で定義している型の基本型の cursor を返す
@@ -753,7 +795,6 @@ local function getRootTypeCursor( cursor )
 
    if kind == clang.core.CXCursor_TypedefDecl then
       cxtype = cursor:getTypedefDeclUnderlyingType()
-      local resultType = cxtype:getResultType()
       local work = clang.getDeclCursorFromType( cxtype )
       if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
 	 return cursor
@@ -770,46 +811,56 @@ local function calcDigest( txt )
    return digest:fix()
 end
 
-
-local function outputCandidate( db, prefix, typeCursor, hash2typeMap )
-   local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
-      local name = aCursor:getCursorSpelling()
-      local childKind = aCursor:getCursorKind()
-      log( 2, "visitFunc", aCursor:getCursorSpelling(),
-	   clang.getCursorKindSpelling( childKind ) )
-      if childKind == clang.core.CXCursor_CXXBaseSpecifier then
-	 local superDecl = aCursor:getCursorReferenced()
-	 log( 2, "super", superDecl:getCursorSpelling() )
-	 clang.visitChildrenFast(
-	    superDecl, visitFunc, anonymousDeclList, nil, 1 )
-	 return
+local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
+   local name = aCursor:getCursorSpelling()
+   local childKind = aCursor:getCursorKind()
+   log( 2, "outputCandidate", aCursor:getCursorSpelling(),
+	clang.getCursorKindSpelling( childKind ) )
+   if childKind == clang.core.CXCursor_CXXBaseSpecifier then
+      local superDecl = aCursor:getCursorReferenced()
+      log( 2, "super", superDecl:getCursorSpelling() )
+      local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
+	 outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
       end
-      if childKind == clang.core.CXCursor_FieldDecl or
-	 childKind == clang.core.CXCursor_CXXMethod or
-	 childKind == clang.core.CXCursor_EnumConstantDecl
-      then
-	 local cxtype = aCursor:getCursorType()
-	 local typeDecl = cxtype:getTypeDeclaration()
-	 
-	 for index, anonymousDecl in ipairs( anonymousDeclList ) do
-	    if anonymousDecl:hashCursor() == typeDecl:hashCursor() then
-	       table.remove( anonymousDeclList, index )
-	       break
-	    end
+      clang.visitChildrenFast(
+	 superDecl, visitFunc, anonymousDeclList, nil, 1 )
+      return
+   end
+   if childKind == clang.core.CXCursor_FieldDecl or
+      childKind == clang.core.CXCursor_CXXMethod or
+      childKind == clang.core.CXCursor_FunctionDecl or
+      childKind == clang.core.CXCursor_EnumConstantDecl
+   then
+      local cxtype = aCursor:getCursorType()
+      local typeDecl = cxtype:getTypeDeclaration()
+      
+      for index, anonymousDecl in ipairs( anonymousDeclList ) do
+	 if anonymousDecl:hashCursor() == typeDecl:hashCursor() then
+	    table.remove( anonymousDeclList, index )
+	    break
 	 end
-	 
-	 local typeName = cxtype:getTypeSpelling()
-	 local startInfo, endInfo = db:getRangeFromCursor( aCursor )
-	 local fileInfo = startInfo and startInfo[ 1 ] and db:getFileInfo(
-	    nil, startInfo[ 1 ]:getFileName() )
-	 
-	 if prefix == "" or string.find( name, prefix, 1, true ) == 1 then
+      end
+      
+      local typeName = cxtype:getTypeSpelling()
+      local startInfo, endInfo = db:getRangeFromCursor( aCursor )
+      local fileInfo = startInfo and startInfo[ 1 ] and db:getFileInfo(
+	 nil, startInfo[ 1 ]:getFileName() )
 
-	    local typeCursor = clang.getDeclCursorFromType( cxtype )
-	    local rootType = getRootType( typeCursor )
+      if prefix == "" or string.find( name, prefix, 1, true ) == 1 then
+
+	 local typeCursor
+	 local digest = ""
+	 local expand = ""
+	 local rootType
+	 if childKind == clang.core.CXCursor_CXXMethod or
+	    childKind == clang.core.CXCursor_FunctionDecl
+	 then
+	    typeCursor = aCursor
+	    rootType = cxtype
+	 else
+	    typeCursor = clang.getDeclCursorFromType( cxtype )
+	    rootType = getRootType( typeCursor )
 	    local rootTypeSpell = rootType:getTypeSpelling()
-	    local expand = ""
-	    local digest = ""
 	    if rootTypeSpell ~= "" then
 	       digest = calcDigest( rootTypeSpell )
 	       hash2typeMap[ digest ] = rootType
@@ -819,36 +870,62 @@ local function outputCandidate( db, prefix, typeCursor, hash2typeMap )
 		  expand = "."
 	       end
 	    end
+	 end
 
-	    local resultType = rootType:getResultType()
-	    if resultType.kind ~= clang.core.CXType_Invalid then
+	 local resultType = rootType:getResultType()
+	 log( 2, "outputCandidate: rootType",
+	      rootType:getTypeSpelling(), resultType:getTypeSpelling() )
+	 if resultType.kind ~= clang.core.CXType_Invalid then
+	    local str
+	 
+	    if childKind == clang.core.CXCursor_CXXMethod or
+	       childKind == clang.core.CXCursor_FunctionDecl
+	    then
+	       if childKind == clang.core.CXCursor_CXXMethod then
+		  str = typeName
+	       else
+		  str = clang.getCurosrPlainText( typeCursor.__ptr )
+		  str = string.gsub( str, '{.*$', '' )
+	       end
+	       str = string.gsub( str, '.*%(', "(" )
+	       str = string.gsub( str, "const$", "" )
+	    else
 	       childKind = clang.core.CXCursor_FunctionDecl
 	       local rootCursor = getRootTypeCursor( typeCursor )
-	       local str = clang.getCurosrPlainText( rootCursor.__ptr )
-	       str = string.gsub( str, '.*' .. name .. '.*%(', "(" )
-	       local args = string.gsub( str, ";", "" )
-	       args = string.gsub( args, "[\n\t]", ' ' )
-	       args = string.gsub( args, " +", " " )
-	       args = string.gsub( args, " +$", "" )
-	       name = name .. args
+	       str = clang.getCurosrPlainText( rootCursor.__ptr )
+	       str = string.gsub( str, '.*%).*%(', "(" )
 	    end
+	    str = string.gsub( str, ' ,', "," )
+	    local args = string.gsub( str, ";", "" )
+	    args = string.gsub( args, "[\n\t]", ' ' )
+	    args = string.gsub( args, " +", " " )
+	    args = string.gsub( args, " +$", "" )
+	    args = string.gsub( args, "%( *void *%)$", "()" )
+	    name = name .. args
+	 end
 
-	    
-	    print( createCandidate(
-		      name, name, expand, childKind, typeName, digest,
-		      fileInfo and db:getSystemPath( fileInfo.path ) or "",
-		      startInfo and startInfo[ 2 ],
-		      startInfo and startInfo[ 3 ],
-		      endInfo and endInfo[ 2 ],
-		      endInfo and endInfo[ 3 ] ) )
-	 end
-      elseif childKind == clang.core.CXCursor_StructDecl or
-	 childKind == clang.core.CXCursor_UnionDecl
-      then
-	 if name == "" then
-	    table.insert( anonymousDeclList, aCursor )
-	 end
+	 
+	 print( createCandidate(
+		   name, name, expand, childKind, typeName, digest,
+		   fileInfo and db:getSystemPath( fileInfo.path ) or "",
+		   startInfo and startInfo[ 2 ],
+		   startInfo and startInfo[ 3 ],
+		   endInfo and endInfo[ 2 ],
+		   endInfo and endInfo[ 3 ] ) )
       end
+   elseif childKind == clang.core.CXCursor_StructDecl or
+      childKind == clang.core.CXCursor_UnionDecl
+   then
+      if name == "" then
+	 table.insert( anonymousDeclList, aCursor )
+      end
+   end
+end
+
+local function outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
+   log( 2, "outputMemberCandidate" )
+   local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
+      outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
    end
 
 
@@ -889,6 +966,19 @@ function Complete:completeMember(
 	clang.getCursorKindSpelling( typeCursor:getCursorKind() ),
 	declCursor:getCursorSpelling() )
 
+   local frontExprTxt = string.gsub( clang.getCurosrPlainText( cursor.__ptr ), " ", "" )
+   if compMode == "expand" then
+      -- clang.getCurosrPlainText() が sizeof() の ) を拾ってしまうので、ここで除去
+      frontExprTxt = string.gsub( frontExprTxt, "%)$", "" )
+   end
+   log( 2, "frontExprTxt", frontExprTxt )
+   frontExprTxt = string.gsub( frontExprTxt, ";[\n%w]*$", "" )
+   if clang.isPointerType( cursor:getCursorType() ) then
+      frontExprTxt = frontExprTxt .. "->"
+   else
+      frontExprTxt = frontExprTxt .. "."
+   end
+
    if typeCursor:getCursorKind() == clang.core.CXCursor_ClassDecl then
       -- テンプレートクラスの場合、
       -- typeCursor ではメンバーを列挙できないので AST を解析しなおす
@@ -926,10 +1016,11 @@ function Complete:completeMember(
 	     [=[
 <complete>
 <prefix>%s</prefix>
-]=], prefix ) )
+<frontExpr>%s</frontExpr>
+]=], prefix, frontExprTxt ) )
 
 
-   outputCandidate( db, prefix, typeCursor, hash2typeMap )
+   outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
    
 
    local knownTypeHash = {}
@@ -943,7 +1034,7 @@ function Complete:completeMember(
 <typeInfo>
 <hash>%s</hash>
 ]], hash ) )
-	 outputCandidate(
+	 outputMemberCandidate(
 	    db, "", clang.getDeclCursorFromType( cxtype ), newHash2TypeMap )
 	 print( "</typeInfo>" )
       end
@@ -966,8 +1057,10 @@ function Complete:at( analyzer, path, line, column, target, fileContents )
    self:analyzeAt( "comp", analyzer, path, line, column, target, fileContents )
 end
 
-function Complete:inqAt( analyzer, path, line, column, target, fileContents )
-   self:analyzeAt( "inq", analyzer, path, line, column, target, fileContents )
+function Complete:inqAt( analyzer, path, line, column, target, fileContents, mode )
+   self:analyzeAt(
+      ( mode == "inq-at" ) and "inq" or mode,
+      analyzer, path, line, column, target, fileContents )
 end
 
 function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileContents )
@@ -1022,7 +1115,7 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
    end
    unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 
-   local fileTxt, targetLine, targetColmun, prefix, compMode, frontSyntax =
+   local fileTxt, targetLine, targetColmun, prefix, compMode, frontSyntax, targetToken =
       self:createSourceForAnalyzing( fileContents, tokenInfoList, mode, targetIndex )
 
    if targetLine then
@@ -1030,18 +1123,20 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
       newAnalyzer:queryAtFunc(
 	 path, targetLine, targetColmun, target, false, fileTxt,
 	 function( db, targetFileId, nsInfo, declCursor, cursor )
-	    log( "analyzeAt: mode", mode, compMode )
+	    log( 2, "analyzeAt: mode", mode, compMode, declCursor, cursor )
 	    local kind = cursor:getCursorKind()
 
 	    if mode == "comp" then
 	       if compMode == "symbol" or kind == clang.core.CXCursor_CompoundStmt then
 		  self:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
+	       elseif compMode == "set" then
+		  self:expandCursor( db, path, cursor, frontSyntax )
 	       else
 		  self:completeMember(
 		     db, path, declCursor, cursor, compMode, prefix, frontSyntax )
 	       end
 	    else
-	       self:inqCursor( db, path, declCursor )
+	       self:expandCursor( db, path, cursor, frontSyntax )
 	    end
 	 end
       )
@@ -1052,16 +1147,59 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
    end
 end
 
-function Complete:inqCursor( db, path, cursor )
+function Complete:expandCursor( db, path, cursor, frontSyntax )
    local kind = cursor:getCursorKind()
+   local orgCursor = cursor
 
+   log( 2, "inq", kind, clang.getCursorKindSpelling( kind ),
+	cursor:getCursorSpelling() )
+
+   while true do
+      if kind == clang.core.CXCursor_DeclRefExpr or
+	 kind == clang.core.CXCursor_TypeRef or
+	 kind == clang.core.CXCursor_MemberRefExpr
+      then
+	 -- 変数、変数宣言は、その変数の型に変換
+	 cursor = cursor:getCursorDefinition()
+	 kind = cursor:getCursorKind()
+      elseif kind == clang.core.CXCursor_VarDecl or
+	 kind == clang.core.CXCursor_FieldDecl or
+	 kind == clang.core.CXCursor_ParmDecl
+      then
+	 -- 変数、変数宣言は、その変数の型に変換
+	 local declType = getRootType( cursor )
+	 log( 2, "inq3", declType:getTypeSpelling() )
+	 cursor = declType:getTypeDeclaration()
+	 kind = cursor:getCursorKind()
+      elseif kind == clang.core.CXCursor_TypedefDecl then
+	 cursor = getRootTypeCursor( cursor )
+	 kind = cursor:getCursorKind()
+      else
+	 break
+      end
+   end
+
+   log( 2, "inq2", kind, clang.getCursorKindSpelling( kind ) )
+
+   if kind == clang.core.CXCursor_StructDecl or
+      kind == clang.core.CXCursor_ClassDecl
+   then
+      self:completeMember(
+	 db, path, cursor, orgCursor, "expand", "", frontSyntax )
+   end
    
-   if kind == clang.core.CXCursor_EnumConstantDecl then
-      local parent = cursor:getCursorSemanticParent()
+   if kind == clang.core.CXCursor_EnumConstantDecl or
+      kind == clang.core.CXCursor_EnumDecl
+   then
+      log( 2, "enum" )
+      local enumCursor = cursor
+      if kind == clang.core.CXCursor_EnumConstantDecl then
+	 enumCursor = cursor:getCursorSemanticParent()
+      end
 
       local fullnameBase = ""
       db:SymbolDefInfoListForCursor(
-	 parent,
+	 enumCursor,
 	 function( item )
 	    parentNsInfo = db:getNamespace( item.nsId )
 	    fullnameBase = parentNsInfo.name
@@ -1075,8 +1213,8 @@ function Complete:inqCursor( db, path, cursor )
 <prefix>%s</prefix>
 ]=], "" ) )
       clang.visitChildrenFast(
-      	 parent,
-      	 function( aCursor, parent, anonymousDeclList, appendInfo )
+      	 enumCursor,
+      	 function( aCursor, enumCursor, anonymousDeclList, appendInfo )
 	    startInfo, endInfo = db:getRangeFromCursor( aCursor )
 	    local fileInfo = startInfo and db:getFileInfo(
 	       nil, startInfo[ 1 ]:getFileName() )
@@ -1092,6 +1230,8 @@ function Complete:inqCursor( db, path, cursor )
 		      aCursor:getEnumConstantDeclUnsignedValue() ) )
       	 end, nil, nil, 1 )
       print( '</complete>' )
+   else
+      outputCandidate( db, "", cursor, {}, {} )
    end
 end
 

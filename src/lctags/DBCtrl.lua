@@ -162,7 +162,7 @@ function DBCtrl:getCountElement( tableName, condition )
    return self.db:getRowNumber( tableName, condition )
 end
 
-function DBCtrl:changeProjDir( path, currentDir, projDir )
+function DBCtrl:changeProjDir( path, currentDir, projDir, onlySetFlag )
    local obj = DBCtrl:open( path, false, currentDir )
 
    if not obj then
@@ -171,28 +171,30 @@ function DBCtrl:changeProjDir( path, currentDir, projDir )
 
    obj:setProjDir( path, projDir )
 
-   local currentTime = Helper.getCurrentTime()
+   if not onlySetFlag then
+      local currentTime = Helper.getCurrentTime()
 
-   local maxNumber = obj:getCountElement( "filePath", nil )
+      local maxNumber = obj:getCountElement( "filePath", nil )
 
-   local index = 0
-   obj:mapFile(
-      nil,
-      function( fileInfo )
-	 index = index + 1
-	 log( 1, string.format( "(%d/%d) %s", index, maxNumber, fileInfo.path ) )
-	 if fileInfo.id ~= systemFileId then
-	    local digest = obj:calcFileDigest( obj:getSystemPath( fileInfo.path ) )
-	    if digest == fileInfo.digest then
-	       obj:setUpdateTime( fileInfo.id, nil, currentTime )
-	    else
-	       log( 1, "digest is difference", fileInfo.path )
-	       obj:setUpdateTime( fileInfo.id, nil, 0 )
+      local index = 0
+      obj:mapFile(
+	 nil,
+	 function( fileInfo )
+	    index = index + 1
+	    log( 1, string.format( "(%d/%d) %s", index, maxNumber, fileInfo.path ) )
+	    if fileInfo.id ~= systemFileId then
+	       local digest = obj:calcFileDigest( obj:getSystemPath( fileInfo.path ) )
+	       if digest == fileInfo.digest then
+		  obj:setUpdateTime( fileInfo.id, nil, currentTime )
+	       else
+		  log( 1, "digest is difference", fileInfo.path )
+		  obj:setUpdateTime( fileInfo.id, nil, 0 )
+	       end
 	    end
+	    return true
 	 end
-	 return true
-      end
-   )
+      )
+   end
    obj:close()
 
    return true
@@ -391,6 +393,7 @@ function DBCtrl:open( path, readonly, currentDir, message )
    end
 
    obj.dbPath = obj:convFullpath( path )
+   log( 3, "open: projDir", obj.projDir, projDirInfo.val )
 
    return obj
 end
@@ -842,7 +845,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
 
       if targetInfo then
 	 local modTime = Helper.getFileModTime( self:getSystemPath( fileInfo.path ) )
-	 if modTime > targetInfo.updateTime then
+	 if not modTime or modTime > targetInfo.updateTime then
 	    -- ファイルの更新日時が違う
 	    local fileDigest = self:calcFileDigest( filePath )
 	    if fileDigest ~= fileInfo.digest then
@@ -2288,6 +2291,24 @@ function DBCtrl:dumpTargetInfo( level, path )
    )
 end
 
+function DBCtrl:dumpTargetList( level, path )
+   log( level, "-- table target -- " )
+
+   local map = {}
+   self:mapRowList(
+      "targetInfo", self:getFileIdCondition( path ), nil, nil,
+      function( row )
+	 local fileInfo = self:getFileInfo( row.fileId )
+	 map[ row.target ] = ""
+	 return true
+      end
+   )
+
+   for key, val in pairs( map ) do
+      log( level, key )
+   end
+end
+
 function DBCtrl:dumpFile( level, path )
    log( level, "-- table filePath -- " )
    log( level, "id", "incFlag", "skip", "digest" .. string.rep( ' ', 32 - 6 ),
@@ -2657,6 +2678,7 @@ function DBCtrl:registerFromJson( dbPath, target, json )
 end
 
 function DBCtrl:registerFromInfo( dbPath, target )
+   log( 2, "registerFromInfo", dbPath, target )
    local db = DBCtrl:open(
       dbPath, false, os.getenv( "PWD" ), "register" )
 

@@ -306,6 +306,8 @@ lctags.el は、マイナーモードの機能を提供します。
 
 *** コード補完
 
+**** DONE シンボル名、メンバー名補完
+
 シンボル名、メンバー名の補完を行ないます。
 
 補完したい位置にカーソルを移動し、 C-c C-/ で候補を表示します。
@@ -316,10 +318,43 @@ lctags.el は、マイナーモードの機能を提供します。
 
 メンバーが構造体の場合、 C-M-f でさらに展開します。 C-M-b で展開を戻します。
 
-https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif]]
 
 ファイルを変更している場合、補完が正常に動作しない場合があります。
 一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
+
+**** enum 補完
+
+enum 値に対して、次の補完が可能です。
+
+- enum 型名から enum 値を補完  C-c C-x
+- enum 値から、同型の enum 値に変換 C-c C-x
+- enum 型の変数への ==, = で enum 値を補完 C-c C-/
+  
+このサンプル動画では、次の処理を行なっています。
+
+- enum_t 型の変数を宣言し、その初期値として func12345() の戻り値を設定
+- func を入力して func12345() を展開。
+- 展開された func12345 のプロトタイプの引数 enum_t から enum 値 enum_val2 を補完
+- val の比較値として enum_val1 を補完
+- enum_val1 を enum_val2 に補完
+  
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum.gif]]  
+
+**** 定型処理展開
+
+次の定型処理を行ないます。
+
+- lctags-generate-to-convert-enumName-at
+  - カーソル位置の enum 型の値から、対応する文字列を返す処理
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum2name.gif]]
+
+- lctags-generate-to-dump-member-at
+  - カーソル位置の構造体変数から、構造体メンバーをダンプする処理
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/dumpStruct.gif]]
+   
+  
 
 *** グラフ
 

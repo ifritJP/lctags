@@ -141,9 +141,10 @@ if lctagOptMap.mode == "forceUpdate" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "chg-proj" then
+if lctagOptMap.mode == "chg-proj" or lctagOptMap.mode == "set-projDir" then
    DBCtrl:changeProjDir(
-      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir )
+      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
+      lctagOptMap.mode == "set-projDir" )
    os.exit( 0 )
 end
 
@@ -376,7 +377,7 @@ if lctagOptMap.mode == "comp-at" then
    os.exit( 0 )
 end
 
-if lctagOptMap.mode == "inq-at" then
+if lctagOptMap.mode == "inq-at" or lctagOptMap.mode == "expand" then
    local fileContents
    if lctagOptMap.inputFromStdin then
       fileContents = io.stdin:read( "*a" )
@@ -384,7 +385,7 @@ if lctagOptMap.mode == "inq-at" then
 
    Complete:inqAt( analyzer, srcList[ 1 ],
 		   tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
-		   lctagOptMap.target, fileContents )
+		   lctagOptMap.target, fileContents, lctagOptMap.mode )
    os.exit( 0 )
 end
 

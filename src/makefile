@@ -225,6 +225,7 @@ endif
 	$(call build-test, test/comp12.cpp )
 	$(call build-test, test/comp13.cpp )
 	$(call build-test, test/comp14.cpp )
+	$(call build-test, test/comp15.cpp )
 	$(call build-test, test/class2.cpp )
 	$(call build-test, test/class3.cpp )
 	$(call build-test, test/class4.cpp )
@@ -232,6 +233,7 @@ endif
 	$(call build-test, test/inc1.cpp )
 	$(call build-test, test/stack.cpp )
 #	$(call build-test, test/class.cpp )
+	$(call build-test, test/sample.c )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
