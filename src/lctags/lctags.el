@@ -69,7 +69,7 @@ This parameter can set function and string.
   (let ((db-path lctags-db)
 	(target lctags-target)
 	(config lctags-conf)
-	command dir)
+	command dir exit-code)
     (with-current-buffer src-buf
       (when (and lctags-db (functionp lctags-db))
 	(setq db-path (funcall lctags-db)))
@@ -100,16 +100,18 @@ This parameter can set function and string.
 		  (append (list "lctags-process" lctags-buf lctags-command)
 			  command))
 	    (setq process (apply 'start-process command))
+	    (setq exit-code process)
 	    (process-send-string process (buffer-string))
 	    (run-with-timer 1 nil 'lctags-process-scroll lctags-buf) )
 	(setq command
 	      (append (list (point-min) (point-max) lctags-command
 			    nil lctags-buf nil )
 		      command))
-	(apply 'call-process-region command)))
+	(setq exit-code (apply 'call-process-region command))))
     (with-current-buffer lctags-buf
       (goto-char (point-min))
-      )))
+      )
+    exit-code))
 
 (defun lctags-execute (src-buf lctags-buf input &rest lctags-opts)
   (lctags-execute-op src-buf lctags-buf input nil lctags-opts))

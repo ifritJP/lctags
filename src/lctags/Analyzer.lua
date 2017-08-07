@@ -1557,7 +1557,7 @@ end
 
 function Analyzer:analyzeSourceAtWithFunc(
       targetFullPath, line, column,
-      optionList, target, fileContents, func )
+      optionList, target, fileContents, func, diagList )
    
    local args = clang.mkCharArray( optionList )
    local unsavedFileTable
@@ -1580,6 +1580,19 @@ function Analyzer:analyzeSourceAtWithFunc(
       unsavedFileArray:getPtr(), unsavedFileArray:getLength(),
       clang.core.CXTranslationUnit_DetailedPreprocessingRecord +
 	 clang.core.CXTranslationUnit_Incomplete )
+
+
+   if diagList then
+      log( 2, "diagSet", transUnit:getNumDiagnostics() )
+      for index = 0, transUnit:getNumDiagnostics() - 1 do
+	 local diag = transUnit:getDiagnostic( index )
+	 local info = { level = diag:getDiagnosticSeverity(),
+			message = diag:formatDiagnostic(
+			   clang.core.CXDiagnostic_DisplaySourceLocation ) }
+	 table.insert( diagList, info )
+      end
+   end
+   
 
    log( 2, "createTranslationUnitFromSourceFile: end" )
    
@@ -1611,7 +1624,7 @@ end
 
 
 function Analyzer:queryAtFunc(
-      filePath, line, column, target, funcFlag, fileContents, func )
+      filePath, line, column, target, funcFlag, fileContents, diagList, func )
    local db = self:openDBForReadOnly()
 
    -- filePath の target に対応するコンパイルオプションを取得
@@ -1686,16 +1699,16 @@ function Analyzer:queryAtFunc(
 
    analyzer:analyzeSourceAtWithFunc(
       targetFilePath, line, column,
-      optionList, target, fileContents, func )
+      optionList, target, fileContents, func, diagList )
 end
 
 
 
 
 function Analyzer:queryAt(
-      mode, filePath, line, column, absFlag, target, fileContents )
+      mode, filePath, line, column, absFlag, target, fileContents, diagList )
    self:queryAtFunc(
-      filePath, line, column, target, mode == "call-at", fileContents,
+      filePath, line, column, target, mode == "call-at", fileContents, diagList, 
       function( db, targetFileId, nsInfo, declCursor, cursor )
 	 if nsInfo then
 	    if mode == "ref-at" then
@@ -1763,7 +1776,8 @@ function Analyzer:queryAt(
 	       os.exit( 1 )
 	    end
 	 end
-      end
+      end,
+      diagList
    )
 end
 
@@ -1772,11 +1786,11 @@ end
 
 function Analyzer:graphAt(
       graph, filePath, line, column, target,
-      depthLimit, browseFlag, outputFile, imageFormat )
+      depthLimit, browseFlag, outputFile, imageFormat, diagList )
 
    self:queryAtFunc(
       filePath, line, column, target,
-      graph == "caller" or graph == "callee", nil,
+      graph == "caller" or graph == "callee", nil, diagList,
       function( db, targetFileId, nsInfo, declCursor )
 	 if nsInfo then
 	    if graph == "caller" or graph == "callee" then

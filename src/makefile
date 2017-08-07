@@ -1,4 +1,4 @@
-PWD=$(shell pwd)
+NDIR=$(shell pwd)
 
 INST_DIR=/usr/local/bin
 
@@ -20,9 +20,9 @@ LUA_SO=-llua5.3
 # LUA_SO=-lluajit-5.1
 
 # LUA_COMMAND=./clanglua
-# LUA_CFLAGS=-fPIC -DLUA_COMPAT_5_1 -DLUA_COMPAT_5_2 -I$(PWD)/$(LUA_DIR)
+# LUA_CFLAGS=-fPIC -DLUA_COMPAT_5_1 -DLUA_COMPAT_5_2 -I$(NDIR)/$(LUA_DIR)
 # LUA_DIR=../external/lua/lua-5.3.4/src
-# LUA_INC=$(PWD)/$(LUA_DIR)
+# LUA_INC=$(NDIR)/$(LUA_DIR)
 # LUA_LIB=$(LUA_DIR)/liblua.a
 # LUA_INST_DIR=/usr/local/bin
 # LUA_LIB_DIR=/usr/local/lib/lua/5.3
@@ -73,7 +73,7 @@ ifdef LCTAGS_SERVER_ON
 LCTAGS_SERVER=--lctags-srv
 endif
 
-LUA_LIB:=$(addprefix $(PWD)/,$(LUA_LIB))
+LUA_LIB:=$(addprefix $(NDIR)/,$(LUA_LIB))
 
 LCTAGS_LUA=lctags/lctags.lua
 
@@ -117,7 +117,7 @@ $(IF_LUA): $(TARGET_LUA) mkwrap.lua _base.lua $(CORE_SO)
 $(TARGET_LUA): $(LUA_LIB)
 ifneq ($(LUA_DIR),)
 	$(MAKE) -C $(LUA_DIR) linux ALL=lua.o MYCFLAGS="$(LUA_CFLAGS)" MYLDFLAGS="$(LUA_LDFLAGS)"
-	$(MAKE) -C $(LUA_DIR) linux LUA_T=$(PWD)/clanglua ALL=$(PWD)/clanglua MYLDFLAGS="$(LUA_LDFLAGS)"
+	$(MAKE) -C $(LUA_DIR) linux LUA_T=$(NDIR)/clanglua ALL=$(NDIR)/clanglua MYLDFLAGS="$(LUA_LDFLAGS)"
 endif
 
 
@@ -178,7 +178,7 @@ endif
 	rm test-result
 	LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
-		sed "s@$(PWD)@PWD@g" | \
+		sed "s@$(NDIR)@NDIR@g" | \
 		sed "s@$(LUA_COMMAND)@lua@g" | \
 		tee -a test-result
 	$(MAKE) test-stack
@@ -323,17 +323,17 @@ ifndef NO_INIT
 endif
 	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=clean
 ifdef BATCH
-	LUA_DIR_SCRIPT=$(PWD)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(PWD)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) --lctags-only-reg $(LOCKLOG) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
-	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags register -i $(LOCKLOG) --lctags-log ${LCTAGS_LOG} ) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
-	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(PWD)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} -j $(JOBS) $(LCTAGS_PROF_OP) $(INDIV_OP) --lctags-recSql) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
+	LUA_DIR_SCRIPT=$(NDIR)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(NDIR)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) --lctags-only-reg $(LOCKLOG) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(NDIR)/lctags lctags register -i $(LOCKLOG) --lctags-log ${LCTAGS_LOG} ) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
+	(cd $(TEST_LUA_DIR); LUA_DIR_SCRIPT=$(NDIR)/lctags lctags update . $(LOCKLOG) --lctags-log ${LCTAGS_LOG} -j $(JOBS) $(LCTAGS_PROF_OP) $(INDIV_OP) --lctags-recSql) | tee --append dump | grep -e ':[[:space:]][12][[:space:]]'
 else
 ifdef LCTAGS_SERVER_ON
-	(cd $(TEST_LUA_DIR); $(PWD)/lctags/lctags server start --lctags-log 2 &)
+	(cd $(TEST_LUA_DIR); $(NDIR)/lctags/lctags server start --lctags-log 2 &)
 	sleep 1
 endif
-	LUA_DIR_SCRIPT=$(PWD)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(PWD)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
+	LUA_DIR_SCRIPT=$(NDIR)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(NDIR)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) $(LOCKLOG) $(LCTAGS_SERVER) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 ifdef LCTAGS_SERVER_ON
-	(cd $(TEST_LUA_DIR); $(PWD)/lctags/lctags server stop)
+	(cd $(TEST_LUA_DIR); $(NDIR)/lctags/lctags server stop)
 endif
 endif
 	mkdir -p $(TEST_LUA_DIR)/digest

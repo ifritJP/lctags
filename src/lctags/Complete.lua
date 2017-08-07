@@ -886,6 +886,9 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
 	       else
 		  str = clang.getCurosrPlainText( typeCursor.__ptr )
 		  str = string.gsub( str, '{.*$', '' )
+		  if (not str) or str == "" then
+		     str = rootType:getTypeSpelling()
+		  end
 	       end
 	       str = string.gsub( str, '.*%(', "(" )
 	       str = string.gsub( str, "const$", "" )
@@ -1063,7 +1066,8 @@ function Complete:inqAt( analyzer, path, line, column, target, fileContents, mod
       analyzer, path, line, column, target, fileContents )
 end
 
-function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileContents )
+function Complete:analyzeAt(
+      mode, analyzer, path, line, column, target, fileContents )
 
    if not target then
       target = ""
@@ -1118,10 +1122,11 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
    local fileTxt, targetLine, targetColmun, prefix, compMode, frontSyntax, targetToken =
       self:createSourceForAnalyzing( fileContents, tokenInfoList, mode, targetIndex )
 
+   print( '<lctags_result>' )
    if targetLine then
-      --newAnalyzer:update( path, target )
+      local diagList = {}
       newAnalyzer:queryAtFunc(
-	 path, targetLine, targetColmun, target, false, fileTxt,
+	 path, targetLine, targetColmun, target, false, fileTxt, diagList,
 	 function( db, targetFileId, nsInfo, declCursor, cursor )
 	    log( 2, "analyzeAt: mode", mode, compMode, declCursor, cursor )
 	    local kind = cursor:getCursorKind()
@@ -1140,27 +1145,35 @@ function Complete:analyzeAt( mode, analyzer, path, line, column, target, fileCon
 	    end
 	 end
       )
+      print( '<diagnostics>' )
+      for index, diag in ipairs( diagList ) do
+	 if diag.level >= clang.core.CXDiagnostic_Error then
+	    print( '<message>' .. convertXmlTxt( diag.message ) .. '</message>' )
+	 end
+      end
+      print( '</diagnostics>' )
    else
       -- targetLine がない時は、解析する対象がない単なるシンボル補完
       local db = newAnalyzer:openDBForReadOnly()
       self:completeSymbol( db, path, nil, "symbol", prefix, frontSyntax )
    end
+   print( '</lctags_result>' )
 end
 
 function Complete:expandCursor( db, path, cursor, frontSyntax )
    local kind = cursor:getCursorKind()
    local orgCursor = cursor
 
-   log( 2, "inq", kind, clang.getCursorKindSpelling( kind ),
-	cursor:getCursorSpelling() )
-
    while true do
+      log( 2, "inq", kind, clang.getCursorKindSpelling( kind ),
+	   cursor:getCursorSpelling() )
       if kind == clang.core.CXCursor_DeclRefExpr or
 	 kind == clang.core.CXCursor_TypeRef or
 	 kind == clang.core.CXCursor_MemberRefExpr
       then
 	 -- 変数、変数宣言は、その変数の型に変換
-	 cursor = cursor:getCursorDefinition()
+	 --cursor = cursor:getCursorDefinition()
+	 cursor = cursor:getCursorReferenced()
 	 kind = cursor:getCursorKind()
       elseif kind == clang.core.CXCursor_VarDecl or
 	 kind == clang.core.CXCursor_FieldDecl or

@@ -345,11 +345,11 @@ enum 値に対して、次の補完が可能です。
 
 次の定型処理を行ないます。
 
-- lctags-generate-to-convert-enumName-at
+- M-x lctags-generate-to-convert-enumName-at
   - カーソル位置の enum 型の値から、対応する文字列を返す処理
 [[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum2name.gif]]
 
-- lctags-generate-to-dump-member-at
+- M-x lctags-generate-to-dump-member-at
   - カーソル位置の構造体変数から、構造体メンバーをダンプする処理
 
 [[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/dumpStruct.gif]]

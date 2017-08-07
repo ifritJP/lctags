@@ -1,7 +1,10 @@
 (defvar lctags-candidate-info nil)
 (defvar lctags-candidate-history nil)
+(defvar lctags-diag-info nil)
 
 (defvar lctags-anything nil)
+
+(defvar lctags-diag-buf-name "*lctags-diag*" )
 
 (when (not lctags-anything)
   (require 'helm))
@@ -16,6 +19,16 @@
     (define-key map (kbd "C-M-b")   'lctags-helm-type-backward)
     (delq nil map))
   "Keymap")
+
+(defun lctags-execute-heml (src-buf lctags-buf input &rest lctags-opts)
+  (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
+      (progn
+	(setq lctags-candidate-info (lctags-xml-get lctags-buf 'complete))
+	(setq lctags-diag-info (lctags-xml-get-diag lctags-buf)))
+    (setq lctags-candidate-info nil)
+    (with-current-buffer lctags-buf
+      (setq lctags-diag-info `((message nil ,(buffer-string))))))
+  )
 
 (defun lctags-helm-select (item)
   (case lctags-candidate-expand
@@ -58,9 +71,7 @@
 			     (number-to-string lineno) (number-to-string column)
 			     "--lctags-log" "0" "-i")
 	     (with-current-buffer buffer
-	       (setq inq-info
-		     (assoc 'candidate
-			    (xml-parse-region (point-min) (point-max)))))
+	       (setq inq-info (lctags-xml-get buffer 'candidate)))
 	     (setq args (lctags-candidate-item-get-simple inq-info))
 	     (when (string-match (concat simple "(") args)
 	       (setq pos (point))
@@ -87,6 +98,21 @@
     (lctags-remove-current-token)
     (insert simple ))
   )
+
+(defun lctags-xml-get (buf symbol)
+  (with-current-buffer buf
+    (assoc symbol (assoc 'lctags_result (xml-parse-region (point-min) (point-max))) )))
+
+(defun lctags-xml-get-diag (buf)
+  (delq nil (mapcar (lambda (X)
+		      (when (listp X)
+			(when (eq (car X) 'message)
+			  X)))
+		    (lctags-xml-get buf 'diagnostics))))
+
+(defun lctags-diag-get-message (diag)
+  (nth 2 diag))
+
 
 (defun lctags-candidate-item-get-simple (item)
   (nth 2 (assoc 'simple item))
@@ -210,6 +236,19 @@
 	info))
 
 
+(defun lctags-helm-display-diag ()
+  (switch-to-buffer-other-window lctags-diag-buf-name)
+  (setq buffer-read-only nil)
+  (erase-buffer)
+  (dolist (diag lctags-diag-info)
+    (insert (lctags-diag-get-message diag))
+    (insert "\n")
+    )
+  (compilation-mode)
+  (goto-char (point-min))
+  )
+  
+
 (defun lctags-helm-complete-at ()
   (interactive)
   (let ((buffer (lctags-get-process-buffer t))
@@ -219,27 +258,26 @@
 	candidates
 	lctags-params
 	)
-    (lctags-execute (current-buffer) buffer
-		    (buffer-string) "comp-at" filename
-		    (number-to-string lineno) (number-to-string column)
-		    "--lctags-log" "0" "-i")
-    (with-current-buffer buffer
-      (setq lctags-candidate-info
-	    (assoc 'complete
-		   (xml-parse-region (point-min) (point-max))))
-      (setq candidates
-      	    (delq nil (lctags-candidate-map-candidate
-		       (symbol-function 'lctags-helm-make-candidates)
-		       lctags-candidate-info)))
-      )
-    (setq lctags-params
-	  `((name . ,(format "comp-at:%s:%d:%d"
-			   (file-name-nondirectory filename)
-			   lineno column))
-	    (candidates . ,candidates)
-	    (action . lctags-helm-select)))
-    (lctags-helm-wrap lctags-params lctags-heml-map nil)
-    ))
+    (lctags-execute-heml (current-buffer) buffer
+			 (buffer-string) "comp-at" filename
+			 (number-to-string lineno) (number-to-string column)
+			 "--lctags-log" "0" "-i")
+    (if lctags-diag-info
+	(lctags-helm-display-diag)
+      (with-current-buffer buffer
+	(setq candidates
+	      (delq nil (lctags-candidate-map-candidate
+			 (symbol-function 'lctags-helm-make-candidates)
+			 lctags-candidate-info)))
+	)
+      (setq lctags-params
+	    `((name . ,(format "comp-at:%s:%d:%d"
+			       (file-name-nondirectory filename)
+			       lineno column))
+	      (candidates . ,candidates)
+	      (action . lctags-helm-select)))
+      (lctags-helm-wrap lctags-params lctags-heml-map nil)
+      )))
 
 (defun lctags-get-candidate-at ( command )
   (interactive)
@@ -248,15 +286,10 @@
 	(lineno (lctags-get-line))
 	(column (- (lctags-get-column) 2))
 	)
-    (lctags-execute (current-buffer) buffer
-		    (buffer-string) command filename
-		    (number-to-string lineno) (number-to-string column)
-		    "--lctags-log" "0" "-i")
-    (with-current-buffer buffer
-      (setq lctags-candidate-info
-	    (assoc 'complete
-		   (xml-parse-region (point-min) (point-max))))
-      )
+    (lctags-execute-heml (current-buffer) buffer
+			 (buffer-string) command filename
+			 (number-to-string lineno) (number-to-string column)
+			 "--lctags-log" "0" "-i")
     )
   lctags-candidate-info
   )
@@ -276,30 +309,32 @@
 	(line-num (line-number-at-pos))
 	(pos (point))
 	expr search-token log-func)
-    (setq log-func (read-string "log function?: " "printf(" ))
-    (setq expr (lctags-candidate-get-frontExpr info))
-    (when (string-match "->$" expr)
-      (setq search-token (replace-match "" t nil expr)))
-    (when (string-match "\\.$" expr)
-      (setq search-token (replace-match "" t nil expr)))
-    (save-excursion
-      (beginning-of-line-text)
-      (if (search-forward search-token)
-	  (replace-match "")))
-    (lctags-candidate-map-candidate
-     (lambda (X)
-       (let ((val (concat expr (lctags-candidate-item-get-simple X) )))
-	 (insert (format
-		  "%s \"%s = %%p\\n\", %s%s );\n"
-		  log-func
-		  val
-		  (if (> (length val) 30)
-		      "\n"
-		    "")
-		  val))))
-     info)
-    (indent-region pos (point))
-    ))
+    (if lctags-diag-info
+	(lctags-helm-display-diag)
+      (setq log-func (read-string "log function?: " "printf(" ))
+      (setq expr (lctags-candidate-get-frontExpr info))
+      (when (string-match "->$" expr)
+	(setq search-token (replace-match "" t nil expr)))
+      (when (string-match "\\.$" expr)
+	(setq search-token (replace-match "" t nil expr)))
+      (save-excursion
+	(beginning-of-line-text)
+	(if (search-forward search-token)
+	    (replace-match "")))
+      (lctags-candidate-map-candidate
+       (lambda (X)
+	 (let ((val (concat expr (lctags-candidate-item-get-simple X) )))
+	   (insert (format
+		    "%s \"%s = %%p\\n\", %s%s );\n"
+		    log-func
+		    val
+		    (if (> (length val) 30)
+			"\n"
+		      "")
+		    val))))
+       info)
+      (indent-region pos (point))
+      )))
 
 
 (defun lctags-generate-to-convert-enumName-at ()
@@ -309,22 +344,24 @@
 	(search-token (lctags-get-current-token))
 	(pos (point))
 	)
-    (save-excursion
-      (beginning-of-line-text)
-      (if (search-forward search-token)
-	  (replace-match "")))
-    (insert (format "switch (%s) {\n" search-token))
-    (lctags-candidate-map-candidate
-     (lambda (X)
-       (let ((val (lctags-candidate-item-get-simple X) ))
-	 (insert (format
-		  "case %s:\nreturn \"%s\";\n"
-		  val val))))
-     info)
-    (insert "default:\nreturn NULL;\n")
-    (insert (format "}" search-token))
-    (indent-region pos (point))
-    ))
+    (if lctags-diag-info
+	(lctags-helm-display-diag)
+      (save-excursion
+	(beginning-of-line-text)
+	(if (search-forward search-token)
+	    (replace-match "")))
+      (insert (format "switch (%s) {\n" search-token))
+      (lctags-candidate-map-candidate
+       (lambda (X)
+	 (let ((val (lctags-candidate-item-get-simple X) ))
+	   (insert (format
+		    "case %s:\nreturn \"%s\";\n"
+		    val val))))
+       info)
+      (insert "default:\nreturn NULL;\n")
+      (insert (format "}" search-token))
+      (indent-region pos (point))
+      )))
 
 
 (defun lctags-helm-change-enum-at ()
@@ -337,13 +374,11 @@
 	candidates
 	lctags-params
 	)
-    (lctags-execute (current-buffer) buffer
-		    (buffer-string) "expand" filename
-		    (number-to-string lineno) (number-to-string column)
-		    "--lctags-log" "0" "-i")
+    (lctags-execute-heml (current-buffer) buffer
+			 (buffer-string) "expand" filename
+			 (number-to-string lineno) (number-to-string column)
+			 "--lctags-log" "0" "-i")
     (with-current-buffer buffer
-      (setq lctags-candidate-info (assoc 'complete
-					 (xml-parse-region (point-min) (point-max))))
       (setq candidates
       	    (delq nil (lctags-candidate-map-candidate
       		       (lambda (X)
