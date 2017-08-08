@@ -24,7 +24,9 @@
   (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
       (progn
 	(setq lctags-candidate-info (lctags-xml-get lctags-buf 'complete))
-	(setq lctags-diag-info (lctags-xml-get-diag lctags-buf)))
+	(if (assoc 'candidate lctags-candidate-info)
+	    (setq lctags-diag-info nil)
+	  (setq lctags-diag-info (lctags-xml-get-diag lctags-buf))))
     (setq lctags-candidate-info nil)
     (with-current-buffer lctags-buf
       (setq lctags-diag-info `((message nil ,(buffer-string))))))
@@ -218,22 +220,25 @@
   )
 
 (defun lctags-helm-make-candidates ( info )
-  (cons (format
-	 "(%s) %s%s %s"
-	 (lctags-candidate-item-get-kind info)
-	 (propertize
-	  (lctags-candidate-item-get-canonical info)
-	  'face 'lctags-candidate-face)
-	 (if (lctags-candidate-item-get-val info)
-	     (format " => %s"
-		     (lctags-candidate-item-get-val info))
-	   "")
-	 (if (lctags-candidate-item-get-type info)
-	     (format "<%s>"
-		     (lctags-candidate-item-get-type info))
-	   ""
-	   ))
-	info))
+  (let ((hash (lctags-candidate-item-get-hash info)))
+    (cons (format
+	   "(%s) %s%s %s %s"
+	   (lctags-candidate-item-get-kind info)
+	   (propertize
+	    (lctags-candidate-item-get-canonical info)
+	    'face 'lctags-candidate-face)
+	   (if (lctags-candidate-item-get-val info)
+	       (format " => %s"
+		       (lctags-candidate-item-get-val info))
+	     "")
+	   (if (lctags-candidate-item-get-type info)
+	       (format "<%s>"
+		       (lctags-candidate-item-get-type info))
+	     ""
+	     )
+	   (if hash "+" "")
+	   )
+	  info)))
 
 
 (defun lctags-helm-display-diag ()
@@ -378,41 +383,43 @@
 			 (buffer-string) "expand" filename
 			 (number-to-string lineno) (number-to-string column)
 			 "--lctags-log" "0" "-i")
-    (with-current-buffer buffer
-      (setq candidates
-      	    (delq nil (lctags-candidate-map-candidate
-      		       (lambda (X)
-      			 (cons (format
-      				"(%s) %s%s %s"
-      				(lctags-candidate-item-get-kind X)
-      				(propertize
-      				 (lctags-candidate-item-get-canonical X)
-      				 'face 'lctags-candidate-face)
-				(if (lctags-candidate-item-get-val X)
-				    (format " => %s"
-					    (lctags-candidate-item-get-val X))
-				  "")
-      				(if (lctags-candidate-item-get-type X)
-      				    (format "<%s>"
-      					    (lctags-candidate-item-get-type X))
-      				  ""
-      				  ))
-      			       X))
-      		       lctags-candidate-info)))
-      )
-    (setq lctags-params
-	  `((name . ,(format "comp-at:%s:%d:%d"
-			   (file-name-nondirectory filename)
-			   lineno column))
-	    (candidates . ,candidates)
-	    (action . lctags-helm-select-swap)))
-    (if lctags-anything
-	(let ((anything-candidate-number-limit 9999))
-	  (anything :sources lctags-params :keymap lctags-heml-map
-		    :preselect token))
-      (let ((helm-candidate-number-limit 9999))
-	(helm :sources lctags-params :keymap lctags-heml-map
-	      :preselect (format "%s =>" token))))))
+    (if lctags-diag-info
+	(lctags-helm-display-diag)
+      (with-current-buffer buffer
+	(setq candidates
+	      (delq nil (lctags-candidate-map-candidate
+			 (lambda (X)
+			   (cons (format
+				  "(%s) %s%s %s"
+				  (lctags-candidate-item-get-kind X)
+				  (propertize
+				   (lctags-candidate-item-get-canonical X)
+				   'face 'lctags-candidate-face)
+				  (if (lctags-candidate-item-get-val X)
+				      (format " => %s"
+					      (lctags-candidate-item-get-val X))
+				    "")
+				  (if (lctags-candidate-item-get-type X)
+				      (format "<%s>"
+					      (lctags-candidate-item-get-type X))
+				    ""
+				    ))
+				 X))
+			 lctags-candidate-info)))
+	)
+      (setq lctags-params
+	    `((name . ,(format "comp-at:%s:%d:%d"
+			       (file-name-nondirectory filename)
+			       lineno column))
+	      (candidates . ,candidates)
+	      (action . lctags-helm-select-swap)))
+      (if lctags-anything
+	  (let ((anything-candidate-number-limit 9999))
+	    (anything :sources lctags-params :keymap lctags-heml-map
+		      :preselect token))
+	(let ((helm-candidate-number-limit 9999))
+	  (helm :sources lctags-params :keymap lctags-heml-map
+		:preselect (format "%s =>" token)))))))
 
 
 

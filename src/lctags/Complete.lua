@@ -84,16 +84,17 @@ local function createCandidate(
       startLine or 0, startColmun or 0, endLine or 0, endColmun or 0 )
 end
 
-
--- startIndex 以降から lastIndex までで ) を検索する。
--- 途中に () ペアがある場合は無視する
-function Complete:searchParenEnd( tokenInfoList, startIndex, lastIndex )
+-- startIndex 以降から lastIndex までで endToken を検索する。
+-- 途中に beginToken, endToken ペアがある場合は無視する
+function Complete:searchPairEnd(
+      tokenInfoList, startIndex, lastIndex, pairToken )
+   local beginToken, endToken = pairToken[ 1 ], pairToken[ 2 ]
    local num = 1
    for index = startIndex, lastIndex do
       local token = tokenInfoList[ index ].token
-      if token == '(' then
+      if token == beginToken then
 	 num = num + 1
-      elseif token == ')' then
+      elseif token == endToken then
 	 num = num - 1
 	 if num == 0 then
 	    return index
@@ -103,22 +104,34 @@ function Complete:searchParenEnd( tokenInfoList, startIndex, lastIndex )
    return nil
 end
 
+
+function Complete:searchParenEnd( tokenInfoList, startIndex, lastIndex )
+   return self:searchPairEnd( tokenInfoList, startIndex, lastIndex, { '(', ')' } )
+end
+
 -- lastIndex 以前から startIndex の間で、閉じられていない ( を検索する。 
-function Complete:searchParenBegin( tokenInfoList, startIndex, lastIndex )
-   log( 2, "searchParenBegin", startIndex, lastIndex )
+function Complete:searchPairBegin(
+      tokenInfoList, startIndex, lastIndex, pairToken )
+   local beginToken, endToken = pairToken[ 1 ], pairToken[ 2 ]
+   log( 2, "searchPairBegin", startIndex, lastIndex )
    local num = 1
    for index = lastIndex, startIndex, -1 do
       local token = tokenInfoList[ index ].token
-      if token == '(' then
+      if token == beginToken then
 	 num = num - 1
 	 if num == 0 then
 	    return index
 	 end
-      elseif token == ')' then
+      elseif token == endToken then
 	 num = num + 1
       end
    end
    return nil
+end
+
+-- lastIndex 以前から startIndex の間で、閉じられていない ( を検索する。 
+function Complete:searchParenBegin( tokenInfoList, startIndex, lastIndex )
+   return self:searchPairBegin( tokenInfoList, startIndex, lastIndex, { '(', ')' } )
 end
 
 
@@ -187,8 +200,13 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 	       index = endIndex + 1
 	    end
 	 end
-      elseif token == "(" then
-	 local endIndex = self:searchParenEnd( tokenInfoList, index + 1, checkIndex )
+      elseif token == "(" or token == '[' then
+	 local pairToken = { '(', ')' }
+	 if token == '[' then
+	    pairToken = { '[', ']' }
+	 end
+	 local endIndex = self:searchPairEnd(
+	    tokenInfoList, index + 1, checkIndex, pairToken )
 	 if not endIndex then
 	    -- カッコ中が補完対象
 	    log( 2, "paren start" )
@@ -648,15 +666,17 @@ function Complete:completeSymbolFunc(
    -- パターンから名前空間を探す
    local nsList = {}
    local id2InfoSet = {}
-   db:mapNamespace(
-      pattern,
-      function( item )
-	 table.insert( nsList, item )
-	 id2InfoSet[ item.id ] = item
-	 log( 3, "candidate", item.name )
-	 return true
-      end
-   )
+   if pattern ~= "" then
+      db:mapNamespace(
+	 pattern,
+	 function( item )
+	    table.insert( nsList, item )
+	    id2InfoSet[ item.id ] = item
+	    log( 3, "candidate", item.name )
+	    return true
+	 end
+      )
+   end
 
    -- 
    local globalNsList = {}

@@ -18,6 +18,13 @@
 	    (:name "callee" :bind "e" :action lctags-graph-callee-at)
 	    (:name "symbol" :bind "s" :action lctags-graph-symbol-at)
 	    ))
+    (:name "generate" :bind "g"
+	   :submenu
+	   ((:name "dump-member-at" :bind "m"
+		   :action lctags-generate-to-dump-member-at)
+	    (:name "convert-enumName-at" :bind "e"
+		   :action lctags-generate-to-convert-enumName-at)
+	   ))
     (:name "update this file" :bind "u" :action lctags-update-this-file)))
 (defvar lctags-dispatch-menu-info-current nil)
 
