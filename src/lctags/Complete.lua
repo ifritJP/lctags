@@ -1086,6 +1086,22 @@ function Complete:inqAt( analyzer, path, line, column, target, fileContents, mod
       analyzer, path, line, column, target, fileContents )
 end
 
+function Complete:outputResult( level, func )
+   print( '<lctags_result>' )
+   local diagList = {}
+
+   func( diagList )
+
+   print( '<diagnostics>' )
+   for index, diag in ipairs( diagList ) do
+      if diag.level >= level then
+	 print( '<message>' .. convertXmlTxt( diag.message ) .. '</message>' )
+      end
+   end
+   print( '</diagnostics>' )
+   print( '</lctags_result>' )
+end
+
 function Complete:analyzeAt(
       mode, analyzer, path, line, column, target, fileContents )
 
@@ -1142,42 +1158,40 @@ function Complete:analyzeAt(
    local fileTxt, targetLine, targetColmun, prefix, compMode, frontSyntax, targetToken =
       self:createSourceForAnalyzing( fileContents, tokenInfoList, mode, targetIndex )
 
-   print( '<lctags_result>' )
-   if targetLine then
-      local diagList = {}
-      newAnalyzer:queryAtFunc(
-	 path, targetLine, targetColmun, target, false, fileTxt, diagList,
-	 function( db, targetFileId, nsInfo, declCursor, cursor )
-	    log( 2, "analyzeAt: mode", mode, compMode, declCursor, cursor )
-	    local kind = cursor:getCursorKind()
+   self:outputResult(
+      clang.core.CXDiagnostic_Error,
+      function( diagList )
+	 if targetLine then
+	    newAnalyzer:queryAtFunc(
+	       path, targetLine, targetColmun, target, false, fileTxt, diagList,
+	       function( db, targetFileId, nsInfo, declCursor, cursor )
+		  log( 2, "analyzeAt: mode", mode, compMode, declCursor, cursor )
+		  local kind = cursor:getCursorKind()
 
-	    if mode == "comp" then
-	       if compMode == "symbol" or kind == clang.core.CXCursor_CompoundStmt then
-		  self:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
-	       elseif compMode == "set" then
-		  self:expandCursor( db, path, cursor, frontSyntax )
-	       else
-		  self:completeMember(
-		     db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+		  if mode == "comp" then
+		     if compMode == "symbol" or
+			kind == clang.core.CXCursor_CompoundStmt
+		     then
+			self:completeSymbol(
+			   db, path, cursor, compMode, prefix, frontSyntax )
+		     elseif compMode == "set" then
+			self:expandCursor( db, path, cursor, frontSyntax )
+		     else
+			self:completeMember(
+			   db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+		     end
+		  else
+		     self:expandCursor( db, path, cursor, frontSyntax )
+		  end
 	       end
-	    else
-	       self:expandCursor( db, path, cursor, frontSyntax )
-	    end
-	 end
-      )
-      print( '<diagnostics>' )
-      for index, diag in ipairs( diagList ) do
-	 if diag.level >= clang.core.CXDiagnostic_Error then
-	    print( '<message>' .. convertXmlTxt( diag.message ) .. '</message>' )
+	    )
+	 else
+	    -- targetLine がない時は、解析する対象がない単なるシンボル補完
+	    self:completeSymbol( newAnalyzer:openDBForReadOnly(),
+				 path, nil, "symbol", prefix, frontSyntax )
 	 end
       end
-      print( '</diagnostics>' )
-   else
-      -- targetLine がない時は、解析する対象がない単なるシンボル補完
-      local db = newAnalyzer:openDBForReadOnly()
-      self:completeSymbol( db, path, nil, "symbol", prefix, frontSyntax )
-   end
-   print( '</lctags_result>' )
+   )
 end
 
 function Complete:expandCursor( db, path, cursor, frontSyntax )
@@ -1266,6 +1280,21 @@ function Complete:expandCursor( db, path, cursor, frontSyntax )
    else
       outputCandidate( db, "", cursor, {}, {} )
    end
+end
+
+function Complete:analyzeDiagnostic( analyzer, path, target, fileContents )
+   local newAnalyzer = analyzer:newAs(
+      log( -4 ) >= 2 and true or false, false )
+   
+   path = analyzer:convFullpath( path )
+
+   self:outputResult(
+      clang.core.CXDiagnostic_Warning,
+      function( diagList )
+	 newAnalyzer:queryAtFunc(
+	    path, 0, 0, target, false, fileContents, diagList, nil )
+      end
+   )
 end
 
 return Complete

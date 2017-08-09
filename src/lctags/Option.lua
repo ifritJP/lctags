@@ -254,6 +254,8 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	 elseif arg == "expand" then
 	    lctagOptMap.mode = arg
+	 elseif arg == "diag" then
+	    lctagOptMap.mode = arg
 	 elseif arg == "chkFiles" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "rm" then

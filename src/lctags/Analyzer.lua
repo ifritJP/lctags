@@ -1625,6 +1625,13 @@ end
 
 function Analyzer:queryAtFunc(
       filePath, line, column, target, funcFlag, fileContents, diagList, func )
+
+   if not func then
+      log( 2, "queryAtFunc", "func is nil" )
+      func = function() end
+   end
+   
+   
    local db = self:openDBForReadOnly()
 
    -- filePath の target に対応するコンパイルオプションを取得

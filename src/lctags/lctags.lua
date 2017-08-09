@@ -389,6 +389,18 @@ if lctagOptMap.mode == "inq-at" or lctagOptMap.mode == "expand" then
    os.exit( 0 )
 end
 
+if lctagOptMap.mode == "diag" then
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+
+   Complete:analyzeDiagnostic(
+      analyzer, srcList[ 1 ], lctagOptMap.target, fileContents )
+   os.exit( 0 )
+end
+
 if lctagOptMap.mode == "stack" then
    StackCalc:analyze( srcList[ 1 ], lctagOptMap.target, analyzer )
+   os.exit( 0 )
 end

@@ -1948,6 +1948,7 @@ function DBCtrl:getSystemPath( path, baseDir )
    return path
 end
 
+-- プロジェクトディレクトリからの相対パス
 function DBCtrl:convRelativePath( path, currentDir )
    path = self:getSystemPath( self:convFullpath( path, currentDir ) )
    if not self:isInProjFile( currentDir ) then
