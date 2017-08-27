@@ -5,6 +5,7 @@ local log = require( 'lctags.LogCtrl' )
 local Analyzer = require( 'lctags.Analyzer' )
 local Query = require( 'lctags.Query' )
 local DBCtrl = require( 'lctags.DBCtrl' )
+local DBAccess = require( 'lctags.DBAccess' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
 local Make = require( 'lctags.Make' )
 local Complete = require( 'lctags.Complete' )
@@ -18,13 +19,6 @@ local StackCalc = require( 'lctags.StackCalc' )
 
 if not arg[1] then
    Option:printUsage( "" )
-end
-
-local lockObj = Helper.createLock()
-if not lockObj then
-   Helper.deleteLock()
-else
-   lockObj = nil
 end
 
 local srcList, optList, lctagOptMap = Option:analyzeOption( arg )
@@ -66,6 +60,14 @@ if not lctagOptMap.dbPath then
       end
    end
 end
+
+local lockObj = Helper.createLock( DBAccess:getLockName( lctagOptMap.dbPath ) )
+if not lockObj then
+   Helper.deleteLock()
+else
+   lockObj = nil
+end
+
 
 if lctagOptMap.mode == "server" then
    if srcList[ 1 ] == "stop" then
@@ -142,9 +144,22 @@ if lctagOptMap.mode == "forceUpdate" then
 end
 
 if lctagOptMap.mode == "chg-proj" or lctagOptMap.mode == "set-projDir" then
+
+   chgDirMap = {}
+   for index, chgDir in ipairs( srcList ) do
+      local splitIndex = string.find( chgDir, "@", 1, true )
+      if not splitIndex then
+	 log( 1, "pattern error. need delimiter with @", chgDir )
+	 os.exit( 1 )
+      end
+      local srcDir = string.sub( chgDir, 1, splitIndex - 1 )
+      local dstDir = string.sub( chgDir, splitIndex + 1 )
+      chgDirMap[ string.gsub( srcDir, "/$", "" ) ] = string.gsub( dstDir, "/$", "" )
+   end
+   
    DBCtrl:changeProjDir(
       lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
-      lctagOptMap.mode == "set-projDir" )
+      lctagOptMap.mode == "set-projDir", chgDirMap )
    os.exit( 0 )
 end
 

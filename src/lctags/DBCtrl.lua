@@ -162,7 +162,8 @@ function DBCtrl:getCountElement( tableName, condition )
    return self.db:getRowNumber( tableName, condition )
 end
 
-function DBCtrl:changeProjDir( path, currentDir, projDir, onlySetFlag )
+function DBCtrl:changeProjDir(
+      path, currentDir, projDir, onlySetFlag, chgDirMap )
    local obj = DBCtrl:open( path, false, currentDir )
 
    if not obj then
@@ -170,6 +171,84 @@ function DBCtrl:changeProjDir( path, currentDir, projDir, onlySetFlag )
    end
 
    obj:setProjDir( path, projDir )
+
+   if chgDirMap then
+      -- chgDirMap に格納されている key, val から、
+      -- コンパイルオプションのインクルードディレクトリのパスを変換する。
+      -- key: 変換元ディレクトリ
+      -- val: 変換先ディレクトリ
+      local fileIdTargetCompOpList = {}
+
+      local patternListMap = {}
+      
+      for srcDir, dstDir in pairs( chgDirMap ) do
+	 local patternList = { srcDir, srcDir .. "/",
+			       "-I" .. srcDir, "-I" .. srcDir .. "/" }
+	 patternListMap[ dstDir ] = patternList
+      end
+      
+      obj:mapTargetInfo(
+	 nil,
+	 function( targetInfo )
+	    local compOp = ""
+	    local convFlag
+	    for token in string.gmatch( targetInfo.compOp, "%g+" ) do
+	       for dstDir, patternList in pairs( patternListMap ) do
+		  for patIndex, pattern in ipairs( patternList ) do
+		     if token == pattern then
+			convFlag = true
+			token = dstDir
+			break
+		     elseif pattern:sub( #pattern ) == '/' and
+			string.find( token, pattern, 1, true )
+		     then
+			convFlag = true
+			local index = string.find( token, pattern, 1, true )
+			local newToken = string.sub( token,  1, index - 1 ) .. dstDir .. "/"
+			newToken = newToken .. string.sub( token, index + #pattern )
+			token = newToken
+			break
+		     end
+		  end
+		  if token == "" then
+		     compOp = token
+		  else
+		     compOp = token .. " " .. compOp
+		  end
+	       end
+	    end
+	    if convFlag then
+	       table.insert( fileIdTargetCompOpList,
+			     { targetInfo.fileId, targetInfo.target, compOp } )
+	    end
+	    return true
+	 end
+      )
+
+      for index, info in ipairs( fileIdTargetCompOpList ) do
+	 log( 1, string.format( "change dir %d/%d", index, #fileIdTargetCompOpList ) )
+	 obj:updateCompileOpWithFileId( info[ 1 ], info[ 2 ], info[ 3 ] )
+      end
+
+
+      obj:mapFile(
+	 nil,
+	 function( fileInfo )
+	    if fileInfo.id ~= systemFileId then
+	       for srcDir, dstDir in pairs( chgDirMap ) do
+		  if string.find( fileInfo.path, srcDir .. "/", 1, true ) then
+		     local path = dstDir .. fileInfo.path:sub( #srcDir + 1 )
+		     log( 1, "conv path", path )
+		     obj:update( "filePath", "id = " .. fileInfo.id,
+				 string.format( "path = '%s'", path ) )
+		  end
+	       end
+	    end
+	    return true
+	 end
+      )
+   end
+   
 
    if not onlySetFlag then
       local currentTime = Helper.getCurrentTime()
@@ -195,6 +274,7 @@ function DBCtrl:changeProjDir( path, currentDir, projDir, onlySetFlag )
 	 end
       )
    end
+  
    obj:close()
 
    return true
@@ -786,11 +866,16 @@ function DBCtrl:setUpdateTime( fileId, target, time )
 end
 
 function DBCtrl:updateCompileOp( fileInfo, target, compileOp )
+   self:updateCompileOpWithFileId( fileInfo.id, target, compileOp )
+end
+
+function DBCtrl:updateCompileOpWithFileId( fileId, target, compileOp )
    self:update(
       "targetInfo", "compOp = '" .. compileOp .. "'",
       string.format( "fileId = %d AND target = '%s'",
-		     fileInfo.id, target ) )
+		     fileId, target ) )
 end
+
 
 function DBCtrl:insertTargetInfo(
       fileId, target, compileOp, hasPchFlag, updateTime )
@@ -831,7 +916,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
 	 self:insertTargetInfo(fileInfo.id, target, compileOp, hasPchFlag, 0 )
 	 log( 2, "new target", fileInfo.path )
       elseif targetInfo.compOp ~= compileOp then
-	 self:updateCompileOp( fileInfo, target, compileOp )
+	 self:updateCompileOpWithFileId( fileInfo.id, target, compileOp )
 	 log( 2, "new compileOp", fileInfo.path, compileOp, targetInfo.compOp )
       else
 	 if isTarget then
@@ -1274,6 +1359,12 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       fullnameBase = declNs.name
       otherNameBase = declNs.otherName
       baseNsId = declNs.id
+
+      if structUptodate and not fileInfo.uptodate then
+	 -- ファイルが更新されている場合、構造体の定義は再登録が必要なので、
+	 -- structUptodate はクリアする
+	 structUptodate = nil
+      end
 
       -- マクロ内で複数定義している場合、
       -- メンバー参照の nsInfo の解決が正常にできないので

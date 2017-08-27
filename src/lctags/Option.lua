@@ -57,7 +57,7 @@ usage:
    %s rm <file|tgt> name
    %s shrink [--lctags-db path]
    %s chkFiles [--lctags-db path]
-   %s chg-proj projDir [--lctags-db path]
+   %s chg-proj projDir [--lctags-db path] [src@dst src@dst src@dst src@dst]
    %s set-projDir projDir [--lctags-db path]
 
   option:

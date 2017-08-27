@@ -18,7 +18,7 @@
 	    (:name "callee" :bind "e" :action lctags-graph-callee-at)
 	    (:name "symbol" :bind "s" :action lctags-graph-symbol-at)
 	    ))
-    (:name "generate" :bind "g"
+    (:name "generate" :bind "G"
 	   :submenu
 	   ((:name "dump-member-at" :bind "m"
 		   :action lctags-generate-to-dump-member-at)

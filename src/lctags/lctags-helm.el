@@ -225,8 +225,11 @@
 
 (defun lctags-helm-make-candidates ( info candidates-info)
   (let* ((hash (lctags-candidate-item-get-hash info))
-	 (type-info (lctags-candidate-get-typeInfo candidates-info hash))
-	 (expandable (assoc 'candidate (car type-info))))
+	 type-info
+	 expandable)
+    (when (< (length candidates-info) 300)
+      (setq type-info (lctags-candidate-get-typeInfo candidates-info hash)))
+    (setq expandable (assoc 'candidate (car type-info)))
     (cons (format
 	   "(%s) %s%s %s %s"
 	   (lctags-candidate-item-get-kind info)

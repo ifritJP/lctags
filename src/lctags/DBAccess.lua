@@ -19,6 +19,10 @@ function DBAccess:setRecordSqlObj( obj )
    recordFile = obj
 end
 
+function DBAccess:getLockName( path )
+   return os.getenv( "USER" ) .. string.gsub( path, "/", "." )
+end
+
 function DBAccess:open( path, readonly, onMemoryFlag )
    local flag = nil
    if readonly then
@@ -28,7 +32,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
    end
    log(3, "DBAccess:open", flag )
 
-   local transLockObj = Helper.createLock()
+   local transLockObj = Helper.createLock( DBAccess:getLockName( path ) )
    -- transLockObj:begin()
    local db
    if onMemoryFlag then

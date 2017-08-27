@@ -175,7 +175,7 @@ function obj.dot(
 
    if browseFlag then
       os.execute( "firefox " .. outputFile )
-      os.remove( outputFile )
+       os.remove( outputFile )
    end
 end
 

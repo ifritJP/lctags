@@ -28,8 +28,8 @@
 
 
 #define LOCK_DEFAULT_NAME "default"
-#define LOCK_NAME_PREFIX "/lctags"
-#define MQUEUE_NAME_PREFIX "/lctags"
+#define LOCK_NAME_PREFIX "/lctags_"
+#define MQUEUE_NAME_PREFIX "/lctags_"
 
 #define MQUEUE_MSG_SIZE 2 * 1024
 

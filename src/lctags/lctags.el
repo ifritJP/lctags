@@ -24,6 +24,9 @@
 (defvar lctags-process-buf-name "*lctags-process*"
   "")
 
+(defvar lctags-graph-process-buf-name "*lctags-graph-process*"
+  "")
+
 (defvar lctags-command
   (expand-file-name "lctags")
   "lctags command")
@@ -65,6 +68,9 @@ This parameter can set function and string.
   ;; body
   (run-hooks 'lctags-mode-hook)
   )
+
+(defun lctags-execute-op2 (src-buf lctags-buf input async &rest lctags-opts)
+  (lctags-execute-op src-buf lctags-buf input async lctags-opts))
 
 (defun lctags-execute-op (src-buf lctags-buf input async lctags-opts)
   (let ((db-path lctags-db)
@@ -279,13 +285,13 @@ This parameter can set function and string.
 	(column (lctags-get-column))
 	)
     
-    (with-temp-buffer
-      (lctags-execute org-buf (current-buffer) nil
-		      "graph-at" graph (buffer-file-name org-buf)
-		      (number-to-string line) (number-to-string column) "-b"
-		      (when depth "-d")
-		      (when depth (number-to-string depth))
-		      ))))
+    (with-current-buffer (generate-new-buffer lctags-graph-process-buf-name)
+      (lctags-execute-op2 org-buf (current-buffer) nil t
+			  "graph-at" graph (buffer-file-name org-buf)
+			  (number-to-string line) (number-to-string column) "-b"
+			  (when depth "-d")
+			  (when depth (number-to-string depth))
+			  ))))
 
 (defun lctags-get-process-buffer (init)
   (let ((buffer (get-buffer-create lctags-process-buf-name)))
