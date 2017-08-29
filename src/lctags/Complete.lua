@@ -148,8 +148,15 @@ function Complete:searchToken( tokenInfoList, startIndex, lastIndex, targetToken
 end
 
 
+-- startIndex 〜 checkIndex の中で解析対象の式を決定する。
+--
+-- 戻り値: statementStartIndex, incompletionIndex, syntaxStartIndex
+--  statementStartIndex: 先頭からこのインデックスまでを解析対象とする
+--  incompletionIndex: このインデックスから checkIndex までを解析対象の式とする
+--                    補完する prefix は含まない。
+--  syntaxStartIndex: このインデックスから checkIndex までを解析対象の式とする。
+--                    補完する prefix も含む。
 function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
-   -- startIndex 〜 checkIndex の中で解析対象の式を決定する
 
 
    local blockStartIndex
@@ -209,22 +216,27 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 	    tokenInfoList, index + 1, checkIndex, pairToken )
 	 if not endIndex then
 	    -- カッコ中が補完対象
-	    log( 2, "paren start" )
-	    local parenIndex, incompletionIndex, syntaxStartIndex = self:checkStatement(
-	       tokenInfoList, index + 1, checkIndex )
-	    log( 2, "paren", parenIndex, incompletionIndex, syntaxStartIndex )
-	    if parenIndex then
-	       if incompletionIndex then
-		  parenIndex = incompletionIndex
-	       end
-	       log( 2, "paren2", statementStartIndex, parenIndex )
-	       return statementStartIndex, parenIndex
-	    end
+	    -- log( 2, "paren start" )
+	    -- local parenIndex, incompletionIndex, syntaxStartIndex = self:checkStatement(
+	    --    tokenInfoList, index + 1, checkIndex )
+	    -- log( 2, "paren", parenIndex, incompletionIndex, syntaxStartIndex )
+	    -- if parenIndex then
+	    --    if incompletionIndex then
+	    -- 	  parenIndex = incompletionIndex
+	    --    end
+	    --    log( 2, "paren2", statementStartIndex, parenIndex )
+	    --    return statementStartIndex, parenIndex
+	    -- end
 	    
-	    log( 2, "this is in paren" )
-	    return nil, index, statementStartIndex
+	    -- log( 2, "this is in paren" )
+	    -- return nil, index, statementStartIndex
+	    return statementStartIndex, index + 1, index + 1
+
+	    
+	    
+	 else
+	    index = endIndex + 1
 	 end
-	 index = endIndex + 1
       elseif token == ";" or token == "," then
 	 statementStartIndex = index
 	 log( 2, "statement end",  statementStartIndex )
