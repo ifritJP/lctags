@@ -1558,6 +1558,10 @@ end
 function Analyzer:analyzeSourceAtWithFunc(
       targetFullPath, line, column,
       optionList, target, fileContents, func, diagList )
+
+   if diagList then
+      table.insert( optionList, "-Wall" )
+   end
    
    local args = clang.mkCharArray( optionList )
    local unsavedFileTable
@@ -1636,6 +1640,10 @@ function Analyzer:queryAtFunc(
 
    -- filePath の target に対応するコンパイルオプションを取得
    local fileInfo, optionList, updateTime = db:getFileOpt( filePath, target )
+   if not optionList then
+      print( "not register target", filePath, target )
+      os.exit( 1 )
+   end
 
    local equalDigestFlag
    if fileInfo.incFlag == 0 and updateTime and
