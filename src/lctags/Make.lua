@@ -34,8 +34,9 @@ local function searchNeedUpdateFiles( db, list, target )
    -- 情報が新しいファイル
    local uptodateFileMap = {}
    
-   log( 1, string.format( "check modified files", #list ) )
+   log( 1, "check modified files", #list )
    for index, fileInfo in ipairs( list ) do
+      -- log( 3, "check path", fileInfo.path )
       local targetInfo = db:getTargetInfo( fileInfo.id, target )
       if targetInfo or fileInfo.incFlag ~= 0 then
 	 local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
@@ -52,6 +53,15 @@ local function searchNeedUpdateFiles( db, list, target )
 	       end
 	    else
 	       uptodateFileMap[ fileInfo.id ] = fileInfo
+	       db:mapIncludeCache(
+		  fileInfo,
+		  function( item )
+		     local incFileInfo = db:getFileInfo( item.id )
+		     -- log( 3, "add needUpdateIncFileInfoMap", incFileInfo.path )
+		     needUpdateIncFileInfoMap[ item.id ] = incFileInfo
+		     return true
+		  end
+	       )
 	    end
 	 end
       else
@@ -106,9 +116,10 @@ local function searchNeedUpdateFiles( db, list, target )
       nil,
       function( item )
 	 if needUpdateIncFileInfoMap[ item.id ] then
-	    local fileInfo = uptodateFileMap[ item.baseFileId ]
-	    if fileInfo then
-	       -- ソースの更新日時が新しくても、
+	    log( 3, "check needUpdateIncFileInfoMap",
+		 needUpdateIncFileInfoMap[ item.id ].path )
+	    if not needUpdateSrcMap[ item.baseFileId ] then
+	       fileInfo = db:getFileInfo( item.baseFileId )
 	       -- インクルードの更新日時が古い場合ソースファイルを更新対象にする
 	       if isNeedUpdateFunc( fileInfo, item.id,
 				    fileId2TargetInfoMap[ item.id ] ) then

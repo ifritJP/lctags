@@ -311,6 +311,8 @@ namespace {
   }
 }
 
+typedef int INT_t;
+
 class TestClass2
 {
 public:
@@ -320,5 +322,12 @@ public:
       YYYY aYYYYY = { 0 };
       int val = INN;
       int val2[] = { 0 };
+      val = 0;
+    }
+
+    void func()
+    {
+        INT_t abcddd = 0;
+        abcddd = 1;
     }
 } CLASS2, CLASS3;

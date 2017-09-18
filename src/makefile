@@ -247,7 +247,7 @@ ifdef LCTAGS_SERVER_ON
 endif
 	sleep 1
 	echo 'int ccccc;' >> test/field.h
-	$(LUA_COMMAND) $(LCTAGS_LUA) update .
+	$(LUA_COMMAND) $(LCTAGS_LUA) update . --lctags-log 5 > dump.update
 	grep -v 'int ccccc;' test/field.h > test/field.work && mv test/field.work test/field.h
 	$(LUA_COMMAND) $(LCTAGS_LUA) shrink
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump target
@@ -286,6 +286,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/hoge.cpp 212 19
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/hoge.cpp 236 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/hoge.cpp 235 18
+	-$(LUA_COMMAND) $(LCTAGS_LUA) dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp.cpp 26 17
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp-2.cpp 25 16
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp2.cpp 31 10

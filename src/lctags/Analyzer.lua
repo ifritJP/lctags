@@ -17,7 +17,7 @@ local function dumpCursorInfo( cursor, depth, prefix, cursorOffset )
    log( 5,
 	function()
 	   return string.format(
-	      "%s %s%s %s(%d) %d %s %s",
+	      "%s |%s%s %s(%d) %d %s %s",
 	      string.rep( "  ", depth ),
 	      prefix and (prefix .. " ") or "", txt, 
 	      clang.getCursorKindSpelling( cursorKind ), cursorKind,
@@ -336,7 +336,8 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       analyzer:registCursor( cursor, exInfo )
    elseif cursorKind == clang.core.CXCursor_FunctionDecl or
       cursorKind == clang.core.CXCursor_CXXMethod or
-      cursorKind == clang.core.CXCursor_Constructor      
+      cursorKind == clang.core.CXCursor_Constructor or
+      cursorKind == clang.core.CXCursor_Destructor
    then
       table.insert( currentSpInfo.funcList, cursor )
       analyzer.currentFunc = cursor
@@ -462,8 +463,13 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	       cursorKind == clang.core.CXCursor_EnumDecl or
 	       cursorKind == clang.core.CXCursor_VarDecl
 	    then
-	       analyzer.recursiveBaseKind = cursorKind
-	       switchFlag = true
+	       if cursorKind == clang.core.CXCursor_VarDecl then
+		  -- switchFlag をセットすると、構造体、クラスの入れ子メンバ定義が
+		  -- 不正になるので、 switchFlag をセットしない。
+	       else
+		  analyzer.recursiveBaseKind = cursorKind
+		  switchFlag = true
+	       end
 	    end
 	 end
 
