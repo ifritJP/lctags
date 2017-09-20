@@ -13,11 +13,20 @@ sub                46 ./test/comp7.cpp     int sub()
 sub                46 ./test/comp8.cpp     int sub()
 sub                46 ./test/comp9.cpp     int sub()
 sub                46 ./test/comp10.cpp     int sub()
+sub                 9 ./test/comp16.cpp void sub( DATA * pData )
 sub                 4 ./test/stack.cpp static void sub();
 sub                52 ./test/stack.cpp static void sub()
 lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
+ccccc               6 ./test/field.h   
+lua lctags/lctags.lua -xr enum_val1
+enum_val1          18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
+enum_val1         195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
+enum_val1         237 ./test/hoge.cpp              return enum_val1;
+enum_val1         316 ./test/hoge.cpp  static int s_vals[] = { enum_val1 };
+enum_val1         326 ./test/hoge.cpp        int val2[] = { enum_val1 };
+enum_val1          12 ./test/sample.c      case enum_val1:
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
@@ -29,8 +38,11 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 44 8
 lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
 ::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
 lua lctags/lctags.lua ref-at test/hoge.cpp 237 23
+::@enum::<enum_enum_t>::enum_val1  316 ./test/hoge.cpp  static int s_vals[] = { enum_val1 };
 ::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
+::@enum::<enum_enum_t>::enum_val1  326 ./test/hoge.cpp        int val2[] = { enum_val1 };
 ::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
+::@enum::<enum_enum_t>::enum_val1  195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
 ::@enum::<enum_enum_t>::enum_val1   12 ./test/sample.c      case enum_val1:
 lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
@@ -422,6 +434,8 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message>
 </diagnostics>
 </lctags_result>
+lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
+makefile:261: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <complete>
@@ -2034,6 +2048,38 @@ lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
 <column>15</column>
 </endPos>
 </candidate>
+</typeInfo>
+</complete>
+<diagnostics>
+</diagnostics>
+</lctags_result>
+lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
+<lctags_result>
+<complete>
+<prefix></prefix>
+<frontExpr>pData-></frontExpr>
+
+<candidate>
+<canonical>pFunc( int val )</canonical>
+<simple>pFunc( int val )</simple>
+<expand>-&gt;</expand>
+<kind>f</kind>
+<type>func *</type>
+<hash>9018f5256a12915ba8e0091951d3665b</hash>
+<val></val>
+<file>NDIR/test/comp16.cpp</file>
+<startPos>
+<line>6</line>
+<column>3</column>
+</startPos>
+<endPos>
+<line>6</line>
+<column>15</column>
+</endPos>
+</candidate>
+<typeInfo>
+<hash>9018f5256a12915ba8e0091951d3665b</hash>
+
 </typeInfo>
 </complete>
 <diagnostics>

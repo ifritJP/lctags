@@ -54,6 +54,7 @@
 	      (lctags-candidate-item-get-simple item)))
        (insert (substring simple (length prefix)))
        (when (equal (lctags-candidate-item-get-kind item) "f")
+	 ;; (not (string-match "\\.\\|->" front))
 	 (if (string-match "(" simple)
 	     (progn
 	       (goto-char pos)

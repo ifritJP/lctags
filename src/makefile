@@ -226,6 +226,7 @@ endif
 	$(call build-test, test/comp13.cpp )
 	$(call build-test, test/comp14.cpp )
 	$(call build-test, test/comp15.cpp )
+	$(call build-test, test/comp16.cpp )
 	$(call build-test, test/class2.cpp )
 	$(call build-test, test/class3.cpp )
 	$(call build-test, test/class4.cpp )
@@ -260,6 +261,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump all >> dump
 	$(LUA_COMMAND) $(LCTAGS_LUA) -x sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) -x ccccc
+	$(LUA_COMMAND) $(LCTAGS_LUA) -xr enum_val1
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 14 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 44 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 236 23
@@ -302,6 +304,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp12.cpp 11 5
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp13.cpp 3 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp14.cpp 4 12
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp16.cpp 11 9
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class2.cpp 13 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class3.cpp 16 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class4.cpp 11 7

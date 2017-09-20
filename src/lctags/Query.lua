@@ -30,6 +30,8 @@ function Query:execWithDb( db, query, target )
       db:dumpCall( 1, target )
    elseif query == "dumpInc" then
       db:dumpIncCache( 1, target )
+   elseif query == "dumpIncSrc" then
+      db:dumpIncSrc( 1, target )
    elseif query == "dumpDigest" then
       db:dumpTokenDigest( 1, target )
    elseif query == "dumpPrepro" then

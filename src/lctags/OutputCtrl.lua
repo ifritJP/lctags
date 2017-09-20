@@ -93,7 +93,8 @@ function obj.dot(
 	 local index = 0
 	 for dirPath, fileIdList in pairs( dir2FileIdListMap ) do
 	    if dirPath == "" then
-	       outputNode( id )
+	       log( 2, "dot output id dirPath is ''" )
+	       --outputNode( id )
 	    else
 	       index = index + 1
 	       fileHandle:write( string.format( "subgraph cluster_0%d {", index ) )

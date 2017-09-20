@@ -219,6 +219,8 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.query = "dumpCall"
 	    elseif argList[ index + 1 ] == "inc" then
 	       lctagOptMap.query = "dumpInc"
+	    elseif argList[ index + 1 ] == "incSrc" then
+	       lctagOptMap.query = "dumpIncSrc"
 	    elseif argList[ index + 1 ] == "digest" then
 	       lctagOptMap.query = "dumpDigest"
 	    elseif argList[ index + 1 ] == "prepro" then

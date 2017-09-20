@@ -192,7 +192,7 @@ namespace ns1 {
          * あげ
          */
         int func1( Callback_t callback ) {
-            char buf[ 1 ];
+            char buf[ 1 ] = { enum_val1 };
             callback( NULL );
             return 0;
         }
@@ -313,6 +313,8 @@ namespace {
 
 typedef int INT_t;
 
+static int s_vals[] = { enum_val1 };
+
 class TestClass2
 {
 public:
@@ -321,7 +323,7 @@ public:
       enum { INN };
       YYYY aYYYYY = { 0 };
       int val = INN;
-      int val2[] = { 0 };
+      int val2[] = { enum_val1 };
       val = 0;
     }
 

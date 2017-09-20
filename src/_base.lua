@@ -320,6 +320,7 @@ libs.mapRangePlainText = function( cxUnit, cxRange, func, ... )
    local tokenPBuf = libclangcore.new_CXTokenPArray( 1 )
    local tokenNum = libclangcore.clang_tokenize( unit, cxRange, tokenPBuf )
    local tokenArray = libclangcore.CXTokenPArray_getitem( tokenPBuf, 0 )
+
    for index = 0, tokenNum - 1 do
       local token = libclangcore.CXTokenArray_getitem( tokenArray, index )
       func( libs.cx2string( libclangcore.clang_getTokenSpelling( unit, token ) ), ... )
@@ -338,6 +339,12 @@ libs.isArrayType = function( cxtype )
    local baseType = cxtype and cxtype:getElementType()
    return baseType.__ptr.kind ~= libclangcore.CXType_Invalid
 end
+
+libs.isExprKind = function( cursorKind )
+   return cursorKind >= libclangcore.CXCursor_FirstExpr and
+      cursorKind <= libclangcore.CXCursor_LastExpr
+end
+
 
 libs.getDeclCursorFromType = function( cxtype )
    while true do

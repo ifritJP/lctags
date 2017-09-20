@@ -2432,6 +2432,22 @@ function DBCtrl:dumpIncCache( level, path )
    )
 end
 
+function DBCtrl:dumpIncSrc( level, path )
+   log( level, "-- table incSrc -- " )
+   log( level, "baseFileId", "id", "incFlag", "basePath", "path" )
+
+   self:mapRowList(
+      "incCache", self:getFileIdCondition( path, "id" ), nil, nil,
+      function( row )
+	 local baseFileInfo = self:getFileInfo( row.baseFileId )
+	 local incFileInfo = self:getFileInfo( row.id )
+	 log( level, row.baseFileId, row.id, row.incFlag, 
+	      baseFileInfo.path, incFileInfo.path )
+	 return true
+      end
+   )
+end
+
 function DBCtrl:dumpTokenDigest( level, path )
    log( level, "-- table tokenDigest -- " )
    log( level, "incFile", "digest" )
@@ -2650,7 +2666,7 @@ function DBCtrl:getSrcForIncOne( fileInfo, target )
 	 function( item )
 	    local baseId = item.baseFileId
 	    if self:hasTarget( baseId, target ) then
-	       srcFileInfo = workFileInfo
+	       srcFileInfo = self:getFileInfo( baseId )
 	       return false
 	    end
 	    return true

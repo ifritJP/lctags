@@ -926,12 +926,33 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
 	       str = string.gsub( str, "const$", "" )
 	    else
 	       childKind = clang.core.CXCursor_FunctionDecl
+	       
 	       local rootCursor = getRootTypeCursor( typeCursor )
 	       str = clang.getCurosrPlainText( rootCursor.__ptr )
-	       str = string.gsub( str, '.*%).*%(', "(" )
+	       if string.gmatch( str, ".*%).*%(" ) then
+		  str = string.gsub( str, ";.*", "" )
+		  str = string.gsub( str, '.*%).*%(', "(" )
+	       else
+		  str = "("
+		  local argNum = 0
+		  while true do
+		     local argType = rootType:getArgType( argNum )
+		     if argType:getTypeSpelling() == "" then
+			break
+		     end
+		     if #str == 1 then
+			str = str .. argType:getTypeSpelling()
+		     else
+			str = str .. "," .. argType:getTypeSpelling()
+		     end
+		     
+		     argNum = argNum + 1
+		  end
+		  str = str .. ")"
+	       end
 	    end
 	    str = string.gsub( str, ' ,', "," )
-	    local args = string.gsub( str, ";", "" )
+	    local args = string.gsub( str, ";.*", "" )
 	    args = string.gsub( args, "[\n\t]", ' ' )
 	    args = string.gsub( args, " +", " " )
 	    args = string.gsub( args, " +$", "" )

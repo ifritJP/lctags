@@ -17,6 +17,8 @@
 	   ((:name "caller" :bind "r" :action lctags-graph-caller-at)
 	    (:name "callee" :bind "e" :action lctags-graph-callee-at)
 	    (:name "symbol" :bind "s" :action lctags-graph-symbol-at)
+	    (:name "inc" :bind "i" :action lctags-graph-inc)
+	    (:name "incSrc" :bind "I" :action lctags-graph-incSrc)
 	    ))
     (:name "generate" :bind "G"
 	   :submenu

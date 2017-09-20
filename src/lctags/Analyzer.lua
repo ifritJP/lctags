@@ -17,12 +17,13 @@ local function dumpCursorInfo( cursor, depth, prefix, cursorOffset )
    log( 5,
 	function()
 	   return string.format(
-	      "%s |%s%s %s(%d) %d %s %s",
+	      "%s |%s%s %s(%d) %d %s %s %s",
 	      string.rep( "  ", depth ),
 	      prefix and (prefix .. " ") or "", txt, 
 	      clang.getCursorKindSpelling( cursorKind ), cursorKind,
 	      cursor:hashCursor(), "",
-	      cursorOffset or ""  )
+	      cursorOffset or "",
+	      clang.isExprKind( cursorKind ) )
 	end
    )
 end
@@ -103,6 +104,8 @@ local targetKindList = {
    clang.core.CXCursor_VarDecl,
    clang.core.CXCursor_CallExpr,
    clang.core.CXCursor_CompoundStmt,
+   clang.core.CXCursor_InitListExpr,
+   clang.core.CXCursor_UnexposedExpr,
 }
 
 
@@ -450,6 +453,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 cursorKind == clang.core.CXCursor_UnionDecl or
 	 cursorKind == clang.core.CXCursor_UnexposedDecl or
 	 cursorKind == clang.core.CXCursor_VarDecl or
+	 clang.isExprKind( cursorKind ) or
 	 (not uptodateFlag and
 	     (isFuncDecl( cursorKind ) or
 		 cursorKind == clang.core.CXCursor_CompoundStmt or
@@ -461,6 +465,7 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 if not recursiveFlag then
 	    if isFuncDecl( cursorKind ) or
 	       cursorKind == clang.core.CXCursor_EnumDecl or
+	       clang.isExprKind( cursorKind ) or
 	       cursorKind == clang.core.CXCursor_VarDecl
 	    then
 	       if cursorKind == clang.core.CXCursor_VarDecl then

@@ -133,6 +133,7 @@ This parameter can set function and string.
   (let ((save (current-buffer))
 	(line (1- (current-line)))
 	(column (+ (- (point) (point-at-bol)) 1))
+	(use-global lctags-use-global)
 	buffer lineNum select-name lctags-opt lctags-opt2 opt-list input )
     (cond
      ((equal mode "def-at")
@@ -169,11 +170,13 @@ This parameter can set function and string.
       (setq lctags-opt "-xra")
       (setq select-name (format "(R)%s" tag)))
      ((equal mode "inc")
+      (setq use-global nil)
       (setq lctags-opt "list")
       (setq lctags-opt2 '( "inc" ))
       (setq tag buffer-file-name)
       (setq select-name (format "(i)%s" tag)))
      ((equal mode "incSrc")
+      (setq use-global nil)
       (setq lctags-opt "list")
       (setq lctags-opt2 '( "incSrc" ))
       (setq tag buffer-file-name)
@@ -183,7 +186,7 @@ This parameter can set function and string.
 		  (concat "GTAGS SELECT* " select-name)))
     (setq opt-list
 	  (append (list save buffer input lctags-opt)
-		  (when lctags-use-global
+		  (when use-global
 		      '("--use-global"))
 		  lctags-opt2
 		  lctags-opt-list
@@ -269,6 +272,14 @@ This parameter can set function and string.
   (interactive "P")
   (lctags-graph-at "symbol" depth))
 
+(defun lctags-graph-inc (&optional depth)
+  (interactive "P")
+  (lctags-graph "inc" depth))
+
+(defun lctags-graph-incSrc (&optional depth)
+  (interactive "P")
+  (lctags-graph "incSrc" depth))
+
 
 (defun lctags-get-line ()
   (interactive)
@@ -292,6 +303,29 @@ This parameter can set function and string.
 			  (when depth "-d")
 			  (when depth (number-to-string depth))
 			  ))))
+
+(defun lctags-graph-at ( graph depth )
+  (lctags-graph-op "graph-at" graph depth))
+
+(defun lctags-graph ( graph depth )
+  (lctags-graph-op "graph" graph depth))
+
+(defun lctags-graph-op ( command graph depth )
+  (let ((org-buf (current-buffer))
+	(nsId (lctags-namespaceId-at))
+	(line (lctags-get-line))
+	(column (lctags-get-column))
+	)
+    
+    (with-current-buffer (generate-new-buffer lctags-graph-process-buf-name)
+      (lctags-execute-op2 org-buf (current-buffer) nil t
+			  command graph (buffer-file-name org-buf)
+			  (number-to-string line) (number-to-string column) "-b"
+			  (when depth "-d")
+			  (when depth (number-to-string depth))
+			  ))))
+
+
 
 (defun lctags-get-process-buffer (init)
   (let ((buffer (get-buffer-create lctags-process-buf-name)))
