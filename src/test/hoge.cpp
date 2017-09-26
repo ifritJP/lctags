@@ -313,7 +313,7 @@ namespace {
 
 typedef int INT_t;
 
-static int s_vals[] = { enum_val1 };
+static int s_vals[] = { enum_val1, enum_val2 };
 
 class TestClass2
 {

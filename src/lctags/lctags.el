@@ -28,7 +28,7 @@
   "")
 
 (defvar lctags-command
-  (expand-file-name "lctags")
+  "lctags"
   "lctags command")
 
 (defvar lctags-mode-map (make-sparse-keymap)
@@ -131,7 +131,7 @@ This parameter can set function and string.
 
 (defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
   (let ((save (current-buffer))
-	(line (1- (current-line)))
+	(line (1- (lctags-current-line)))
 	(column (+ (- (point) (point-at-bol)) 1))
 	(use-global lctags-use-global)
 	buffer lineNum select-name lctags-opt lctags-opt2 opt-list input )
@@ -283,8 +283,12 @@ This parameter can set function and string.
 
 (defun lctags-get-line ()
   (interactive)
-  (1- (current-line)))
+  (count-lines 1 (point)))
 
+(defun lctags-current-line ()
+  (interactive)
+  (1+ (count-lines 1 (point))))
+  
 (defun lctags-get-column ()
   (interactive)
   (+ (- (point) (point-at-bol)) 1))
@@ -344,7 +348,7 @@ This parameter can set function and string.
 		       (list "update" file-name "--lctags-log" "2" ))))
 
 (defun lctags-get-namespace-at ()
-  (let ((line (1- (current-line)))
+  (let ((line (lctags-get-line))
 	(column (+ (- (point) (point-at-bol)) 1))
 	buffer namespace )
     (setq buffer (generate-new-buffer "lctags temp"))

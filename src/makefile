@@ -2,6 +2,10 @@ NDIR=$(shell pwd)
 
 INST_DIR=/usr/local/bin
 
+PROXY=
+
+SWIG=swig
+
 ####### customize Lua environment ######
 
 # LUA_COMMAND=lua5.1
@@ -32,14 +36,17 @@ TEST_LUA_DIR=../external/lua/lua-5.3.4/src
 
 ####### customize libclang environment ######
 
-LIBCLANG_INC=/usr/lib/llvm-3.8/include
-LIBCLANG_LIB=/usr/lib/llvm-3.8/lib
-LIBCLANG_STD_INC=/usr/lib/llvm-3.8/lib/clang/3.8.0/include
+CLANG_VER=3.8
+LIBCLANG_INC=/usr/lib/llvm-$(CLANG_VER)/include
+LIBCLANG_LIB=/usr/lib/llvm-$(CLANG_VER)/lib
+LIBCLANG_STD_INC=/usr/lib/llvm-$(CLANG_VER)/lib/clang/$(CLANG_VER).0/include
 
 # LIBCLANG_DIR=/proj/next/clang/r34-final
 # LIBCLANG_INC=../external/clang/r390/llvm/tools/clang/include
 # LIBCLANG_STD_INC=../external/clang/r390/build/lib/clang/3.9.0/include
-# LIBCLANG_LIB=/usr/lib/llvm-3.8/lib
+# LIBCLANG_LIB=/usr/lib/llvm-$(CLANG_VER)/lib
+
+# LIBCLANG_SO=-lclang
 
 LIBCLANG_SO=-lclang
 
@@ -49,6 +56,8 @@ LIBCLANG_SO=-lclang
 
 LUASQLITE3_DIR=../external/luasqlite3/lsqlite3_fsl09x
 #USE_BDB_SQLITE=y
+
+LUASQLITE3_URL="http://lua.sqlite.org/index.cgi/zip/lsqlite3_fsl09x.zip?uuid=fsl_9x"
 
 
 
@@ -122,7 +131,7 @@ endif
 
 
 swig/libClangLuaBase_wrap.c: swig/libClangLuaBase.i 
-	swig -I$(LIBCLANG_INC) -o swig/libClangLuaBase_wrap.c -lua swig/libClangLuaBase.i
+	$(SWIG) -I$(LIBCLANG_INC) -o swig/libClangLuaBase_wrap.c -lua swig/libClangLuaBase.i
 
 swig/libClangLuaBase_wrap.o: swig/libClangLuaBase_wrap.c
 	gcc $(OPT_OP) -std=c99 -fPIC -c swig/libClangLuaBase_wrap.c -o swig/libClangLuaBase_wrap.o -I$(LIBCLANG_INC) -I$(LUA_INC) -L$(LIBCLANG_LIB) $(LIBCLANG_SO)
@@ -132,7 +141,7 @@ swig/libClangLua.i : $(TARGET_LUA) mkwrap.lua _base.lua $(COREBASE_SO)
 	$(LUA_COMMAND) mkwrap.lua base $(LIBCLANG_STD_INC) $(LIBCLANG_INC) $(LUA_INC) >  mkwrap.log
 
 swig/libClangLua_wrap.c: swig/libClangLua.i 
-	swig -I$(LIBCLANG_INC) -o swig/libClangLua_wrap.c -lua swig/libClangLua.i 
+	$(SWIG) -I$(LIBCLANG_INC) -o swig/libClangLua_wrap.c -lua swig/libClangLua.i 
 
 swig/libClangLua_wrap.o: swig/libClangLua_wrap.c
 	gcc $(OPT_OP) -std=c99 -fPIC -c swig/libClangLua_wrap.c -o swig/libClangLua_wrap.o -I$(LUA_INC) -I$(LIBCLANG_INC) -I$(LUA_INC) -L$(LIBCLANG_LIB) $(LIBCLANG_SO)
@@ -175,7 +184,7 @@ endif
 	sync
 	rm -rf .lctags/pch
 	$(MAKE) test-dbbuild
-	rm test-result
+	-rm test-result
 	LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(NDIR)@NDIR@g" | \
@@ -265,7 +274,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 14 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 44 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 236 23
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 237 23
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 237 23 | sort
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 253 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 204 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 168 15
@@ -274,6 +283,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 231 20
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 284 3
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 299 12
+	$(LUA_COMMAND) $(LCTAGS_LUA) expand test/hoge.cpp 316 29
 	-rm -f graph.sample/*
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph caller ::Callback_t -o graph.sample/caller.svg
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
@@ -315,7 +325,7 @@ test-stack:
 	$(LUA_COMMAND) $(LCTAGS_LUA) stack test/stack.cpp --lctags-log 4
 
 test-at-lua:
-ifeq ($(shell which lctags),)
+ifeq ($(shell bash -c "which lctags"),)
 	@echo please make install 
 	@exit 1
 endif
@@ -411,3 +421,48 @@ define build-test
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc $1 -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql  $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) -std=c++11 --lctags-log 3 --lctags-target $2 >> dump
 
 endef
+
+# check command and install command
+ifdef APT_TGT_CMD
+check-apt:
+	@echo check $(APT_TGT_CMD) ...
+ifeq ($(shell bash -c "which $(APT_TGT_CMD)"),)
+	@echo install $(APT_TGT_CMD)
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install $(APT_TGT_PKG)
+else
+	@echo ready $(APT_TGT_CMD)
+endif
+endif
+
+build_for_ubuntu:
+#	-sudo apt-get -o Acquire::http::proxy="$(PROXY)" update
+
+	@echo check clang-dev ...
+ifeq ($(wildcard /usr/lib/llvm-*/clang-c),)
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install libclang-$(CLANG_VER)-dev
+endif
+
+	@echo check lua-dev ...
+ifeq ($(wildcard $(LUA_INC)),)
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install liblua5.3-dev
+endif
+
+	@echo check openssl-dev ...
+ifeq ($(wildcard /usr/include/openssl/),)
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install libssl-dev
+endif
+
+	$(MAKE) APT_TGT_CMD=swig APT_TGT_PKG=swig3.0 check-apt 
+	$(MAKE) APT_TGT_CMD=gtags APT_TGT_PKG=global check-apt 
+
+	@echo check luasqlite3 ...
+ifeq ($(wildcard $(LUASQLITE3_DIR).zip),)
+	@echo install $(luasqlite3)
+	curl --proxy "$(PROXY)" $(LUASQLITE3_URL) > $(LUASQLITE3_DIR).zip 
+	(cd $(LUASQLITE3_DIR)/..; unzip -o $(shell basename $(LUASQLITE3_DIR).zip))
+else
+	@echo ready luasqlite3
+endif
+
+	$(MAKE) build SWIG=swig3.0
+	$(MAKE) test

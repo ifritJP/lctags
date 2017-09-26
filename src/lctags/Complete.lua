@@ -417,6 +417,16 @@ function Complete:createSourceForAnalyzing(
    log( 2, "decide statementStartIndex",
 	statementStartIndex, incompletionIndex, targetIndex, checkIndex, syntaxStartIndex )
 
+   local termChar = ';'
+   if tokenInfoList[  statementStartIndex ].token == ',' or
+      tokenInfoList[  statementStartIndex - 1 ].token == ',' or
+      ( tokenInfoList[  statementStartIndex ].token == '{' and
+	   tokenInfoList[  statementStartIndex - 1 ].token ~= ')' ) or
+      ( tokenInfoList[  statementStartIndex - 1 ].token == '{' and
+	   tokenInfoList[  statementStartIndex - 2 ].token ~= ')' ) 
+   then
+      termChar = ''
+   end
 
    local fileHandle = {
       __txt = "",
@@ -503,7 +513,7 @@ function Complete:createSourceForAnalyzing(
 	    if token == "(" and rToken == ")" or
 	       token == "{" and rToken == "}"
 	    then
-	       ;
+	       --;
 	    else
 	       log( 2, "illegalTailFlag", rToken, token )
 	    end
@@ -558,7 +568,7 @@ function Complete:createSourceForAnalyzing(
       log( 2, "frontSyntax", frontSyntax )
    end
 
-   fileHandle:write( ';' )
+   fileHandle:write( termChar )
    if not targetLine then
       targetLine = newLineNo
       targetColmun = newColmun + 1
@@ -1028,7 +1038,7 @@ function Complete:completeMember(
       frontExprTxt = string.gsub( frontExprTxt, "%)$", "" )
    end
    log( 2, "frontExprTxt", frontExprTxt )
-   frontExprTxt = string.gsub( frontExprTxt, ";[\n%w]*$", "" )
+   frontExprTxt = string.gsub( frontExprTxt, "[};][\n%w]*$", "" )
    if clang.isPointerType( cursor:getCursorType() ) then
       frontExprTxt = frontExprTxt .. "->"
    else

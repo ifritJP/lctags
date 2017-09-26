@@ -24,7 +24,7 @@ lua lctags/lctags.lua -xr enum_val1
 enum_val1          18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
 enum_val1         195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
 enum_val1         237 ./test/hoge.cpp              return enum_val1;
-enum_val1         316 ./test/hoge.cpp  static int s_vals[] = { enum_val1 };
+enum_val1         316 ./test/hoge.cpp  static int s_vals[] = { enum_val1, enum_val2 };
 enum_val1         326 ./test/hoge.cpp        int val2[] = { enum_val1 };
 enum_val1          12 ./test/sample.c      case enum_val1:
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
@@ -37,13 +37,13 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 44 8
 ::@struct::yyyy::kkkk  266 ./test/hoge.cpp      aYYYYY.kkkk = 0;
 lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
 ::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
-lua lctags/lctags.lua ref-at test/hoge.cpp 237 23
-::@enum::<enum_enum_t>::enum_val1  316 ./test/hoge.cpp  static int s_vals[] = { enum_val1 };
-::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
-::@enum::<enum_enum_t>::enum_val1  326 ./test/hoge.cpp        int val2[] = { enum_val1 };
-::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
-::@enum::<enum_enum_t>::enum_val1  195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
+lua lctags/lctags.lua ref-at test/hoge.cpp 237 23 | sort
 ::@enum::<enum_enum_t>::enum_val1   12 ./test/sample.c      case enum_val1:
+::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
+::@enum::<enum_enum_t>::enum_val1  195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
+::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
+::@enum::<enum_enum_t>::enum_val1  316 ./test/hoge.cpp  static int s_vals[] = { enum_val1, enum_val2 };
+::@enum::<enum_enum_t>::enum_val1  326 ./test/hoge.cpp        int val2[] = { enum_val1 };
 lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
 lua lctags/lctags.lua def-at test/hoge.cpp 204 18
@@ -62,6 +62,70 @@ lua lctags/lctags.lua def-at test/hoge.cpp 231 20
 lua lctags/lctags.lua ref-at test/hoge.cpp 284 3
 lua lctags/lctags.lua def-at test/hoge.cpp 299 12
 ::rootval         299 ./test/hoge.cpp    int rootval;
+lua lctags/lctags.lua expand test/hoge.cpp 316 29
+<lctags_result>
+<complete>
+<prefix></prefix>
+
+<candidate>
+<canonical>enum_val1</canonical>
+<simple>enum_val1</simple>
+<expand></expand>
+<kind>E</kind>
+<type>::@enum::&lt;enum_enum_t&gt;</type>
+<hash></hash>
+<val>0</val>
+<file>NDIR/test/hoge.cpp</file>
+<startPos>
+<line>16</line>
+<column>16</column>
+</startPos>
+<endPos>
+<line>16</line>
+<column>25</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>enum_val2</canonical>
+<simple>enum_val2</simple>
+<expand></expand>
+<kind>E</kind>
+<type>::@enum::&lt;enum_enum_t&gt;</type>
+<hash></hash>
+<val>1</val>
+<file>NDIR/test/hoge.cpp</file>
+<startPos>
+<line>17</line>
+<column>9</column>
+</startPos>
+<endPos>
+<line>17</line>
+<column>18</column>
+</endPos>
+</candidate>
+<candidate>
+<canonical>enum_val3</canonical>
+<simple>enum_val3</simple>
+<expand></expand>
+<kind>E</kind>
+<type>::@enum::&lt;enum_enum_t&gt;</type>
+<hash></hash>
+<val>1000</val>
+<file>NDIR/test/hoge.cpp</file>
+<startPos>
+<line>18</line>
+<column>9</column>
+</startPos>
+<endPos>
+<line>18</line>
+<column>37</column>
+</endPos>
+</candidate>
+</complete>
+<diagnostics>
+<message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message>
+</diagnostics>
+</lctags_result>
 rm -f graph.sample/*
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
@@ -287,10 +351,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </endPos>
 </candidate>
 <typeInfo>
-<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
-
-</typeInfo>
-<typeInfo>
 <hash>c075a8979c1596623bb9e9372f018d69</hash>
 
 <candidate>
@@ -311,6 +371,10 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
+</typeInfo>
+<typeInfo>
+<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
+
 </typeInfo>
 </complete>
 <diagnostics>
@@ -435,7 +499,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </diagnostics>
 </lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:261: recipe for target 'test-query' failed
+makefile:270: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <complete>

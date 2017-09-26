@@ -669,7 +669,6 @@ INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '', 0 );
 
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, PRIMARY KEY( nsId, belongNsId ) );
-CREATE TABLE inherit( nsId INTEGER, baseNsId INTEGER, PRIMARY KEY( nsId, baseNsId ) );
 CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
 CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
 CREATE TABLE incBelong ( id INTEGER, baseFileId INTEGER, nsId INTEGER, PRIMARY KEY ( id, nsId ) );
@@ -2063,6 +2062,7 @@ function DBCtrl:convRelativePath( path, currentDir )
 end
 
 function DBCtrl:convFullpath( path, currentDir )
+   local orgPath = path
    if path == "" then
       return ""
    end
@@ -2091,7 +2091,7 @@ function DBCtrl:convFullpath( path, currentDir )
 	 end
       elseif name == ".." then
 	 if #nameList == 0 or nameList[ #nameList ] == ".." then
-	    log( 1, "illegal path", path )
+	    log( 1, "illegal path", path, orgPath )
 	    os.exit( 1 )
 	 else
 	    table.remove( nameList )

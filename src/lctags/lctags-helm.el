@@ -8,6 +8,8 @@
 
 (when (not lctags-anything)
   (require 'helm))
+
+(require 'cl)
   
 
 (defvar lctags-heml-map

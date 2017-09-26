@@ -232,22 +232,7 @@ emacs からアクセスする場合は、 lctags.el をロードしてくださ
 #+BEGIN_SRC lisp
 (add-to-list 'load-path "/hoge/foo/lctags" t)
 
-(autoload 'lctags-mode "lctags" "" t)
-(add-hook 'lctags-mode-hook
-      '(lambda ()
-         (local-set-key (kbd "M-t") 'lctags-def)
-         (local-set-key (kbd "M-r") 'lctags-ref)
-	 (local-set-key (kbd "C-c l") 'lctags-dispatch-mode)
-	 (local-set-key (kbd "C-c C-/") 'lctags-helm-complete-at)
-         (local-set-key (kbd "C-c C-x") 'lctags-helm-change-enum-at)
-         (local-set-key (kbd "C-t") 'gtags-pop-stack)))
-
-(add-hook 'c-mode-common-hook
-          '(lambda()
-	     (lctags-mode 1)))
-
-;; (require 'lctags-anything)
-(require 'lctags-helm)
+(require 'lctags-conf)
 #+END_SRC
 
 なお、 lctags.el は gtags.el が利用できることが前提になっています。
@@ -283,15 +268,23 @@ lctags.el は、マイナーモードの機能を提供します。
 - lctags-graph-caller-at (C-c l g r)
   - lctags コマンドの graph-at caller オプションを呼び出します。
   - カーソル位置の関数の呼び出し元を辿るコールグラフを表示します。
-  - その対象ファイルを事前に lctags で解析しておく必要があります。
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
 - lctags-graph-callee-at (C-c l g r)
   - lctags コマンドの graph-at callee オプションを呼び出します。
   - カーソル位置の関数の呼び出し先を辿るコールグラフを表示します。
-  - その対象ファイルを事前に lctags で解析しておく必要があります。
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
 - lctags-graph-symbol-at (C-c l g s)
   - lctags コマンドの graph-at symbol オプションを呼び出します。
   - カーソル位置のシンボルの参照元を辿るコールグラフを表示します。
-  - その対象ファイルを事前に lctags で解析しておく必要があります。
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-graph-inc (C-c l g i)
+  - lctags コマンドの graph inc オプションを呼び出します。
+  - 現在のファイルがインクルードしているファイルのグラフを表示します。
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
+- lctags-graph-inc (C-c l g I)
+  - lctags コマンドの graph incSrc オプションを呼び出します。
+  - 現在のファイルをインクルードしているファイルのグラフを表示します。
+  - 対象ファイルを事前に lctags で解析しておく必要があります。
 - lctags-list-incSrc-this-file (C-c l l I)
   - 現在のバッファで開いているファイルをインクルードしているファイル一覧をリストします。
   - デフォルトは、4 階層までの結果をリストします。
@@ -303,6 +296,8 @@ lctags.el は、マイナーモードの機能を提供します。
 - lctags-update-this-file (C-c l u)
   - 現在のバッファで開いているファイルを解析しなおします。
   - バッファで開いているファイルがヘッダファイルの場合は動作しません。
+- lctags-display-diag (C-c C-f)
+  - 現在のバッファで開いているファイルを構文エラーチェックする
 
 *** コード補完
 
@@ -397,7 +392,6 @@ name を省略した場合、ID をリストします。
 
 -f は、作成するグラフの画像フォーマットを指定します。
 
-
 *** プロジェクトディレクトリの変更
 
 DB ファイルをプロジェクトのルートディレクトリとは別のディレクトリに作成している場合、
@@ -411,11 +405,23 @@ $ lctags chg-proj .
 *** 必要なライブラリ等
 + swig (3.0)
 + lua, lua-dev(5.2 or 5.3)
-+ libclang-dev (r380, r390)
++ libclang-dev (r380 or r390)
 + luasqlite3 (0.9.4)
 + openssl
 
 *** makefile の編集
+
+**** ubuntu の場合
+ubuntu の場合、Makefile を編集せずに以下のコマンドでビルドできます。
+
+#+BEGIN_SRC txt
+$ make build_for_ubuntu PROXY=
+$ sudo make install
+#+END_SRC
+
+PROXY を利用する場合は PROXY= の後に URL を指定してください。
+
+**** 上記以外
 
 lua, libclang, luasqlite3 の環境にあわせて変更してください。
 
@@ -423,7 +429,7 @@ lua, libclang, luasqlite3 の環境にあわせて変更してください。
 
 #+BEGIN_SRC txt
 $ make build
-$ make install
+$ sudo make install
 #+END_SRC
 
 ** カスタマイズ
@@ -500,4 +506,4 @@ lctags の build で指定されたファイルの解析を無視するかどう
 
 "lua" は、パターン文字列が Lua のパターン文字列であることを示します。
 パターンに一致すると無視します。
-     
+

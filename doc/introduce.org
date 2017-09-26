@@ -1,0 +1,404 @@
+# -*- coding:utf-8 -*-
+#+AUTHOR: ifritJP
+#+STARTUP: nofold
+
+* C/C++ ソースコードタグシステム lctags の紹介
+
+** まえがき
+
+*忙しい人はこのセクションを飛してください。*
+
+*** ソースコードタグシステムとは
+
+*既に gtags 等のツールを使用している方は、このセクションを読み飛してください。*
+
+
+プログラミングしていると、
+必ずと言って良い程、関数の定義や、関数の参照箇所を調べる機会があります。
+
+小規模なコードであれば、grep-find すればこと足ります。
+
+しかし規模が大きくなると、grep-find だといつまで経っても結果が返ってこない、
+あるいは、ノイズ(文字列や一部の名前が同じシンボル等)が多くてフィルタが大変になります。
+
+そこで、予めソースコードを解析し、
+どの関数、シンボルがどこのソースコードに定義しているかを解析してタグ付けしておくことで、
+所望の関数、シンボルの定義位置や参照位置を検索できるようにする
+ソースコードタグシステムが利用されています。
+
+C 言語では主に、ctags, etags, gtags(GNU global) が使われています。
+
+*** 構造体/クラスのメンバーのタグ
+
+しかし、これらツールには制限があります。
+
+それは、構造体/クラスのメンバーのタグが、メンバー名だけでしか登録されていないというものです。
+
+例えば、次の構造体宣言があった場合、
+
+#+BEGIN_SRC C
+typedef struct {
+  int data;
+} TEST1;
+typedef struct {
+  int data;
+} TEST2;
+#+END_SRC
+
+TEST1 と TEST2 はそれぞれ data というメンバを持ち、
+data に対してタグが登録されます。
+このとき、その data が TEST1:data なのか、 TEST2::data なのかの情報はありません。
+
+これにより、 TEST1:data の定義を確認したいときも、
+直接 TEST1:data を確認することはできず、
+候補として TEST1:data、TEST2:data がそれぞれ列挙され、それぞれを確認することになります。
+
+定義であればまだ箇所が少ないですが、参照箇所となるとかなりノイズが混ることになります。
+
+また、 C++ では set/get のような汎用的なメソッド名では、
+ノイズだらけになることが簡単に想像できます。
+
+このような制限になるのは、
+これらツールがソースコードの構文解析を行なっていないためです。
+
+「構文解析を行なっていない」というと語弊があるので少し補足すると、
+C言語の構文に則った字句解析までは行なっているが、
+そのトークンが示す意味を完全には解析していない、ということです。
+
+これらのツールを利用していることがあるなら気が付いていると思いますが、
+これらのツールを利用してソースコードを解析する際に、
+ソースコードに対するコンパイラオプションを指定する必要がありません。
+
+コンパイラオプションを指定していないということは、
+これらツールはインクルードファイルや define シンボルが分からないということです。
+
+/実際にはコンパイルオプションがなくてもコンパイルできる場合もありますが、ある程度以上の規模ではコンパイルオプションは必須です。/
+
+コンパイルオプションがなくても解析できているということは、
+つまりはそのレベルでの解析であるということです。
+
+これは、ツールを導入する上でのハードルが低いという意味では非常に良い特徴ではありますが、
+それによっていくつかの制限が発生してしまいます。
+その制限の代表的なものとして、「構造体メンバの区別が付かない」があります。
+
+*** 構文解析のハードル
+
+従来ツールの制限を解消するには、ツールがコンパイラオプションを認識し、
+意味解析まで行なう必要があります。
+
+この工程は、
+コンパイラを作ることとほとんど同義であると言って良いくらいの複雑な
+処理が伴ないます。
+
+高水準言語の中では比較的にシンプルな C 言語でも、
+規格に則ったコンパイラを作るのは至難の業です。
+
+チップベンダが C コンパイラを提供していますが、
+これら C コンパイラは基本的に C89 準拠で
+C99 以降をサポートするものがほとんどないことを考えても、
+そのハードルの高さがうかがえます。
+
+/まぁ、チップベンダのコンパイラに関して言えば、ARM 以外の組込み向けチップに載せる様なプログラムは移植性が特に重視されるから、C89 以外を使うことは推奨されていない。よって、ベンダ側も C89 以外を対応していない、ってこともあるのかもしれない。/
+
+*** libclang の利用
+
+そこで登場するのが libclang です。
+
+libclang は clang の機能をまとめたライブラリで、
+これを利用することで C/C++ のコードを自前で解析せずに AST(Abstract Syntax Tree) にアクセスできます。
+
+AST にアクセスできるので、後はその情報を管理して検索できるシステムを作成すれば、
+簡単にソースコードタグシステムの完成です。
+
+このアイデア自体はかなり前からあって、実際にいくつかのツールが存在しますし、
+私自身もツールを作成していました (今回紹介する lctags ではない)。
+
+*** lctags 
+
+しかし、それらの libclang 対応ツールを業務のプロジェクトに適応するには
+いくつかの課題があり、採用を見送っていました。
+
+そこで、それらの課題を解決する libclang 対応のソースコードタグシステムを
+新に作成することにし、そのツールを lctags としました。
+
+** lctags の紹介
+
+*** lctags の機能
+
+lctags は、主に gtags の置き換えを目的に作成したソースコードタグシステムです。
+よって、 gtags の主要な機能と互換を持たせています。
+また、独自機能もいくつか搭載しています。
+
+具体的な機能を挙げると次のものがあります。
+
+- 関数、シンボル、メンバの定義・参照位置列挙
+- 関数、シンボル、メンバの補完、展開
+- インクルードファイルの列挙
+- ワーニング、エラーの表示
+- コールグラフの作成
+- 複数のコンパイルオプション対応
+- emacs 対応
+
+*** lctags の使用方法
+
+詳細は次のリンク先で確認してください。
+
+[[https://github.com/ifritJP/lctags]]
+
+*** チュートリアル
+
++ DB の作成
+
+プロジェクトディレクトリのトップディレクトリで lctags init . を実行します。
+
+#+BEGIN_SRC TXT
+$ mkdir test
+$ cd test
+$ lctags init .
+#+END_SRC
+
++ ソースファイルの作成
+ 
+次の内容を持つ sub.c を作成する。
+
+#+BEGIN_SRC C -n
+struct DATA {
+  int value;
+};
+struct DATA2 {
+  int value;
+};
+void sub( void )
+{
+  struct DATA data;
+  struct DATA2 data2;
+  struct DATA2 data22;
+  data.value = 0;
+  data2.value = 0;
+  data22.value = 0;
+}
+#+END_SRC
+
++ ソースファイルの登録
+
+次のコマンドで sub.c を登録する。
+
+#+BEGIN_SRC TXT
+$ lctags build gcc sub.c
+#+END_SRC
+
+これで sub.c の情報が登録されます。
+
++ シンボル定義位置の参照
+
+次のコマンドで DATA の定義場所をリストします。
+
+#+BEGIN_SRC TXT
+$ lctags -x DATA
+DATA                1 ./sub.c          struct DATA {
+#+END_SRC
+
+emacs の場合、M-t DATA で定義場所にジャンプします。
+
++ シンボル参照位置の参照
+
+次のコマンドで DATA の参照場所をリストします。
+
+#+BEGIN_SRC TXT
+$ lctags -xr DATA
+DATA                9 ./sub.c            struct DATA data;
+#+END_SRC
+
+emacs の場合、M-r DATA で参照場所にジャンプします。
+
++ 完全限定名シンボル定義位置の参照
+
+次のコマンドで DATA::value の定義場所をリストします。
+
+#+BEGIN_SRC TXT
+$ lctags -x ::@struct::DATA::value
+::@struct::DATA::value    2 ./sub.c            int value;
+#+END_SRC
+
+emacs の場合、11 行目の data.value = 0 の value の箇所にカーソルを合せて、
+C-u M-t で定義場所にジャンプします。
+
++ 完全限定名シンボル参照位置の参照
+
+次のコマンドで DATA2::value の参照場所をリストします。
+
+#+BEGIN_SRC TXT
+$ lctags -xr ::@struct::DATA2::value
+::@struct::DATA2::value   13 ./sub.c            data2.value = 0;
+::@struct::DATA2::value   14 ./sub.c            data22.value = 0;
+#+END_SRC
+
+emacs の場合、5 行目の int value; の value の箇所にカーソルを合せて、
+C-u M-r で参照場所のリストを表示します。
+
+
+** lctags の内部情報
+
+*以降はユーザ向け情報でなはく、内部の技術情報なので興味のある方だけ参考程度にどうぞ*
+
+*** ツール構成
+
+lctags は次のソフトウェアを利用しています。
+
++ lua, lua-dev
++ libclang-dev
++ luasqlite3
++ openssl
+
+lctags は Lua で作成しています。
+
+Lua を選択した理由は、次の通りです。
+
+- スクリプト言語でありながら、実行速度もそこそこ出る。
+- JIT 版もあるので、実行速度に問題があればそれを利用できる。
+- クロージャ等のいまどきのプログラムに必須の技術をサポートしている。
+- 構成ファイルが最小限。
+- セットアップが簡単。 
+  - パッケージ管理が優秀、という意味ではなく、基本的にファイルコピーだけで動かせるという意味。
+
+
+   
+*** DB Table の設計
+
+解析結果は SQLite で管理しています。
+
+DB Table は、次の構成になっています。
+
+#+BEGIN_SRC TXT
+CREATE TABLE namespace ( id INTEGER PRIMARY KEY, snameId INTEGER, parentId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary, virtual INTEGER);
+CREATE TABLE simpleName ( id INTEGER PRIMARY KEY, name VARCHAR UNIQUE COLLATE binary);
+CREATE TABLE filePath ( id INTEGER PRIMARY KEY, path VARCHAR UNIQUE COLLATE binary, incFlag INTEGER, digest CHAR(32), currentDir VARCHAR COLLATE binary, invalidSkip INTEGER);
+CREATE TABLE targetInfo ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary, hasPch INTEGER, updateTime INTEGER, PRIMARY KEY ( fileId, target, compOp ) );
+CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, hasBodyFlag INTEGER, PRIMARY KEY( nsId, fileId, line ) );
+CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
+CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, PRIMARY KEY( nsId, belongNsId ) );
+CREATE TABLE incRef ( id INTEGER, baseFileId INTEGER, line INTEGER );
+CREATE TABLE incCache ( id INTEGER, baseFileId INTEGER, incFlag INTEGER, PRIMARY KEY( id, baseFileId ) );
+CREATE TABLE tokenDigest ( fileId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, digest ) );
+CREATE TABLE preproDigest ( fileId INTEGER, nsId INTEGER, digest CHAR(32), PRIMARY KEY( fileId, nsId, digest ) );
+CREATE TABLE etc ( keyName VARCHAR UNIQUE COLLATE binary PRIMARY KEY, val VARCHAR);
+#+END_SRC
+
+- namespace 
+  - 名前空間を管理する。
+- simpleName
+  - 名前を管理する。
+  - namespace は完全限定名で管理するのに対し、 simpleName は名前空間を除いた単純名を管理します。
+- filePath
+  - ファイルのパスを管理する。
+- targetInfo
+  - コンパイルオプションを管理する。
+- symbolDecl
+  - シンボルの定義位置を管理する。
+- symbolRef
+  - シンボルの参照位置を管理する。
+- funcCall
+  - 関数コール位置を管理する。
+- incRef
+  - インクルードの参照関係を管理する。
+- incCache
+  - インクルードの参照関係をメモ化管理する。
+- tokenDigest
+  - ファイルの解析結果の digest を管理する。
+- preproDigest
+  - ファイルのプリプロセス解析結果の digest を管理する。
+- etc
+  - バージョン情報等のメタ情報を管理する。
+    
+Table は、パフォーマンスを優先して、あまり正規化していません。
+
+lctags で作成した DB は、lctags を通さずに直接 SQLite でアクセスすることも可能です。
+
+*** 設計方針
+
+一般的な話だと思いますが、特に次のことを気をつけて設計しています。
+
+  *『SQL に依存しないように DB アクセス処理をカプセル化する。』*
+
+手軽さから SQLite を採用しましたが、
+パフォーマンス次第では別の SQL DB や NoSQL に置き換える必要があると考えていたので、
+データアクセスは SQL に依存しない形にカプセル化しています。
+また、使用する SQL のクエリも単純なものに限定しています。
+
+DB アクセスは 2 つのソースでカプセル化しています。
+
+- DBAccess.lua
+- DBCtrl.lua  
+  
+DBAccess.lua は SQLite をカプセル化し、DBCtrl.lua は SQL をカプセル化しています。
+
+ただし、いくつかこの方針から外れてしまっている箇所もあります。
+
+なお DBCtrl.lua については、
+規模が大きくなってしまっているため将来的にモジュールを分割したいと思っています。
+
+*** ソース構成
+
+lctags のソース構成に以下について説明します。
+
+何か不具合がある場合、
+大抵は Analyzer.lua, DBCtrl.lua, Complete.lua にあります。
+    
+**** Lua     
+
+- lctags.lua
+  - メインソース
+  - コマンドライン解析の結果を受け、各種処理に振り分ける
+- Option.lua
+  - コマンドライン解析
+- Analyzer.lua
+  - AST 解析
+- DBCtrl.lua
+  - DB 制御
+- DBAccess.lua
+  - SQLite 制御
+- Complete.lua
+  - 補完制御
+- Make.lua
+  - ビルド制御
+- Util.lua
+  - 汎用処理
+- Query.lua
+  - DB 問い合わせ
+- OutputCtrl.lua
+  - DB 問い合わせ結果出力制御
+- StatusServer.lua
+  - 解析ステータスサーバ
+- TermCtrl.lua
+  - ターミナル制御
+- config.lua
+  - lctags.cnf のサンプル
+- gcc.lua
+  - gcc 用の conf
+- Json.lua
+  - JSON enc/dec
+- LogCtrl.lua
+  - ログ出力
+- StackCalc.lua
+  - スタック使用量解析(開発中)
+- DynamicCall.lua
+  - 動的呼び出し解析(開発中)
+
+**** emacs lisp
+  
+- lctags.el
+  - メインソース
+- lctags-dispatch.el
+  - コマンドメニュー
+- lctags-helm.el
+  - helm 用
+- lctags-anything.el
+  - anything 用
+
+*** テスト
+
+テストは次のコマンドで実行できます。
+
+#+BEGIN_SRC C
+$ make test
+#+END_SRC
