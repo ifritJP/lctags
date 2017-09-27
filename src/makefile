@@ -39,7 +39,7 @@ TEST_LUA_DIR=../external/lua/lua-5.3.4/src
 CLANG_VER=3.8
 LIBCLANG_INC=/usr/lib/llvm-$(CLANG_VER)/include
 LIBCLANG_LIB=/usr/lib/llvm-$(CLANG_VER)/lib
-LIBCLANG_STD_INC=/usr/lib/llvm-$(CLANG_VER)/lib/clang/$(CLANG_VER).0/include
+LIBCLANG_STD_INC=$(shell find /usr/lib/llvm-$(CLANG_VER)/lib/clang/ -maxdepth 1 -mindepth 1 | head -n 1)
 
 # LIBCLANG_DIR=/proj/next/clang/r34-final
 # LIBCLANG_INC=../external/clang/r390/llvm/tools/clang/include
@@ -434,13 +434,15 @@ else
 endif
 endif
 
-build_for_ubuntu:
+build_for_apt:
 #	-sudo apt-get -o Acquire::http::proxy="$(PROXY)" update
 
 	@echo check clang-dev ...
 ifeq ($(wildcard /usr/lib/llvm-*/clang-c),)
 	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install libclang-$(CLANG_VER)-dev
 endif
+
+	$(MAKE) APT_TGT_CMD=lua5.3 APT_TGT_PKG=lua5.3 check-apt 
 
 	@echo check lua-dev ...
 ifeq ($(wildcard $(LUA_INC)),)

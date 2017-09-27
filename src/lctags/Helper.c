@@ -60,7 +60,7 @@ typedef struct {
     ((helper_mqueue_t *)luaL_checkudata(L, 1, MQUEUE_ID))
 
 typedef struct {
-    EVP_MD_CTX mctx;
+    EVP_MD_CTX * pMctx;
     int mdsize;
 } helper_digestInfo_t;
 
@@ -179,7 +179,7 @@ static const luaL_Reg s_mqueueObj_lib[] = {
 
 static const helper_typeMap_t s_typeMap[] = {
     { "md5", EVP_md5 },
-    { "sha", EVP_sha },
+    { "sha", EVP_sha1 },
     { "sha224", EVP_sha224 },
     { "sha256", EVP_sha256 },
     { "sha384", EVP_sha384 },
@@ -808,11 +808,11 @@ static helper_digestInfo_t * helper_digestLib_setup( const EVP_MD * pEvpMd )
     }
 
     pInfo->mdsize = EVP_MD_size( pEvpMd );
-    EVP_MD_CTX_init( &pInfo->mctx );
+    pInfo->pMctx = EVP_MD_CTX_create();
+    EVP_MD_CTX_init( pInfo->pMctx );
 
-    if ( !EVP_DigestInit_ex( &pInfo->mctx, pEvpMd, NULL) ) {
-        EVP_MD_CTX_cleanup( &pInfo->mctx );
-        free( pInfo );
+    if ( !EVP_DigestInit_ex( pInfo->pMctx, pEvpMd, NULL) ) {
+        helper_digestLib_dispose( pInfo );
         return NULL;
     }
     
@@ -821,7 +821,7 @@ static helper_digestInfo_t * helper_digestLib_setup( const EVP_MD * pEvpMd )
 
 static int helper_digestLib_write( helper_digestInfo_t * pInfo, const void * pData, int size )
 {
-    return EVP_DigestUpdate( &pInfo->mctx, pData, size );
+    return EVP_DigestUpdate( pInfo->pMctx, pData, size );
 }
 
 static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size )
@@ -830,7 +830,7 @@ static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int
         return 0;
     }
     
-    if ( !EVP_DigestFinal_ex(&pInfo->mctx, pMDBuf, NULL ) ) {
+    if ( !EVP_DigestFinal_ex(pInfo->pMctx, pMDBuf, NULL ) ) {
         return 0;
     }
     return 1;
@@ -838,7 +838,8 @@ static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int
 
 static void * helper_digestLib_dispose( helper_digestInfo_t * pInfo )
 {
-    EVP_MD_CTX_cleanup( &pInfo->mctx );
+  //    EVP_MD_CTX_cleanup( pInfo->pMctx );
+    EVP_MD_CTX_destroy( pInfo->pMctx );
 
     free( pInfo );
 }

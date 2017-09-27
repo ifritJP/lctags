@@ -1083,7 +1083,7 @@ function Complete:completeMember(
 <complete>
 <prefix>%s</prefix>
 <frontExpr>%s</frontExpr>
-]=], prefix, frontExprTxt ) )
+]=], convertXmlTxt( prefix ), convertXmlTxt( frontExprTxt ) ) )
 
 
    outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )

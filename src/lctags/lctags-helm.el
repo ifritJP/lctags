@@ -259,23 +259,23 @@
 
 
 (defun lctags-helm-display-diag ()
-  (switch-to-buffer-other-window lctags-diag-buf-name)
-  (setq buffer-read-only nil)
-  (erase-buffer)
   (if lctags-diag-info
-      (dolist (diag lctags-diag-info)
-	(let* ((token-list (split-string (lctags-diag-get-message diag) ":" ))
-	       (path (file-relative-name (car token-list) default-directory))
-	       (message path))
-	  (dolist (token (cdr token-list))
-	    (setq message (format "%s:%s" message token)))
-	  (insert message)
-	  )
-	(insert "\n"))
-    (insert "none"))
-  (compilation-mode)
-  (goto-char (point-min))
-  )
+      (progn
+	(switch-to-buffer-other-window lctags-diag-buf-name)
+	(setq buffer-read-only nil)
+	(erase-buffer)
+	(dolist (diag lctags-diag-info)
+	  (let* ((token-list (split-string (lctags-diag-get-message diag) ":" ))
+		 (path (file-relative-name (car token-list) default-directory))
+		 (message path))
+	    (dolist (token (cdr token-list))
+	      (setq message (format "%s:%s" message token)))
+	    (insert message)
+	    )
+	  (insert "\n"))
+	(compilation-mode)
+	(goto-char (point-min)))
+    (message "none diagnostics message")))
   
 
 (defun lctags-helm-complete-at ()
@@ -525,6 +525,53 @@
     (lctags-helm-display-diag)
     )
   )
+
+(defun lctags-gtags-select (item)
+  (with-temp-buffer
+    (insert (format "sym %d %s "
+		    (plist-get item :line)
+		    (plist-get item :path)))
+    (beginning-of-line)
+    (gtags-select-it nil)))
+
+(defun lctags-gtags-select-mode ()
+  (let (candidate-list lctags-params)
+    (while (not (eobp))
+      (beginning-of-line)
+      (when (not (looking-at "[^ \t]+[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.+\\)$"))
+	(error "illegal format"))
+      (let* ((line (string-to-number (gtags-match-string 1)))
+	     (path (gtags-match-string 2))
+	     (txt (gtags-match-string 3))
+	     (relative-path (file-relative-name path default-directory)))
+	(setq candidate-list
+	      (cons (cons (format "%s:%d:%s"
+				  (if (> 40 (length relative-path))
+				      relative-path
+				    (concat "..." (substring relative-path -37)))
+				  line txt)
+			  (list :line line :path path))
+		    candidate-list)))
+      (next-line))
+    (setq lctags-params
+	  `((name . ,(buffer-name (current-buffer)))
+	    (candidates . ,candidate-list)
+	    (action . lctags-gtags-select)))
+    (if lctags-anything
+	(let ((anything-candidate-number-limit 9999))
+	  (anything :sources lctags-params
+		    :buffer (concat "*lctags gtags*"
+				    (substring (buffer-name (current-buffer)) 15))))
+      (let ((helm-candidate-number-limit 9999))
+	(helm :sources lctags-params
+	      :buffer (concat "*lctags gtags*"
+			      (substring (buffer-name (current-buffer)) 15)))))))
+
+(defun lctags-gtags-resume ()
+  (interactive)
+  (if lctags-anything
+      (anything-resume nil "*lctags gtags*")
+    (helm-resume nil "*lctags gtags*")))
 
 
 

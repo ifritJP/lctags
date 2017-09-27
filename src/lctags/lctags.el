@@ -215,7 +215,8 @@ This parameter can set function and string.
 	;;(gtags-select-mode)
 	t)
        (t
-	(gtags-select-mode)
+	;;(gtags-select-mode)
+	(lctags-gtags-select-mode)
 	t)
        ))))
 

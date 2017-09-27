@@ -6,6 +6,7 @@
          (local-set-key (kbd "C-c C-/") 'lctags-helm-complete-at)
          (local-set-key (kbd "C-c C-x") 'lctags-helm-change-enum-at)
 	 (local-set-key (kbd "C-c C-f") 'lctags-display-diag)
+	 (local-set-key (kbd "M-m") 'lctags-gtags-resume)
          (local-set-key "\C-t" 'gtags-pop-stack)))
 
 (cond ((featurep 'helm)
