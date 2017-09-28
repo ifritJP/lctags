@@ -538,7 +538,7 @@
   (let (candidate-list lctags-params)
     (while (not (eobp))
       (beginning-of-line)
-      (when (not (looking-at "[^ \t]+[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.+\\)$"))
+      (when (not (looking-at "[^ \t]+[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.*\\)$"))
 	(error "illegal format"))
       (let* ((line (string-to-number (gtags-match-string 1)))
 	     (path (gtags-match-string 2))

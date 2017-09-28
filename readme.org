@@ -185,6 +185,48 @@ lctags update コマンドだけでソース解析を行なえます。
 ソース登録と解析に分けない build で解析した場合でも、
 lctags update コマンドを使用することで、変更したファイルだけ解析することができます。
 
+**** 解析の高速化
+
+-j オプションで解析を並列処理することで、解析時間を短縮できます。
+
+しかし、並列数が一定数を越えると、ほとんど効果がありません。
+
+これは、DB ファイルにアクセスする処理に時間が取られているようです。
+
+この処理を短縮するには、
+DB ファイルを置くストレージのアクセス時間を短縮するのがもっとも効果的です。
+
+linux で利用できる現在最もアクセス時間の早いストレージは、tmpfs でしょう。
+
+そこで、解析時に tmpfs に DB ファイルを置く方法を説明します。
+
+ここでは例として次の構成を前提に説明します。
+- /dev/sdm が tmpfs
+- /proj/top がプロジェクトのトップディレクトリ
+
+#+BEGIN_SRC txt -n
+$ cp /proj/top/lctags.sqlite3 /dev/sdm
+$ cd /dev/sdm
+$ lctags chg-proj /proj/top
+$ cd /proj/top
+$ lctags build gcc --lctags-db /dev/sdm/lctags.sqlite3 test1.c --lctags-only-reg
+$ lctags build gcc --lctags-db /dev/sdm/lctags.sqlite3 test2.c --lctags-only-reg
+$ lctags build gcc --lctags-db /dev/sdm/lctags.sqlite3 test3.c --lctags-only-reg
+$ lctags update . -j 10 --lctags-db /dev/sdm/lctags.sqlite3
+$ cp /dev/sdm/lctags.sqlite3 /proj/top
+$ lctags chg-proj .
+#+END_SRC
+
+- まず、 DB ファイルを tmpfs にコピーします。
+- 3 行目で chg-proj コマンドを使って DB ファイルのプロジェクトディレクトリを /proj/top にセットします。
+- 5〜7行目でファイルを登録し、8行目で解析します。
+- 9 行目で、解析終了した DB ファイルを元のプロジェクトディレクトリにコピーします。
+- 最後に 10 行目で、chg-proj コマンドを使って DB ファイルのプロジェクトディレクトリを . にセットします。
+  
+tmpfs を使用する注意事項として、RAM の使用量に十分を気を付けることです。
+tmpfs は記憶領域として RAM を利用するので、RAM を消費します。
+RAM の空きが無くなれば、swap します。
+swap すれば当然パフォーマンスが落ちます。
 
 *** インデックス問い合わせ
 
@@ -194,7 +236,7 @@ lctags update コマンドを使用することで、変更したファイルだ
 $ lctags -x[r|t|P][a] [--use-global] symbol
 $ lctags ref-at[a] [--lctags-target target] file line column
 $ lctags def-at[a] [--lctags-target target] file line column
-#+END_SRC txt
+#+END_SRC
 
 -x は、 GNU global と互換のあるモードです。
 
@@ -411,15 +453,19 @@ $ lctags chg-proj .
 
 *** makefile の編集
 
-**** ubuntu の場合
-ubuntu の場合、Makefile を編集せずに以下のコマンドでビルドできます。
+**** apt でパッケージ管理する OS (debian, ubuntu 等)の場合
+     
+debian, ubuntu 等の apt でパケージ管理する OS の場合、
+Makefile を編集せずに以下のコマンドでビルドできます。
+ただし、動作を確認しているのは debian 9.1, ubuntu 17.04 の 64bit だけです。
 
 #+BEGIN_SRC txt
-$ make build_for_ubuntu PROXY=
+$ make build_for_ubuntu [PROXY=http://proxy.hoge:port/]
 $ sudo make install
 #+END_SRC
 
-PROXY を利用する場合は PROXY= の後に URL を指定してください。
+必要なライブラリ等がインストールされていない場合は
+sudo apt コマンドでインストールします。
 
 **** 上記以外
 

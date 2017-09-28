@@ -10,7 +10,7 @@
 
 *** ソースコードタグシステムとは
 
-*既に gtags 等のツールを使用している方は、このセクションを読み飛してください。*
+*既に GNU global 等のツールを使用している方は、このセクションを読み飛してください。*
 
 
 プログラミングしていると、
@@ -22,13 +22,13 @@
 あるいは、ノイズ(文字列や一部の名前が同じシンボル等)が多くてフィルタが大変になります。
 
 そこで、予めソースコードを解析し、
-どの関数、シンボルがどこのソースコードに定義しているかを解析してタグ付けしておくことで、
+どの関数、シンボルがどこのソースコードで定義しているかを解析してタグ付けしておくことで、
 所望の関数、シンボルの定義位置や参照位置を検索できるようにする
 ソースコードタグシステムが利用されています。
 
 C 言語では主に、ctags, etags, gtags(GNU global) が使われています。
 
-*** 構造体/クラスのメンバーのタグ
+*** 既存ツールの制限
 
 しかし、これらツールには制限があります。
 
@@ -93,7 +93,7 @@ C言語の構文に則った字句解析までは行なっているが、
 高水準言語の中では比較的にシンプルな C 言語でも、
 規格に則ったコンパイラを作るのは至難の業です。
 
-チップベンダが C コンパイラを提供していますが、
+CPU や SOC 等のチップベンダが C コンパイラを提供していますが、
 これら C コンパイラは基本的に C89 準拠で
 C99 以降をサポートするものがほとんどないことを考えても、
 そのハードルの高さがうかがえます。
@@ -108,7 +108,7 @@ libclang は clang の機能をまとめたライブラリで、
 これを利用することで C/C++ のコードを自前で解析せずに AST(Abstract Syntax Tree) にアクセスできます。
 
 AST にアクセスできるので、後はその情報を管理して検索できるシステムを作成すれば、
-簡単にソースコードタグシステムの完成です。
+ソースコードタグシステムの完成です。
 
 このアイデア自体はかなり前からあって、実際にいくつかのツールが存在しますし、
 私自身もツールを作成していました (今回紹介する lctags ではない)。
@@ -118,8 +118,8 @@ AST にアクセスできるので、後はその情報を管理して検索で�
 しかし、それらの libclang 対応ツールを業務のプロジェクトに適応するには
 いくつかの課題があり、採用を見送っていました。
 
-そこで、それらの課題を解決する libclang 対応のソースコードタグシステムを
-新に作成することにし、そのツールを lctags としました。
+そこで、それらの課題を解決する libclang 対応のソースコードタグシステムを新に作成しました。
+そのツールが、ここで紹介する lctags です。
 
 ** lctags の紹介
 
@@ -151,6 +151,8 @@ lctags は、主に gtags の置き換えを目的に作成したソースコー
 
 プロジェクトディレクトリのトップディレクトリで lctags init . を実行します。
 
+ここではプロジェクトディレクトリとして新しく test を作成しています。
+
 #+BEGIN_SRC TXT
 $ mkdir test
 $ cd test
@@ -162,20 +164,30 @@ $ lctags init .
 次の内容を持つ sub.c を作成する。
 
 #+BEGIN_SRC C -n
+typedef enum {
+    enum_val1,
+    enum_val2,
+    enum_val3,
+    enum_val4
+} enum_val_t;
 struct DATA {
-  int value;
+    enum_val_t value;
+    struct DATA * pData;
 };
 struct DATA2 {
-  int value;
+    int value;
+    enum_val_t value2;
+    struct DATA * pData;
 };
 void sub( void )
 {
-  struct DATA data;
-  struct DATA2 data2;
-  struct DATA2 data22;
-  data.value = 0;
-  data2.value = 0;
-  data22.value = 0;
+    struct DATA data;
+    struct DATA2 data2;
+    struct DATA2 data22;
+    data.value = enum_val2;
+    data2.value = 0;
+    data22.value2 = enum_val1;
+
 }
 #+END_SRC
 
@@ -189,38 +201,43 @@ $ lctags build gcc sub.c
 
 これで sub.c の情報が登録されます。
 
+もしも -I 等のコンパイルオプションが必要な場合は、 gcc に続けてそのまま指定します。
+
 + シンボル定義位置の参照
 
 次のコマンドで DATA の定義場所をリストします。
 
 #+BEGIN_SRC TXT
 $ lctags -x DATA
-DATA                1 ./sub.c          struct DATA {
+DATA                7 ./sub.c          struct DATA {
 #+END_SRC
 
 emacs の場合、M-t DATA で定義場所にジャンプします。
 
 + シンボル参照位置の参照
 
-次のコマンドで DATA の参照場所をリストします。
+次のコマンドで value の参照場所をリストします。
 
 #+BEGIN_SRC TXT
-$ lctags -xr DATA
-DATA                9 ./sub.c            struct DATA data;
+$ lctags -xr value
+value              21 ./sub.c              data.value = enum_val2;
+value              22 ./sub.c              data2.value = 0;
 #+END_SRC
 
-emacs の場合、M-r DATA で参照場所にジャンプします。
+emacs の場合、M-r value で参照場所をリストします。
+
+この場合、 DATA::value, DATA2::value の両方をリストします。
 
 + 完全限定名シンボル定義位置の参照
-
+  
 次のコマンドで DATA::value の定義場所をリストします。
 
 #+BEGIN_SRC TXT
 $ lctags -x ::@struct::DATA::value
-::@struct::DATA::value    2 ./sub.c            int value;
+::@struct::DATA::value    8 ./sub.c              enum_val_t value;
 #+END_SRC
 
-emacs の場合、11 行目の data.value = 0 の value の箇所にカーソルを合せて、
+emacs の場合、21 行目の ~data.value = enum_val2;~ の value の箇所にカーソルを合せて、
 C-u M-t で定義場所にジャンプします。
 
 + 完全限定名シンボル参照位置の参照
@@ -229,12 +246,96 @@ C-u M-t で定義場所にジャンプします。
 
 #+BEGIN_SRC TXT
 $ lctags -xr ::@struct::DATA2::value
-::@struct::DATA2::value   13 ./sub.c            data2.value = 0;
-::@struct::DATA2::value   14 ./sub.c            data22.value = 0;
+::@struct::DATA2::value   22 ./sub.c              data2.value = 0;
 #+END_SRC
 
-emacs の場合、5 行目の int value; の value の箇所にカーソルを合せて、
-C-u M-r で参照場所のリストを表示します。
+emacs の場合、12 行目の int value; の value の箇所にカーソルを合せて、
+C-u M-r で参照場所にジャンプします。
+
++ メンバ補完, 展開
+  
+emacs で 24 行目に次を追記し、
+
+#+BEGIN_SRC TXT
+data2.
+#+END_SRC
+
+. の後で C-c C-/ を入力すると、value, value2, pData をリストします。
+
+pData にカーソルを移動し C-M-f を入力すると pData が展開され、
+さらに pData のメンバ補完状態になります。
+
+この状態で C-M-b を入力すると pData の展開が戻ります。
+
+メンバをリスト表示している状態で C-SPC を入力すると、メンバがマークされます。
+メンバを複数マークして RET すると、マークしたメンバーが展開されます。
+
++ enum 補完
+  
+21 行目の ~data.value = enum_val2;~ の ~enum_val2~ の位置にカーソルを移動し、
+C-c C-x を入力すると、 ~enum_val_t~ の enum 値補完になります。
+
+#+BEGIN_SRC TXT
+(E) enum_val1 => 0 <::@enum::<enum_enum_val_t>>
+(E) enum_val2 => 1 <::@enum::<enum_enum_val_t>>
+(E) enum_val3 => 2 <::@enum::<enum_enum_val_t>>
+(E) enum_val4 => 3 <::@enum::<enum_enum_val_t>>
+#+END_SRC
+
+このとき、リストには enum 値の数値も表示されます。
+
+ここで別の値を選択すると、 ~enum_val2~ が選択した enum 値に置き換わります。
+
+また、 ~data.value = enum_val2;~ の ~enum_val2;~ の部分を削除し、
+= の直後にカーソルを合せて C-c C-/ を入力すると、
+~enum_val_t~ の値補完になります。
+
++ snippet (メンバダンプ)
+  
+sub() 内の空いている行に data2 を入力し、 C-c l を入力するとメニューが開きます。
+この状態で G (大文字) を入力し、さらに m を入力します。
+すると mini-buffer に log function?: printf( が表示されます。
+ここでそのまま ENTER すると、 次の data2 のメンバを出力する printf が生成されます。
+
+#+BEGIN_SRC c
+    printf( "data22.value = %p\n", data22.value );
+    printf( "data22.value2 = %p\n", data22.value2 );
+    printf( "data22.pData = %p\n", data22.pData );
+#+END_SRC
+
+なお、書式は全て %p として出力します。
+
++ snippet (enum 文字列変換)
+  
+sub() 内の空いている行に ~enum_val_t~ を入力し、 C-c l を入力するとメニューが開きます。
+この状態で G (大文字) を入力し、さらに e を入力します。
+すると、次の ~enum_val_t~ の enum 値を文字列変換する switch 文が出力されます。
+
+#+BEGIN_SRC c
+    switch (enum_val2) {
+    case enum_val1:
+        return "enum_val1";
+    case enum_val2:
+        return "enum_val2";
+    case enum_val3:
+        return "enum_val3";
+    case enum_val4:
+        return "enum_val4";
+    default:
+        return NULL;
+    }
+#+END_SRC
+  
+
+*** lctags の制限事項
+
++ lctags は libclang を利用しているので C/C++ のソースコードを解析することができます。
+  しかし、私自身が C++ をあまり利用していないため C++ での動作検証がほとんど出来ていません。
++ DB サイズは gtags と比べると 2 倍以上の大きさになります。
+  これによりス、トレージの容量を消費するのはもちろん、シンボルの検索などで利用するメモリ量も増加します。
++ 解析は高速性を重視して journal mode を memory に設定しています。
+  これにより、メモリを多めに消費します。
+  とはいえ、 高々 1 プロセス 100M 程度なので、いまどきの PC であれば然程影響はないと思います。
 
 
 ** lctags の内部情報
@@ -254,6 +355,14 @@ lctags は Lua で作成しています。
 
 Lua を選択した理由は、次の通りです。
 
+- コンパイル型ではなく、スクリプト型で気軽に開発したかった。
+- 以前、他の言語で libclang の binding してツールを作成したことがあるが、
+  良い結果を得られなかった経験があり、
+  何か不具合があった時に深いレベルまで追える知識のある言語である必要があった。
+  - libclang の公式 binding が利用できる python でソースコードタグシステムを実装したことがあるが、
+    実装速度に難があった。
+  - オープンソースの java 版 binding を利用したことがあるが、原因不明な不具合に悩まされた。
+  - lua は binding の IF が非常にシンプルで、問題があっても追い易い。
 - スクリプト言語でありながら、実行速度もそこそこ出る。
 - JIT 版もあるので、実行速度に問題があればそれを利用できる。
 - クロージャ等のいまどきのプログラムに必須の技術をサポートしている。
@@ -268,6 +377,9 @@ Lua を選択した理由は、次の通りです。
 解析結果は SQLite で管理しています。
 
 DB Table は、次の構成になっています。
+
+なお、 DB Table は出来るだけ構成を維持するつもりですが、
+機能追加等で変更することがあります。
 
 #+BEGIN_SRC TXT
 CREATE TABLE namespace ( id INTEGER PRIMARY KEY, snameId INTEGER, parentId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary, virtual INTEGER);

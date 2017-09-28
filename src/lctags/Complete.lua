@@ -148,6 +148,39 @@ function Complete:searchToken( tokenInfoList, startIndex, lastIndex, targetToken
 end
 
 
+
+-- startIndex 〜 checkIndex の中で解析対象の式を決定する。
+--
+-- startIndex 〜 checkIndex の中に文はない。
+-- checkIndex から前に戻る。
+-- 戻り値: startIndex, endIndex
+--   startIndex: 解析対象の式の開始インデックス
+function Complete:checkStatementReverse( tokenInfoList, startIndex, checkIndex )
+   log( 2, "checkStatementReverse", startIndex, checkIndex )
+   local index = checkIndex
+   while index > startIndex do
+      local tokenInfo = tokenInfoList[ index ]
+      local token = tokenInfo.token
+      if token == ")" or token == ']' then
+	 local pairToken = { '(', ')' }
+	 if token == ']' then
+	    pairToken = { '[', ']' }
+	 end
+	 local beginIndex = self:searchPairBegin(
+	    tokenInfoList, startIndex, index - 1, pairToken )
+	 if not beginIndex then
+	    error( string.format( "illegal paran, %d", index ) )
+	 end
+	 index = beginIndex - 1
+      elseif token == "," then
+	 return index + 1
+      else
+	 index = index - 1
+      end
+   end
+   return startIndex
+end
+
 -- startIndex 〜 checkIndex の中で解析対象の式を決定する。
 --
 -- 戻り値: statementStartIndex, incompletionIndex, syntaxStartIndex
@@ -216,24 +249,9 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 	    tokenInfoList, index + 1, checkIndex, pairToken )
 	 if not endIndex then
 	    -- カッコ中が補完対象
-	    -- log( 2, "paren start" )
-	    -- local parenIndex, incompletionIndex, syntaxStartIndex = self:checkStatement(
-	    --    tokenInfoList, index + 1, checkIndex )
-	    -- log( 2, "paren", parenIndex, incompletionIndex, syntaxStartIndex )
-	    -- if parenIndex then
-	    --    if incompletionIndex then
-	    -- 	  parenIndex = incompletionIndex
-	    --    end
-	    --    log( 2, "paren2", statementStartIndex, parenIndex )
-	    --    return statementStartIndex, parenIndex
-	    -- end
-	    
-	    -- log( 2, "this is in paren" )
-	    -- return nil, index, statementStartIndex
-	    return statementStartIndex, index + 1, index + 1
-
-	    
-	    
+	    local exprStartIndex = self:checkStatementReverse(
+	       tokenInfoList, index + 1, checkIndex )
+	    return statementStartIndex, exprStartIndex, exprStartIndex
 	 else
 	    index = endIndex + 1
 	 end

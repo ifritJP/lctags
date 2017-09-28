@@ -102,7 +102,10 @@ TARGET_LUA = $(LUA_COMMAND)
 endif
 
 all:
-	$(MAKE) build
+	@echo make build
+	@echo make build_for_apt [PROXY=http://proxy.hoge:port/]
+	@echo make install
+	@echo make clean
 
 build: $(IF_LUA) $(TARGET_LUA) $(CORE_SO) sqlite3 lctags-build
 
