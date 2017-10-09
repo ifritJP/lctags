@@ -11,14 +11,15 @@
 
 (require 'cl)
   
-
+;; [C-return]
 (defvar lctags-heml-map
   (let (map)
     (if lctags-anything
 	(setq map (copy-keymap anything-map))
       (setq map (copy-keymap helm-map)))
-    (define-key map (kbd "C-M-f")   'lctags-helm-type-forward)
-    (define-key map (kbd "C-M-b")   'lctags-helm-type-backward)
+    (define-key map (kbd "C-M-f") 'lctags-helm-type-forward)
+    (define-key map (kbd "C-M-b") 'lctags-helm-type-backward)
+    (define-key map [C-return] 'lctags-helm-select-all)
     (delq nil map))
   "Keymap")
 
@@ -35,7 +36,7 @@
   )
 
 (defun lctags-helm-select (item)
-  (case lctags-candidate-expand
+  (case lctags-candidate-select-mode
     (:back)
     (nil)
     (t
@@ -44,12 +45,18 @@
 	   (pos (point))
 	   (hist-expr "")
 	   simple info items)
-       (if (eq lctags-candidate-expand :forward)
+       (if (eq lctags-candidate-select-mode :forward)
 	   (setq info (nth 1 lctags-candidate-history))
 	 (setq info (nth 0 lctags-candidate-history)))
        (when (> (length (helm-marked-candidates)) 1)
 	 (setq item (car (helm-marked-candidates)))
 	 (setq items (cdr (helm-marked-candidates))))
+       (when (eq lctags-candidate-select-mode :all)
+	 (setq lctags-candidate-select-mode nil)
+	 (setq items (cdr (assoc 'candidates (plist-get info :candidate))))
+	 (setq item (car items))
+	 (setq items (cdr items))
+	 )
        (setq simple
 	     (concat
 	      (lctags-candidate-item-get-expand (plist-get info :select))
@@ -93,8 +100,8 @@
 	 (dolist (marked items)
 	   (insert (concat "\n" front hist-expr
 			   (lctags-candidate-item-get-simple marked)))
-	 ))
-       )))
+	 )))
+     ))
   )
 
 (defun lctags-helm-select-swap (item)
@@ -198,16 +205,16 @@
 ;; (assoc 'candidate (plist-get (car lctags-candidate-history) :typeInfo))
 (defun lctags-helm-wrap (src keymap preselect)
   (setq lctags-candidate-history `((:candidate ,src)))
-  (let ((lctags-candidate-expand t))
-    (while lctags-candidate-expand
-      (setq lctags-candidate-expand nil)
+  (let ((lctags-candidate-select-mode t))
+    (while lctags-candidate-select-mode
+      (setq lctags-candidate-select-mode nil)
       (if lctags-anything
 	  (let ((anything-candidate-number-limit 9999))
 	    (anything :sources '(src) :keymap keymap :preselect preselect))
 	(let ((helm-candidate-number-limit 9999))
 	  (helm :sources src :keymap keymap :preselect preselect)))
       (setq preselect nil)
-      (when (eq lctags-candidate-expand :back)
+      (when (eq lctags-candidate-select-mode :back)
 	(let ((prev (car lctags-candidate-history)))
 	  (when (plist-get prev :point)
 	    (setq preselect
@@ -219,7 +226,7 @@
 	    (setq lctags-candidate-history (cdr lctags-candidate-history))
 	    ))
 	)
-      (when lctags-candidate-expand
+      (when lctags-candidate-select-mode
 	(setq src (plist-get (car lctags-candidate-history) :candidate))
 	)
       ))
@@ -275,7 +282,9 @@
 	  (insert "\n"))
 	(compilation-mode)
 	(goto-char (point-min)))
-    (message "none diagnostics message")))
+    (message "none diagnostics message")
+    (when (get-buffer lctags-diag-buf-name)
+      (kill-buffer lctags-diag-buf-name))))
   
 
 (defun lctags-helm-complete-at ()
@@ -495,7 +504,7 @@
       (setq typeInfo (delq nil (lctags-candidate-map-candidate
 				(symbol-function 'lctags-helm-make-candidates)
 				(car typeInfo) lctags-candidate-info)))
-      (setq lctags-candidate-expand :forward)
+      (setq lctags-candidate-select-mode :forward)
       (with-current-buffer (lctags-get-helm-current-buffer)
 	(setq lctags-candidate-history
 	      (append `((:candidate ((name . ,(format "expand:%s"
@@ -512,9 +521,19 @@
 
 (defun* lctags-helm-type-backward (&optional (attr 'persistent-action) onewindow)
   (interactive)
-  (setq lctags-candidate-expand :back)
+  (setq lctags-candidate-select-mode :back)
   (helm-exit-minibuffer)
   )
+
+(defun* lctags-helm-select-all (&optional (attr 'persistent-action) onewindow)
+  (interactive)
+  (let (candidates)
+    (setq candidates (plist-get (nth (1- (length lctags-candidate-history))
+				     lctags-candidate-history)
+				:candidate))
+    (setq lctags-candidate-select-mode :all)
+    (helm-exit-minibuffer)    
+    ))
 
 (defun lctags-display-diag ()
   (interactive)

@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+#+AUTHOR: ifritJP
 #+STARTUP: nofold
 
 * lctags
@@ -12,6 +13,105 @@ libclang を利用したインデックスツールは RTags がメジャーで�
 複雑な Makefile を使用したプロジェクトだと適応し難いので、
 プロジェクトごとにカスタマイズしやすいインタフェースを持った
 インデックスツールを作成しました。
+
+** サンプル
+
+lctags を利用した際のサンプルです。
+   
+*** コード補完
+
+**** シンボル名、メンバー名補完
+
+シンボル名、メンバー名の補完を行ないます。
+
+補完したい位置にカーソルを移動し、 C-c C-/ で候補を表示します。
+
+補完候補の絞り込みは helm (あるいは anything) を利用します。
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8557f03cd8d88d3329998db13b6567f37d706120/complete.gif]]
+
+メンバーが構造体の場合、 C-M-f でさらに展開します。 C-M-b で展開を戻します。
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif]]
+
+ファイルを変更している場合、補完が正常に動作しない場合があります。
+一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
+
+**** enum 補完
+
+enum 値に対して、次の補完が可能です。
+
+- enum 型名から enum 値を補完  C-c C-x
+- enum 値から、同型の enum 値に変換 C-c C-x
+- enum 型の変数への ==, = で enum 値を補完 C-c C-/
+  
+このサンプル動画では、次の処理を行なっています。
+
+- ~enum_t~ 型の変数を宣言し、その初期値として func12345() の戻り値を設定
+- func を入力して func12345() を展開。
+- 展開された func12345 のプロトタイプの引数 ~enum_t~ から enum 値 ~enum_val2~ を補完
+- val の比較値として ~enum_val1~ を補完
+- ~enum_val1~ を ~enum_val2~ に補完
+  
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum.gif]]  
+
+**** 定型処理展開
+
+次の定型処理を行ないます。
+
+- M-x lctags-generate-to-convert-enumName-at
+  - カーソル位置の enum 型の値から、対応する文字列を返す処理
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum2name.gif]]
+
+- M-x lctags-generate-to-dump-member-at
+  - カーソル位置の構造体変数から、構造体メンバーをダンプする処理
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/dumpStruct.gif]]
+   
+  
+
+*** グラフ
+
+include、関数の関係を示すグラフを作成することができます。
+この機能は graphviz の dot を利用します。
+グラフは svg フォーマットで作成します。
+
+**** サンプル
+
+#+CAPTION: サンプル
+[[./src/graph.sample/inc.png]]
+
+**** オプション
+
+#+BEGIN_SRC txt
+$ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] [name]
+$ lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
+#+END_SRC
+
+次のグラフを作成します。
+
+- include 元  (incSrc)
+- include 先  (inc)
+- 関数呼び出し元 (caller)
+- 関数呼び出し先 (callee)
+- シンボル参照元 (symbol)
+
+name には、関数名あるいはファイル名あるいはシンボル名、
+あるいはそれらを示す ID を指定します。
+name を省略した場合、ID をリストします。
+関数名、シンボル名は完全限定名で指定する必要があります。
+ファイル名は、カレントディレクトリからの相対パスか、フルパスで指定します。
+
+-d は、表示するグラフの階層を指定します。
+デフォルトでは、4 階層までのグラフを作成します。
+
+-o は、作成するグラフのファイル名を指定します。
+
+-b は、作成したグラフを表示します。
+
+-f は、作成するグラフの画像フォーマットを指定します。
+
+
 
 ** 使用方法
 
@@ -227,7 +327,7 @@ tmpfs を使用する注意事項として、RAM の使用量に十分を気を�
 tmpfs は RAM を消費します。RAM の空きが無くなれば swap します。
 そして、swap すれば当然パフォーマンスが落ちます。
 
-よって、 tmpfs を利用する場合は swap が発生しない様に並列処理数を調整等が必要な場合があります。
+よって tmpfs を利用する際は、swap が発生しない様に並列処理数を調整等が必要です。
 
 *** インデックス問い合わせ
 
@@ -341,99 +441,6 @@ lctags.el は、マイナーモードの機能を提供します。
   - バッファで開いているファイルがヘッダファイルの場合は動作しません。
 - lctags-display-diag (C-c C-f)
   - 現在のバッファで開いているファイルを構文エラーチェックする
-
-*** コード補完
-
-**** DONE シンボル名、メンバー名補完
-
-シンボル名、メンバー名の補完を行ないます。
-
-補完したい位置にカーソルを移動し、 C-c C-/ で候補を表示します。
-
-補完候補の絞り込みは helm (あるいは anything) を利用します。
-
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8557f03cd8d88d3329998db13b6567f37d706120/complete.gif]]
-
-メンバーが構造体の場合、 C-M-f でさらに展開します。 C-M-b で展開を戻します。
-
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif]]
-
-ファイルを変更している場合、補完が正常に動作しない場合があります。
-一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
-
-**** enum 補完
-
-enum 値に対して、次の補完が可能です。
-
-- enum 型名から enum 値を補完  C-c C-x
-- enum 値から、同型の enum 値に変換 C-c C-x
-- enum 型の変数への ==, = で enum 値を補完 C-c C-/
-  
-このサンプル動画では、次の処理を行なっています。
-
-- enum_t 型の変数を宣言し、その初期値として func12345() の戻り値を設定
-- func を入力して func12345() を展開。
-- 展開された func12345 のプロトタイプの引数 enum_t から enum 値 enum_val2 を補完
-- val の比較値として enum_val1 を補完
-- enum_val1 を enum_val2 に補完
-  
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum.gif]]  
-
-**** 定型処理展開
-
-次の定型処理を行ないます。
-
-- M-x lctags-generate-to-convert-enumName-at
-  - カーソル位置の enum 型の値から、対応する文字列を返す処理
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum2name.gif]]
-
-- M-x lctags-generate-to-dump-member-at
-  - カーソル位置の構造体変数から、構造体メンバーをダンプする処理
-
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/dumpStruct.gif]]
-   
-  
-
-*** グラフ
-
-include、関数の関係を示すグラフを作成することができます。
-この機能は graphviz の dot を利用します。
-グラフは svg フォーマットで作成します。
-
-**** サンプル
-
-#+CAPTION: サンプル
-[[./src/graph.sample/inc.png]]
-
-**** オプション
-
-#+BEGIN_SRC txt
-$ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] [name]
-$ lctags graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column 
-#+END_SRC
-
-次のグラフを作成します。
-
-- include 元  (incSrc)
-- include 先  (inc)
-- 関数呼び出し元 (caller)
-- 関数呼び出し先 (callee)
-- シンボル参照元 (symbol)
-
-name には、関数名あるいはファイル名あるいはシンボル名、
-あるいはそれらを示す ID を指定します。
-name を省略した場合、ID をリストします。
-関数名、シンボル名は完全限定名で指定する必要があります。
-ファイル名は、カレントディレクトリからの相対パスか、フルパスで指定します。
-
--d は、表示するグラフの階層を指定します。
-デフォルトでは、4 階層までのグラフを作成します。
-
--o は、作成するグラフのファイル名を指定します。
-
--b は、作成したグラフを表示します。
-
--f は、作成するグラフの画像フォーマットを指定します。
 
 *** プロジェクトディレクトリの変更
 

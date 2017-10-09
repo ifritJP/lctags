@@ -388,10 +388,10 @@ function Complete:createSourceForAnalyzing(
 	 prefix = ""
 	 targetIndex = checkIndex - 1
 	 checkIndex = checkIndex - 1
-      elseif tokenInfoList[ checkIndex ].token == '=' or
-	 tokenInfoList[ checkIndex ].token == '=='
+      elseif string.find( tokenInfoList[ checkIndex ].token,
+			  "[%+%-%/%%%^%*%&%|%>%<%=%(,;]" )
       then
-	 compMode = "set"
+	 compMode = "binOP"
 	 prefix = ""
 	 targetIndex = checkIndex - 1
 	 checkIndex = checkIndex - 1
@@ -1235,7 +1235,7 @@ function Complete:analyzeAt(
 		     then
 			self:completeSymbol(
 			   db, path, cursor, compMode, prefix, frontSyntax )
-		     elseif compMode == "set" then
+		     elseif compMode == "binOP" then
 			self:expandCursor( db, path, cursor, frontSyntax )
 		     else
 			self:completeMember(
