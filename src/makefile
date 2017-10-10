@@ -54,7 +54,8 @@ LIBCLANG_SO=-lclang
 # If you don't have luasqlite3, you must customize this setting.
 # http://lua.sqlite.org/index.cgi/index
 
-LUASQLITE3_DIR=../external/luasqlite3/lsqlite3_fsl09x
+LUASQLITE3_WORKDIR=../external/luasqlite3
+LUASQLITE3_DIR=$(LUASQLITE3_WORKDIR)/lsqlite3_fsl09x
 #USE_BDB_SQLITE=y
 
 LUASQLITE3_URL="http://lua.sqlite.org/index.cgi/zip/lsqlite3_fsl09x.zip?uuid=fsl_9x"
@@ -437,6 +438,18 @@ else
 endif
 endif
 
+download_luasqlite3:
+	@echo check luasqlite3 ...
+ifeq ($(wildcard $(LUASQLITE3_DIR).zip),)
+	@echo install $(luasqlite3)
+	make -p $(LUASQLITE3_WORKDIR)
+	curl --proxy "$(PROXY)" $(LUASQLITE3_URL) > $(LUASQLITE3_DIR).zip
+	(cd $(LUASQLITE3_WORKDIR); unzip -o $(shell basename $(LUASQLITE3_DIR).zip))
+else
+	@echo ready luasqlite3
+endif
+
+
 build_for_apt:
 #	-sudo apt-get -o Acquire::http::proxy="$(PROXY)" update
 
@@ -460,14 +473,7 @@ endif
 	$(MAKE) APT_TGT_CMD=swig APT_TGT_PKG=swig3.0 check-apt 
 	$(MAKE) APT_TGT_CMD=gtags APT_TGT_PKG=global check-apt 
 
-	@echo check luasqlite3 ...
-ifeq ($(wildcard $(LUASQLITE3_DIR).zip),)
-	@echo install $(luasqlite3)
-	curl --proxy "$(PROXY)" $(LUASQLITE3_URL) > $(LUASQLITE3_DIR).zip 
-	(cd $(LUASQLITE3_DIR)/..; unzip -o $(shell basename $(LUASQLITE3_DIR).zip))
-else
-	@echo ready luasqlite3
-endif
+	$(MAKE) download_luasqlite3
 
 	$(MAKE) build SWIG=swig3.0
 	$(MAKE) test

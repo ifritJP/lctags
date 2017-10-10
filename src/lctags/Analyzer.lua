@@ -1440,7 +1440,7 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
    --    end
    -- end
 
-   local args = clang.mkCharArray( newOptList )
+   local args = clang.mkcharPArray( newOptList )
    local unsavedFileTable
    if fileContents then
       unsavedFileTable = {}
@@ -1546,7 +1546,7 @@ function Analyzer:analyzeSource( path, options, target, unsavedFileTable )
       return
    end
    
-   local args = clang.mkCharArray( newOptList )
+   local args = clang.mkcharPArray( newOptList )
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
 
 
@@ -1574,7 +1574,7 @@ function Analyzer:analyzeSourceAtWithFunc(
       table.insert( optionList, "-Wall" )
    end
    
-   local args = clang.mkCharArray( optionList )
+   local args = clang.mkcharPArray( optionList )
    local unsavedFileTable
    if fileContents then
       unsavedFileTable = {}
@@ -1893,7 +1893,7 @@ function Analyzer:createPrecompileFile(
    Util:mkdirWithParent( string.gsub( outputPath, "/[^/]+$", "" ) )
    
 
-   local args = clang.mkCharArray( optionList )
+   local args = clang.mkcharPArray( optionList )
    local unsavedFileTable
    if fileContents then
       unsavedFileTable = {}
@@ -1953,7 +1953,7 @@ end
 function Analyzer:dumpIncludeList( path, options, unsavedFileTable )
    options = { "-M", table.unpack( options ) }
 
-   local args = clang.mkCharArray( options )
+   local args = clang.mkcharPArray( options )
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = self.clangIndex:createTranslationUnitFromSourceFile(
       path, args:getLength(), args:getPtr(),

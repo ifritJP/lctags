@@ -590,7 +590,7 @@ end
 
 local function mapPointerParam( pointerParamTypeSet, func )
    for typeName, typeInfo in pairs( pointerParamTypeSet ) do
-      local pointeeTxt = typeInfo[ 1 ]
+      local pointeeTxt = string.gsub( typeInfo[ 1 ], "const", "" )
       local baseTxt = typeInfo[ 2 ]
       local baseTypeKind = typeInfo[ 3 ]
       local arrayName = string.gsub( pointeeTxt, " (%*+)$", "%1" )
@@ -598,7 +598,9 @@ local function mapPointerParam( pointerParamTypeSet, func )
       arrayName = string.gsub( arrayName, "signed ", "signed" )
       arrayName = string.gsub( arrayName, ".* ", "" )
       arrayName = arrayName .. "Array"
-      func( typeName, typeInfo, arrayName )
+      if arrayName ~= "charPArray" then
+	 func( typeName, typeInfo, arrayName )
+      end
    end
 end
 
@@ -793,7 +795,7 @@ end
 
 
 local function dumpCursor( clangIndex, path, options, dumpFunc, exInfo )
-   local args = clang.mkCharArray( options )
+   local args = clang.mkcharPArray( options )
    local transUnit = clang.core.clang_createTranslationUnitFromSourceFile(
       clangIndex, path, args:getLength(), args:getPtr(), 0, nil )
 

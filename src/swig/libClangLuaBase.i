@@ -11,7 +11,7 @@
 %}
 
 %include <carrays.i>
-%array_functions(char *, charArray);
+%array_functions(char *, charPArray);
 //@array@
 
 

@@ -20,6 +20,9 @@ function DBAccess:setRecordSqlObj( obj )
 end
 
 function DBAccess:getLockName( path )
+   if not path then
+      return nil
+   end
    return os.getenv( "USER" ) .. string.gsub( path, "/", "." )
 end
 

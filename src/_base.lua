@@ -188,10 +188,10 @@ libs.visitFields = function( cxtype, func, exInfo )
 end
 
 
-libs.mkCharArray = function( strArray )
+libs.mkcharPArray = function( strArray )
    local array = {
       __length = #strArray,
-      __ptr = libclangcore.new_charArray( #strArray ),
+      __ptr = libclangcore.new_charPArray( #strArray ),
       
       getLength = function( self )
 	 return self.__length
@@ -203,7 +203,7 @@ libs.mkCharArray = function( strArray )
    }
    
    for key, str in ipairs( strArray ) do
-      libclangcore.charArray_setitem( array.__ptr, key - 1, str )
+      libclangcore.charPArray_setitem( array.__ptr, key - 1, str )
    end
    return array
 end
