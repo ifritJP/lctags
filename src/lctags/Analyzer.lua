@@ -1736,6 +1736,7 @@ function Analyzer:queryAt(
    self:queryAtFunc(
       filePath, line, column, target, mode == "call-at", fileContents, diagList, 
       function( db, targetFileId, nsInfo, declCursor, cursor )
+	 log( 2, "queryAt", nsInfo and nsInfo.name )
 	 if nsInfo then
 	    if mode == "ref-at" then
 	       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name )

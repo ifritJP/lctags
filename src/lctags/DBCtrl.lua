@@ -717,6 +717,7 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
    self:delete( "incBelong", string.format( "baseFileId = %d", fileId ) )
    self:delete( "tokenDigest", string.format( "fileId = %d", fileId ) )
    self:delete( "preproDigest", string.format( "fileId = %d", fileId ) )
+   self:delete( "funcCall", string.format( "fileId = %d", fileId ) )
 
    if removeFlag then
       self:delete( "filePath", string.format( "id = %d", fileId ) )

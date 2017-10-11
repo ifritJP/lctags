@@ -3,6 +3,7 @@
 (defvar lctags-diag-info nil)
 
 (defvar lctags-anything nil)
+(defvar lctags-path-length 60)
 
 (defvar lctags-diag-buf-name "*lctags-diag*" )
 
@@ -562,16 +563,33 @@
       (let* ((line (string-to-number (gtags-match-string 1)))
 	     (path (gtags-match-string 2))
 	     (txt (gtags-match-string 3))
-	     (relative-path (file-relative-name path default-directory)))
+	     (relative-path (file-relative-name path default-directory))
+	     (abs-path (expand-file-name path))
+	     (disp-path relative-path))
+	(when (< (length abs-path) (length abs-path))
+	  (setq disp-path abs-path))
 	(setq candidate-list
 	      (cons (cons (format "%s:%d:%s"
-				  (if (> 40 (length relative-path))
-				      relative-path
-				    (concat "..." (substring relative-path -37)))
+				  (if (or (not lctags-path-length)
+					  (> lctags-path-length (length disp-path)))
+				      disp-path
+				    (concat "..."
+					    (substring disp-path
+						       (+ (* -1 lctags-path-length) 3))))
 				  line txt)
 			  (list :line line :path path))
 		    candidate-list)))
       (next-line))
+    (setq candidate-list
+	  (sort candidate-list
+		(lambda (X Y)
+		  (let ((infoX (cdr X))
+			(infoY (cdr Y)))
+		    (if (string< (plist-get infoX :path) (plist-get infoY :path))
+			t
+		      (if (< (plist-get infoX :line) (plist-get infoY :line))
+			  t
+			nil))))))
     (setq lctags-params
 	  `((name . ,(buffer-name (current-buffer)))
 	    (candidates . ,candidate-list)

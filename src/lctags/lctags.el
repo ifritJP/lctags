@@ -204,6 +204,9 @@ This parameter can set function and string.
       ;;(message (buffer-string))
       (setq lineNum (count-lines (point-min) (point-max)))
       (cond
+       ((string-match "^lctags:" (buffer-string))
+	(switch-to-buffer buffer)
+	)
        ((= lineNum 0)
 	(message "not found")
 	(gtags-pop-context)
