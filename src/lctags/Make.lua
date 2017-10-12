@@ -432,7 +432,7 @@ other: $(SRCS)
 
 %%.lc:
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
-	@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV)
+	-@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV) || echo "=== MAKE NG === $@"
 ]],
 	 tmpName, tmpName, math.floor(((jobs>=3) and jobs or 3) / 3), tmpName,
 	 jobs, tmpName,
@@ -442,7 +442,7 @@ other: $(SRCS)
 	 arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], 
 	 target and ("--lctags-target " .. target ) or "",
-	 log( 0, -1 ), dbPath, opt ) )
+	 log( 0, -1 ), dbPath, opt, tmpName ) )
 
    fileHandle:close()
 

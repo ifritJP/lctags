@@ -105,14 +105,26 @@ if lctagOptMap.mode == "status" then
    while true do
       local statusList = StatusServer:requestGetStatus()
       if not statusList or #statusList == 0 then
-	 break
+	 Helper.msleep( 1000 * 2 )
+	 statusList = StatusServer:requestGetStatus()
+	 if not statusList or #statusList == 0 then
+	    break
+	 end
       end
       TermCtrl:clr()
+      local runCount = 0
       for index, status in ipairs( statusList ) do
 	 TermCtrl:gotoAt( 1, index )
 	 TermCtrl:clrLine()
-	 print( status.info.time - status.basetime, status.name, status.info.state )
+	 local waitFlag = string.find( status.info.state, "db is busy", 1, true )
+	 if not waitFlag then
+	    runCount = runCount + 1
+	 end
+	 print( status.info.time - status.basetime,
+		waitFlag and "x" or "o",
+		status.name, status.info.state )
       end
+      print( "run:", runCount )
       Helper.msleep( 500 )
    end
    os.exit( 0 )
