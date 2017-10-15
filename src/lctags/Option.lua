@@ -59,6 +59,8 @@ usage:
    %s chkFiles [--lctags-db path]
    %s chg-proj projDir [--lctags-db path] [src@dst src@dst src@dst src@dst]
    %s set-projDir projDir [--lctags-db path]
+ - misc
+   %s split-at [--lctags-target target] [-i] file line column
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -250,6 +252,8 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    skipArgNum = 1
+	 elseif arg == "split-at" then
+	    lctagOptMap.mode = arg
 	 elseif arg == "comp-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "inq-at" then

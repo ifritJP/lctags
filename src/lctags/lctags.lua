@@ -16,6 +16,7 @@ local StatusServer = require( 'lctags.StatusServer' )
 local DynamicCall = require( 'lctags.DynamicCall' )
 local Helper = require( 'lctags.Helper' )
 local StackCalc = require( 'lctags.StackCalc' )
+local Split = require( 'lctags.Split' )
 
 if not arg[1] then
    Option:printUsage( "" )
@@ -389,6 +390,18 @@ if lctagOptMap.mode == "graph-at" then
       tonumber( srcList[ 3 ] ), lctagOptMap.target,
       lctagOptMap.depth, lctagOptMap.browse,
       lctagOptMap.outputFile, lctagOptMap.imageFormat )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "split-at" then
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+
+   Split:at( analyzer, srcList[ 1 ],
+	     tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
+	     lctagOptMap.target, fileContents )
    os.exit( 0 )
 end
 

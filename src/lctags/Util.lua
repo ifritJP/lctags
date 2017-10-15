@@ -1,6 +1,7 @@
 local Helper = require( 'lctags.Helper' )
 local Option = require( 'lctags.Option' )
 local log = require( 'lctags.LogCtrl' )
+local clang = require( 'libclanglua.if' )
 
 local Util = {}
 
@@ -131,6 +132,26 @@ function Util:mkdirWithParent( path )
       end
    end
 end
+
+function Util:dumpCursorInfo( cursor, depth, prefix, cursorOffset )
+   local cursorKind = cursor:getCursorKind()
+   local txt = cursor:getCursorSpelling()
+
+   log( 5,
+	function()
+	   return string.format(
+	      "%s |%s%s %s(%d) %d %s %s %s",
+	      string.rep( "  ", depth ),
+	      prefix and (prefix .. " ") or "", txt, 
+	      clang.getCursorKindSpelling( cursorKind ), cursorKind,
+	      cursor:hashCursor(), "",
+	      cursorOffset or "",
+	      clang.isExprKind( cursorKind ) )
+	end
+   )
+end
+
+      
 
 return Util
 

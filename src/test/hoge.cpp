@@ -327,9 +327,25 @@ public:
       val = 0;
     }
 
-    void func()
+#define POINTER(X) (&(X))
+#define VAL5P (&val5)
+#define SETVAL6 int * pVal6 = &val6;
+    void func( int val, int val2, int * val3, int val4, int val5, int val6 )
     {
-        INT_t abcddd = 0;
-        abcddd = 1;
+        int abcddd[ 10 ][ 1 ] = { 0 };
+        int aaa[ 1 ][ 2 ] = { 0 };
+        {
+            int * pVal = POINTER(val);
+            int valval2 = -val2;
+            int valval3 = *(int *)(val3 + 1);
+	    int * pAAA = &aaa[0][0];
+            //int * pValval5 = VAL5P;
+            //SETVAL6;
+            abcddd[0][0] = val;
+            *pVal = 1;
+            val4 = 2;
+            s_vals[0] = 3;
+	    *pAAA = 4;
+        }
     }
 } CLASS2, CLASS3;

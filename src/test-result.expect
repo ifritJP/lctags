@@ -52,9 +52,9 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
 lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
+::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 ::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
-::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::2  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua lctags/lctags.lua def-at test/hoge.cpp 231 20
@@ -499,7 +499,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </diagnostics>
 </lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:273: recipe for target 'test-query' failed
+makefile:274: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <complete>

@@ -11,22 +11,10 @@ local Option = require( 'lctags.Option' )
 
 
 local function dumpCursorInfo( cursor, depth, prefix, cursorOffset )
-   local cursorKind = cursor:getCursorKind()
-   local txt = cursor:getCursorSpelling()
-
-   log( 5,
-	function()
-	   return string.format(
-	      "%s |%s%s %s(%d) %d %s %s %s",
-	      string.rep( "  ", depth ),
-	      prefix and (prefix .. " ") or "", txt, 
-	      clang.getCursorKindSpelling( cursorKind ), cursorKind,
-	      cursor:hashCursor(), "",
-	      cursorOffset or "",
-	      clang.isExprKind( cursorKind ) )
-	end
-   )
+   Util:dumpCursorInfo( cursor, depth, prefix, cursorOffset )
 end
+
+
 
 local function getIncludeFileTable( path, compileOp )
    os.execute(
