@@ -10,12 +10,20 @@ if arg[1] == "base" then
 			    "'libclanglua.coreBase'" )
 end
 
-local clang
+local loadedScript
 if not loadstring then
-   clang = load( baseScrit )()
+   loadedScript, message = load( baseScrit )
 else
-   clang = loadstring( baseScrit )()
+   loadedScript, message = loadstring( baseScrit )
 end
+
+if not loadedScript then
+   error( message )
+end
+
+
+local clang = loadedScript()
+
 
 -- gc 時に dispose を実行許可するオブジェクト名の set。
 -- この set のオブジェクト名に登録されていないオブジェクトから生成した場合は、
@@ -441,7 +449,9 @@ local function dumpMethod( classFile, funcMap, targetClassSet )
 	       elseif targetClassSet[ funcInfo.result ] then
 		  callStmt = createNew( targetName, funcInfo.result, callStmt )
 	       end
-	       if string.find( callStmt, "_is%u" ) then
+	       if string.find( callStmt, "_is%u" ) or
+		  string.find( callStmt, "_equal%u" )
+	       then
 		  callStmt = string.format( callStmt .. " ~= 0" )
 	       end
 	       
@@ -482,7 +492,10 @@ end
 	    elseif targetClassSet[ funcInfo.result ] then
 	       callStmt = createNew( nil, funcInfo.result, callStmt )
 	    end
-	    if string.find( callStmt, "_is%u" ) then
+	    if string.find( callStmt, "_is%u" ) or
+	       string.find( callStmt, "_equal%u" )
+	    then
+	       
 	       callStmt = string.format( callStmt .. " ~= 0" )
 	    end
 

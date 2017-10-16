@@ -27,6 +27,11 @@
 	    (:name "convert-enumName-at" :bind "e"
 		   :action lctags-generate-to-convert-enumName-at)
 	   ))
+    (:name "refactoring" :bind "r"
+	   :submenu
+	   ((:name "sub-routine" :bind "s"
+		   :action lctags-split-at)
+	   ))
     (:name "update this file" :bind "u" :action lctags-update-this-file)))
 (defvar lctags-dispatch-menu-info-current nil)
 

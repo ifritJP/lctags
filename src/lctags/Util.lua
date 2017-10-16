@@ -151,7 +151,19 @@ function Util:dumpCursorInfo( cursor, depth, prefix, cursorOffset )
    )
 end
 
-      
+
+function Util:convertXmlTxt( txt )
+   if txt == nil or txt == "" then
+      return ""
+   end
+   txt = string.gsub( txt, '&', "&amp;" )
+   txt = string.gsub( txt, '>', "&gt;" )
+   txt = string.gsub( txt, '<', "&lt;" )
+   txt = string.gsub( txt, '"', "&quot;" )
+   txt = string.gsub( txt, "'", "&apos;" )
+   return txt
+end
+
 
 return Util
 

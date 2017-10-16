@@ -1,3 +1,4 @@
+local Util = require( 'lctags.Util' )
 local clang = require( 'libclanglua.if' )
 local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
@@ -19,15 +20,7 @@ local function getTokenKindSpelling( kind )
 end
 
 local function convertXmlTxt( txt )
-   if txt == nil or txt == "" then
-      return ""
-   end
-   txt = string.gsub( txt, '&', "&amp;" )
-   txt = string.gsub( txt, '>', "&gt;" )
-   txt = string.gsub( txt, '<', "&lt;" )
-   txt = string.gsub( txt, '"', "&quot;" )
-   txt = string.gsub( txt, "'", "&apos;" )
-   return txt
+   return Util:convertXmlTxt( txt )
 end
 
 local function createCandidate(

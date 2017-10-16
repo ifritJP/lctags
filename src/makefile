@@ -107,6 +107,7 @@ all:
 	@echo make build_for_apt [PROXY=http://proxy.hoge:port/]
 	@echo make install
 	@echo make clean
+	@echo make test
 
 build: $(IF_LUA) $(TARGET_LUA) $(CORE_SO) sqlite3 lctags-build
 
@@ -248,6 +249,7 @@ endif
 	$(call build-test, test/stack.cpp )
 #	$(call build-test, test/class.cpp )
 	$(call build-test, test/sample.c )
+	$(call build-test, test/operator.cpp )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -323,6 +325,10 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class3.cpp 16 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class4.cpp 11 7
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class5.cpp 24 6
+	$(LUA_COMMAND) $(LCTAGS_LUA) testOpe test/operator.cpp
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 337 8
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 337 8 -ignore-sym-list val1
+
 
 test-stack:
 	$(LUA_COMMAND) $(LCTAGS_LUA) stack test/hoge.cpp --lctags-log 4

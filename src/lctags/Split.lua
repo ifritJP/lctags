@@ -3,13 +3,19 @@ local log = require( 'lctags.LogCtrl' )
 local clang = require( 'libclanglua.if' )
 local Split = {}
 
-function visit( cursor, parent, info, addInfo )
+local function isNeedPassAddress( info )
+   if info.ignoreFlag then
+      return false
+   end
+   return not info.arrayAccess and (info.addressAccess or info.binOpAccess)
+end
+
+local function visit( cursor, parent, info, addInfo )
    local symbol2DeclMap = info.symbol2DeclMap
    local cursorKind = cursor:getCursorKind()
 
    Util:dumpCursorInfo( cursor, 1, "", 0 )
    local cxtype = cursor:getCursorType()
-   log( 2, cxtype:getTypeSpelling() )
 
    if cursorKind == clang.core.CXCursor_DeclRefExpr then
       local declCursor = cursor:getCursorDefinition()
@@ -17,16 +23,16 @@ function visit( cursor, parent, info, addInfo )
       if declCursorKind == clang.core.CXCursor_ParmDecl or
 	 declCursorKind == clang.core.CXCursor_VarDecl
       then
-	 local pointerFlag = false
 	 local symbol = declCursor:getCursorSpelling()
 	 if symbol == "" then
 	    error( "illegal symbol" )
 	 end
 	 symbol2DeclMap[ symbol ] = {
 	    cursor = declCursor,
-	    pointerAccess = false,
+	    addressAccess = false,
 	    binOpAccess = false,
-	    arrayAccess = false,	    
+	    arrayAccess = false,
+	    ignoreFlag = false,
 	 }
 	 table.insert( info.refList, cursor )
 	 local range = cursor:getCursorExtent()
@@ -37,12 +43,14 @@ function visit( cursor, parent, info, addInfo )
       table.insert( info.binOpList, cursor )
    elseif cursorKind == clang.core.CXCursor_ArraySubscriptExpr then
       table.insert( info.arrayList, cursor )
+   elseif cursorKind == clang.core.CXCursor_ReturnStmt then
+      info.hasReturn = true
    end
 
    return 1
 end
 
-function getDeclTxt( declCursorInfo )
+local function getDeclTxt( declCursorInfo )
    local pointerFlag = isNeedPassAddress( declCursorInfo )
    local cursor = declCursorInfo.cursor
    
@@ -67,11 +75,7 @@ function getDeclTxt( declCursorInfo )
    return txt, callArg
 end
 
-function isNeedPassAddress( info )
-   return not info.arrayAccess and (info.pointerAccess or info.binOpAccess)
-end
-
-function outputCode(
+local function outputCode(
       stream, fileContents, startOffset, endOffset, refList, symbol2DeclMap )
    for index, ref in ipairs( refList ) do
       local sym = ref:getCursorSpelling()
@@ -103,7 +107,7 @@ function outputCode(
    stream:write( "\n" )
 end
 
-function Split:at( analyzer, path, line, column, target, fileContents )
+function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileContents )
    if not target then
       target = ""
    end
@@ -128,12 +132,26 @@ function Split:at( analyzer, path, line, column, target, fileContents )
       return
    end
 
+
+   local resultType
+   local parentCursor = cursor:getCursorSemanticParent()
+   local parentKind = parentCursor:getCursorKind()
+   if parentKind == clang.core.CXCursor_FunctionDecl or
+      parentKind == clang.core.CXCursor_CXXMethod or
+      parentKind == clang.core.CXCursor_Constructor or
+      parentKind == clang.core.CXCursor_Destructor
+   then
+      resultType = parentCursor:getCursorResultType()
+      log( 1, "resultType", resultType:getTypeSpelling() )
+   end
+
    info = {}
    info.symbol2DeclMap = {}
    info.refList = {}
    info.unaryList = {}
    info.binOpList = {}
    info.arrayList = {}
+   info.hasReturn = false
    clang.visitChildrenFast( cursor, visit, info, {}, 2 )
 
    local range = cursor:getCursorExtent()
@@ -147,6 +165,7 @@ function Split:at( analyzer, path, line, column, target, fileContents )
    -- 変数のアドレスアクセスしているかどうかのチェック
    for key, unary in pairs( info.unaryList ) do
       local opType = unary:getCursorType()
+      local opPointeeType = opType:getPointeeType()
       clang.visitChildrenFast(
 	 unary,
 	 function( cursor, parent, aInfo, addInfo )
@@ -158,16 +177,27 @@ function Split:at( analyzer, path, line, column, target, fileContents )
 	       if declCursorKind == clang.core.CXCursor_ParmDecl or
 		  declCursorKind == clang.core.CXCursor_VarDecl
 	       then
-		  pointerFlag = opType:equalTypes( cursor:getCursorType() ) == 0
-
+		  local addressAccess = false
+		  local cursorType = cursor:getCursorType()
+		  if not opType:equalTypes( cursorType ) and 
+		     cursorType:equalTypes( opPointeeType )
+		  then
+		     addressAccess = true
+		  end
 		  local declCursorInfo =
 		     info.symbol2DeclMap[ declCursor:getCursorSpelling() ]
-		  declCursorInfo.pointerAccess = pointerFlag
+		  declCursorInfo.addressAccess = addressAccess
 	       end
 	    end
 	    return 1
 	 end,
 	 nil, {}, 2 )
+   end
+
+   if ignoreSymMap then
+      for sym in pairs( ignoreSymMap ) do
+	 info.symbol2DeclMap[ sym ].ignoreFlag = true      
+      end
    end
 
    for key, array in pairs( info.arrayList ) do
@@ -188,62 +218,33 @@ function Split:at( analyzer, path, line, column, target, fileContents )
 	 nil, {}, 2 )
    end
 
---[[
-   int hoge;
-   {
-      hoge = 1;
-   }
-
-   →
-   func( int * pHoge ) {
-      *pHoge = 1;
-   }
-
-   func( &hoge );
-]]
-
    -- BinaryOperator の左辺の変数チェック。
    -- BinaryOperator が "=" (代入) の場合は、左辺の変数を呼び出し元に反映する必要がある
    local symbol2LeftMap = {}
    for key, binOp in pairs( info.binOpList ) do
-      local leftCursor
-      local declCursor
-      clang.visitChildrenFast(
-	 binOp,
-	 function( cursor, parent, aInfo )
-	    leftCursor = cursor
-	    return 0
-	 end, nil, {}, 1 )
+      local refCursor = clang.getNthCursor(
+	 binOp, 1, { clang.core.CXCursor_DeclRefExpr } )
 
-      log( 2, "binOp", clang.getCursorKindSpelling( leftCursor:getCursorKind() ) )
-      if leftCursor:getCursorKind() == clang.core.CXCursor_DeclRefExpr then
-	 declCursor = leftCursor:getCursorDefinition()
-      else
-	 clang.visitChildrenFast(
-	    leftCursor,
-	    function( cursor, parent, aInfo )
-	       if cursor:getCursorKind() == clang.core.CXCursor_DeclRefExpr then
-		  declCursor = cursor:getCursorDefinition()
-	       end
-	       return 1
-	    end,
-	    nil, {}, 2 )
-      end
-
-      if declCursor then
+      if refCursor then
+	 local declCursor = refCursor:getCursorDefinition()
 	 local declCursorKind = declCursor:getCursorKind()
+	 log( 2, "declCursor", declCursor and declCursor:getCursorSpelling(),
+	      clang.getCursorKindSpelling( declCursorKind ) )
+	 
 	 if declCursorKind == clang.core.CXCursor_ParmDecl or
 	    declCursorKind == clang.core.CXCursor_VarDecl
 	 then
-	    local declCursorInfo =
-	       info.symbol2DeclMap[ declCursor:getCursorSpelling() ]
-	    declCursorInfo.binOpAccess = true
+	    local binOpTxt = clang.getBinOperatorTxt( binOp )
+	    log( 2, "opTxt", binOpTxt )
+	    if not binOpTxt or string.find( binOpTxt, "=", 1, true ) then
+	       local declCursorInfo =
+		  info.symbol2DeclMap[ declCursor:getCursorSpelling() ]
+	       declCursorInfo.binOpAccess = true
+	    end
 	 end
       end
    end
 
-   
-   
    -- ブロック文内の変数は除外
    local newSymbol2DeclMap = {}
    local symbolList = {}
@@ -277,6 +278,15 @@ function Split:at( analyzer, path, line, column, target, fileContents )
    local callArgs = ""
    local declArgs = ""
 
+
+   local stream = {
+      write = function( self, txt )
+	 io.stdout:write( Util:convertXmlTxt( txt ) )
+      end
+   }
+
+   print( "<lctags_result><refactoring_split>" )
+   print( "<args>" )
    
    table.sort( symbolList )
    for index, symbol in ipairs( symbolList ) do
@@ -286,20 +296,33 @@ function Split:at( analyzer, path, line, column, target, fileContents )
 
       local declArgTxt, callArgTxt = getDeclTxt( declCursorInfo )
       log( 2, declArgTxt, isNeedPassAddress( declCursorInfo ),
-	   declCursorInfo.pointerAccess,
+	   declCursorInfo.addressAccess,
 	   declCursorInfo.binOpAccess, declCursorInfo.arrayAccess )
 
       declArgs = declArgs .. ", " .. declArgTxt
       callArgs = callArgs .. ", " .. callArgTxt
+
+      print( string.format(
+		"<arg><addressAccess>%s</addressAccess><name>%s</name></arg>",
+		isNeedPassAddress( declCursorInfo ), declCursor:getCursorSpelling() ) )
    end
 
-   print( string.format( "func( %s );", string.gsub( callArgs, "^, ", "" ) ) )
-   print( string.format( "func( %s )", string.gsub( declArgs, "^, ", "" ) ) )
-
+   print( "</args>" )
+   print( "<call>" )
+   stream:write( string.format( "func( %s );", string.gsub( callArgs, "^, ", "" ) ) )
+   print( "</call>" )
+   print( "<sub_routine>" )
+   stream:write( string.format(
+		    "static %s func( %s )\n",
+		    info.hasReturn and resultType:getTypeSpelling() or "void",
+		    string.gsub( declArgs, "^, ", "" ) ) )
 
   
-   outputCode( io.stdout, fileContents,
+   outputCode( stream, fileContents,
 	       startOffset, endOffset, info.refList, symbol2DeclMap )
+
+   print( "</sub_routine>" )
+   print( "</refactoring_split></lctags_result>" )
 end
 
 return Split

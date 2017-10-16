@@ -60,7 +60,8 @@ usage:
    %s chg-proj projDir [--lctags-db path] [src@dst src@dst src@dst src@dst]
    %s set-projDir projDir [--lctags-db path]
  - misc
-   %s split-at [--lctags-target target] [-i] file line column
+   %s split-at [--lctags-target target] [-i] file line column [-ignore-sym-list sym1,sym2,...]
+   %s clang-ver
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -283,6 +284,10 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	 elseif arg == "stack" then
 	    lctagOptMap.mode = arg
+	 elseif arg == "clang-ver" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "testOpe" then
+	    lctagOptMap.mode = arg
 	 end
       else
 	 if skipArgNum > 0 then
@@ -356,6 +361,14 @@ function Option:analyzeOption( argList )
 		  elseif lctagOptMap.mode == "query" then
 		     if string.find( arg, "--encode-path=", 1, true ) then
 			skipArgNum = 1
+		     end
+		  elseif lctagOptMap.mode == "split-at" then
+		     if string.find( arg, "-ignore-sym-list", 1, true ) then
+			lctagOptMap.ignoreSymMap = {}
+			for val in string.gmatch( argList[ index + 1 ], "[^,]+" ) do
+			   lctagOptMap.ignoreSymMap[ val ] = true
+			end
+			skipArgNum = 2
 		     end
 		  else
 		     if arg == "-i" then

@@ -401,7 +401,7 @@ if lctagOptMap.mode == "split-at" then
 
    Split:at( analyzer, srcList[ 1 ],
 	     tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
-	     lctagOptMap.target, fileContents )
+	     lctagOptMap.ignoreSymMap, lctagOptMap.target, fileContents )
    os.exit( 0 )
 end
 
@@ -442,5 +442,15 @@ end
 
 if lctagOptMap.mode == "stack" then
    StackCalc:analyze( srcList[ 1 ], lctagOptMap.target, analyzer )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "testOpe" then
+   require( 'lctags.testOperator' ):at( analyzer, srcList[ 1 ], lctagOptMap.target )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "clang-ver" then
+   print( require( 'libclanglua.if' ).getClangVersion() )
    os.exit( 0 )
 end

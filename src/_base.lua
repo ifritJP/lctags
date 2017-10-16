@@ -13,12 +13,15 @@ if _VERSION == "Lua 5.1" then
    end
 end
 
+-- convert from CXString to String of Lua.
 libs.cx2string = function( cxstr )
    local str = libclangcore.clang_getCString( cxstr )
    libclangcore.clang_disposeString( cxstr )
    return str
 end
 
+
+-- visit cursor children with low level accessing.
 libs.visitChildrenLow = function( cursor, func, exInfo, cxfileList )
    if not __libclang_visit then
       __libclang_visit = {}
@@ -40,6 +43,7 @@ libs.visitChildrenLow = function( cursor, func, exInfo, cxfileList )
    return result
 end
 
+-- visit cursor children.
 libs.clang_visitChildren = function( cxCursor, func, exInfo )
    local wrapFunc = function( aCursor, aParent, aExInfo )
       return func( libs.CXCursor:new( aCursor ),
@@ -48,6 +52,7 @@ libs.clang_visitChildren = function( cxCursor, func, exInfo )
    return libs.visitChildrenLow( cxCursor, wrapFunc, exInfo )
 end
 
+-- obtain infomation from append of visit callback.
 libs.getVisitAppendInfo = function( append )
    return {
       fileChangeFlag = append[ 1 ],
@@ -60,6 +65,7 @@ libs.getVisitAppendInfo = function( append )
    }
 end
 
+-- fast visit cursor children.
 libs.visitChildrenFast = function( cursor, func, exInfo, kindList, callbackResult )
    local result, list = libs.getChildrenList( cursor, kindList, callbackResult )
    
@@ -71,6 +77,7 @@ libs.visitChildrenFast = function( cursor, func, exInfo, kindList, callbackResul
    return result
 end
 
+-- fast visit cursor children.
 libs.visitChildrenFast2 = function(
       cursor, func, exInfo, kindList, kindList2,
       cxfileList, callbackResult )
@@ -85,7 +92,7 @@ libs.visitChildrenFast2 = function(
    return result
 end
 
-
+-- object children list for cursor
 libs.getChildrenList = function( cursor, kindList, callbackResult, kindList2, cxfileList )
    if not kindList then
       kindList = {}
@@ -149,7 +156,7 @@ libs.getChildrenList = function( cursor, kindList, callbackResult, kindList2, cx
 end
 
 
-
+-- obtain inclusions with low level accessing.
 libs.getInclusionsLow = function( unit, func, exInfo )
    if not __libclang_visit then
       __libclang_visit = {}
@@ -160,6 +167,7 @@ libs.getInclusionsLow = function( unit, func, exInfo )
    table.remove( __libclang_visit )
 end
 
+-- object inclusions.
 libs.clang_getInclusions = function( unit, func, exInfo )
    local wrapFunc = function( included_file, inclusion_stack,
 			      include_len, client_data )
@@ -170,6 +178,7 @@ libs.clang_getInclusions = function( unit, func, exInfo )
    return libs.getInclusionsLow( cursor, wrapFunc, exInfo )
 end
 
+-- visit field with low level accessing.
 libs.visitFieldsLow = function( cxtype, func, exInfo )
    if not __libclang_visit then
       __libclang_visit = {}
@@ -180,6 +189,7 @@ libs.visitFieldsLow = function( cxtype, func, exInfo )
    table.remove( __libclang_visit )
 end
 
+-- visit field.
 libs.visitFields = function( cxtype, func, exInfo )
    local wrapFunc = function( cursor, client_data )
       return func( libs.CXCursor:new( cursor ), exInfo )
@@ -187,7 +197,7 @@ libs.visitFields = function( cxtype, func, exInfo )
    return libs.visitFieldsLow( cxtype.__ptr, wrapFunc, exInfo )
 end
 
-
+-- make char * Array.
 libs.mkcharPArray = function( strArray )
    local array = {
       __length = #strArray,
@@ -208,6 +218,7 @@ libs.mkcharPArray = function( strArray )
    return array
 end
 
+-- 
 libs.isBuiltInTypeKind = function( typeKind )
    return typeKind >= libclangcore.CXType_FirstBuiltin and
       typeKind <= libclangcore.CXType_LastBuiltin
@@ -279,16 +290,19 @@ libs.getFileLocation = function( obj, func, ... )
    return cxFile, table.unpack( result )
 end
 
+-- obtain file location from location.
 libs.getLocation = function( location )
    return libs.getFileLocation( location.__ptr, libclangcore.clang_getFileLocation )
 end
 
+-- obtain cursor location.
 libs.getCursorLocation = function( cursor )
    local location = cursor:getCursorLocation()
    return libs.getFileLocation(
       location.__ptr, libclangcore.clang_getFileLocation )
 end
 
+-- obtain cursor plain text.
 libs.getCurosrPlainText = function( cursor )
    local txt = ""
    libs.mapCurosrPlainText(
@@ -364,3 +378,163 @@ libs.getDeclCursorFromType = function( cxtype )
    end
    return cxtype:getTypeDeclaration()
 end
+
+libs.findChildCursor = function( cursor, targetKindList )
+   local targetKindSet = {}
+   for index, kind in ipairs( targetKindSet ) do
+      targetKindSet[ kind ] = 1
+   end
+
+   local firstCursor
+   local rangeInfo = {}
+
+   local visit;
+   visit = function( aCursor, parent, info, exInfo )
+      if not targetKindList or targetKindSet[ aCursor:getCursorKind() ] then
+	 firstCursor = aCursor
+	 rangeInfo.startLine = exInfo[ 3 ]
+	 rangeInfo.startColumn = exInfo[ 4 ]
+	 rangeInfo.startOffset = exInfo[ 2 ]
+	 rangeInfo.endLine = exInfo[ 5 ]
+	 rangeInfo.endColumn = exInfo[ 6 ]
+	 rangeInfo.endOffset = exInfo[ 7 ]
+	 return 0
+      end
+      libs.visitChildrenFast( aCursor, visit, nil, {}, 1 )
+      if firstCursor then
+	 return 0
+      end
+      return 1
+   end
+
+   libs.visitChildrenFast( cursor, visit, nil, {}, 1 )
+   return firstCursor, rangeInfo
+end
+
+libs.getNthCursor = function( cursor, nth, targetKindList )
+   local targetKindSet = {}
+   if targetKindList then
+      for index, kind in ipairs( targetKindList ) do
+	 targetKindSet[ kind ] = 1
+      end
+   end
+
+   local nthCursor
+   local rangeInfo = {}
+   local index = 1
+
+   local nthVisit = function( aCursor, parent, info, exInfo )
+      if index == nth then
+	 nthCursor = aCursor
+	 rangeInfo.startLine = exInfo[ 3 ]
+	 rangeInfo.startColumn = exInfo[ 4 ]
+	 rangeInfo.startOffset = exInfo[ 2 ]
+	 rangeInfo.endLine = exInfo[ 5 ]
+	 rangeInfo.endColumn = exInfo[ 6 ]
+	 rangeInfo.endOffset = exInfo[ 7 ]
+	 return 0
+      end
+      index = index + 1
+      return 1
+   end
+
+   libs.visitChildrenFast( cursor, nthVisit, nil, {}, 1 )
+   if not nthCursor then
+      return nil
+   end
+
+   if not targetKindList or targetKindSet[ nthCursor:getCursorKind() ] then
+      return nthCursor, rangeInfo
+   end
+
+   return libs.findChildCursor( nthCursor, targetKindList )
+end
+
+libs.getOperatorTxt = function( cursor )
+   local cursorKind = cursor:getCursorKind()
+   if cursorKind == libclangcore.CXCursor_BinaryOperator or
+      cursorKind == libclangcore.CXCursor_CompoundAssignOperator
+   then
+      return libs.getBinOperatorTxt( cursor )
+   elseif cursorKind == libclangcore.CXCursor_UnaryOperator then
+      return libs.getUnaryOperatorTxt( cursor )
+   end
+   return nil
+end
+
+libs.getBinOperatorTxt = function( cursor )
+   local cursorKind = cursor:getCursorKind()
+   if cursorKind ~= libclangcore.CXCursor_BinaryOperator and
+      cursorKind ~= libclangcore.CXCursor_CompoundAssignOperator
+   then
+      return nil
+   end
+   local leftCursor, leftRangeInfo = libs.getNthCursor( cursor, 1 )
+
+   local range = cursor:getCursorExtent()
+
+   local file = libs.getLocation( range:getRangeEnd() )
+
+   local unit = cursor:getTranslationUnit()
+   local opLoc = unit:getLocationForOffset( file, leftRangeInfo.endOffset )
+   local tokenRange = opLoc:getRange( range:getRangeEnd() )
+
+   local opTxt
+   libs.mapRangePlainText(
+      unit.__ptr, tokenRange.__ptr,
+      function( token )
+	 if not opTxt then
+	    opTxt = token
+	 end
+      end
+   )
+
+   if string.find( opTxt, "^[%=%|%^%-%+/%*%&]", 1, false ) then
+      return opTxt
+   end
+
+   return nil
+end
+
+libs.getUnaryOperatorTxt = function( cursor )
+   local cursorKind = cursor:getCursorKind()
+   if cursorKind ~= libclangcore.CXCursor_UnaryOperator then
+      return nil
+   end
+   local valCursor = libs.getNthCursor( cursor, 1 )
+   local valRange = valCursor:getCursorExtent()
+   
+   local range = cursor:getCursorExtent()
+   local unit = cursor:getTranslationUnit()
+
+   local opRange
+
+   local pos = ""
+   if not range:getRangeStart():equalLocations( valRange:getRangeStart() ) then
+      -- 単項演算子カーソルの先頭位置と、演算対象の先頭位置が異なる場合、
+      -- 演算子は前方にある。
+      opRange = range:getRangeStart():getRange( valRange:getRangeStart() )
+      pos = "front"
+   else
+      -- 演算子は後方にある。
+      opRange = valRange:getRangeEnd():getRange( range:getRangeEnd() )
+      pos = "tail"
+   end
+   
+   local opTxt
+   libs.mapRangePlainText(
+      unit.__ptr, opRange.__ptr,
+      function( token )
+	 if not opTxt then
+	    opTxt = token
+	 end
+      end
+   )
+   
+   if opTxt == "++" or opTxt == "--" or opTxt == "*" or opTxt == "&" then
+      return opTxt, pos
+   end
+      
+   return nil
+end
+
