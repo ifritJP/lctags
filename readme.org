@@ -468,9 +468,7 @@ $ lctags chg-proj .
 + luasqlite3 (0.9.4)
 + openssl
 
-*** makefile の編集
-
-**** apt でパッケージ管理する OS (debian, ubuntu 等)の場合
+*** apt でパッケージ管理する OS (debian, ubuntu 等)の場合
      
 debian, ubuntu 等の apt でパケージ管理する OS の場合、
 Makefile を編集せずに以下のコマンドでビルドできます。
@@ -484,9 +482,9 @@ $ sudo make install
 必要なライブラリ等がインストールされていない場合は
 sudo apt コマンドでインストールします。
 
-**** 上記以外
+*** 上記以外
 
-lua, libclang, luasqlite3 の環境にあわせて変更してください。
+lua, libclang, luasqlite3 の環境にあわせて makefile を編集してください。
 
 *** ビルド
 
