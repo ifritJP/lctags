@@ -62,6 +62,8 @@ usage:
  - misc
    %s split-at [--lctags-target target] [-i] file line column [-ignore-sym-list sym1,sym2,...]
    %s clang-ver
+   %s kill
+   %s cancel-kill
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -287,6 +289,10 @@ function Option:analyzeOption( argList )
 	 elseif arg == "clang-ver" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "testOpe" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "kill" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "cancel-kill" then
 	    lctagOptMap.mode = arg
 	 end
       else

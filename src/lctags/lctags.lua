@@ -106,11 +106,7 @@ if lctagOptMap.mode == "status" then
    while true do
       local statusList = StatusServer:requestGetStatus()
       if not statusList or #statusList == 0 then
-	 Helper.msleep( 1000 * 2 )
-	 statusList = StatusServer:requestGetStatus()
-	 if not statusList or #statusList == 0 then
-	    break
-	 end
+	 break
       end
       TermCtrl:clr()
       local runCount = 0
@@ -125,7 +121,11 @@ if lctagOptMap.mode == "status" then
 		waitFlag and "x" or "o",
 		status.name, status.info.state )
       end
+      TermCtrl:gotoAt( 1, #statusList + 1 )
+      TermCtrl:clrLine()
       print( "run:", runCount )
+      TermCtrl:gotoAt( 1, #statusList + 2 )
+      TermCtrl:clrLine()
       Helper.msleep( 500 )
    end
    os.exit( 0 )
@@ -248,6 +248,15 @@ if not lctagOptMap.dbPath then
    Option:printUsage( "db is not found." )
 end
 
+if lctagOptMap.mode == "kill" then
+   DBCtrl:setKill( lctagOptMap.dbPath, os.getenv( "PWD" ), true )
+   os.exit( 0 )
+end
+
+if lctagOptMap.mode == "cancel-kill" then
+   DBCtrl:setKill( lctagOptMap.dbPath, os.getenv( "PWD" ), false )
+   os.exit( 0 )
+end
 
 if lctagOptMap.mode == "update" then
    local src = srcList[1]
@@ -285,7 +294,6 @@ if lctagOptMap.mode == "dcall" then
    DynamicCall:dumpInfo( lctagOptMap.dbPath )
    os.exit( 0 )
 end
-
 
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )

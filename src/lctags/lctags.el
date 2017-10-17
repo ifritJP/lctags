@@ -477,5 +477,6 @@ This parameter can set function and string.
 
 
 (require 'lctags-dispatch)
+(require 'lctags-split)
 
 (provide 'lctags)

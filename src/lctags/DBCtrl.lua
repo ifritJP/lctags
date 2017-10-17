@@ -73,6 +73,20 @@ function newObj( db, currentDir )
    return obj
 end
 
+function DBCtrl:setKill( path, currentDir, flag )
+   local db = DBAccess:open( path, false )
+   if not db then
+      log( 1, "open error." )
+      return false
+   end
+
+   local obj = newObj( db, currentDir )
+   
+   obj:setEtc( "killFlag", flag and "1" or "0" )
+
+   obj:close()
+end
+
 function DBCtrl:init(
       path, currentDir, projDir,
       individualTypeFlag, individualStructFlag, individualMacroFlag )
@@ -133,7 +147,7 @@ function DBCtrl:setEtc( key, val )
    local keyTxt = "keyName = '" .. key .. "'"
    local valTxt = "val = '" .. val .. "'"
    if not self:getEtc( key ) then
-      self:insert( "etc", keyTxt .. ", " .. valTxt )
+      self:insert( "etc", string.format( "'%s', '%s'", key, val ) )
    else
       self:update( "etc", valTxt, keyTxt )
    end
@@ -264,7 +278,16 @@ function DBCtrl:changeProjDir(
 	    if fileInfo.id ~= systemFileId then
 	       local digest = obj:calcFileDigest( obj:getSystemPath( fileInfo.path ) )
 	       if digest == fileInfo.digest then
-		  obj:setUpdateTime( fileInfo.id, nil, currentTime )
+		  if obj:isAlreadyAnalyzed( fileInfo ) then
+		     -- digest が同じで解析済みであれば、解析日時を更新する
+		     obj:setUpdateTime( fileInfo.id, nil, currentTime )
+		  else
+		     -- digest が同じでも解析済みでなければ、そのまま。
+		     -- バグ等で、ファイルの登録はされても解析されていない場合に、
+		     -- 解析日時を更新してしまうと、その後ファイルが更新されるまで
+		     -- 解析されないため、解析日時は更新しない。
+		     log( 1, "not analyzed", fileInfo.path )
+		  end
 	       else
 		  log( 1, "digest is difference", fileInfo.path )
 		  obj:setUpdateTime( fileInfo.id, nil, 0 )
@@ -455,6 +478,11 @@ function DBCtrl:open( path, readonly, currentDir, message )
    end
 
    local projDirInfo = obj:getEtc( "projDir" )
+
+   local killFlagInfo = obj:getEtc( "killFlag" )
+   if killFlagInfo and killFlagInfo.val ~= "0" then
+      error( "db is killed now" )
+   end
 
    obj.individualTypeFlag = obj:getEtc( "individualTypeFlag" ).val ~= '0'
    obj.individualStructFlag = obj:getEtc( "individualStructFlag" ).val ~= '0'
@@ -656,6 +684,7 @@ INSERT INTO etc VALUES( 'projDir', '' );
 INSERT INTO etc VALUES( 'individualStructFlag', '0' );
 INSERT INTO etc VALUES( 'individualTypeFlag', '0' );
 INSERT INTO etc VALUES( 'individualMacroFlag', '0' );
+INSERT INTO etc VALUES( 'killFlag', '0' );
 CREATE TABLE namespace ( id INTEGER PRIMARY KEY, snameId INTEGER, parentId INTEGER, digest CHAR(32), name VARCHAR UNIQUE COLLATE binary, otherName VARCHAR COLLATE binary, virtual INTEGER);
 INSERT INTO namespace VALUES( NULL, 1, 0, '', '', '', 0 );
 
@@ -2369,6 +2398,20 @@ function DBCtrl:dumpVersion()
    print( DB_VERSION, self.projDir )
 end
 
+function DBCtrl:isAlreadyAnalyzed( fileInfo )
+   local analyzedFlag = true
+   self:mapRowList(
+      "targetInfo", "fileId = " .. tostring( fileInfo.id ), nil, nil,
+      function( row )
+	 if row.updateTime == 0 then
+	    analyzedFlag = false
+	 end
+	 return true
+      end
+   )
+   return analyzedFlag
+end
+
 function DBCtrl:dumpTargetInfo( level, path )
    log( level, "-- table target -- " )
    log( level, "fileId", "hasPch", "upTime", "target", "path", "compOp" )
@@ -2408,7 +2451,7 @@ function DBCtrl:dumpFile( level, path )
 	"path" )
 
    self:mapRowList(
-      "filePath", self:getFileIdCondition( path ), nil, nil,
+      "filePath", self:getFileIdCondition( path, "id" ), nil, nil,
       function( row ) 
 	 log( level, row.id, row.incFlag, row.invalidSkip == 0 and 'o' or 'x',
 	      row.digest, row.path, row.currentDir )

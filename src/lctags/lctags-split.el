@@ -92,3 +92,4 @@
       (apply 'lctags-split-at ignore-list)
       )))
 
+(provide 'lctags-split)

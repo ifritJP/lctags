@@ -409,6 +409,7 @@ build:
 all: setup
 	-$(MAKE) -f %s build
 	@echo server stop
+	%s %s cancel-kill --lctags-db %s
 	%s %s statusServer stop --lctags-db %s
 ifdef SRV
 	%s %s server stop --lctags-db %s
@@ -434,12 +435,17 @@ other: $(SRCS)
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
 	-@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV) || echo "=== MAKE NG === $@"
 ]],
+	 -- build
 	 tmpName, tmpName, math.floor(((jobs>=3) and jobs or 3) / 3), tmpName,
 	 jobs, tmpName,
+	 -- all
 	 tmpName,
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
+	 arg[-1], arg[0], dbPath,
+	 -- setup
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath,
+	 -- %%.lc
 	 arg[-1], arg[0], 
 	 target and ("--lctags-target " .. target ) or "",
 	 log( 0, -1 ), dbPath, opt, tmpName ) )
