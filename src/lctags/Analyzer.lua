@@ -1554,6 +1554,25 @@ function Analyzer:analyzeSource( path, options, target, unsavedFileTable )
    self:analyzeUnit( transUnit, compileOp, target )
 end
 
+function Analyzer:getDiagList( transUnit, diagList )
+   if not diagList then
+      diagList = {}
+   end
+   local errorLevel = 0
+   log( 2, "diagSet", transUnit:getNumDiagnostics() )
+   for index = 0, transUnit:getNumDiagnostics() - 1 do
+      local diag = transUnit:getDiagnostic( index )
+      local info = { level = diag:getDiagnosticSeverity(),
+		     message = diag:formatDiagnostic(
+			clang.core.CXDiagnostic_DisplaySourceLocation ) }
+      table.insert( diagList, info )
+      if diag:getDiagnosticSeverity() >= errorLevel then
+	 errorLevel = diag:getDiagnosticSeverity()
+      end
+   end
+   return diagList, errorLevel
+end
+
 function Analyzer:analyzeSourceAtWithFunc(
       targetFullPath, line, column,
       optionList, target, fileContents, func, diagList )
@@ -1586,14 +1605,7 @@ function Analyzer:analyzeSourceAtWithFunc(
 
 
    if diagList then
-      log( 2, "diagSet", transUnit:getNumDiagnostics() )
-      for index = 0, transUnit:getNumDiagnostics() - 1 do
-	 local diag = transUnit:getDiagnostic( index )
-	 local info = { level = diag:getDiagnosticSeverity(),
-			message = diag:formatDiagnostic(
-			   clang.core.CXDiagnostic_DisplaySourceLocation ) }
-	 table.insert( diagList, info )
-      end
+      self:getDiagList( transUnit, diagList )
    end
    
 

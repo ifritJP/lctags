@@ -351,6 +351,10 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </endPos>
 </candidate>
 <typeInfo>
+<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
+
+</typeInfo>
+<typeInfo>
 <hash>c075a8979c1596623bb9e9372f018d69</hash>
 
 <candidate>
@@ -371,10 +375,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
-</typeInfo>
-<typeInfo>
-<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
-
 </typeInfo>
 </complete>
 <diagnostics>
@@ -652,7 +652,6 @@ lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 </typeInfo>
 </complete>
 <diagnostics>
-<message>NDIR/test/comp-2.cpp:18: error: expected &apos;;&apos; after class</message>
 </diagnostics>
 </lctags_result>
 lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
@@ -2436,65 +2435,14 @@ lctags:	1	--	front
 lctags:	1	*	front
 lctags:	1	&	front
 lua lctags/lctags.lua split-at test/hoge.cpp 337 8
-lctags:	1	resultType	int *
-<lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>false</addressAccess><name>aaa</name></arg>
-<arg><addressAccess>false</addressAccess><name>abcddd</name></arg>
-<arg><addressAccess>true</addressAccess><name>val1</name></arg>
-<arg><addressAccess>false</addressAccess><name>val2</name></arg>
-<arg><addressAccess>false</addressAccess><name>val3</name></arg>
-<arg><addressAccess>true</addressAccess><name>val4</name></arg>
-</args>
-<call>
-func( aaa, abcddd, &amp;val1, val2, val3, &amp;val4 );</call>
-<sub_routine>
-static int * func( int aaa[1][2], int abcddd[10][1], int* pval1, int val2, int * val3, int* pval4 )
- {
-            int * pVal = POINTER((*pval1));
-            int valval2 = -val2;
-            int valval3 = *(int *)(val3 + 1);
-	    int * pAAA = &amp;aaa[0][0];
-            //int * pValval5 = VAL5P;
-            //SETVAL6;
-            abcddd[0][0] = (*pval1);
-            *pVal = 1;
-            (*pval4) = 2;
-            s_vals[0] = 3;
-	    *pAAA = 4;
-            return NULL;
-        }
-</sub_routine>
-</refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/hoge.cpp 337 8 -ignore-sym-list val1
-lctags:	1	resultType	int *
-<lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>false</addressAccess><name>aaa</name></arg>
-<arg><addressAccess>false</addressAccess><name>abcddd</name></arg>
-<arg><addressAccess>false</addressAccess><name>val1</name></arg>
-<arg><addressAccess>false</addressAccess><name>val2</name></arg>
-<arg><addressAccess>false</addressAccess><name>val3</name></arg>
-<arg><addressAccess>true</addressAccess><name>val4</name></arg>
-</args>
-<call>
-func( aaa, abcddd, val1, val2, val3, &amp;val4 );</call>
-<sub_routine>
-static int * func( int aaa[1][2], int abcddd[10][1], int val1, int val2, int * val3, int* pval4 )
- {
-            int * pVal = POINTER(val1);
-            int valval2 = -val2;
-            int valval3 = *(int *)(val3 + 1);
-	    int * pAAA = &amp;aaa[0][0];
-            //int * pValval5 = VAL5P;
-            //SETVAL6;
-            abcddd[0][0] = val1;
-            *pVal = 1;
-            (*pval4) = 2;
-            s_vals[0] = 3;
-	    *pAAA = 4;
-            return NULL;
-        }
-</sub_routine>
-</refactoring_split></lctags_result>
+lua lctags/lctags.lua dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+lctags:	1	-- table target -- 
+lctags:	1	fileId	hasPch	upTime	target	path	compOp
+	-Iclang -Itest -std=c++11 -Iclang 
+lua lctags/lctags.lua chg-proj . test@./test > /dev/null
+lua lctags/lctags.lua dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+lctags:	1	-- table target -- 
+lctags:	1	fileId	hasPch	upTime	target	path	compOp
+	 -Iclang -I./test -std=c++11 -Iclang
 make[1]: Leaving directory 'NDIR'

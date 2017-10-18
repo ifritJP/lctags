@@ -126,8 +126,11 @@ function Option:analyzeOption( argList )
       elseif string.find( arg, "--lctags-db", 1, true ) then
 	 skipArgNum = 1
 	 lctagOptMap.dbPath = argList[ index + 1 ]
-	 local confPath = string.gsub(
-	    lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
+	 local confPath =
+	    string.find( lctagOptMap.dbPath, "/" ) and
+	    string.gsub( lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" ) or
+	    (os.getenv( "PWD" ) .. "/lctags.conf")
+
 	 if not lctagOptMap.conf then
 	    lctagOptMap.conf = loadConfig( confPath, false )
 	 end
@@ -375,6 +378,8 @@ function Option:analyzeOption( argList )
 			   lctagOptMap.ignoreSymMap[ val ] = true
 			end
 			skipArgNum = 2
+		     elseif arg == "-i" then
+			lctagOptMap.inputFromStdin = true
 		     end
 		  else
 		     if arg == "-i" then

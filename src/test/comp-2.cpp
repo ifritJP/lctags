@@ -15,7 +15,7 @@ public:
 class Test2
 {
   Test1 * pTest;
-}
+};
 
 int main()
 {

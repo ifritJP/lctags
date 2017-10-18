@@ -77,6 +77,7 @@ end
 
 local function outputCode(
       stream, fileContents, startOffset, endOffset, refList, symbol2DeclMap )
+   startOffset = startOffset + 1
    for index, ref in ipairs( refList ) do
       local sym = ref:getCursorSpelling()
       local declCursorInfo = symbol2DeclMap[ sym ]
@@ -119,6 +120,12 @@ function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileConte
    local unit, compileOp, newAnalyzer =
       analyzerForTokenize:createUnit( path, target, false, fileContents )
 
+   local diagList, errorLevel = newAnalyzer:getDiagList( unit )
+   if errorLevel >= clang.core.CXDiagnostic_Error then
+      Util:outputResult( clang.core.CXDiagnostic_Error, nil, diagList )
+      return
+   end
+
    if not fileContents then
       fileContents = io.open( path ):read( '*a' )
    end
@@ -142,7 +149,7 @@ function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileConte
       parentKind == clang.core.CXCursor_Destructor
    then
       resultType = parentCursor:getCursorResultType()
-      log( 1, "resultType", resultType:getTypeSpelling() )
+      log( 2, "resultType", resultType:getTypeSpelling() )
    end
 
    info = {}

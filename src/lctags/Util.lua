@@ -164,6 +164,28 @@ function Util:convertXmlTxt( txt )
    return txt
 end
 
+function Util:outputResult( level, func, diagList )
+   print( '<lctags_result>' )
+
+   if not diagList then
+      diagList = {}
+   end
+
+   if func then
+      func( diagList )
+   end
+
+   print( '<diagnostics>' )
+   for index, diag in ipairs( diagList ) do
+      if diag.level >= level then
+	 print( '<message>' .. self:convertXmlTxt( diag.message ) .. '</message>' )
+      end
+   end
+   print( '</diagnostics>' )
+   print( '</lctags_result>' )
+end
+
+
 
 return Util
 

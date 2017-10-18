@@ -334,19 +334,23 @@ public:
     {
         int abcddd[ 10 ][ 1 ] = { 0 };
         int aaa[ 1 ][ 2 ] = { 0 };
-        {
-            int * pVal = POINTER(val1);
-            int valval2 = -val2;
-            int valval3 = *(int *)(val3 + 1);
-	    int * pAAA = &aaa[0][0];
-            //int * pValval5 = VAL5P;
-            //SETVAL6;
-            abcddd[0][0] = val1;
-            *pVal = 1;
-            val4 = 2;
-            s_vals[0] = 3;
-	    *pAAA = 4;
-            return NULL;
+        if ( 1 ) {
+        }
+        else{
+            {
+                int * pVal = POINTER(val1);
+                int valval2 = -val2;
+                int valval3 = *(int *)(val3 + 1);
+                int * pAAA = &aaa[0][0];
+                //int * pValval5 = VAL5P;
+                //SETVAL6;
+                abcddd[0][0] = val1;
+                *pVal = 1;
+                val4 = 2;
+                s_vals[0] = 3;
+                *pAAA = 4;
+                return NULL;
+            }
         }
     }
 } CLASS2, CLASS3;

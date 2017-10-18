@@ -28,39 +28,57 @@
 (defvar lctags-split-target-pos-mark nil)
 
 
+(defun lctags-execute-split-op (src-buf lctags-buf input lctags-opts)
+  (let (info)
+    (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
+	(progn
+	  (setq lctags-split-info (lctags-xml-get lctags-buf 'refactoring_split))
+	  (if (assoc 'candidate lctags-split-info)
+	      (setq lctags-diag-info nil)
+	    (setq lctags-diag-info (lctags-xml-get-diag lctags-buf))))
+      (setq lctags-split-info nil)
+      (with-current-buffer lctags-buf
+	(setq lctags-diag-info `((message nil ,(buffer-string))))))
+    info
+    ))
+
 (defun lctags-execute-split (src-buf lctags-buf input &rest lctags-opts)
-  (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
-      (let (split-info subroutine-pos)
-	
-	(setq lctags-split-target-buffer src-buf)
-	(when lctags-split-target-pos-mark
-	  (set-marker lctags-split-target-pos-mark nil)
-	  (setq lctags-split-target-pos-mark nil))
-	(setq lctags-split-target-pos-mark (point-marker))
-	(if (and lctags-split-buffer (buffer-live-p lctags-split-buffer))
-	    (switch-to-buffer lctags-split-buffer)
-	  (setq lctags-split-buffer (get-buffer-create "*lctags-split*"))
-	  (switch-to-buffer-other-window lctags-split-buffer))
-	(setq split-info (lctags-xml-get lctags-buf 'refactoring_split))
-	(erase-buffer)
-	(insert "/* please edit 'x' or 'o' of following items,\n    and push C-c C-c to update.\n")
-	(dolist (arg (lctags-split-get-args split-info))
-	  (insert (format "%s: %s\n"
-			  (if (lctags-split-arg-isAddressAccess arg)
-			      "o" "x")
-			  (lctags-split-arg-get-name arg)
-			  arg)))
-	(insert "*/\n")
-	(insert "//======= call ======\n")
-	(insert (lctags-split-get-call split-info))
-	(insert "\n//======= sub routine ======\n")
-	(setq subroutine-pos (point))
-	(insert (lctags-split-get-subroutine split-info))
-	(c++-mode)
-	(local-set-key (kbd "C-c C-c") 'lctags-split-retry)
-	(indent-region subroutine-pos (point))
-	(beginning-of-buffer)
-	)))
+  (let (split-info subroutine-pos)
+    (setq split-info (lctags-execute-split-op src-buf lctags-buf input lctags-opts))
+    (if lctags-diag-info
+	(lctags-helm-display-diag)
+      (setq lctags-split-target-buffer src-buf)
+      (when lctags-split-target-pos-mark
+	(set-marker lctags-split-target-pos-mark nil)
+	(setq lctags-split-target-pos-mark nil))
+      (setq lctags-split-target-pos-mark (point-marker))
+      (if (and lctags-split-buffer (buffer-live-p lctags-split-buffer))
+	  (switch-to-buffer lctags-split-buffer)
+	(setq lctags-split-buffer (get-buffer-create "*lctags-split*"))
+	(switch-to-buffer-other-window lctags-split-buffer))
+      (setq split-info (lctags-xml-get lctags-buf 'refactoring_split))
+      
+      
+      
+      (erase-buffer)
+      (insert "/* please edit 'x' or 'o' of following items,\n    and push C-c C-c to update.\n")
+      (dolist (arg (lctags-split-get-args split-info))
+	(insert (format "%s: %s\n"
+			(if (lctags-split-arg-isAddressAccess arg)
+			    "o" "x")
+			(lctags-split-arg-get-name arg)
+			arg)))
+      (insert "*/\n")
+      (insert "//======= call ======\n")
+      (insert (lctags-split-get-call split-info))
+      (insert "\n//======= sub routine ======\n")
+      (setq subroutine-pos (point))
+      (insert (lctags-split-get-subroutine split-info))
+      (c++-mode)
+      (local-set-key (kbd "C-c C-c") 'lctags-split-retry)
+      (indent-region subroutine-pos (point))
+      (beginning-of-buffer)
+      )))
 
 
 

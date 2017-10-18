@@ -73,6 +73,7 @@ local function searchNeedUpdateFiles( db, list, target )
    for incId in pairs( needUpdateIncFileInfoMap ) do
       needUpdateIncNum = needUpdateIncNum + 1
    end
+   log( 1, "needUpdateIncNum: start", needUpdateIncNum )
 
    -- 更新時間が新しいファイルがインクルードしているファイルの更新情報をチェックする。
    -- ソースファイルが更新されていなくても、インクルードファイルが更新されている場合は、
@@ -111,33 +112,28 @@ local function searchNeedUpdateFiles( db, list, target )
 	 return true
       end
    )
-      
+
+   -- 編集されていないファイルからインクルードしているファイルが更新されている場合、
+   -- 編集されていないファイルを更新対象にする。
+   -- これは list に指定されているものを対象にする。
    db:mapIncludeCache(
       nil,
       function( item )
 	 if needUpdateIncFileInfoMap[ item.id ] then
 	    log( 3, "check needUpdateIncFileInfoMap",
 		 needUpdateIncFileInfoMap[ item.id ].path )
-	    if not needUpdateSrcMap[ item.baseFileId ] then
-	       fileInfo = db:getFileInfo( item.baseFileId )
-	       -- インクルードの更新日時が古い場合ソースファイルを更新対象にする
-	       if isNeedUpdateFunc( fileInfo, item.id,
-				    fileId2TargetInfoMap[ item.id ] ) then
-		  log( 1, "include file is modified", item.id )
-		  needUpdateSrcMap[ fileInfo.id ] = fileInfo
-
-		  log( 3, "excludeIncFile", removeId, fileInfo.path )
-		  uptodateFileMap[ item.baseFileId ] = nil
-		  uptodateFileNum = uptodateFileNum - 1
-		  needUpdateIncFileInfoMap[ item.id ] = nil
-		  needUpdateIncNum = needUpdateIncNum - 1
-		  if uptodateFileNum <= 0 or needUpdateIncNum <= 0 then
-		     return false
+	    if uptodateFileMap[ item.baseFileId ] then
+	       -- 編集されていないファイルからインクルードしている
+	       if not needUpdateSrcMap[ item.baseFileId ] then
+		  -- インクルードしているファイルが更新が必要になっていない
+		  fileInfo = db:getFileInfo( item.baseFileId )
+		  -- インクルードの更新日時が古い場合ソースファイルを更新対象にする
+		  if isNeedUpdateFunc( fileInfo, item.id,
+				       fileId2TargetInfoMap[ item.id ] ) then
+		     log( 1, "include file is modified", item.id, fileInfo.path )
+		     needUpdateSrcMap[ fileInfo.id ] = fileInfo
 		  end
 	       end
-	    else
-	       -- 更新対象のソースに、更新対象のインクルードが含まれている場合
-	       -- インクルードを除外する
 	       needUpdateIncFileInfoMap[ item.id ] = nil
 	       needUpdateIncNum = needUpdateIncNum - 1
 	       if needUpdateIncNum <= 0 then
@@ -146,14 +142,21 @@ local function searchNeedUpdateFiles( db, list, target )
 	    end
 	 end
 	 return true
-      end
+      end,
+      true
    )
+
+   log( 1, "needUpdateIncNum: fix", needUpdateIncNum )
+
 
    
    local needFileList = {}
    for fileId, fileInfo in pairs ( needUpdateSrcMap ) do
       table.insert( needFileList, fileInfo )
    end
+
+   -- 更新が必要なインクルードファイルを更新するために、
+   -- 任意のソースファイルを更新対象にする。
    for fileId, fileInfo in pairs ( needUpdateIncFileInfoMap ) do
       local srcFileInfo = db:getSrcForIncOne( fileInfo, target )
       if srcFileInfo then

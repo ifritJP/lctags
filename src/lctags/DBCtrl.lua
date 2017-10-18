@@ -212,6 +212,9 @@ function DBCtrl:changeProjDir(
 		     if token == pattern then
 			convFlag = true
 			token = dstDir
+			if string.find( pattern, "-I", 1, true ) == 1 then
+			   token = "-I" .. token
+			end
 			break
 		     elseif pattern:sub( #pattern ) == '/' and
 			string.find( token, pattern, 1, true )
@@ -221,13 +224,16 @@ function DBCtrl:changeProjDir(
 			local newToken = string.sub( token,  1, index - 1 ) .. dstDir .. "/"
 			newToken = newToken .. string.sub( token, index + #pattern )
 			token = newToken
+			if string.find( pattern, "-I", 1, true ) == 1 then
+			   token = "-I" .. token
+			end
 			break
 		     end
 		  end
 		  if token == "" then
 		     compOp = token
 		  else
-		     compOp = token .. " " .. compOp
+		     compOp = compOp .. " " .. token
 		  end
 	       end
 	    end
@@ -2693,8 +2699,9 @@ function DBCtrl:getTargetInfo( fileId, target )
    return self:getRow( "targetInfo", condition )
 end
 
--- fileInfo をインクルードしているソースファイルでターゲットが target のものを1つ返す。
--- fileInfo がソースファイルで、ターゲットが targetfileInfo ある場合 fileInfo を返す。
+-- fileInfo をインクルードしているソースファイルで、ターゲットが target のものを1つ返す。
+-- fileInfo がソースファイルで、
+-- このソースファイルのターゲットに target が含まれている場合 fileInfo を返す。
 -- ない場合は nil を返す
 function DBCtrl:getSrcForIncOne( fileInfo, target )
    if not target then
@@ -2730,10 +2737,18 @@ function DBCtrl:getSrcForIncOne( fileInfo, target )
 end
 
 
-function DBCtrl:mapIncludeCache( fileInfo, func )
+function DBCtrl:mapIncludeCache( fileInfo, func, onlyBaseSrcFile )
    local condition
    if fileInfo then
       condition = "baseFileId = " .. tostring( fileInfo.id )
+   end
+   if onlyBaseSrcFile then
+      local cond = "incFlag = 0"
+      if not condition then
+	 condition = cond
+      else
+	 condition = condition .. "AND " .. cond
+      end
    end
    self:mapRowList( "incCache", condition, nil, nil, func )
 end

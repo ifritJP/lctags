@@ -1141,19 +1141,7 @@ function Complete:inqAt( analyzer, path, line, column, target, fileContents, mod
 end
 
 function Complete:outputResult( level, func )
-   print( '<lctags_result>' )
-   local diagList = {}
-
-   func( diagList )
-
-   print( '<diagnostics>' )
-   for index, diag in ipairs( diagList ) do
-      if diag.level >= level then
-	 print( '<message>' .. convertXmlTxt( diag.message ) .. '</message>' )
-      end
-   end
-   print( '</diagnostics>' )
-   print( '</lctags_result>' )
+   Util:outputResult( level, func )
 end
 
 function Complete:analyzeAt(

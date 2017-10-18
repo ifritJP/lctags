@@ -328,6 +328,9 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) testOpe test/operator.cpp
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 337 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 337 8 -ignore-sym-list val1
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+	$(LUA_COMMAND) $(LCTAGS_LUA) chg-proj . test@./test > /dev/null
+	$(LUA_COMMAND) $(LCTAGS_LUA) dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
 
 
 test-stack:
