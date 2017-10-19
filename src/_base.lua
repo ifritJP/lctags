@@ -290,6 +290,11 @@ libs.getFileLocation = function( obj, func, ... )
    return cxFile, table.unpack( result )
 end
 
+libs.getOffset = function( location )
+   local file, line, column, offset = libs.getLocation( location )
+   return offset
+end
+
 -- obtain file location from location.
 libs.getLocation = function( location )
    return libs.getFileLocation( location.__ptr, libclangcore.clang_getFileLocation )

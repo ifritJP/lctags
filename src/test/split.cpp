@@ -4,8 +4,7 @@ int s_vals[1];
 #define POINTER(X) (&(X))
 #define VAL5P (&val5)
 #define SETVAL6 int * pVal6 = &val6;
-
-void func3( int aaa[1][2], int abcddd[10][1], int* pval1, int val2, int * val3, int* pval4 )
+int func3( int aaa[1][2], int abcddd[10][1], int* pval1, int val2, int * val3, int* pval4 )
 {
     int * pVal = POINTER((*pval1));
     int valval2 = -val2;
@@ -18,6 +17,7 @@ void func3( int aaa[1][2], int abcddd[10][1], int* pval1, int val2, int * val3, 
     (*pval4) = 2;
     s_vals[0] = 3;
     *pAAA = 4;
+    return 1;
 }
 
 void func2( int val1, int val2, int * val3, int val4, int val5, int val6 )
@@ -33,7 +33,7 @@ void func2( int val1, int val2, int * val3, int val4, int val5, int val6 )
 }
 
 
-void func( int val1, int val2, int * val3, int val4, int val5, int val6 )
+int func( int val1, int val2, int * val3, int val4, int val5, int val6 )
 {
   int abcddd[ 10 ][ 1 ] = { 0 };
   int aaa[ 1 ][ 2 ] = { 0 };
@@ -50,12 +50,37 @@ void func( int val1, int val2, int * val3, int val4, int val5, int val6 )
     val4 = 0;
     s_vals[0] = 0;
     *pAAA = 0;
+    return 1;
   }
 }
 
+#define SYM val
+#define RET_SYM return SYM;
+#define RET return
+int func4( int val )
+{
+  if ( val ) {
+    return 1;
+  }
+  if ( val == 1 ) {
+    return val;
+  }
+  if ( val == 2 ) {
+    return val + 2;
+  }
+  if ( val == 3 ) {
+    return SYM;
+  }
+  if ( val == 4 ) {
+    RET   1   ;
+  }
+  if ( val == 5 ) {
+    RET_SYM;
+  }
+  return 1;
+}
 
-
-main()
+int main()
 {
   int val = 2;
   //func( 1, 2, &val, 4, 5, 6 );

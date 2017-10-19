@@ -131,7 +131,7 @@ This parameter can set function and string.
 
 (defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
   (let ((save (current-buffer))
-	(line (1- (lctags-current-line)))
+	(line (lctags-get-line))
 	(column (+ (- (point) (point-at-bol)) 1))
 	(use-global lctags-use-global)
 	buffer lineNum select-name lctags-opt lctags-opt2 opt-list input )
@@ -287,12 +287,8 @@ This parameter can set function and string.
 
 (defun lctags-get-line ()
   (interactive)
-  (count-lines 1 (point)))
+  (count-lines 1 (1+ (point))))
 
-(defun lctags-current-line ()
-  (interactive)
-  (1+ (count-lines 1 (point))))
-  
 (defun lctags-get-column ()
   (interactive)
   (+ (- (point) (point-at-bol)) 1))

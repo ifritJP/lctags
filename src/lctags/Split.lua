@@ -13,6 +13,7 @@ end
 local function visit( cursor, parent, info, addInfo )
    local symbol2DeclMap = info.symbol2DeclMap
    local cursorKind = cursor:getCursorKind()
+   local appendInfo = clang.getVisitAppendInfo( addInfo )
 
    Util:dumpCursorInfo( cursor, 1, "", 0 )
    local cxtype = cursor:getCursorType()
@@ -35,6 +36,8 @@ local function visit( cursor, parent, info, addInfo )
 	    ignoreFlag = false,
 	 }
 	 table.insert( info.refList, cursor )
+	 table.insert( info.repList,
+		       { cursor = cursor, offset = appendInfo.offset } )
 	 local range = cursor:getCursorExtent()
       end
    elseif cursorKind == clang.core.CXCursor_UnaryOperator then
@@ -44,7 +47,22 @@ local function visit( cursor, parent, info, addInfo )
    elseif cursorKind == clang.core.CXCursor_ArraySubscriptExpr then
       table.insert( info.arrayList, cursor )
    elseif cursorKind == clang.core.CXCursor_ReturnStmt then
-      info.hasReturn = true
+      local valCursor = clang.getNthCursor( cursor, 1 )
+
+      local valOffset = clang.getOffset( valCursor:getCursorLocation() )
+      
+      if appendInfo.offset == valOffset then
+	 error( "return is in macro.", appendInfo.line, appendInfo.column )
+      end
+      
+      table.insert( info.returnList, cursor )
+      table.insert( info.repList,
+		    { cursor = cursor, offset = appendInfo.offset } )
+   end
+
+   if cursorKind >= clang.core.CXCursor_FirstStmt and
+      cursorKind <= clang.core.CXCursor_LastStmt then
+	 info.lastStmtInfo = { cursor = cursor, parent = parent }
    end
 
    return 1
@@ -76,36 +94,89 @@ local function getDeclTxt( declCursorInfo )
 end
 
 local function outputCode(
-      stream, fileContents, startOffset, endOffset, refList, symbol2DeclMap )
+      stream, fileContents, startOffset, endOffset, info, symbol2DeclMap )
+
+   table.sort( info.repList,
+	       function( repInfo1, repInfo2 )
+		  return repInfo1.offset < repInfo2.offset
+	       end )
+
+
+   local retEndOffset = nil
+
+   local function writeSubstr( frontOffset )
+      if retEndOffset and retEndOffset <= frontOffset then
+	 stream:write( fileContents:sub( startOffset, retEndOffset ) )
+	 stream:write( ", 1" )
+	 startOffset = retEndOffset + 1
+	 retEndOffset = nil
+      end
+
+      stream:write( fileContents:sub( startOffset, frontOffset ) )
+   end
+   
    startOffset = startOffset + 1
-   for index, ref in ipairs( refList ) do
-      local sym = ref:getCursorSpelling()
-      local declCursorInfo = symbol2DeclMap[ sym ]
-      if declCursorInfo and isNeedPassAddress( declCursorInfo )
-      then
-	 local range = ref:getCursorExtent()
+   for index, repInfo in ipairs( info.repList ) do
+      local target = repInfo.cursor
+      if target:getCursorKind() == clang.core.CXCursor_ReturnStmt then
+	 local valCursor = clang.getNthCursor( target, 1, nil )
+	 local range = valCursor:getCursorExtent()
+
 	 local frontFile, frontLine, frontColmn, frontOffset =
 	    clang.getLocation( range:getRangeStart() )
 	 local tailFile, tailLine, tailColmn, tailOffset =
 	    clang.getLocation( range:getRangeEnd() )
 
-	 if tailOffset - frontOffset ~= #sym or
-	    fileContents:sub( frontOffset + 1, tailOffset ) ~= sym 
-	 then
-	    error( string.format( "sym %s, %s, %d:%d-%d",
-				  fileContents:sub( frontOffset, tailOffset ),
-				  sym, frontLine, frontColmn, tailColmn ) )
-	 end
+	 writeSubstr( frontOffset )
+	 startOffset = frontOffset
 
-	 stream:write(
-	    fileContents:sub( startOffset, frontOffset ) )
-	 startOffset = tailOffset + 1
-	 local refTxt = string.format( "(*p%s)", ref:getCursorSpelling() )
-	 stream:write( refTxt )
+	 retEndOffset = tailOffset
+
+	 stream:write( "*pFuncRet__=" )
+      else
+	 local ref = target
+	 local sym = ref:getCursorSpelling()
+	 local declCursorInfo = symbol2DeclMap[ sym ]
+	 if declCursorInfo and isNeedPassAddress( declCursorInfo )
+	 then
+	    -- 参照しているシンボルがアドレスアクセス必要なシンボルだった場合
+	    -- * 演算子を加える。
+	    local range = ref:getCursorExtent()
+	    local frontFile, frontLine, frontColmn, frontOffset =
+	       clang.getLocation( range:getRangeStart() )
+	    local tailFile, tailLine, tailColmn, tailOffset =
+	       clang.getLocation( range:getRangeEnd() )
+
+	    if tailOffset - frontOffset ~= #sym or
+	       fileContents:sub( frontOffset + 1, tailOffset ) ~= sym 
+	    then
+	       error( string.format( "sym %s, %s, %d:%d-%d",
+				     fileContents:sub( frontOffset, tailOffset ),
+				     sym, frontLine, frontColmn, tailColmn ) )
+	    end
+
+	    writeSubstr( frontOffset )
+	    
+	    startOffset = tailOffset + 1
+	    local refTxt = string.format( "(*p%s)", ref:getCursorSpelling() )
+	    stream:write( refTxt )
+	 end
       end
    end
-   stream:write( fileContents:sub( startOffset, endOffset ) )
-   stream:write( "\n" )
+
+   writeSubstr( endOffset - 1 )
+
+   if #info.returnList > 0 then
+      if not info.lastStmtInfo or
+	 not info.compoundCursor:getCursorExtent():equalRanges(
+	    info.lastStmtInfo.parent:getCursorExtent() ) or
+	 info.lastStmtInfo.cursor:getCursorKind() ~= clang.core.CXCursor_ReturnStmt
+      then
+	 stream:write( "    return 0;\n" )
+      else
+      end
+   end
+   stream:write( "}\n" )
 end
 
 function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileContents )
@@ -153,12 +224,15 @@ function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileConte
    end
 
    info = {}
+   info.fileContents = fileContents
+   info.compoundCursor = cursor
    info.symbol2DeclMap = {}
    info.refList = {}
    info.unaryList = {}
    info.binOpList = {}
    info.arrayList = {}
-   info.hasReturn = false
+   info.returnList = {}
+   info.repList = {}
    clang.visitChildrenFast( cursor, visit, info, {}, 2 )
 
    local range = cursor:getCursorExtent()
@@ -294,7 +368,11 @@ function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileConte
 
    print( "<lctags_result><refactoring_split>" )
    print( "<args>" )
-   
+
+   if #info.returnList > 0 then
+      declArgs = declArgs .. ", " .. resultType:getTypeSpelling() .. "* pFuncRet__"
+      callArgs = callArgs .. ", &funcRet__"
+   end
    table.sort( symbolList )
    for index, symbol in ipairs( symbolList ) do
       local declCursorInfo = symbol2DeclMap[ symbol ] 
@@ -316,17 +394,27 @@ function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileConte
 
    print( "</args>" )
    print( "<call>" )
-   stream:write( string.format( "func( %s );", string.gsub( callArgs, "^, ", "" ) ) )
+   if #info.returnList > 0 then
+      stream:write( string.format( [[
+{
+    %s funcRet__ = 0;
+    if ( func( %s ) ) {
+       return funcRet__;
+    }
+}]], resultType:getTypeSpelling(), string.gsub( callArgs, "^, ", "" ) ) )
+   else
+      stream:write( string.format( "func( %s );", string.gsub( callArgs, "^, ", "" ) ) )
+   end
    print( "</call>" )
    print( "<sub_routine>" )
    stream:write( string.format(
 		    "static %s func( %s )\n",
-		    info.hasReturn and resultType:getTypeSpelling() or "void",
+		    #info.returnList > 0 and "int" or "void",
 		    string.gsub( declArgs, "^, ", "" ) ) )
 
   
    outputCode( stream, fileContents,
-	       startOffset, endOffset, info.refList, symbol2DeclMap )
+	       startOffset, endOffset, info, symbol2DeclMap )
 
    print( "</sub_routine>" )
    print( "</refactoring_split></lctags_result>" )

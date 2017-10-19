@@ -28,11 +28,11 @@ lctags を利用した際のサンプルです。
 
 補完候補の絞り込みは helm (あるいは anything) を利用します。
 
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8557f03cd8d88d3329998db13b6567f37d706120/complete.gif]]
+https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8557f03cd8d88d3329998db13b6567f37d706120/complete.gif]]
 
 メンバーが構造体の場合、 C-M-f でさらに展開します。 C-M-b で展開を戻します。
 
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif]]
+https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif]]
 
 ファイルを変更している場合、補完が正常に動作しない場合があります。
 一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
@@ -468,7 +468,9 @@ $ lctags chg-proj .
 + luasqlite3 (0.9.4)
 + openssl
 
-*** apt でパッケージ管理する OS (debian, ubuntu 等)の場合
+*** makefile の編集
+
+**** apt でパッケージ管理する OS (debian, ubuntu 等)の場合
      
 debian, ubuntu 等の apt でパケージ管理する OS の場合、
 Makefile を編集せずに以下のコマンドでビルドできます。
@@ -482,9 +484,9 @@ $ sudo make install
 必要なライブラリ等がインストールされていない場合は
 sudo apt コマンドでインストールします。
 
-*** 上記以外
+**** 上記以外
 
-lua, libclang, luasqlite3 の環境にあわせて makefile を編集してください。
+lua, libclang, luasqlite3 の環境にあわせて変更してください。
 
 *** ビルド
 

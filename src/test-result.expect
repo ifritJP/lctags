@@ -46,6 +46,7 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 237 23 | sort
 ::@enum::<enum_enum_t>::enum_val1  326 ./test/hoge.cpp        int val2[] = { enum_val1 };
 lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
+::printf           31 ./test/split.cpp   printf( "val = %d, s_vals[0]=%d, aaa[0] = %d, val4 = %d, abcddd[0][0] = %d\n",
 lua lctags/lctags.lua def-at test/hoge.cpp 204 18
 ::ns1::g_global   153 ./test/hoge.cpp      int g_global = 0;
 lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
@@ -499,7 +500,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </diagnostics>
 </lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:276: recipe for target 'test-query' failed
+makefile:277: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <complete>
@@ -2445,4 +2446,99 @@ lua lctags/lctags.lua dump target test/class5.cpp | sed 's/.*class5.cpp//g' | se
 lctags:	1	-- table target -- 
 lctags:	1	fileId	hasPch	upTime	target	path	compOp
 	 -Iclang -I./test -std=c++11 -Iclang
+lua lctags/lctags.lua split-at test/split.cpp 62 13
+<lctags_result><refactoring_split>
+<args>
+</args>
+<call>
+{
+    int funcRet__ = 0;
+    if ( func( &amp;funcRet__ ) ) {
+       return funcRet__;
+    }
+}</call>
+<sub_routine>
+static int func( int* pFuncRet__ )
+{
+    return *pFuncRet__= 1, 1;
+  }
+</sub_routine>
+</refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 65 18
+<lctags_result><refactoring_split>
+<args>
+<arg><addressAccess>false</addressAccess><name>val</name></arg>
+</args>
+<call>
+{
+    int funcRet__ = 0;
+    if ( func( &amp;funcRet__, val ) ) {
+       return funcRet__;
+    }
+}</call>
+<sub_routine>
+static int func( int* pFuncRet__, int val )
+{
+    return *pFuncRet__= val, 1;
+  }
+</sub_routine>
+</refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 68 18
+<lctags_result><refactoring_split>
+<args>
+<arg><addressAccess>false</addressAccess><name>val</name></arg>
+</args>
+<call>
+{
+    int funcRet__ = 0;
+    if ( func( &amp;funcRet__, val ) ) {
+       return funcRet__;
+    }
+}</call>
+<sub_routine>
+static int func( int* pFuncRet__, int val )
+{
+    return *pFuncRet__= val + 2, 1;
+  }
+</sub_routine>
+</refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 71 18
+<lctags_result><refactoring_split>
+<args>
+<arg><addressAccess>false</addressAccess><name>val</name></arg>
+</args>
+<call>
+{
+    int funcRet__ = 0;
+    if ( func( &amp;funcRet__, val ) ) {
+       return funcRet__;
+    }
+}</call>
+<sub_routine>
+static int func( int* pFuncRet__, int val )
+{
+    return *pFuncRet__= SYM, 1;
+  }
+</sub_routine>
+</refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 74 18
+<lctags_result><refactoring_split>
+<args>
+</args>
+<call>
+{
+    int funcRet__ = 0;
+    if ( func( &amp;funcRet__ ) ) {
+       return funcRet__;
+    }
+}</call>
+<sub_routine>
+static int func( int* pFuncRet__ )
+{
+    RET   *pFuncRet__= 1, 1   ;
+  }
+</sub_routine>
+</refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 77 18
+makefile:277: recipe for target 'test-query' failed
 make[1]: Leaving directory 'NDIR'

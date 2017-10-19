@@ -250,6 +250,7 @@ endif
 #	$(call build-test, test/class.cpp )
 	$(call build-test, test/sample.c )
 	$(call build-test, test/operator.cpp )
+	$(call build-test, test/split.cpp )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -331,6 +332,14 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
 	$(LUA_COMMAND) $(LCTAGS_LUA) chg-proj . test@./test > /dev/null
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 62 13
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 65 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 68 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 71 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 74 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 77 18
+
+
 
 
 test-stack:
