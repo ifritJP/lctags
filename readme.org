@@ -2,25 +2,25 @@
 #+AUTHOR: ifritJP
 #+STARTUP: nofold
 
-* lctags
+#+TITLE: C/C++ ソースコードタグシステム lctags
 
-libclanglua (https://github.com/ifritJP/libclanglua) を利用した c/c++ インデックスツール
+libclanglua (https://github.com/ifritJP/libclanglua) を利用した c/c++ ソースコードタグシステム
 
 libclang を利用することで、異なる構造体、クラスで同名のメンバーがあるような場合でも、
 型を認識して正確に参照箇所をリストできます。
 
-libclang を利用したインデックスツールは RTags がメジャーですが、
+libclang を利用したソースコードタグシステムは RTags がメジャーですが、
 複雑な Makefile を使用したプロジェクトだと適応し難いので、
 プロジェクトごとにカスタマイズしやすいインタフェースを持った
-インデックスツールを作成しました。
+ソースコードタグシステムを作成しました。
 
-** サンプル
+* サンプル
 
 lctags を利用した際のサンプルです。
    
-*** コード補完
+** コード補完
 
-**** シンボル名、メンバー名補完
+*** シンボル名、メンバー名補完
 
 シンボル名、メンバー名の補完を行ないます。
 
@@ -37,7 +37,7 @@ https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/
 ファイルを変更している場合、補完が正常に動作しない場合があります。
 一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
 
-**** enum 補完
+*** enum 補完
 
 enum 値に対して、次の補完が可能です。
 
@@ -55,7 +55,7 @@ enum 値に対して、次の補完が可能です。
   
 [[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/enum.gif]]  
 
-**** 定型処理展開
+*** 定型処理展開
 
 次の定型処理を行ないます。
 
@@ -68,25 +68,25 @@ enum 値に対して、次の補完が可能です。
 
 [[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/2012bf9bf43360bb30618c1caf7b0695cb212326/dumpStruct.gif]]
   
-**** リファクタリング
+*** リファクタリング
 
 サブルーチン化支援を行ないます。
 
 - M-x lctags-split-at
   - カーソル位置のブロックをサブルーチン化します。
 
-*** グラフ
+** グラフ
 
 include、関数の関係を示すグラフを作成することができます。
 この機能は graphviz の dot を利用します。
 グラフは svg フォーマットで作成します。
 
-**** サンプル
+*** サンプル
 
 #+CAPTION: サンプル
 [[./src/graph.sample/inc.png]]
 
-**** オプション
+*** オプション
 
 #+BEGIN_SRC txt
 $ lctags graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f format] [name]
@@ -118,7 +118,7 @@ name を省略した場合、ID をリストします。
 
 
 
-** 使用方法
+* 使用方法
 
 lctags コマンドを使用します。
    
@@ -200,16 +200,16 @@ usage:
      --lctags-log: set log level. default is 1. when lv > 1, it is datail mode.
 #+END_SRC
 
-*** DB の生成
+** DB の生成
 
 $ lctags init .
 
 プロジェクトのルートディレクトリで次のコマンドを実行します。
 これは、一度だけ実行します。
 
-*** ソースの解析
+** ソースの解析
 
-**** lctags build を実行する場合
+*** lctags build を実行する場合
     
 $ lctags build compiler [--lctags-target target] comp-op [...] src
 
@@ -247,7 +247,7 @@ lctags は解析時に使用したコンパイルオプションを記憶し、
 コンパイルオプションを識別する名前を設定することができます。
 
 
-**** ソースの構成を登録してから解析を行なう
+*** ソースの構成を登録してから解析を行なう
 
 上で説明した解析方法では、ソースの登録と解析を同時に行ないます。
 この場合、ソースファイルが大量にある場合に解析効率が悪くなることがあります。
@@ -294,7 +294,7 @@ lctags update コマンドだけでソース解析を行なえます。
 ソース登録と解析に分けない build で解析した場合でも、
 lctags update コマンドを使用することで、変更したファイルだけ解析することができます。
 
-**** 解析の高速化
+*** 解析の高速化
 
 -j オプションで解析を並列処理することで、解析時間を短縮できます。
 
@@ -338,7 +338,7 @@ tmpfs は RAM を消費します。RAM の空きが無くなれば swap しま�
 
 よって tmpfs を利用する際は、swap が発生しない様に並列処理数を調整等が必要です。
 
-*** インデックス問い合わせ
+** インデックス問い合わせ
 
 次のパターンを利用できます。
     
@@ -375,9 +375,9 @@ def-at[a] は、指定ファイルの場所のシンボルの定義箇所をリ�
 解析時に --lctags-target を指定している場合は、
 --lctags-target を指定する必要があります。
 
-*** emacs からアクセス
+** emacs からアクセス
 
-**** 設定
+*** 設定
     
 emacs からアクセスする場合は、 lctags.el をロードしてください。
 
@@ -389,7 +389,7 @@ emacs からアクセスする場合は、 lctags.el をロードしてくださ
 
 なお、 lctags.el は gtags.el が利用できることが前提になっています。
 
-**** 機能
+*** 機能
 
 lctags.el は、マイナーモードの機能を提供します。
 
@@ -451,7 +451,7 @@ lctags.el は、マイナーモードの機能を提供します。
 - lctags-display-diag (C-c C-f)
   - 現在のバッファで開いているファイルを構文エラーチェックする
 
-*** プロジェクトディレクトリの変更
+** プロジェクトディレクトリの変更
 
 DB ファイルをプロジェクトのルートディレクトリとは別のディレクトリに作成している場合、
 プロジェクトを別のディレクトリに移動したりコピーした際、
@@ -459,18 +459,18 @@ DB ファイルをプロジェクトのルートディレクトリとは別の�
 
 $ lctags chg-proj .
 
-** ビルド方法
+* ビルド方法
 
-*** 必要なライブラリ等
+** 必要なライブラリ等
 + swig (3.0)
 + lua, lua-dev(5.2 or 5.3)
 + libclang-dev (r380 or r390)
 + luasqlite3 (0.9.4)
 + openssl
 
-*** makefile の編集
+** makefile の編集
 
-**** apt でパッケージ管理する OS (debian, ubuntu 等)の場合
+*** apt でパッケージ管理する OS (debian, ubuntu 等)の場合
      
 debian, ubuntu 等の apt でパケージ管理する OS の場合、
 Makefile を編集せずに以下のコマンドでビルドできます。
@@ -484,18 +484,18 @@ $ sudo make install
 必要なライブラリ等がインストールされていない場合は
 sudo apt コマンドでインストールします。
 
-**** 上記以外
+*** 上記以外
 
 lua, libclang, luasqlite3 の環境にあわせて変更してください。
 
-*** ビルド
+** ビルド
 
 #+BEGIN_SRC txt
 $ make build
 $ sudo make install
 #+END_SRC
 
-** カスタマイズ
+* カスタマイズ
 
 lctags の次の動作をカスタマイズできます。
 
@@ -504,7 +504,7 @@ lctags の次の動作をカスタマイズできます。
   
 カスタマイズは Lua で行ないます。
 
-*** カスタマイズの方法
+** カスタマイズの方法
 
 次のファイルをコピーし、これを編集します。
 
@@ -512,7 +512,7 @@ src/lctags/config.lua
 
 編集したファイルのパスを、lctags build 時の --lctags-conf conf オプションに指定します。
 
-**** コンパイルオプションの変換
+*** コンパイルオプションの変換
 
 lctags の build に指定するコンパイラ名を gcc 以外の名前を指定してください。
 
@@ -547,7 +547,7 @@ getDefaultOptionList() は、
 libclang に追加で指定するコンパイルオプションのリストを返します。
 
 
-**** 解析無視のファイルパターン指定
+*** 解析無視のファイルパターン指定
 
 lctags の build で指定されたファイルの解析を無視するかどうかを判定する
 ファイルパスのパターンを指定します。

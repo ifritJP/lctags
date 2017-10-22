@@ -338,6 +338,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 71 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 74 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 77 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 91 20
 
 
 

@@ -47,6 +47,7 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 237 23 | sort
 lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
 ::printf           31 ./test/split.cpp   printf( "val = %d, s_vals[0]=%d, aaa[0] = %d, val4 = %d, abcddd[0][0] = %d\n",
+::printf           99 ./test/split.cpp             printf( "funcRet__ = %d, typ.val = %d, typArray[0].val = %d\n",
 lua lctags/lctags.lua def-at test/hoge.cpp 204 18
 ::ns1::g_global   153 ./test/hoge.cpp      int g_global = 0;
 lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
@@ -2453,12 +2454,12 @@ lua lctags/lctags.lua split-at test/split.cpp 62 13
 <call>
 {
     int funcRet__ = 0;
-    if ( func( &amp;funcRet__ ) ) {
+    if ( func4__sub( &amp;funcRet__ ) ) {
        return funcRet__;
     }
 }</call>
 <sub_routine>
-static int func( int* pFuncRet__ )
+static int func4__sub( int* pFuncRet__ )
 {
     return *pFuncRet__= 1, 1;
   }
@@ -2472,12 +2473,12 @@ lua lctags/lctags.lua split-at test/split.cpp 65 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func( &amp;funcRet__, val ) ) {
+    if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
 }</call>
 <sub_routine>
-static int func( int* pFuncRet__, int val )
+static int func4__sub( int* pFuncRet__, int val )
 {
     return *pFuncRet__= val, 1;
   }
@@ -2491,12 +2492,12 @@ lua lctags/lctags.lua split-at test/split.cpp 68 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func( &amp;funcRet__, val ) ) {
+    if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
 }</call>
 <sub_routine>
-static int func( int* pFuncRet__, int val )
+static int func4__sub( int* pFuncRet__, int val )
 {
     return *pFuncRet__= val + 2, 1;
   }
@@ -2510,12 +2511,12 @@ lua lctags/lctags.lua split-at test/split.cpp 71 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func( &amp;funcRet__, val ) ) {
+    if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
 }</call>
 <sub_routine>
-static int func( int* pFuncRet__, int val )
+static int func4__sub( int* pFuncRet__, int val )
 {
     return *pFuncRet__= SYM, 1;
   }
@@ -2528,12 +2529,12 @@ lua lctags/lctags.lua split-at test/split.cpp 74 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func( &amp;funcRet__ ) ) {
+    if ( func4__sub( &amp;funcRet__ ) ) {
        return funcRet__;
     }
 }</call>
 <sub_routine>
-static int func( int* pFuncRet__ )
+static int func4__sub( int* pFuncRet__ )
 {
     RET   *pFuncRet__= 1, 1   ;
   }

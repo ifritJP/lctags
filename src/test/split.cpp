@@ -80,10 +80,54 @@ int func4( int val )
   return 1;
 }
 
+typedef struct {
+    int val;
+} type_t;
+static int func5_1( int* pFuncRet__, type_t* ptyp, type_t typArray[1] );
+int func5( int val )
+{
+    type_t typ;
+    type_t typArray[1];
+    if ( val == 0 ) {
+        typ.val = 1;
+        typArray[0].val = 2;
+        return 0;
+    }
+    if ( val == 1 ) {
+        int funcRet__ = 0;
+        if ( func5_1( &funcRet__, &typ, typArray ) ) {
+            printf( "funcRet__ = %d, typ.val = %d, typArray[0].val = %d\n",
+                    funcRet__, typ.val, typArray[0].val );
+            return funcRet__;
+        }
+    }
+    
+    return 1;
+}
+
+static int func5_1( int* pFuncRet__, type_t* ptyp, type_t typArray[1] )
+{
+    (*ptyp).val = 1;
+    typArray[0].val = 2;
+    return *pFuncRet__= 0, 1;
+}
+
+int func6( int val )
+{
+    type_t typ;
+    if ( val == 0 ) {
+        typ.val = 1;
+        return 0;
+    }
+}
+
+
+
 int main()
 {
   int val = 2;
   //func( 1, 2, &val, 4, 5, 6 );
   func2( 10, 2, &val, 4, 5, 6 );
+  func5( 1 );
 }
 

@@ -1595,6 +1595,8 @@ function Analyzer:analyzeSourceAtWithFunc(
 
    log( 2, "analyzeSourceAtWithFunc:", self.currentDir,
 	targetFullPath, line, column )
+
+   local now = Helper.getTime( true )
    
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = self.clangIndex:parseTranslationUnit(
@@ -1602,6 +1604,8 @@ function Analyzer:analyzeSourceAtWithFunc(
       unsavedFileArray:getPtr(), unsavedFileArray:getLength(),
       clang.core.CXTranslationUnit_DetailedPreprocessingRecord +
 	 clang.core.CXTranslationUnit_Incomplete )
+
+   log( 2, "parseTranslationUnit: end", Helper.getTime( true ) - now )
 
 
    if diagList then
@@ -1641,6 +1645,7 @@ end
 function Analyzer:queryAtFunc(
       filePath, line, column, target, funcFlag, fileContents, diagList, func )
 
+   log( 2, "queryAtFunc", filePath, line, column, target )
    if not func then
       log( 2, "queryAtFunc", "func is nil" )
       func = function() end
@@ -1670,35 +1675,39 @@ function Analyzer:queryAtFunc(
 	 equalDigestFlag = true
       end
    end
-   
-   if fileInfo.incFlag ~= 0 or equalDigestFlag then
-      -- 解析せずに DB 登録されている情報を使用する
-      local nsInfo = db:getNsInfoAt(
-	 fileInfo, line, column, fileContents, true )
-      if nsInfo then
-	 local needAnalyzeFlag = false
-	 if funcFlag then
-	    db:mapDecl(
-	       nsInfo.id,
-	       function( item )
-		  if item.type == clang.core.CXCursor_FieldDecl then
-		     needAnalyzeFlag = true
-		  end
-		  return false
-	       end
-	    )
-	 end
 
-	 if not needAnalyzeFlag then
-	    log( 2, "queryAtFunc", nsInfo.id, nsInfo.name )
-	    func( db, fileInfo.id, nsInfo, nil )
-	    db:close()
-	    return
-	 end
-      else
-	 if fileInfo.incFlag ~= 0 then
-	    log( 1, "not found namespace" )
-	    os.exit( 1 )
+   if line == 0 and column == 0 then
+      -- これはソース全体を解析している。位置指定に意味はない。
+   else
+      if fileInfo.incFlag ~= 0 or equalDigestFlag then
+	 -- 解析せずに DB 登録されている情報を使用する
+	 local nsInfo = db:getNsInfoAt(
+	    fileInfo, line, column, fileContents, true )
+	 if nsInfo then
+	    local needAnalyzeFlag = false
+	    if funcFlag then
+	       db:mapDecl(
+		  nsInfo.id,
+		  function( item )
+		     if item.type == clang.core.CXCursor_FieldDecl then
+			needAnalyzeFlag = true
+		     end
+		     return false
+		  end
+	       )
+	    end
+
+	    if not needAnalyzeFlag then
+	       log( 2, "queryAtFunc", nsInfo.id, nsInfo.name )
+	       func( db, fileInfo.id, nsInfo, nil )
+	       db:close()
+	       return
+	    end
+	 else
+	    if fileInfo.incFlag ~= 0 then
+	       log( 1, "not found namespace" )
+	       os.exit( 1 )
+	    end
 	 end
       end
    end

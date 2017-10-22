@@ -21,7 +21,6 @@ function Util:getToken( filePath, line, column, fileContents )
    return front .. tail
 end
 
-
 function Util:getFileLineText( filePath, line, fileContents )
    if line < 0 then
       return ""
@@ -183,6 +182,45 @@ function Util:outputResult( level, func, diagList )
    end
    print( '</diagnostics>' )
    print( '</lctags_result>' )
+end
+
+
+-- cursor で定義している型の基本型の cxtype を返す
+function Util:getRootType( cursor )
+   local kind = cursor:getCursorKind()
+
+   if kind == clang.core.CXCursor_TypedefDecl then
+      local cxtype = cursor:getTypedefDeclUnderlyingType()
+      while clang.isPointerType( cxtype ) do
+	 cxtype = cxtype:getPointeeType()
+      end
+      local resultType = cxtype:getResultType()
+      local work = clang.getDeclCursorFromType( cxtype )
+      if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
+	 return cxtype
+      end
+      return Util:getRootType( work )
+   end
+   local cxtype = cursor:getCursorType()
+   while clang.isPointerType( cxtype ) do
+      cxtype = cxtype:getPointeeType()
+   end
+   return cxtype
+end
+
+-- cursor で定義している型の基本型の cursor を返す
+function Util:getRootTypeCursor( cursor )
+   local kind = cursor:getCursorKind()
+
+   if kind == clang.core.CXCursor_TypedefDecl then
+      cxtype = cursor:getTypedefDeclUnderlyingType()
+      local work = clang.getDeclCursorFromType( cxtype )
+      if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
+	 return cursor
+      end
+      return self:getRootTypeCursor( work )
+   end
+   return cursor
 end
 
 

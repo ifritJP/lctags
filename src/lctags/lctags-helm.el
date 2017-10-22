@@ -1,11 +1,16 @@
+(defvar lctags-diag-ignore-pattern nil)
+(defvar lctags-anything nil)
+(defvar lctags-path-length 60)
+
+
+(defvar lctags-diag-buf-name "*lctags-diag*" )
+
+
 (defvar lctags-candidate-info nil)
 (defvar lctags-candidate-history nil)
 (defvar lctags-diag-info nil)
 
-(defvar lctags-anything nil)
-(defvar lctags-path-length 60)
 
-(defvar lctags-diag-buf-name "*lctags-diag*" )
 
 (when (not lctags-anything)
   (require 'helm))
@@ -266,7 +271,22 @@
 	  info)))
 
 
+(defun lctags-diag-get-path (diag)
+  (if (lctags-diag-get-message diag)
+      (car (split-string (lctags-diag-get-message diag) ":"))
+    nil
+  ))
+
 (defun lctags-helm-display-diag ()
+  (setq lctags-diag-info
+	(delq nil (mapcar (lambda (diag)
+			    (if (not lctags-diag-ignore-pattern)
+				diag
+			      (if (string-match lctags-diag-ignore-pattern
+						(lctags-diag-get-path diag))
+				  nil
+				diag)))
+			  lctags-diag-info)))
   (if lctags-diag-info
       (progn
 	(switch-to-buffer-other-window lctags-diag-buf-name)

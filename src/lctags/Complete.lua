@@ -821,40 +821,12 @@ end
 
 -- cursor で定義している型の基本型の cxtype を返す
 local function getRootType( cursor )
-   local kind = cursor:getCursorKind()
-
-   if kind == clang.core.CXCursor_TypedefDecl then
-      local cxtype = cursor:getTypedefDeclUnderlyingType()
-      while clang.isPointerType( cxtype ) do
-	 cxtype = cxtype:getPointeeType()
-      end
-      local resultType = cxtype:getResultType()
-      local work = clang.getDeclCursorFromType( cxtype )
-      if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
-	 return cxtype
-      end
-      return getRootType( work )
-   end
-   local cxtype = cursor:getCursorType()
-   while clang.isPointerType( cxtype ) do
-      cxtype = cxtype:getPointeeType()
-   end
-   return cxtype
+   return Util:getRootType( cursor )
 end
 
 -- cursor で定義している型の基本型の cursor を返す
 local function getRootTypeCursor( cursor )
-   local kind = cursor:getCursorKind()
-
-   if kind == clang.core.CXCursor_TypedefDecl then
-      cxtype = cursor:getTypedefDeclUnderlyingType()
-      local work = clang.getDeclCursorFromType( cxtype )
-      if work:getCursorKind() == clang.core.CXCursor_NoDeclFound then
-	 return cursor
-      end
-      return getRootTypeCursor( work )
-   end
-   return cursor
+   return Util:getRootTypeCursor( cursor )
 end
 
 

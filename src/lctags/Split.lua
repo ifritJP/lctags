@@ -7,7 +7,8 @@ local function isNeedPassAddress( info )
    if info.ignoreFlag then
       return false
    end
-   return not info.arrayAccess and (info.addressAccess or info.binOpAccess)
+   return not info.arrayAccess and
+      (info.addressAccess or info.binOpAccess or info.structFlag)
 end
 
 local function visit( cursor, parent, info, addInfo )
@@ -28,13 +29,24 @@ local function visit( cursor, parent, info, addInfo )
 	 if symbol == "" then
 	    error( "illegal symbol" )
 	 end
-	 symbol2DeclMap[ symbol ] = {
+	 local declCursorInfo = {
 	    cursor = declCursor,
+	    structFlag = false,
 	    addressAccess = false,
 	    binOpAccess = false,
 	    arrayAccess = false,
 	    ignoreFlag = false,
 	 }
+	 symbol2DeclMap[ symbol ] = declCursorInfo
+	 local baseCursor = Util:getRootTypeCursor(
+	    declCursor:getCursorType():getTypeDeclaration() )
+	 if baseCursor:getCursorKind() == clang.core.CXCursor_StructDecl or
+	    baseCursor:getCursorKind() == clang.core.CXCursor_UnionDecl or
+	    baseCursor:getCursorKind() == clang.core.CXCursor_ClassDecl
+	 then
+	    declCursorInfo.structFlag = true
+	 end
+	 
 	 table.insert( info.refList, cursor )
 	 table.insert( info.repList,
 		       { cursor = cursor, offset = appendInfo.offset } )
@@ -58,6 +70,8 @@ local function visit( cursor, parent, info, addInfo )
       table.insert( info.returnList, cursor )
       table.insert( info.repList,
 		    { cursor = cursor, offset = appendInfo.offset } )
+   elseif cursorKind == clang.core.CXCursor_GotoStmt then
+      error( "lctags is not support goto statement." )
    end
 
    if cursorKind >= clang.core.CXCursor_FirstStmt and
@@ -94,7 +108,7 @@ local function getDeclTxt( declCursorInfo )
 end
 
 local function outputCode(
-      stream, fileContents, startOffset, endOffset, info, symbol2DeclMap )
+      stream, fileContents, startOffset, endOffset, info, symbol2DeclMap, boolTypeInfo )
 
    table.sort( info.repList,
 	       function( repInfo1, repInfo2 )
@@ -107,7 +121,7 @@ local function outputCode(
    local function writeSubstr( frontOffset )
       if retEndOffset and retEndOffset <= frontOffset then
 	 stream:write( fileContents:sub( startOffset, retEndOffset ) )
-	 stream:write( ", 1" )
+	 stream:write( ", " .. boolTypeInfo.tru )
 	 startOffset = retEndOffset + 1
 	 retEndOffset = nil
       end
@@ -172,14 +186,28 @@ local function outputCode(
 	    info.lastStmtInfo.parent:getCursorExtent() ) or
 	 info.lastStmtInfo.cursor:getCursorKind() ~= clang.core.CXCursor_ReturnStmt
       then
-	 stream:write( "    return 0;\n" )
+	 stream:write( string.format( "    return %s;\n", boolTypeInfo.fal ) )
       else
       end
    end
    stream:write( "}\n" )
 end
 
-function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileContents )
+function Split:at( analyzer, path, line, column, ignoreSymMap,
+		   boolTypeInfo, target, fileContents )
+   if not boolTypeInfo then
+      boolTypeInfo = {}
+   end
+   if not boolTypeInfo.type then
+      boolTypeInfo.type = "int"
+   end
+   if not boolTypeInfo.tru then
+      boolTypeInfo.tru = "1"
+   end
+   if not boolTypeInfo.fal then
+      boolTypeInfo.fal = "0"
+   end
+   
    if not target then
       target = ""
    end
@@ -222,6 +250,8 @@ function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileConte
       resultType = parentCursor:getCursorResultType()
       log( 2, "resultType", resultType:getTypeSpelling() )
    end
+   local functionName = parentCursor:getCursorSpelling()
+   local subroutineName = functionName .. "__sub"
 
    info = {}
    info.fileContents = fileContents
@@ -395,26 +425,30 @@ function Split:at( analyzer, path, line, column, ignoreSymMap, target, fileConte
    print( "</args>" )
    print( "<call>" )
    if #info.returnList > 0 then
-      stream:write( string.format( [[
+      stream:write(
+	 string.format( [[
 {
     %s funcRet__ = 0;
-    if ( func( %s ) ) {
+    if ( %s( %s ) ) {
        return funcRet__;
     }
-}]], resultType:getTypeSpelling(), string.gsub( callArgs, "^, ", "" ) ) )
+}]],
+	    resultType:getTypeSpelling(), subroutineName,
+	    string.gsub( callArgs, "^, ", "" ) ) )
    else
-      stream:write( string.format( "func( %s );", string.gsub( callArgs, "^, ", "" ) ) )
+      stream:write( string.format( "%s( %s );", subroutineName,
+				   string.gsub( callArgs, "^, ", "" ) ) )
    end
    print( "</call>" )
    print( "<sub_routine>" )
    stream:write( string.format(
-		    "static %s func( %s )\n",
-		    #info.returnList > 0 and "int" or "void",
-		    string.gsub( declArgs, "^, ", "" ) ) )
+		    "static %s %s( %s )\n",
+		    #info.returnList > 0 and boolTypeInfo.type or "void",
+		    subroutineName, string.gsub( declArgs, "^, ", "" ) ) )
 
   
    outputCode( stream, fileContents,
-	       startOffset, endOffset, info, symbol2DeclMap )
+	       startOffset, endOffset, info, symbol2DeclMap, boolTypeInfo )
 
    print( "</sub_routine>" )
    print( "</refactoring_split></lctags_result>" )

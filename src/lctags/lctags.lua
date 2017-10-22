@@ -18,6 +18,14 @@ local Helper = require( 'lctags.Helper' )
 local StackCalc = require( 'lctags.StackCalc' )
 local Split = require( 'lctags.Split' )
 
+local startTime = Helper.getTime( true )
+
+local function finish( code )
+   log( 2, "finish", Helper.getTime( true ) - startTime )
+   os.exit( code )
+end
+
+
 if not arg[1] then
    Option:printUsage( "" )
 end
@@ -37,6 +45,11 @@ end
 
 if not lctagOptMap.mode then
    Option:printUsage( "mode is none" )
+end
+
+if lctagOptMap.mode == "clang-ver" then
+   print( require( 'libclanglua.if' ).getClangVersion() )
+   finish( 0 )
 end
 
 if not lctagOptMap.dbPath then
@@ -80,7 +93,7 @@ if lctagOptMap.mode == "server" then
    else
       Option:printUsage( "stop or start" )
    end
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "statusServer" then
@@ -94,7 +107,7 @@ if lctagOptMap.mode == "statusServer" then
    else
       Option:printUsage( "stop or start" )
    end
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "status" then
@@ -128,7 +141,7 @@ if lctagOptMap.mode == "status" then
       TermCtrl:clrLine()
       Helper.msleep( 500 )
    end
-   os.exit( 0 )
+   finish( 0 )
 end
 
 
@@ -137,23 +150,23 @@ if lctagOptMap.mode == "init" then
       lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
       lctagOptMap.individualTypeFlag, lctagOptMap.individualStructFlag,
       lctagOptMap.individualMacroFlag )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 
 if lctagOptMap.mode == "shrink" then
    DBCtrl:shrinkDB( lctagOptMap.dbPath, false )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "shrinkFull" then
    DBCtrl:shrinkDB( lctagOptMap.dbPath, true )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "forceUpdate" then
    DBCtrl:forceUpdate( lctagOptMap.dbPath )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "chg-proj" or lctagOptMap.mode == "set-projDir" then
@@ -163,7 +176,7 @@ if lctagOptMap.mode == "chg-proj" or lctagOptMap.mode == "set-projDir" then
       local splitIndex = string.find( chgDir, "@", 1, true )
       if not splitIndex then
 	 log( 1, "pattern error. need delimiter with @", chgDir )
-	 os.exit( 1 )
+	 finish( 1 )
       end
       local srcDir = string.sub( chgDir, 1, splitIndex - 1 )
       local dstDir = string.sub( chgDir, splitIndex + 1 )
@@ -173,7 +186,7 @@ if lctagOptMap.mode == "chg-proj" or lctagOptMap.mode == "set-projDir" then
    DBCtrl:changeProjDir(
       lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
       lctagOptMap.mode == "set-projDir", chgDirMap )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "query" then
@@ -183,14 +196,14 @@ if lctagOptMap.mode == "query" then
    if not db then
       if not lctagOptMap.useGlobalFlag then
 	 log( 1, "db open error" )
-	 os.exit( 1 )
+	 finish( 1 )
       end
       local commad = string.format( "global %s %s", lctagOptMap.query, srcList[1] or "" )
       local success, endType, code = os.execute( commad )
       if not success then
-	 os.exit( code )
+	 finish( code )
       end
-      os.exit( 0 )
+      finish( 0 )
    end
 
    if #srcList > 0 then
@@ -202,7 +215,7 @@ if lctagOptMap.mode == "query" then
    end
 
    db:close()
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "list" then
@@ -215,7 +228,7 @@ if lctagOptMap.mode == "list" then
    end
 
    db:close()
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "graph" then
@@ -240,7 +253,7 @@ if lctagOptMap.mode == "graph" then
    end
 
    db:close()
-   os.exit( 0 )
+   finish( 0 )
 end
 
 
@@ -250,12 +263,12 @@ end
 
 if lctagOptMap.mode == "kill" then
    DBCtrl:setKill( lctagOptMap.dbPath, os.getenv( "PWD" ), true )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "cancel-kill" then
    DBCtrl:setKill( lctagOptMap.dbPath, os.getenv( "PWD" ), false )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "update" then
@@ -265,17 +278,17 @@ if lctagOptMap.mode == "update" then
    end
 
    Make:updateFor( lctagOptMap.dbPath, lctagOptMap.target, lctagOptMap.jobs, src )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "chkFiles" then
    DBCtrl:checkRemovedFiles( lctagOptMap.dbPath )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "rm" then
    DBCtrl:remove( lctagOptMap.dbPath, lctagOptMap.rm, srcList[ 1 ] )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "register" then
@@ -287,12 +300,12 @@ if lctagOptMap.mode == "register" then
 	 lctagOptMap.dbPath, lctagOptMap.target,
 	 Json:fromStream( io.open( srcList[ 1 ], "r" ) ) )
    end
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "dcall" then
    DynamicCall:dumpInfo( lctagOptMap.dbPath )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 local analyzer = Analyzer:new(
@@ -317,14 +330,14 @@ db:close()
 
 if lctagOptMap.mode == "depIncs" then
    analyzer:dumpIncludeList( srcList[ 1 ], optList, nil )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "build" then
    local src = srcList[1]
    if not src then
       log( 1, "src is nil" )
-      os.exit( 1 )
+      finish( 1 )
    end
 
    local option = ""
@@ -341,12 +354,12 @@ if lctagOptMap.mode == "build" then
 	 if info[ 1 ] == "simple" then
 	    if string.find( fullpath, info[ 2 ], 1, true ) then
 	       log( 1, "ignore:", fullpath )
-	       os.exit( 0 )
+	       finish( 0 )
 	    end
 	 elseif info[ 1 ] == "lua" then
 	    if string.find( fullpath, info[ 2 ] ) then
 	       log( 1, "ignore:", fullpath )
-	       os.exit( 0 )
+	       finish( 0 )
 	    end
 	 end
       end
@@ -357,7 +370,7 @@ if lctagOptMap.mode == "build" then
    else
       analyzer:analyzeSource( src, optList, lctagOptMap.target )
    end
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "updateForMake" then
@@ -374,7 +387,7 @@ if lctagOptMap.mode == "updateForMake" then
    analyzer:update( src, lctagOptMap.target )
 
    StatusServer:requestEndStatus( statusName )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "ref-at" or lctagOptMap.mode == "def-at" or
@@ -389,7 +402,7 @@ then
    analyzer:queryAt( lctagOptMap.mode, filePath, tonumber( srcList[ 2 ] ),
 		     tonumber( srcList[ 3 ] ), lctagOptMap.abs,
 		     lctagOptMap.target, fileContents )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "graph-at" then
@@ -398,7 +411,7 @@ if lctagOptMap.mode == "graph-at" then
       tonumber( srcList[ 3 ] ), lctagOptMap.target,
       lctagOptMap.depth, lctagOptMap.browse,
       lctagOptMap.outputFile, lctagOptMap.imageFormat )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "split-at" then
@@ -409,8 +422,9 @@ if lctagOptMap.mode == "split-at" then
 
    Split:at( analyzer, srcList[ 1 ],
 	     tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
-	     lctagOptMap.ignoreSymMap, lctagOptMap.target, fileContents )
-   os.exit( 0 )
+	     lctagOptMap.ignoreSymMap, lctagOptMap.boolTypeInfo,
+	     lctagOptMap.target, fileContents )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "comp-at" then
@@ -422,7 +436,7 @@ if lctagOptMap.mode == "comp-at" then
    Complete:at( analyzer, srcList[ 1 ],
 		tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		lctagOptMap.target, fileContents )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "inq-at" or lctagOptMap.mode == "expand" then
@@ -434,7 +448,7 @@ if lctagOptMap.mode == "inq-at" or lctagOptMap.mode == "expand" then
    Complete:inqAt( analyzer, srcList[ 1 ],
 		   tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		   lctagOptMap.target, fileContents, lctagOptMap.mode )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "diag" then
@@ -445,20 +459,15 @@ if lctagOptMap.mode == "diag" then
 
    Complete:analyzeDiagnostic(
       analyzer, srcList[ 1 ], lctagOptMap.target, fileContents )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "stack" then
    StackCalc:analyze( srcList[ 1 ], lctagOptMap.target, analyzer )
-   os.exit( 0 )
+   finish( 0 )
 end
 
 if lctagOptMap.mode == "testOpe" then
    require( 'lctags.testOperator' ):at( analyzer, srcList[ 1 ], lctagOptMap.target )
-   os.exit( 0 )
-end
-
-if lctagOptMap.mode == "clang-ver" then
-   print( require( 'libclanglua.if' ).getClangVersion() )
-   os.exit( 0 )
+   finish( 0 )
 end
