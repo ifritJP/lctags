@@ -116,7 +116,8 @@ int func6( int val )
 {
     type_t typ;
     if ( val == 0 ) {
-        typ.val = 1;
+        val = 1;
+        typ.val = val;
         return 0;
     }
 }

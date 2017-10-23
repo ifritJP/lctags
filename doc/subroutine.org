@@ -1,0 +1,222 @@
+# -*- coding:utf-8 -*-
+#+AUTHOR: ifritJP
+#+STARTUP: nofold
+
+#+TITLE: lctags を使って C/C++ ソースコードをリファクタリング(サブルーチン化)
+
+コーディングしていると、関数が肥大化していくことが良くあります。
+
+関数の肥大化は、メンテナンス性や可読性が落ちる原因になるため、
+リファクタリングで関数内の処理を分割するサブルーチン化作業が必要です。
+
+サブルーチン化作業はほとんど機械的に出来ますが、
+分割する関数の前後処理に気をつけないと、バグってしまうこともあります。
+
+そんなサブルーチン化作業を、 lctags を使うことで簡単に行なうことができます。
+
+* 事前準備
+
+lctags のサブルーチン化処理は、ブロック文 {} を対象としています。
+よってブロックでない処理をサブルーチン化する場合は、事前にブロック化しておく必要があります。
+ブロック化は単に {} で括るだけです。
+  
+* 使用方法
+  
+emacs でソースファイルを開き、サブルーチン化したいブロックの先頭にカーソルを合せ、
+次を実行します。
+  
+  M-x lctags-split-it
+
+あるいは C-c l でメニューを開いて、 r s でも可能です。  
+
+これにより、ブロック内の処理を解析してサブルーチンを生成し、
+新しいバッファに生成したサブルーチンと、そのサブルーチンをコールするコードが
+表示されます。
+
+後は、この表示されたコードに置き換えればサブルーチン化作業が完了します。
+
+* チュートリアル
+
+** 準備
+
+lctags の DB を作成し、次の内容のソースコードを登録しておきます。
+
+#+BEGIN_SRC C
+typedef struct {
+    int val;
+} type_t;
+int func6( int val )
+{
+    type_t typ;
+    if ( val == 0 ) {
+        val = 1;
+        typ.val = val;
+        return 0;
+    }
+    return 1;
+}
+#+END_SRC
+
+** サブルーチン化
+
+上記ソースコードを開き、 ~if ( val == 0 ) {~ の "{" の箇所にカーソルを合せます。
+
+ここで C-c l と入力し、lctags メニューを開きます。
+lctags メニューでは、 refactoring の 'r' を押し、さらに subroutine の 's' を押します。
+
+これで次のバッファが開きます。
+
+#+BEGIN_SRC C
+/* please edit 'x' or 'o' of following items,
+    and push C-c C-c to update.
+o: typ
+o: val
+*/
+//======= call ======
+{
+  int funcRet__ = 0;
+  if ( func6__sub( &funcRet__, &typ, &val ) ) {
+    return funcRet__;
+  }
+}
+//======= sub routine ======
+static bool_t func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
+{
+  (*pval) = 1;
+  (*ptyp).val = (*pval);
+  return *pFuncRet__= 0, TRUE;
+}
+#+END_SRC
+
+~=== sub routin ===~ 以降は、サブルーチン化した処理です。
+この処理をソースコードにコピーします。
+
+~=== call ===~ 以降は、サブルーチン化した関数を呼び出す処理です。
+この処理を、 "if ( val == 0 ) {" の "{" の箇所に置き換えます。
+
+
+置き換えると次のようになります。
+#+BEGIN_SRC C
+typedef struct {
+    int val;
+} type_t;
+
+static int func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
+{
+  (*pval) = 1;
+  (*ptyp).val = (*pval);
+  return *pFuncRet__= 0, 1;
+}
+int func6( int val )
+{
+    type_t typ;
+    if ( val == 0 ) {
+      int funcRet__ = 0;
+      if ( func6__sub( &funcRet__, &typ, &val ) ) {
+        return funcRet__;
+      }
+    }
+    return 1;
+}
+#+END_SRC
+
+これでサブルーチン化は完成です。
+
+** サブルーチンの説明
+
+念のためサブルーチン化後の処理について説明しておくと、
+~func6__sub()~ は戻り値が int 型の関数です。
+戻り値が 0 以外の時は、サブルーチンの呼び出し側を return で終了させます。
+その際、戻り値は funcRet__ に格納されています。
+
+また、上記処理を良く見ると、サブルーチンに渡している val が気になるのではないかと思います。
+
+サブルーチン化した処理では、 val を値渡しではなく、アドレス渡しになっています。
+
+これは何故かというと、処理内で val に対して代入を行なっているためです。
+
+例えば、 func6() の処理が、
+次のように ~if~ のブロック処理を抜けた後に val を return するような処理だった場合、
+
+#+BEGIN_SRC C
+int func6( int val )
+{
+    type_t typ;
+    if ( val == 0 ) {
+        val = 1;
+        typ.val = val;
+    }
+    return val;
+}
+#+END_SRC
+
+~if~ のブロックをサブルーチン化する場合は、 val をアドレス渡しする必要があります。
+
+ただ、今回の場合はブロックの後に val を参照していないので、
+本来は val は値渡しでも問題ありません。
+
+それにもかかわらず val をアドレス渡ししています。
+
+これは、サブルーチン化の処理を安全方向に振るためです。
+
+将来、この func6() 関数をさらに変更して、
+~if~ ブロックの後に val を参照するかもしれません。
+また、サブルーチン化した ~func6__sub()~ 処理を変更して、
+戻り値が 0 になることもあるかもしれません。
+
+そのような場合に備えて、アドレス渡しにしています。
+
+** 値渡しの制御
+
+もしも、このアドレス渡しが気になる場合は、次の方法で値渡しにすることが可能です。
+
+生成されたバッファの上部に表示されている次の箇所を注目してください。
+
+#+BEGIN_SRC TXT
+/* please edit 'x' or 'o' of following items,
+    and push C-c C-c to update.
+o: typ
+o: val
+*/
+#+END_SRC
+
+この o:val を x:val に編集し C-c C-c すると、
+val が値渡しになったサブルーチンコードが生成されます。
+
+
+
+#+BEGIN_SRC C
+/* please edit 'x' or 'o' of following items,
+    and push C-c C-c to update.
+o: typ
+x: val
+*/
+//======= call ======
+{
+  int funcRet__ = 0;
+  if ( func6__sub( &funcRet__, &typ, val ) ) {
+    return funcRet__;
+  }
+}
+//======= sub routine ======
+static bool_t func6__sub( int* pFuncRet__, type_t* ptyp, int val )
+{
+  val = 1;
+  (*ptyp).val = val;
+  return *pFuncRet__= 0, TRUE;
+}
+#+END_SRC
+
+* 制限
+
+サブルーチン化対象のブロックが次の条件に当て嵌る場合、サブルーチン化できません。
+- マクロを利用し、そのマクロ内で return している。
+- アドレス渡しする変数を、マクロ内で使用している。
+- goto 文を使用している。
+
+また、マクロ内で 2 項演算子を利用していると、
+左にある変数はアドレスアクセスが必要なものだと判断します。
+これは、 lctags の制限というよりは libclang の制限からくるものです。
+
+何故ならば、libclang ではマクロ内で 2 項演算子が行なわれている場合に、
+その演算子の種別を特定する手段がないためです。

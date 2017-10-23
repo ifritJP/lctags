@@ -105,10 +105,13 @@ function StatusServer:requestEnd()
 end
 
 function StatusServer:requestUpdateStatus( name, state )
-   self:request( "updateStatus", { name = name, state = state, time = os.clock() } )
+   if not self.endFlag then
+      self:request( "updateStatus", { name = name, state = state, time = os.clock() } )
+   end
 end
 
 function StatusServer:requestEndStatus( name )
+   self.endFlag = ture
    self:request( "updateStatus", { name = name, endFlag = true } )
 end
 
