@@ -74,6 +74,10 @@ enum 値に対して、次の補完が可能です。
 
 - M-x lctags-split-at
   - カーソル位置のブロックをサブルーチン化します。
+    
+詳しい使用方法は次を参照してください。
+
+[[https://qiita.com/dwarfJP/items/263db943fe8ebc407abb]]
 
 ** グラフ
 
