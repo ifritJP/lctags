@@ -250,23 +250,32 @@ function DBCtrl:changeProjDir(
 	 obj:updateCompileOpWithFileId( info[ 1 ], info[ 2 ], info[ 3 ] )
       end
 
-
+      
+      local updateList = {}
       obj:mapFile(
 	 nil,
 	 function( fileInfo )
 	    if fileInfo.id ~= systemFileId then
 	       for srcDir, dstDir in pairs( chgDirMap ) do
-		  if string.find( fileInfo.path, srcDir .. "/", 1, true ) then
+		  srcDir = obj:convPath( srcDir )
+		  log( 1, srcDir, fileInfo.path )
+		  if string.find( fileInfo.path, srcDir .. "/", 1, true ) == 1 then
 		     local path = dstDir .. fileInfo.path:sub( #srcDir + 1 )
-		     log( 1, "conv path", path )
-		     obj:update( "filePath", "id = " .. fileInfo.id,
-				 string.format( "path = '%s'", path ) )
+		     table.insert( updateList,
+				   { id = fileInfo.id, path = path } )
 		  end
 	       end
 	    end
 	    return true
 	 end
       )
+      for index, updateInfo in ipairs( updateList ) do
+	 log( 1, "conv path", updateInfo.id, obj:convPath( updateInfo.path ) )
+	 obj:update( "filePath",
+		     string.format( "path = '%s'",
+				    obj:convPath( updateInfo.path ) ),
+		     string.format( "id = %d", updateInfo.id ) )
+      end
    end
    
 

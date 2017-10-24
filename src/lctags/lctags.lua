@@ -287,7 +287,7 @@ if lctagOptMap.mode == "chkFiles" then
 end
 
 if lctagOptMap.mode == "rm" then
-   DBCtrl:remove( lctagOptMap.dbPath, lctagOptMap.rm, srcList[ 1 ] )
+   DBCtrl:remove( lctagOptMap.dbPath, "file", srcList[ 1 ] )
    finish( 0 )
 end
 
@@ -386,6 +386,7 @@ if lctagOptMap.mode == "updateForMake" then
    
    analyzer:update( src, lctagOptMap.target )
 
+   log:setStatusServer( nil, nil )
    StatusServer:requestEndStatus( statusName )
    finish( 0 )
 end

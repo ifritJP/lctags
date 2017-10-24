@@ -273,6 +273,7 @@ end
 
 
 function DBAccess:exec( stmt, errHandle )
+
    local prev = os.clock()
    if recordFile then
       recordFile:write( stmt .. "\n" )

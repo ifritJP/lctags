@@ -12,9 +12,9 @@
 サブルーチン化作業はほとんど機械的に出来ますが、
 分割する関数の前後処理に気をつけないと、バグってしまうこともあります。
 
-そんなサブルーチン化作業を、 lctags を使うことで簡単に行なうことができます。
+lctags は、そんなサブルーチン化作業をサポートします。
 
-lctags については、以下を参照してください。
+lctags の詳細については、以下を参照してください。
 
 https://qiita.com/dwarfJP/items/982ef7ee3f3bfd435156
 
@@ -68,7 +68,7 @@ int func6( int val )
 ここで C-c l と入力し、lctags メニューを開きます。
 lctags メニューでは、 refactoring の 'r' を押し、さらに subroutine の 's' を押します。
 
-これで次のバッファが開きます。
+これにより、対象ブロックの解析とサブルーチンの生成が行なわれ、次の内容のバッファが開かれます。
 
 #+BEGIN_SRC C
 /* please edit 'x' or 'o' of following items,

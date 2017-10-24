@@ -197,7 +197,7 @@ endif
 		tee -a test-result
 	$(MAKE) test-stack
 	diff -c test-result.expect test-result && echo OK
-ifndef SKIP_DUMP
+ifdef TEST_DB_DUMP
 	rm -f db.dump
 	$(call dumpDB, lctags.sqlite3, db.dump, test/*.cpp, test/*.h)
 	diff -c db.dump test-db.dump.expect
@@ -337,11 +337,17 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 68 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 71 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 74 18
-	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 77 18
+	-$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 77 18 && echo NG === split 77
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 91 20
 
 
+	$(MAKE) test-chg-proj
 
+
+test-chg-proj:
+	$(LUA_COMMAND) $(LCTAGS_LUA) set-projDir . test@test2 > /dev/null
+	-$(LUA_COMMAND) $(LCTAGS_LUA) dump file | grep test2/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
+	$(LUA_COMMAND) $(LCTAGS_LUA) set-projDir . test2@test > /dev/null
 
 test-stack:
 	$(LUA_COMMAND) $(LCTAGS_LUA) stack test/hoge.cpp --lctags-log 4
@@ -382,7 +388,7 @@ endif
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
 #	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-ata $(TEST_LUA_DIR)/lvm.c 477 21 --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3
-ifndef SKIP_DUMP
+ifdef TEST_DB_DUMP
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump all --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
 	-rm db.dump
 	$(call dumpDB, $(TEST_LUA_DIR)/lctags.sqlite3, db.dump, $(TEST_LUA_DIR)/*.cpp $(TEST_LUA_DIR)/*.h)

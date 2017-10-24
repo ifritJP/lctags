@@ -2540,6 +2540,36 @@ static int func4__sub( int* pFuncRet__ )
   }
 </sub_routine>
 </refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 77 18
+lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
 makefile:277: recipe for target 'test-query' failed
+lua lctags/lctags.lua split-at test/split.cpp 91 20
+<lctags_result><refactoring_split>
+<args>
+<arg><addressAccess>true</addressAccess><name>typ</name></arg>
+<arg><addressAccess>false</addressAccess><name>typArray</name></arg>
+</args>
+<call>
+{
+    int funcRet__ = 0;
+    if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
+       return funcRet__;
+    }
+}</call>
+<sub_routine>
+static int func5__sub( int* pFuncRet__, type_t* ptyp, type_t typArray[1] )
+{
+        (*ptyp).val = 1;
+        typArray[0].val = 2;
+        return *pFuncRet__= 0, 1;
+    }
+</sub_routine>
+</refactoring_split></lctags_result>
+make test-chg-proj
+make[2]: Entering directory 'NDIR'
+lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
+lua lctags/lctags.lua dump file | grep test2/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
+==== NG set-projDir ====
+makefile:348: recipe for target 'test-chg-proj' failed
+lua lctags/lctags.lua set-projDir . test2@test > /dev/null
+make[2]: Leaving directory 'NDIR'
 make[1]: Leaving directory 'NDIR'

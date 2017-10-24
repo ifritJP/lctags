@@ -272,8 +272,6 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	 elseif arg == "rm" then
 	    lctagOptMap.mode = arg
-	    lctagOptMap.rm = argList[ index + 1 ]
-	    skipArgNum = 1
 	 elseif arg == "register" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "depIncs" then
