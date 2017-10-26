@@ -2,6 +2,8 @@
 (defvar lctags-anything nil)
 (defvar lctags-path-length 60)
 
+(defvar lctags-decide-completion-func nil)
+
 
 (defvar lctags-diag-buf-name "*lctags-diag*" )
 
@@ -67,6 +69,10 @@
 	     (concat
 	      (lctags-candidate-item-get-expand (plist-get info :select))
 	      (lctags-candidate-item-get-simple item)))
+       (when lctags-decide-completion-func
+	 (setq simple (funcall (symbol-function lctags-decide-completion-func)
+			       simple front lctags-candidate-select-mode
+			       lctags-candidate-history)))
        (insert (substring simple (length prefix)))
        (when (equal (lctags-candidate-item-get-kind item) "f")
 	 ;; (not (string-match "\\.\\|->" front))

@@ -102,7 +102,8 @@ function Complete:searchParenEnd( tokenInfoList, startIndex, lastIndex )
    return self:searchPairEnd( tokenInfoList, startIndex, lastIndex, { '(', ')' } )
 end
 
--- lastIndex 以前から startIndex の間で、閉じられていない ( を検索する。 
+-- lastIndex 以前から startIndex の間で、閉じられていない (, { を検索する。
+-- 見つけた場合はその index を返す。無い場合は nil。
 function Complete:searchPairBegin(
       tokenInfoList, startIndex, lastIndex, pairToken )
    local beginToken, endToken = pairToken[ 1 ], pairToken[ 2 ]
@@ -363,7 +364,7 @@ end
 function Complete:createSourceForAnalyzing(
       fileContents, tokenInfoList, mode, targetIndex )
 
-   log( 2, "createSourceForAnalyzing: targetIndex", targetIndex )
+   log( 2, "createSourceForAnalyzing: targetIndex", targetIndex, mode )
    
    -- clang の解析対象にする token を決定する
    local orgTargetIndex = targetIndex
@@ -381,9 +382,12 @@ function Complete:createSourceForAnalyzing(
 	 prefix = ""
 	 targetIndex = checkIndex - 1
 	 checkIndex = checkIndex - 1
+      elseif tokenInfoList[ checkIndex ].token == "case" then
+	 compMode = "case"
       elseif string.find( tokenInfoList[ checkIndex ].token,
 			  "[%+%-%/%%%^%*%&%|%>%<%=%(,;]" )
       then
+	 -- 2項演算
 	 compMode = "binOP"
 	 prefix = ""
 	 targetIndex = checkIndex - 1
@@ -422,11 +426,36 @@ function Complete:createSourceForAnalyzing(
    end
    log( 2, targetIndex, prefix, checkIndex )
 
-   local statementStartIndex, incompletionIndex, syntaxStartIndex =
-      self:checkStatement( tokenInfoList, nil, checkIndex )
+   local statementStartIndex, incompletionIndex, syntaxStartIndex
+
+   if compMode == "case" then
+      -- case の場合、switch に与えている値の情報から候補を挙げる。
+      -- その為に switch に与えている値を解析対象とする
+      local blockIndex = self:searchPairBegin(
+	 tokenInfoList, 1, checkIndex - 1, { '{', '}' } )
+      local switchParenIndex = self:searchPairBegin(
+	 tokenInfoList, 1, blockIndex - 2, { '(', ')' } )
+      local switchIndex = switchParenIndex - 1
+      if tokenInfoList[ switchIndex ].token ~= "switch" then
+	 error( "not found switch keyword" )
+      end
+      statementStartIndex = switchIndex - 1
+      incompletionIndex = switchParenIndex + 1
+      syntaxStartIndex = switchParenIndex + 1
+      targetIndex = blockIndex - 2
+      checkIndex = blockIndex - 2
+   elseif compMode == "expand" and tokenInfoList[ checkIndex - 1 ].token == "case" then
+      statementStartIndex = checkIndex - 2
+      incompletionIndex = checkIndex
+      syntaxStartIndex = checkIndex
+   else
+      statementStartIndex, incompletionIndex, syntaxStartIndex =
+	 self:checkStatement( tokenInfoList, nil, checkIndex )
+   end
 
    log( 2, "decide statementStartIndex",
-	statementStartIndex, incompletionIndex, targetIndex, checkIndex, syntaxStartIndex )
+	compMode, statementStartIndex, incompletionIndex,
+	targetIndex, checkIndex, syntaxStartIndex )
 
    local termChar = ';'
    if tokenInfoList[  statementStartIndex ].token == ',' or

@@ -251,6 +251,7 @@ endif
 	$(call build-test, test/sample.c )
 	$(call build-test, test/operator.cpp )
 	$(call build-test, test/split.cpp )
+	$(call build-test, test/enum.cpp )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -339,14 +340,15 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 74 18
 	-$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 77 18 && echo NG === split 77
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 91 20
-
+	$(LUA_COMMAND) $(LCTAGS_LUA) expand test/enum.cpp 9 15
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
 
 	$(MAKE) test-chg-proj
 
 
 test-chg-proj:
 	$(LUA_COMMAND) $(LCTAGS_LUA) set-projDir . test@test2 > /dev/null
-	-$(LUA_COMMAND) $(LCTAGS_LUA) dump file | grep test2/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
+	-$(LUA_COMMAND) $(LCTAGS_LUA) dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
 	$(LUA_COMMAND) $(LCTAGS_LUA) set-projDir . test2@test > /dev/null
 
 test-stack:
