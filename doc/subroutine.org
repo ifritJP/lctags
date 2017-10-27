@@ -87,7 +87,7 @@ o: val
 static bool_t func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
 {
   (*pval) = 1;
-  (*ptyp).val = (*pval);
+  ptyp->val = (*pval);
   return *pFuncRet__= 0, TRUE;
 }
 #+END_SRC
