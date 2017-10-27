@@ -117,9 +117,64 @@ int func6( int val )
     type_t typ;
     if ( val == 0 ) {
         val = 1;
+        typ // hoge
+	  /** */   .
+            val = val;
         typ.val = val;
         return 0;
     }
+}
+
+static int func7( int val )
+{
+    int index; 
+    for ( index = 0; index < 10; index++ ) {
+        if ( val == 10 ) {
+            continue;
+        }
+        if ( val == 20 ) {
+            break;
+        }
+        if ( val == 30 ) {
+            return 0;
+        }
+    }
+    while ( index < 10 ) {
+        index++;
+        if ( val == 10 ) {
+            continue;
+        }
+        if ( val == 20 ) {
+            break;
+        }
+    }
+    do {
+        index++;
+        if ( val == 10 ) {
+            continue;
+        }
+    } while ( index < 10 );
+    for ( index = 0; index < 10; index++ ) {
+        if ( val == 20 ) {
+            break;
+        }
+    }
+    return 1;
+}
+
+static void func8( int val )
+{
+    if ( val == 1 ) {
+        return;
+    }
+    int * pVal = &val;
+}
+
+
+static void func9( type_t * pTyp )
+{
+    int * pVal = &pTyp->val;
+    *pVal = 1;
 }
 
 

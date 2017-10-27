@@ -1,4 +1,4 @@
-(defvar lctags-bool-type nil)
+(defvar lctags-sub-ret-type nil)
 
 (defun lctags-split-get-args (info)
   (xml-get-children (car (xml-get-children info 'args)) 'arg)
@@ -54,32 +54,31 @@
 	(set-marker lctags-split-target-pos-mark nil)
 	(setq lctags-split-target-pos-mark nil))
       (setq lctags-split-target-pos-mark (point-marker))
-      (if (and lctags-split-buffer (buffer-live-p lctags-split-buffer))
-	  (switch-to-buffer lctags-split-buffer)
-	(setq lctags-split-buffer (get-buffer-create "*lctags-split*"))
-	(switch-to-buffer-other-window lctags-split-buffer))
+      (when (not (buffer-live-p lctags-split-buffer))
+	(setq lctags-split-buffer (get-buffer-create "*lctags-split*")))
+      (if (not (get-buffer-window lctags-split-buffer))
+	  (switch-to-buffer-other-window lctags-split-buffer))
       (setq split-info (lctags-xml-get lctags-buf 'refactoring_split))
-      
-      
-      
-      (erase-buffer)
-      (insert "/* please edit 'x' or 'o' of following items,\n    and push C-c C-c to update.\n")
-      (dolist (arg (lctags-split-get-args split-info))
-	(insert (format "%s: %s\n"
-			(if (lctags-split-arg-isAddressAccess arg)
-			    "o" "x")
-			(lctags-split-arg-get-name arg)
-			arg)))
-      (c++-mode)
-      (insert "*/\n")
-      (setq subroutine-pos (point))
-      (insert "//======= call ======\n")
-      (insert (lctags-split-get-call split-info))
-      (insert "\n//======= sub routine ======\n")
-      (insert (lctags-split-get-subroutine split-info))
-      (local-set-key (kbd "C-c C-c") 'lctags-split-retry)
-      (indent-region subroutine-pos (point))
-      (beginning-of-buffer)
+
+      (with-current-buffer lctags-split-buffer
+	(erase-buffer)
+	(insert "/* please edit 'x' or 'o' of following items,\n    and push C-c C-c to update.\n")
+	(dolist (arg (lctags-split-get-args split-info))
+	  (insert (format "%s: %s\n"
+			  (if (lctags-split-arg-isAddressAccess arg)
+			      "o" "x")
+			  (lctags-split-arg-get-name arg)
+			  arg)))
+	(c++-mode)
+	(insert "*/\n")
+	(setq subroutine-pos (point))
+	(insert "//======= call ======\n")
+	(insert (lctags-split-get-call split-info))
+	(insert "\n//======= sub routine ======\n")
+	(insert (lctags-split-get-subroutine split-info))
+	(local-set-key (kbd "C-c C-c") 'lctags-split-retry)
+	(indent-region subroutine-pos (point))
+	(beginning-of-buffer))
       )))
 
 
@@ -91,8 +90,8 @@
 			  (buffer-file-name (current-buffer))
 			  (number-to-string (lctags-get-line))
 			  (number-to-string (- (lctags-get-column) 1)) "-i"
-			  (when lctags-bool-type "--lctags-bool")
-			  (when lctags-bool-type lctags-bool-type)
+			  (when lctags-sub-ret-type "--lctags-subRet")
+			  (when lctags-sub-ret-type lctags-sub-ret-type)
 			  (when ignore-list "-ignore-sym-list")
 			  (mapconcat (lambda (X) X) 
 				     ignore-list "," ))

@@ -101,41 +101,39 @@ static bool_t func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
 
 置き換えると次のようになります。
 #+BEGIN_SRC C
-typedef struct {
-    int val;
-} type_t;
-
+/* please edit 'x' or 'o' of following items,
+    and push C-c C-c to update.
+o: typ
+o: val
+*/
+//======= call ======
+{
+  int funcRet__ = 0;
+  if ( func6__sub( &funcRet__, &typ, &val ) ) {
+    return funcRet__;
+  }
+}
+//======= sub routine ======
 static int func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
 {
   (*pval) = 1;
-  (*ptyp).val = (*pval);
+  ptyp->val = (*pval);
   return *pFuncRet__= 0, 1;
-}
-int func6( int val )
-{
-    type_t typ;
-    if ( val == 0 ) {
-      int funcRet__ = 0;
-      if ( func6__sub( &funcRet__, &typ, &val ) ) {
-        return funcRet__;
-      }
-    }
-    return 1;
 }
 #+END_SRC
 
 これでサブルーチン化は完成です。
 
-** サブルーチンの説明
+** 生成するサブルーチンの説明
 
 念のためサブルーチン化後の処理について説明しておくと、
 ~func6__sub()~ は戻り値が int 型の関数です。
 戻り値が 0 以外の時は、サブルーチンの呼び出し側を return で終了させます。
-その際、戻り値は funcRet__ に格納されています。
+その際、戻り値は ~funcRet__~ に格納されています。
 
 また、上記処理を良く見ると、サブルーチンに渡している val が気になるのではないかと思います。
 
-サブルーチン化した処理では、 val を値渡しではなく、アドレス渡しになっています。
+サブルーチン化した処理では、 val を値渡しではなく、アドレス渡しにしています。
 
 これは何故かというと、処理内で val に対して代入を行なっているためです。
 
@@ -203,13 +201,133 @@ x: val
   }
 }
 //======= sub routine ======
-static bool_t func6__sub( int* pFuncRet__, type_t* ptyp, int val )
+static int func6__sub( int* pFuncRet__, type_t* ptyp, int val )
 {
   val = 1;
-  (*ptyp).val = val;
-  return *pFuncRet__= 0, TRUE;
+  ptyp->val = val;
+  return *pFuncRet__= 0, 1;
 }
 #+END_SRC
+
+* カスタマイズ
+
+#+BEGIN_SRC C
+static int func7( int val )
+{
+    int index; 
+    for ( index = 0; index < 10; index++ ) {
+        if ( val == 10 ) {
+            continue;
+        }
+        if ( val == 20 ) {
+            break;
+        }
+        if ( val == 30 ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+#+END_SRC
+
+上記ソースの for 文のブロックをサブルーチン化すると、
+次のようになります。
+
+#+BEGIN_SRC C
+/* please edit 'x' or 'o' of following items,
+    and push C-c C-c to update.
+x: val
+*/
+//======= call ======
+{
+  int funcRet__ = 0;
+  int result__ = func7__sub( &funcRet__, val );
+  if ( result__ == 1 ) { return funcRet__; }
+  else if ( result__ == 2 ) { break; }
+  else if ( result__ == 3 ) { continue; }
+}
+
+//======= sub routine ======
+static int func7__sub( int* pFuncRet__, int val )
+{
+  if ( val == 10 ) {
+    return 3;
+  }
+  if ( val == 20 ) {
+    return 2;
+  }
+  if ( val == 30 ) {
+    return *pFuncRet__= 0, 1;
+  }
+  return 0;
+}
+#+END_SRC
+
+ここで、 ~func7__sub()~ 内の return 3 や return、
+呼び出し側の ~result__ == 1~ や ~result__ == 2~ 等の即値が気になると思います。
+
+C では、即値は使わず define や enum 等を宣言して使用するのが定石とされています。
+
+そこで、 lctags ではこの値をカスタマイズする方法を提供しています。
+
+emacs では、次のように lctags-sub-ret-type を設定するだけです。
+
+#+BEGIN_SRC lisp
+(setq lctags-sub-ret-type
+      "subMod_t/subModNone/subModReturn/subModBreak/subModContinue")
+#+END_SRC
+
+この設定をした際の上記処理のサブルーチン化結果は次の通りです。
+
+#+BEGIN_SRC C
+/* please edit 'x' or 'o' of following items,
+    and push C-c C-c to update.
+x: val
+*/
+//======= call ======
+{
+  int funcRet__ = 0;
+  subMod_t result__ = func7__sub( &funcRet__, val );
+  if ( result__ == subModReturn ) { return funcRet__; }
+  else if ( result__ == subModBreak ) { break; }
+  else if ( result__ == subModContinue ) { continue; }
+}
+
+//======= sub routine ======
+static subMod_t func7__sub( int* pFuncRet__, int val )
+{
+  if ( val == 10 ) {
+    return subModContinue;
+  }
+  if ( val == 20 ) {
+    return subModBreak;
+  }
+  if ( val == 30 ) {
+    return *pFuncRet__= 0, subModReturn;
+  }
+  return subModNone;
+}
+#+END_SRC
+
+
+lctags-sub-ret-type は、次の書式で定義します。
+
+"type/val0/val1/val2/val3"
+
+type は、サブルーチン化した関数の戻り値の型。
+上記の例では ~func7_sub()~ の int が該当します。
+
+val0 〜 val3 は、戻り値の 0 〜 3 までの名前を指定します。
+
+それぞれの値は、以下の通りです。
+
+| 数値 | 意味                                |
+|------+-------------------------------------|
+|    0 | サブルーチン実行後、処理継続        |
+|    1 | サブルーチン実行後、return で終了   |
+|    2 | サブルーチン実行後、処理を break    |
+|    3 | サブルーチン実行後、処理を continue |
+  
 
 * 制限
 

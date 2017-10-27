@@ -16,6 +16,7 @@ sub                46 ./test/comp10.cpp     int sub()
 sub                 9 ./test/comp16.cpp void sub( DATA * pData )
 sub                 4 ./test/stack.cpp static void sub();
 sub                52 ./test/stack.cpp static void sub()
+sub                 6 ./test/enum.cpp  static void sub( eval_t val )
 lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
@@ -353,10 +354,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </endPos>
 </candidate>
 <typeInfo>
-<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
-
-</typeInfo>
-<typeInfo>
 <hash>c075a8979c1596623bb9e9372f018d69</hash>
 
 <candidate>
@@ -377,6 +374,10 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
+</typeInfo>
+<typeInfo>
+<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
+
 </typeInfo>
 </complete>
 <diagnostics>
@@ -501,7 +502,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </diagnostics>
 </lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:277: recipe for target 'test-query' failed
+makefile:278: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <complete>
@@ -2454,7 +2455,7 @@ lua lctags/lctags.lua split-at test/split.cpp 62 13
 <call>
 {
     int funcRet__ = 0;
-    if ( func4__sub( &amp;funcRet__ ) ) {
+if ( func4__sub( &amp;funcRet__ ) ) {
        return funcRet__;
     }
 }</call>
@@ -2473,7 +2474,7 @@ lua lctags/lctags.lua split-at test/split.cpp 65 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func4__sub( &amp;funcRet__, val ) ) {
+if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
 }</call>
@@ -2492,7 +2493,7 @@ lua lctags/lctags.lua split-at test/split.cpp 68 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func4__sub( &amp;funcRet__, val ) ) {
+if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
 }</call>
@@ -2511,7 +2512,7 @@ lua lctags/lctags.lua split-at test/split.cpp 71 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func4__sub( &amp;funcRet__, val ) ) {
+if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
 }</call>
@@ -2529,7 +2530,7 @@ lua lctags/lctags.lua split-at test/split.cpp 74 18
 <call>
 {
     int funcRet__ = 0;
-    if ( func4__sub( &amp;funcRet__ ) ) {
+if ( func4__sub( &amp;funcRet__ ) ) {
        return funcRet__;
     }
 }</call>
@@ -2541,7 +2542,7 @@ static int func4__sub( int* pFuncRet__ )
 </sub_routine>
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:277: recipe for target 'test-query' failed
+makefile:278: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <args>
@@ -2551,25 +2552,44 @@ lua lctags/lctags.lua split-at test/split.cpp 91 20
 <call>
 {
     int funcRet__ = 0;
-    if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
+if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
        return funcRet__;
     }
 }</call>
 <sub_routine>
 static int func5__sub( int* pFuncRet__, type_t* ptyp, type_t typArray[1] )
 {
-        (*ptyp).val = 1;
+        ptyp-&gt;val = 1;
         typArray[0].val = 2;
         return *pFuncRet__= 0, 1;
     }
 </sub_routine>
 </refactoring_split></lctags_result>
-make test-chg-proj
-make[2]: Entering directory 'NDIR'
-lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
-lua lctags/lctags.lua dump file | grep test2/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-==== NG set-projDir ====
-makefile:348: recipe for target 'test-chg-proj' failed
-lua lctags/lctags.lua set-projDir . test2@test > /dev/null
-make[2]: Leaving directory 'NDIR'
+lua lctags/lctags.lua split-at test/split.cpp 118 20
+<lctags_result><refactoring_split>
+<args>
+<arg><addressAccess>true</addressAccess><name>typ</name></arg>
+<arg><addressAccess>true</addressAccess><name>val</name></arg>
+</args>
+<call>
+{
+    int funcRet__ = 0;
+if ( func6__sub( &amp;funcRet__, &amp;typ, &amp;val ) ) {
+       return funcRet__;
+    }
+}</call>
+<sub_routine>
+static int func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
+{
+        (*pval) = 1;
+        ptyp // hoge
+	  /** */   -&gt;
+            val = (*pval);
+        ptyp-&gt;val = (*pval);
+        return *pFuncRet__= 0, 1;
+    }
+</sub_routine>
+</refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 129 0
+makefile:278: recipe for target 'test-query' failed
 make[1]: Leaving directory 'NDIR'

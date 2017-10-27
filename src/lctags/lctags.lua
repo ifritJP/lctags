@@ -423,7 +423,7 @@ if lctagOptMap.mode == "split-at" then
 
    Split:at( analyzer, srcList[ 1 ],
 	     tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
-	     lctagOptMap.ignoreSymMap, lctagOptMap.boolTypeInfo,
+	     lctagOptMap.ignoreSymMap, lctagOptMap.subRetTypeInfo,
 	     lctagOptMap.target, fileContents )
    finish( 0 )
 end

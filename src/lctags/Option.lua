@@ -333,16 +333,18 @@ function Option:analyzeOption( argList )
 	       elseif arg == "--lctags-uptime" then
 		  skipArgNum = 1
 		  self.updateTime = tonumber( argList[ index + 1 ] )
-	       elseif arg == "--lctags-bool" then
+	       elseif arg == "--lctags-subRet" then
 		  skipArgNum = 1
-		  local boolType = {}
+		  local subRetType = {}
 		  for val in string.gmatch( argList[ index + 1 ], "[^/]+" ) do
-		     table.insert( boolType, val )
+		     table.insert( subRetType, val )
 		  end
-		  lctagOptMap.boolTypeInfo = {}
-		  lctagOptMap.boolTypeInfo.type = boolType[ 1 ]
-		  lctagOptMap.boolTypeInfo.tru = boolType[ 2 ]
-		  lctagOptMap.boolTypeInfo.fal = boolType[ 3 ]
+		  lctagOptMap.subRetTypeInfo = {}
+		  lctagOptMap.subRetTypeInfo.type = subRetType[ 1 ]
+		  lctagOptMap.subRetTypeInfo.non = subRetType[ 2 ]
+		  lctagOptMap.subRetTypeInfo.ret = subRetType[ 3 ]
+		  lctagOptMap.subRetTypeInfo.brk = subRetType[ 4 ]
+		  lctagOptMap.subRetTypeInfo.cnt = subRetType[ 5 ]
 	       else
 		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs"
 		  then

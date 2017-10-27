@@ -340,6 +340,13 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 74 18
 	-$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 77 18 && echo NG === split 77
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 91 20
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 118 20
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 129 0
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 131 43
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 142 25
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 151 7
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 157 43
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 166 0
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand test/enum.cpp 9 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
 

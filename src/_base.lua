@@ -348,6 +348,19 @@ libs.mapRangePlainText = function( cxUnit, cxRange, func, ... )
    libclangcore.delete_CXTokenPArray( tokenPBuf )
 end
 
+libs.mapRangeToken = function( unit, range, func )
+   local tokenP = libs.mkCXTokenPArray( nil, 1 )
+   local num = unit:tokenize( range, tokenP:getPtr() )
+   local cxtokenArray = libs.mkCXTokenArray( tokenP:getItem( 0 ), num )
+
+   for index = 0, num - 1 do
+      if not func( libs.CXToken:new( cxtokenArray:getItem( index ) ) ) then
+	 break
+      end
+   end
+   unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
+end
+
 
 libs.isPointerType = function( cxtype )
    local baseType = cxtype and cxtype:getPointeeType()
@@ -543,3 +556,11 @@ libs.getUnaryOperatorTxt = function( cursor )
    return nil
 end
 
+libs.getRangeOffset = function( range )
+   local startFile, startLine, startColmn, startOffset =
+      libs.getLocation( range:getRangeStart() )
+   local endFile, endLine, endColmn, endOffset =
+      libs.getLocation( range:getRangeEnd() )
+
+   return { startPos = startOffset, endPos = endOffset }
+end

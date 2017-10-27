@@ -6,17 +6,7 @@ local Helper = require( 'lctags.Helper' )
 local Complete = {}
 
 local function getTokenKindSpelling( kind )
-   if kind == clang.core.CXToken_Punctuation then
-      return "CXToken_Punctuation"
-   elseif kind == clang.core.CXToken_Keyword then
-      return "CXToken_Keyword"
-   elseif kind == clang.core.CXToken_Identifier then
-      return "CXToken_Identifier"
-   elseif kind == clang.core.CXToken_Literal then
-      return "CXToken_Literal"
-   elseif kind == clang.core.CXToken_Comment then
-      return "CXToken_Comment"
-   end
+   return Util:getTokenKindSpelling( kind )
 end
 
 local function convertXmlTxt( txt )
