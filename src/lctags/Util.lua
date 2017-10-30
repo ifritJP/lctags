@@ -164,24 +164,26 @@ function Util:convertXmlTxt( txt )
 end
 
 function Util:outputResult( level, func, diagList )
-   print( '<lctags_result>' )
+   local stream = io.stdout
+
+   stream:write( '<lctags_result>' )
 
    if not diagList then
       diagList = {}
    end
 
    if func then
-      func( diagList )
+      func( diagList, stream )
    end
 
-   print( '<diagnostics>' )
+   stream:write( '<diagnostics>' )
    for index, diag in ipairs( diagList ) do
       if diag.level >= level then
-	 print( '<message>' .. self:convertXmlTxt( diag.message ) .. '</message>' )
+	 stream:write( '<message>' .. self:convertXmlTxt( diag.message ) .. '</message>' )
       end
    end
-   print( '</diagnostics>' )
-   print( '</lctags_result>' )
+   stream:write( '</diagnostics>' )
+   stream:write( '</lctags_result>' )
 end
 
 

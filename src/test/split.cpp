@@ -177,6 +177,35 @@ static void func9( type_t * pTyp )
     *pVal = 1;
 }
 
+static void func10( void ) {
+    type_t type;
+    {
+        type_t * pType = &type;
+        int * pVal1 = &type.val;
+        int * pVal2 = &(type).val;
+        int * pVal3 = &(type.val);
+        int * pVal4 = &(&type)->val;
+    }
+}
+
+static void func10__sub( type_t* ptype )
+{
+  type_t * pType = ptype;
+  int * pVal1 = &ptype->val;
+  int * pVal2 = &((*ptype)).val;
+  int * pVal3 = &(ptype->val);
+  int * pVal4 = &(ptype)->val;
+}
+
+static void func11( int val ) {
+    int * pVal = &val;
+    {
+        int val;
+        pVal = &val;
+    }
+}
+
+
 
 
 int main()

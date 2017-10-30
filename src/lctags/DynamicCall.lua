@@ -860,7 +860,7 @@ function DynamicCall:dumpInfo( dbPath, target )
       "funcCall", "symbolDecl", "funcCall.nsId = symbolDecl.nsId",
       "symbolDecl.type = 20", nil,
       "funcCall.nsId, funcCall.belongNsId, " ..
-	 "funcCall.fileId, funcCall.line, funcCall.column", 
+	 "funcCall.fileId, funcCall.line, funcCall.column",
       function( item )
 	 local indirectList = fileId2IndirectListMap[ item.fileId ]
 	 if not indirectList then

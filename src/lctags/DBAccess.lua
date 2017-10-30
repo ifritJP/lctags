@@ -157,7 +157,8 @@ function DBAccess:close()
 end
 
 
-function DBAccess:mapJoin( tableName, otherTable, on, condition, limit, attrib, func )
+function DBAccess:mapJoin(
+      tableName, otherTable, on, condition, limit, attrib, func )
    local query = nil
    if not attrib then
       attrib = "*"

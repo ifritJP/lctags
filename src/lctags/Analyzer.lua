@@ -1574,11 +1574,13 @@ function Analyzer:getDiagList( transUnit, diagList )
 end
 
 function Analyzer:analyzeSourceAtWithFunc(
-      targetFullPath, line, column,
+      compileFullPath, targetFullPath, line, column,
       optionList, target, fileContents, func, diagList )
 
    if diagList then
       table.insert( optionList, "-Wall" )
+      table.insert( optionList, "-Wfloat-equal" )
+      table.insert( optionList, "-Wshadow" )
    end
    
    local args = clang.mkcharPArray( optionList )
@@ -1594,13 +1596,13 @@ function Analyzer:analyzeSourceAtWithFunc(
 
 
    log( 2, "analyzeSourceAtWithFunc:", self.currentDir,
-	targetFullPath, line, column )
+	compileFullPath, targetFullPath, line, column )
 
    local now = Helper.getTime( true )
    
    local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
    local transUnit = self.clangIndex:parseTranslationUnit(
-      targetFullPath, args:getPtr(), args:getLength(), 
+      compileFullPath, args:getPtr(), args:getLength(), 
       unsavedFileArray:getPtr(), unsavedFileArray:getLength(),
       clang.core.CXTranslationUnit_DetailedPreprocessingRecord +
 	 clang.core.CXTranslationUnit_Incomplete )
@@ -1654,25 +1656,36 @@ function Analyzer:queryAtFunc(
    
    local db = self:openDBForReadOnly()
 
+   local targetFileInfo = db:getFileInfo( nil, filePath )
+   local compileSrcInfo = targetFileInfo
+   if targetFileInfo.incFlag ~= 0 then
+      -- インクルードファイルを解析する場合、
+      -- そのインクルードファイルを include しているソースファイルをコンパイル対象とする
+      compileSrcInfo = db:getSrcForIncOne( targetFileInfo, target )
+   end
+   
    -- filePath の target に対応するコンパイルオプションを取得
-   local fileInfo, optionList, updateTime = db:getFileOpt( filePath, target )
+   local fileInfo, optionList, updateTime =
+      db:getFileOpt( db:getSystemPath( compileSrcInfo.path ), target )
    if not optionList then
-      print( "not register target", filePath, target )
+      print( "not register target", compileSrcInfofilePath, target )
       os.exit( 1 )
    end
 
    local equalDigestFlag
-   if fileInfo.incFlag == 0 and updateTime and
-      updateTime >= Helper.getFileModTime( filePath )
-   then
-      -- ソースで解析後に編集していない
-      if fileContents then
-	 if fileInfo.digest == Util:calcTextDigest( fileContents ) then
-	    -- コンテンツ指定されている場合は、ソースと変更されていない時
+   if targetFileInfo.id == fileInfo.id then
+      if fileInfo.incFlag == 0 and updateTime and
+	 updateTime >= Helper.getFileModTime( filePath )
+      then
+	 -- ソースで解析後に編集していない
+	 if fileContents then
+	    if fileInfo.digest == Util:calcTextDigest( fileContents ) then
+	       -- コンテンツ指定されている場合は、ソースと変更されていない時
+	       equalDigestFlag = true
+	    end
+	 else
 	    equalDigestFlag = true
 	 end
-      else
-	 equalDigestFlag = true
       end
    end
 
@@ -1721,11 +1734,14 @@ function Analyzer:queryAtFunc(
    for index, option in ipairs( optionList ) do
       compileOp = compileOp .. option .. " "
    end
-   log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
    
-      
-   local currentDir = db:getSystemPath( fileInfo.currentDir )
-   local targetFilePath = db:getSystemPath( fileInfo.path )
+     
+   local currentDir = db:getSystemPath( compileSrcInfo.currentDir )
+   local targetFilePath = db:getSystemPath( targetFileInfo.path )
+   local compileFilePath = db:getSystemPath( compileSrcInfo.path )
+
+   log( 3, "src:", compileSrcInfo.path, "target:", target,
+	"dir:", currentDir, "compOP:", compileOp )
 
    local analyzer = self:newAs(
       self.recordDigestSrcFlag, self.displayDiagnostics, currentDir )
@@ -1733,7 +1749,7 @@ function Analyzer:queryAtFunc(
    db:close()
 
    analyzer:analyzeSourceAtWithFunc(
-      targetFilePath, line, column,
+      compileFilePath, targetFilePath, line, column,
       optionList, target, fileContents, func, diagList )
 end
 
@@ -1773,16 +1789,25 @@ function Analyzer:queryAt(
 		  end	 
 	       )
 	    elseif mode == "def-at" then
-	       db:SymbolDefInfoListForCursor(
-		  declCursor,
-		  function( item )
-		     local nsInfo = db:getNamespace( item.nsId )
-		     Util:printLocate(
-			db, nsInfo.name, item.fileId, item.line, absFlag, true,
-			item.fileId == targetFileId and fileContents or nil )
-		     return true
-		  end	 
-	       )
+	       if cursor:getCursorKind() == clang.core.CXCursor_InclusionDirective
+	       then
+		  local incFileInfo = db:getFileInfo(
+		     nil, db:convFullpath( cursor:getIncludedFile():getFileName() ) )
+		  Util:printLocate( 
+		     db, filePath,
+		     incFileInfo.id, 1, 1, false, fileContents )
+	       else
+		  db:SymbolDefInfoListForCursor(
+		     declCursor,
+		     function( item )
+			local nsInfo = db:getNamespace( item.nsId )
+			Util:printLocate(
+			   db, nsInfo.name, item.fileId, item.line, absFlag, true,
+			   item.fileId == targetFileId and fileContents or nil )
+			return true
+		     end	 
+		  )
+	       end
 	    elseif mode == "call-at" then
 	       db:mapCallForCursor(
 		  declCursor,

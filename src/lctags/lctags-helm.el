@@ -18,7 +18,13 @@
   (require 'helm))
 
 (require 'cl)
-  
+
+
+(defun lctags-xml-get-child (xml symbol)
+  (car (xml-get-children xml symbol)))
+(defun lctags-xml-get-val (xml symbol)
+  (car (xml-node-children (lctags-xml-get-child xml symbol))))
+
 ;; [C-return]
 (defvar lctags-heml-map
   (let (map)
@@ -34,8 +40,8 @@
 (defun lctags-execute-heml (src-buf lctags-buf input &rest lctags-opts)
   (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
       (progn
-	(setq lctags-candidate-info (lctags-xml-get lctags-buf 'complete))
-	(if (assoc 'candidate lctags-candidate-info)
+	(setq lctags-candidate-info (lctags-xml-get lctags-buf 'completion))
+	(if (lctags-xml-get-child lctags-candidate-info 'candidate)
 	    (setq lctags-diag-info nil)
 	  (setq lctags-diag-info (lctags-xml-get-diag lctags-buf))))
     (setq lctags-candidate-info nil)
@@ -61,7 +67,8 @@
 	 (setq items (cdr (helm-marked-candidates))))
        (when (eq lctags-candidate-select-mode :all)
 	 (setq lctags-candidate-select-mode nil)
-	 (setq items (cdr (assoc 'candidates (plist-get info :candidate))))
+	 (setq items (cdr (xml-get-children (plist-get info :candidate)
+					    'candidates)))
 	 (setq item (car items))
 	 (setq items (cdr items))
 	 )
@@ -125,7 +132,9 @@
 
 (defun lctags-xml-get (buf symbol)
   (with-current-buffer buf
-    (assoc symbol (assoc 'lctags_result (xml-parse-region (point-min) (point-max))) )))
+    (let (info)
+      (setq info (xml-parse-region (point-min) (point-max)))
+      (lctags-xml-get-child (assoc 'lctags_result info) symbol))))
 
 (defun lctags-xml-get-diag (buf)
   (delq nil (mapcar (lambda (X)
@@ -137,38 +146,38 @@
 (defun lctags-diag-get-message (diag)
   (nth 2 diag))
 
-
 (defun lctags-candidate-item-get-simple (item)
-  (nth 2 (assoc 'simple item))
+  (lctags-xml-get-val item 'simple)
   )
 (defun lctags-candidate-item-get-expand (item)
-  (nth 2 (assoc 'expand item))
+  (lctags-xml-get-val item 'expand)
   )
 
 (defun lctags-candidate-item-get-type (item)
-  (nth 2 (assoc 'type item))
+  (lctags-xml-get-val item 'type)
   )
 
 (defun lctags-candidate-item-get-hash (item)
-  (nth 2 (assoc 'hash item))
+  (lctags-xml-get-val item 'hash)
   )
 
 (defun lctags-candidate-item-get-kind (item)
-  (nth 2 (assoc 'kind item))
+  (lctags-xml-get-val item 'kind)
   )
 
 (defun lctags-candidate-item-get-val (item)
-  (nth 2 (assoc 'val item))
+  (lctags-xml-get-val item 'val)
   )
 
 (defun lctags-candidate-item-get-canonical (item)
-  (nth 2 (assoc 'canonical item))
+  (lctags-xml-get-val item 'canonical)
   )
 
 (defun lctags-candidate-get-item-from-canonical (canonical)
   (car (delq nil (mapcar (lambda (X)
 			   (when (listp X)
-			     (when (equal (nth 2 (assoc 'canonical X)) canonical)
+			     (when (equal (lctags-xml-get-val X 'canonical)
+					  canonical)
 			       X)))
 			 lctags-candidate-info
 			 ))))
@@ -183,24 +192,18 @@
 (defun lctags-candidate-get-typeInfo (info hash)
   (delq nil (mapcar (lambda (X)
 		      (when (and (listp X) (eq (car X) 'typeInfo) )
-			(if (equal (nth 2 (assoc 'hash X)) hash)
+			(if (equal (lctags-xml-get-val X 'hash) hash)
 			    X)))
 		    info
 		    )))
 
 (defun lctags-candidate-get-prefix (&optional candidate-info)
-  (let ((prefix-info
-	 (assoc 'prefix
-		(if candidate-info candidate-info lctags-candidate-info))))
-    (when prefix-info
-      (nth 2 prefix-info))))
+  (lctags-xml-get-val
+   (if candidate-info candidate-info lctags-candidate-info) 'prefix))
 
 (defun lctags-candidate-get-frontExpr (&optional candidate-info)
-  (let ((info
-	 (assoc 'frontExpr
-		(if candidate-info candidate-info lctags-candidate-info))))
-    (when info
-      (nth 2 info))))
+  (lctags-xml-get-val
+   (if candidate-info candidate-info lctags-candidate-info) 'frontExpr))
 
 (defface lctags-candidate-face
   '((t
@@ -251,7 +254,7 @@
 	 expandable)
     (when (< (length candidates-info) 300)
       (setq type-info (lctags-candidate-get-typeInfo candidates-info hash)))
-    (setq expandable (assoc 'candidate (car type-info)))
+    (setq expandable (lctags-xml-get-child (car type-info) 'candidate))
     (cons (format
 	   "(%s) %s%s %s %s"
 	   (lctags-candidate-item-get-kind info)
@@ -314,7 +317,7 @@
       (kill-buffer lctags-diag-buf-name))))
   
 
-(defun lctags-helm-complete-at ()
+(defun lctags-helm-completion-at ()
   (interactive)
   (let ((buffer (lctags-get-process-buffer t))
 	(filename (buffer-file-name (current-buffer)))
@@ -636,6 +639,27 @@
       (anything-resume nil "*lctags gtags*")
     (helm-resume nil "*lctags gtags*")))
 
+
+(defun lctags-execute-insert-func (src-buf lctags-buf input &rest lctags-opts)
+  (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
+      (progn
+	(setq lctags-insert-func-info (lctags-xml-get lctags-buf 'functionList))
+	(if (lctags-xml-get-child lctags-insert-func-info 'function)
+	    (setq lctags-diag-info nil)
+	  (setq lctags-diag-info (lctags-xml-get-diag lctags-buf))))
+    (setq lctags-candidate-info nil)
+    (with-current-buffer lctags-buf
+      (setq lctags-diag-info `((message nil ,(buffer-string))))))
+  )
+
+
+(defun lctags-insert-call-func ()
+  (interactive)
+  (let ((pattern (read-string "funcname-pattern: "))
+	(buffer (lctags-get-process-buffer t)))
+    (lctags-execute-insert-func (current-buffer) buffer
+				(buffer-string) "call-func" (buffer-file-name) pattern)
+  ))
 
 
 (provide 'lctags-helm)

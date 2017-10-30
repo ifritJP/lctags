@@ -370,5 +370,4 @@ function Query:outputSymbolRefRelation(
    self:outputRelation( db, symbol, depthLimit, refIf, outputFunc, ... )
 end
 
-
 return Query

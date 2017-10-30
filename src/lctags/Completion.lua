@@ -3,7 +3,7 @@ local clang = require( 'libclanglua.if' )
 local log = require( 'lctags.LogCtrl' )
 local Helper = require( 'lctags.Helper' )
 
-local Complete = {}
+local Completion = {}
 
 local function getTokenKindSpelling( kind )
    return Util:getTokenKindSpelling( kind )
@@ -69,7 +69,7 @@ end
 
 -- startIndex 以降から lastIndex までで endToken を検索する。
 -- 途中に beginToken, endToken ペアがある場合は無視する
-function Complete:searchPairEnd(
+function Completion:searchPairEnd(
       tokenInfoList, startIndex, lastIndex, pairToken )
    local beginToken, endToken = pairToken[ 1 ], pairToken[ 2 ]
    local num = 1
@@ -88,13 +88,13 @@ function Complete:searchPairEnd(
 end
 
 
-function Complete:searchParenEnd( tokenInfoList, startIndex, lastIndex )
+function Completion:searchParenEnd( tokenInfoList, startIndex, lastIndex )
    return self:searchPairEnd( tokenInfoList, startIndex, lastIndex, { '(', ')' } )
 end
 
 -- lastIndex 以前から startIndex の間で、閉じられていない (, { を検索する。
 -- 見つけた場合はその index を返す。無い場合は nil。
-function Complete:searchPairBegin(
+function Completion:searchPairBegin(
       tokenInfoList, startIndex, lastIndex, pairToken )
    local beginToken, endToken = pairToken[ 1 ], pairToken[ 2 ]
    log( 2, "searchPairBegin", startIndex, lastIndex )
@@ -114,13 +114,13 @@ function Complete:searchPairBegin(
 end
 
 -- lastIndex 以前から startIndex の間で、閉じられていない ( を検索する。 
-function Complete:searchParenBegin( tokenInfoList, startIndex, lastIndex )
+function Completion:searchParenBegin( tokenInfoList, startIndex, lastIndex )
    return self:searchPairBegin( tokenInfoList, startIndex, lastIndex, { '(', ')' } )
 end
 
 
 -- lastIndex 以前から startIndex の間で token を検索する。 
-function Complete:searchToken( tokenInfoList, startIndex, lastIndex, targetToken )
+function Completion:searchToken( tokenInfoList, startIndex, lastIndex, targetToken )
    log( 2, "searchChar", startIndex, lastIndex )
    for index = lastIndex, startIndex, -1 do
       local token = tokenInfoList[ index ].token
@@ -139,7 +139,7 @@ end
 -- checkIndex から前に戻る。
 -- 戻り値: startIndex, endIndex
 --   startIndex: 解析対象の式の開始インデックス
-function Complete:checkStatementReverse( tokenInfoList, startIndex, checkIndex )
+function Completion:checkStatementReverse( tokenInfoList, startIndex, checkIndex )
    log( 2, "checkStatementReverse", startIndex, checkIndex )
    local index = checkIndex
    while index > startIndex do
@@ -173,7 +173,7 @@ end
 --                    補完する prefix は含まない。
 --  syntaxStartIndex: このインデックスから checkIndex までを解析対象の式とする。
 --                    補完する prefix も含む。
-function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
+function Completion:checkStatement( tokenInfoList, startIndex, checkIndex )
 
 
    local blockStartIndex
@@ -285,7 +285,7 @@ function Complete:checkStatement( tokenInfoList, startIndex, checkIndex )
 end
 
 
-function Complete:concatToken(
+function Completion:concatToken(
       fileHandle, depthList, tokenInfoList, targetIndex,
       startIndex, endIndex, newLineNo, newColmun, compMode )
 
@@ -351,7 +351,7 @@ function Complete:concatToken(
 end
 
 -- tokenInfoList に格納されているトークンから解析用ソースコードを生成する
-function Complete:createSourceForAnalyzing(
+function Completion:createSourceForAnalyzing(
       fileContents, tokenInfoList, mode, targetIndex )
 
    log( 2, "createSourceForAnalyzing: targetIndex", targetIndex, mode )
@@ -448,8 +448,8 @@ function Complete:createSourceForAnalyzing(
 	targetIndex, checkIndex, syntaxStartIndex )
 
    local termChar = ';'
-   if tokenInfoList[  statementStartIndex ].token == ',' or
-      tokenInfoList[  statementStartIndex - 1 ].token == ',' or
+   if tokenInfoList[ statementStartIndex ].token == ',' or
+      tokenInfoList[ statementStartIndex - 1 ].token == ',' or
       ( tokenInfoList[  statementStartIndex ].token == '{' and
 	   tokenInfoList[  statementStartIndex - 1 ].token ~= ')' ) or
       ( tokenInfoList[  statementStartIndex - 1 ].token == '{' and
@@ -623,10 +623,10 @@ function Complete:createSourceForAnalyzing(
 end
 
 
-function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
+function Completion:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
    print( string.format(
 	     [=[
-<complete>
+<completion>
 <prefix>%s</prefix>
 ]=], prefix ) )
 
@@ -643,11 +643,11 @@ function Complete:completeSymbol( db, path, cursor, compMode, prefix, frontSynta
       end
    )
 			    
-   print( '</complete>' )
+   print( '</completion>' )
 end
 
 
-function Complete:completeSymbolFunc(
+function Completion:completeSymbolFunc(
       db, path, cursor, compMode, prefix, frontSyntax, func )
    if compMode == "symbol" then
       frontSyntax = ""
@@ -1012,7 +1012,7 @@ local function outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
 end   
 
 -- member アクセス
-function Complete:completeMember(
+function Completion:completeMember(
       db, path, declCursor, cursor, compMode, prefix, frontSyntax )
    local kind = cursor:getCursorKind()
    local declKind = declCursor:getCursorKind()
@@ -1082,7 +1082,7 @@ function Complete:completeMember(
    
    print( string.format(
 	     [=[
-<complete>
+<completion>
 <prefix>%s</prefix>
 <frontExpr>%s</frontExpr>
 ]=], convertXmlTxt( prefix ), convertXmlTxt( frontExprTxt ) ) )
@@ -1118,24 +1118,24 @@ function Complete:completeMember(
       end
    end
    
-   print( '</complete>' )
+   print( '</completion>' )
 end   
 
-function Complete:at( analyzer, path, line, column, target, fileContents )
+function Completion:at( analyzer, path, line, column, target, fileContents )
    self:analyzeAt( "comp", analyzer, path, line, column, target, fileContents )
 end
 
-function Complete:inqAt( analyzer, path, line, column, target, fileContents, mode )
+function Completion:inqAt( analyzer, path, line, column, target, fileContents, mode )
    self:analyzeAt(
       ( mode == "inq-at" ) and "inq" or mode,
       analyzer, path, line, column, target, fileContents )
 end
 
-function Complete:outputResult( level, func )
+function Completion:outputResult( level, func )
    Util:outputResult( level, func )
 end
 
-function Complete:analyzeAt(
+function Completion:analyzeAt(
       mode, analyzer, path, line, column, target, fileContents )
 
    if not target then
@@ -1227,7 +1227,8 @@ function Complete:analyzeAt(
    )
 end
 
-function Complete:expandCursor( db, path, cursor, frontSyntax )
+
+function Completion:expandCursor( db, path, cursor, frontSyntax )
    local kind = cursor:getCursorKind()
    local orgCursor = cursor
 
@@ -1289,7 +1290,7 @@ function Complete:expandCursor( db, path, cursor, frontSyntax )
       
       print( string.format(
 		[=[
-<complete>
+<completion>
 <prefix>%s</prefix>
 ]=], "" ) )
       clang.visitChildrenFast(
@@ -1309,13 +1310,13 @@ function Complete:expandCursor( db, path, cursor, frontSyntax )
       		      endInfo and endInfo[ 2 ], endInfo and endInfo[ 3 ],
 		      aCursor:getEnumConstantDeclUnsignedValue() ) )
       	 end, nil, nil, 1 )
-      print( '</complete>' )
+      print( '</completion>' )
    else
       outputCandidate( db, "", cursor, {}, {} )
    end
 end
 
-function Complete:analyzeDiagnostic( analyzer, path, target, fileContents )
+function Completion:analyzeDiagnostic( analyzer, path, target, fileContents )
    local newAnalyzer = analyzer:newAs(
       log( -4 ) >= 2 and true or false, false )
    
@@ -1330,4 +1331,84 @@ function Complete:analyzeDiagnostic( analyzer, path, target, fileContents )
    )
 end
 
-return Complete
+function Completion:callFunc( db, currentFile, pattern, target )
+   pattern = pattern or ""
+   local cond = string.format(
+      "symbolDecl.type = %d OR symbolDecl.type = %d",
+      clang.core.CXCursor_FunctionDecl, clang.core.CXCursor_MacroDefinition )
+   cond = string.format( "(%s) AND (namespace.name LIKE '%%%s%%')", cond, pattern )
+
+   local currentFileInfo = db:getFileInfo( nil, db:convFullpath( currentFile ) )
+
+   local currentIncSet = {}
+   db:mapIncludeCache(
+      currentFileInfo,
+      function( item )
+	 currentIncSet[ item.id ] = true
+	 return true
+      end
+   )
+   
+   self:outputResult(
+      clang.core.CXDiagnostic_Error,
+      function( diagList, stream )
+	 stream:write( '<functionList>' )
+	 
+	 db:mapJoin(
+	    "namespace", "symbolDecl", "namespace.id = symbolDecl.nsId",
+	    cond, 10000,
+	    "namespace.name, symbolDecl.nsId, "
+	    .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column",
+	    function( item )
+
+	       if not string.find( item.name, pattern, 1, true ) or
+		  currentFileInfo and
+		  string.find( item.name, ":[%d]+$" ) and
+		  item.fileId ~= currentFileInfo.id
+	       then
+		  -- 終端に数値がつくのはファイル内の関数なので除外
+	       else
+		  local fileInfo = db:getFileInfo( item.fileId )
+		  if fileInfo.incFlag == 0 and
+		     fileInfo.id ~= currentFileInfo.id and
+		     not currentIncSet[ fileInfo.id ]
+		  then
+		     -- ヘッダに定義されていない別ファイルの関数は除外
+		  else
+		     local incList = { fileInfo.id }
+		     db:mapIncludeCacheForInc(
+			fileInfo,
+			function( item )
+			   table.insert( incList, item.fileId )
+			   return true
+			end
+		     )
+		     stream:write( "<function>" )
+		     stream:write( string.format(
+				      "<name>%s</name>\n",
+				      db:getNamespace( item.nsId ).name ) )
+		     if fileInfo.incFlag ~= 0 and
+			not currentIncSet[ fileInfo.id ]
+		     then
+			stream:write( string.format(
+					 "<include>%s</include>\n",
+					 db:getSystemPath( fileInfo.path ) ) )
+		     end
+		     stream:write( "<incCandidate>" )
+		     for index, incId in ipairs( incList ) do
+			stream:write( string.format( "<path>%s</path>\n", incId ) )
+		     end
+		     stream:write( "</incCandidate>" )
+		     stream:write( "</function>\n" )
+		  end
+	       end
+	       return true
+	    end
+	 )
+	 stream:write( '</functionList>' )
+      end
+   )
+end
+
+return Completion
+

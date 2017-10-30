@@ -2746,6 +2746,12 @@ function DBCtrl:getSrcForIncOne( fileInfo, target )
 end
 
 
+function DBCtrl:mapIncludeCacheForInc( incFileInfo, func )
+   local condition = string.format( "id = %d AND incFlag <> 0", incFileInfo.id )
+   self:mapRowList( "incCache", condition, nil, nil, func )
+end
+
+
 function DBCtrl:mapIncludeCache( fileInfo, func, onlyBaseSrcFile )
    local condition
    if fileInfo then

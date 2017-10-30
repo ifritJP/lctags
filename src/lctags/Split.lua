@@ -29,6 +29,8 @@ local function visit( cursor, parent, info, addInfo )
 	 if info.compoundRangeOffset.startPos > declOffset or
 	    info.compoundRangeOffset.endPos < declOffset
 	 then
+	    -- サブルーチン化する領域外の変数を参照している場合、
+	    -- その参照情報を登録する。
 	    local symbol = declCursor:getCursorSpelling()
 	    if symbol == "" then
 	       error( "illegal symbol" )
@@ -59,6 +61,10 @@ local function visit( cursor, parent, info, addInfo )
       end
    elseif cursorKind == clang.core.CXCursor_UnaryOperator then
       table.insert( info.unaryList, cursor )
+      if clang.getUnaryOperatorTxt( cursor ) == "&" then
+	 table.insert( info.repList,
+		       { cursor = cursor, offset = appendInfo.offset } )
+      end
    elseif cursorKind == clang.core.CXCursor_BinaryOperator then
       table.insert( info.binOpList, cursor )
    elseif cursorKind == clang.core.CXCursor_ArraySubscriptExpr then
@@ -173,78 +179,36 @@ local function outputCode(
       stream:write( fileContents:sub( startOffset, frontOffset ) )
    end
 
-   startOffset = startOffset + 1
-   for index, repInfo in ipairs( info.repList ) do
-      local target = repInfo.cursor
-      local kind = target:getCursorKind()
-      if kind == clang.core.CXCursor_ReturnStmt then
-	 local valCursor = clang.getNthCursor( target, 1, nil )
-
-	 if valCursor then
-	    local range = valCursor:getCursorExtent()
-
-	    local frontFile, frontLine, frontColmn, frontOffset =
-	       clang.getLocation( range:getRangeStart() )
-	    local tailFile, tailLine, tailColmn, tailOffset =
-	       clang.getLocation( range:getRangeEnd() )
-
-	    writeSubstr( frontOffset )
-	    startOffset = frontOffset
-	    retEndOffset = tailOffset
-	    
-	    stream:write( "*pFuncRet__=" )
-	 else
-	    local range = target:getCursorExtent()
-	    local tailFile, tailLine, tailColmn, tailOffset =
-	       clang.getLocation( range:getRangeEnd() )
-	    writeSubstr( tailOffset )
-	    startOffset = tailOffset + 1
-
-	    stream:write( " " .. boolTypeInfo.ret )
-	 end
-      elseif kind == clang.core.CXCursor_BreakStmt or
-	 kind == clang.core.CXCursor_ContinueStmt
-      then
-	 local range = target:getCursorExtent()
+   local function replaceSymbol( target, addressAccessFlag )
+      local ref = target
+      local sym = ref:getCursorSpelling()
+      local declCursorInfo =
+	 info.hash2DeclMap[ target:getCursorDefinition():hashCursor() ]
+      if declCursorInfo and isNeedPassAddress( declCursorInfo ) then
+	 -- 参照しているシンボルがアドレスアクセス必要なシンボルだった場合
+	 -- * 演算子を加える。
+	 local range = ref:getCursorExtent()
 	 local frontFile, frontLine, frontColmn, frontOffset =
 	    clang.getLocation( range:getRangeStart() )
 	 local tailFile, tailLine, tailColmn, tailOffset =
 	    clang.getLocation( range:getRangeEnd() )
-	 writeSubstr( frontOffset )
-	 startOffset = tailOffset + 1
-	 stream:write( "return " )
-	 if kind == clang.core.CXCursor_BreakStmt then
-	    stream:write( boolTypeInfo.brk )
-	 else
-	    stream:write( boolTypeInfo.cnt )
-	 end
-      else
-	 local ref = target
-	 local sym = ref:getCursorSpelling()
-	 local declCursorInfo = info.symbol2DeclMap[ sym ]
-	 if declCursorInfo and isNeedPassAddress( declCursorInfo )
+
+	 if tailOffset - frontOffset ~= #sym or
+	    fileContents:sub( frontOffset + 1, tailOffset ) ~= sym 
 	 then
-	    -- 参照しているシンボルがアドレスアクセス必要なシンボルだった場合
-	    -- * 演算子を加える。
-	    local range = ref:getCursorExtent()
-	    local frontFile, frontLine, frontColmn, frontOffset =
-	       clang.getLocation( range:getRangeStart() )
-	    local tailFile, tailLine, tailColmn, tailOffset =
-	       clang.getLocation( range:getRangeEnd() )
+	    error( string.format( "sym %s, %s, %d:%d-%d",
+				  fileContents:sub( frontOffset, tailOffset ),
+				  sym, frontLine, frontColmn, tailColmn ) )
+	 end
 
-	    if tailOffset - frontOffset ~= #sym or
-	       fileContents:sub( frontOffset + 1, tailOffset ) ~= sym 
-	    then
-	       error( string.format( "sym %s, %s, %d:%d-%d",
-				     fileContents:sub( frontOffset, tailOffset ),
-				     sym, frontLine, frontColmn, tailColmn ) )
-	    end
+	 writeSubstr( frontOffset )
 
-	    writeSubstr( frontOffset )
+	 startOffset = tailOffset + 1
 
-	    startOffset = tailOffset + 1
-
-	    local refTxt
+	 local refTxt
+	 if addressAccessFlag then
+	    refTxt = string.format( "p%s", ref:getCursorSpelling() )
+	 else
 	    if hash2MemberAccessRef[ ref:hashCursor() ] then
 	       -- . を見つける
 	       local dotOffset
@@ -270,7 +234,6 @@ local function outputCode(
 	       )
 
 	       if dotOffset then
-
 		  stream:write( string.format( "p%s", ref:getCursorSpelling() ) )
 		  writeSubstr( dotOffset - 1 )
 		  
@@ -281,7 +244,79 @@ local function outputCode(
 	    if not refTxt then
 	       refTxt = string.format( "(*p%s)", ref:getCursorSpelling() )
 	    end
-	    stream:write( refTxt )
+	 end
+	 stream:write( refTxt )
+      end
+   end
+
+   startOffset = startOffset + 1
+   local skipFlag = false
+   for index, repInfo in ipairs( info.repList ) do
+      if skipFlag then
+	 skipFlag = false
+      else
+	 local target = repInfo.cursor
+	 local kind = target:getCursorKind()
+	 if kind == clang.core.CXCursor_ReturnStmt then
+	    local valCursor = clang.getNthCursor( target, 1, nil )
+
+	    if valCursor then
+	       local range = valCursor:getCursorExtent()
+
+	       local frontFile, frontLine, frontColmn, frontOffset =
+		  clang.getLocation( range:getRangeStart() )
+	       local tailFile, tailLine, tailColmn, tailOffset =
+		  clang.getLocation( range:getRangeEnd() )
+
+	       writeSubstr( frontOffset )
+	       startOffset = frontOffset
+	       retEndOffset = tailOffset
+	       
+	       stream:write( "*pFuncRet__=" )
+	    else
+	       local range = target:getCursorExtent()
+	       local tailFile, tailLine, tailColmn, tailOffset =
+		  clang.getLocation( range:getRangeEnd() )
+	       writeSubstr( tailOffset )
+	       startOffset = tailOffset + 1
+
+	       stream:write( " " .. boolTypeInfo.ret )
+	    end
+	 elseif kind == clang.core.CXCursor_BreakStmt or
+	    kind == clang.core.CXCursor_ContinueStmt
+	 then
+	    local range = target:getCursorExtent()
+	    local frontFile, frontLine, frontColmn, frontOffset =
+	       clang.getLocation( range:getRangeStart() )
+	    local tailFile, tailLine, tailColmn, tailOffset =
+	       clang.getLocation( range:getRangeEnd() )
+	    writeSubstr( frontOffset )
+	    startOffset = tailOffset + 1
+	    stream:write( "return " )
+	    if kind == clang.core.CXCursor_BreakStmt then
+	       stream:write( boolTypeInfo.brk )
+	    else
+	       stream:write( boolTypeInfo.cnt )
+	    end
+	 elseif kind == clang.core.CXCursor_UnaryOperator then
+	    -- ここの UnaryOperator は、& に限定される。
+	    -- &val を &(*pval) ではなく、 pval に変換する。
+	    local valCursor = clang.getNthCursor(
+	       target, 1, { clang.core.CXCursor_DeclRefExpr } )
+	    if valCursor then
+	       local declCursor = valCursor:getCursorDefinition()
+	       local declCursorInfo = info.hash2DeclMap[ declCursor:hashCursor() ]
+	       if declCursorInfo and isNeedPassAddress( declCursorInfo ) then
+		  skipFlag = true
+		  local offset = clang.getRangeOffset( target:getCursorExtent() )
+		  writeSubstr( offset.startPos )
+		  startOffset = offset.endPos + 1
+		  replaceSymbol( valCursor, true )
+	       end
+	    end
+	 else
+	    -- val を (*pval) に変換する
+	    replaceSymbol( target, false )
 	 end
       end
    end
@@ -429,20 +464,16 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
 	    
 	    if cursorKind == clang.core.CXCursor_DeclRefExpr then
 	       local declCursor = cursor:getCursorDefinition()
-	       local declCursorKind = declCursor:getCursorKind()
-	       if declCursorKind == clang.core.CXCursor_ParmDecl or
-		  declCursorKind == clang.core.CXCursor_VarDecl
-	       then
-		  local addressAccess = false
+	       local declCursorInfo =
+		  info.hash2DeclMap[ declCursor:hashCursor() ]
+
+	       if declCursorInfo then
 		  local cursorType = cursor:getCursorType()
 		  if not opType:equalTypes( cursorType ) and 
 		     cursorType:equalTypes( opPointeeType )
 		  then
-		     addressAccess = true
+		     declCursorInfo.addressAccess = true
 		  end
-		  local declCursorInfo =
-		     info.symbol2DeclMap[ declCursor:getCursorSpelling() ]
-		  declCursorInfo.addressAccess = addressAccess
 
 		  local unaryOpTxt = clang.getUnaryOperatorTxt( unary )
 		  log( 2, "unaryOpTxt", unaryOpTxt, declCursor:getCursorSpelling() )
@@ -452,8 +483,6 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
 		     
 		     log( 2, "unaryOpTxt: setAccess", appendInfo.line,
 			  appendInfo.column )
-		     local declCursorInfo =
-			info.symbol2DeclMap[ declCursor:getCursorSpelling() ]
 		     declCursorInfo.setAccess = true
 		  end
 	       end
@@ -479,8 +508,8 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
 	    Util:dumpCursorInfo( cursor, 1, "array", 0 )
 	    
 	    if cursor:getCursorKind() == clang.core.CXCursor_DeclRefExpr then
-	       local name = cursor:getCursorSpelling()
-	       local declCursorInfo = info.symbol2DeclMap[ name ]
+	       local declCursor = cursor:getCursorDefinition()
+	       local declCursorInfo = info.hash2DeclMap[ declCursor:hashCursor() ]
 	       if declCursorInfo then
 		  declCursorInfo.arrayAccess = true
 	       end
@@ -518,7 +547,7 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
 	    if not binOpTxt or string.find( binOpTxt, "=", 1, true )
 	    then
 	       local declCursorInfo =
-		  info.symbol2DeclMap[ declCursor:getCursorSpelling() ]
+		  info.hash2DeclMap[ declCursor:hashCursor() ]
 	       if declCursorInfo then
 		  declCursorInfo.setAccess = true
 	       end

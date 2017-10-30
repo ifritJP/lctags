@@ -295,6 +295,8 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	 elseif arg == "cancel-kill" then
 	    lctagOptMap.mode = arg
+	 elseif arg == "call-func" then
+	    lctagOptMap.mode = arg
 	 end
       else
 	 if skipArgNum > 0 then

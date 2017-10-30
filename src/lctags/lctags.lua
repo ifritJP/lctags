@@ -8,7 +8,7 @@ local DBCtrl = require( 'lctags.DBCtrl' )
 local DBAccess = require( 'lctags.DBAccess' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
 local Make = require( 'lctags.Make' )
-local Complete = require( 'lctags.Complete' )
+local Completion = require( 'lctags.Completion' )
 local Option = require( 'lctags.Option' )
 local Json = require( 'lctags.Json' )
 local Server = require( 'lctags.Server' )
@@ -213,6 +213,15 @@ if lctagOptMap.mode == "query" then
    else
       Query:exec( db, lctagOptMap.query, nil )
    end
+
+   db:close()
+   finish( 0 )
+end
+
+if lctagOptMap.mode == "call-func" then
+   local db = lctagOptMap.dbPath and DBCtrl:open( lctagOptMap.dbPath,
+						  true, os.getenv( "PWD" ) )
+   Completion:callFunc( db, srcList[1], srcList[2] )
 
    db:close()
    finish( 0 )
@@ -434,7 +443,7 @@ if lctagOptMap.mode == "comp-at" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Complete:at( analyzer, srcList[ 1 ],
+   Completion:at( analyzer, srcList[ 1 ],
 		tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		lctagOptMap.target, fileContents )
    finish( 0 )
@@ -446,11 +455,12 @@ if lctagOptMap.mode == "inq-at" or lctagOptMap.mode == "expand" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Complete:inqAt( analyzer, srcList[ 1 ],
+   Completion:inqAt( analyzer, srcList[ 1 ],
 		   tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		   lctagOptMap.target, fileContents, lctagOptMap.mode )
    finish( 0 )
 end
+
 
 if lctagOptMap.mode == "diag" then
    local fileContents
@@ -458,7 +468,7 @@ if lctagOptMap.mode == "diag" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Complete:analyzeDiagnostic(
+   Completion:analyzeDiagnostic(
       analyzer, srcList[ 1 ], lctagOptMap.target, fileContents )
    finish( 0 )
 end

@@ -347,8 +347,11 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 151 7
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 157 43
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 166 0
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 182 4
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand test/enum.cpp 9 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc1.cpp 2 1
+	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc2.h 7 1
 
 	$(MAKE) test-chg-proj
 
