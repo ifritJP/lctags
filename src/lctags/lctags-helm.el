@@ -49,6 +49,33 @@
       (setq lctags-diag-info `((message nil ,(buffer-string))))))
   )
 
+(defun lctags-expand-function-arg (func-name pos input lineno column)
+  (if (string-match "(" func-name)
+      (progn
+	(goto-char pos)
+	(search-forward "(")
+	(backward-char))
+    ;; メンバでないと simple に引数情報が含まれないので、
+    ;; 別途関数の問い合わせをして引数情報を展開する。
+    (let ((buffer (lctags-get-process-buffer t))
+	  (filename (buffer-file-name (current-buffer)))
+	  inq-info
+	  args
+	  )
+      (lctags-execute (current-buffer) buffer
+		      (or input (buffer-string)) "inq-at" filename
+		      (number-to-string lineno) (number-to-string column)
+		      "--lctags-log" "0" "-i")
+      (with-current-buffer buffer
+	(setq inq-info (lctags-xml-get buffer 'candidate)))
+      (setq args (lctags-candidate-item-get-simple inq-info))
+      (when (string-match (concat func-name "(") args)
+	(setq pos (point))
+	(insert (substring args (length (concat func-name))))
+	(goto-char pos))
+      )
+    ))
+
 (defun lctags-helm-select (item)
   (case lctags-candidate-select-mode
     (:back)
@@ -83,33 +110,8 @@
        (insert (substring simple (length prefix)))
        (when (equal (lctags-candidate-item-get-kind item) "f")
 	 ;; (not (string-match "\\.\\|->" front))
-	 (if (string-match "(" simple)
-	     (progn
-	       (goto-char pos)
-	       (search-forward "(")
-	       (backward-char))
-	   ;; メンバでないと simple に引数情報が含まれないので、
-	   ;; 別途関数の問い合わせをして引数情報を展開する。
-	   (let ((buffer (lctags-get-process-buffer t))
-		 (filename (buffer-file-name (current-buffer)))
-		 (lineno (lctags-get-line))
-		 (column (- (lctags-get-column) 2))
-		 inq-info
-		 args
-		 )
-	     (lctags-execute (current-buffer) buffer
-			     (buffer-string) "inq-at" filename
-			     (number-to-string lineno) (number-to-string column)
-			     "--lctags-log" "0" "-i")
-	     (with-current-buffer buffer
-	       (setq inq-info (lctags-xml-get buffer 'candidate)))
-	     (setq args (lctags-candidate-item-get-simple inq-info))
-	     (when (string-match (concat simple "(") args)
-	       (setq pos (point))
-	       (insert (substring args (length (concat simple))))
-	       (goto-char pos))
-	     )
-	 ))
+	 (lctags-expand-function-arg simple pos (buffer-string)
+				     (lctags-get-line) (- (lctags-get-column) 2)))
        (when (>= (length items) 1)
 	 (dolist (info lctags-candidate-history)
 	   (setq hist-expr
@@ -183,11 +185,16 @@
 			 ))))
 
 (defun lctags-candidate-map-candidate (func info all-info)
+  (lctags-candidate-map func info all-info 'candidate))
+
+(defun lctags-candidate-map (func info all-info symbol)
   (mapcar (lambda (X)
-	    (when (and (listp X) (eq (car X) 'candidate) )
+	    (when (and (listp X) (eq (car X) symbol) )
 	      (funcall func X all-info)))
 	  info
 	  ))
+
+
 
 (defun lctags-candidate-get-typeInfo (info hash)
   (delq nil (mapcar (lambda (X)
@@ -583,83 +590,73 @@
     (beginning-of-line)
     (gtags-select-it nil)))
 
-(defun lctags-gtags-select-mode ()
-  (let (candidate-list lctags-params)
+(defun lctags-conv-disp-path (path)
+  (let* ((relative-path (file-relative-name path default-directory))
+	 (abs-path (expand-file-name path))
+	 (disp-path relative-path))
+    (when (< (length abs-path) (length abs-path))
+      (setq disp-path abs-path))
+    (if (or (not lctags-path-length)
+	    (> lctags-path-length (length disp-path)))
+	disp-path
+      (concat "..."
+	      (substring disp-path
+			 (+ (* -1 lctags-path-length) 3))))))
+
+(defun lctags-gtags-create-candidate-list ()
+  (let (candidate-list)
     (while (not (eobp))
       (beginning-of-line)
       (when (not (looking-at "[^ \t]+[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.*\\)$"))
 	(error "illegal format"))
       (let* ((line (string-to-number (gtags-match-string 1)))
 	     (path (gtags-match-string 2))
-	     (txt (gtags-match-string 3))
-	     (relative-path (file-relative-name path default-directory))
-	     (abs-path (expand-file-name path))
-	     (disp-path relative-path))
-	(when (< (length abs-path) (length abs-path))
-	  (setq disp-path abs-path))
+	     (txt (gtags-match-string 3)))
 	(setq candidate-list
 	      (cons (cons (format "%s:%d:%s"
-				  (if (or (not lctags-path-length)
-					  (> lctags-path-length (length disp-path)))
-				      disp-path
-				    (concat "..."
-					    (substring disp-path
-						       (+ (* -1 lctags-path-length) 3))))
-				  line txt)
+				  (lctags-conv-disp-path path) line txt)
 			  (list :line line :path path))
 		    candidate-list)))
       (next-line))
-    (setq candidate-list
-	  (sort candidate-list
-		(lambda (X Y)
-		  (let ((infoX (cdr X))
-			(infoY (cdr Y)))
-		    (if (string< (plist-get infoX :path) (plist-get infoY :path))
-			t
-		      (if (< (plist-get infoX :line) (plist-get infoY :line))
+    candidate-list
+    ))
+
+(defun lctags-gtags-select-mode (select-func &optional header-name)
+  (let (candidate-list lctags-params)
+    (setq candidate-list (lctags-gtags-create-candidate-list))
+    (if (eq (length candidate-list) 1)
+	(funcall select-func (cdr (car candidate-list)))
+      (setq candidate-list
+	    (sort candidate-list
+		  (lambda (X Y)
+		    (let ((infoX (cdr X))
+			  (infoY (cdr Y)))
+		      (if (string< (plist-get infoX :path) (plist-get infoY :path))
 			  t
-			nil))))))
-    (setq lctags-params
-	  `((name . ,(buffer-name (current-buffer)))
-	    (candidates . ,candidate-list)
-	    (action . lctags-gtags-select)))
-    (if lctags-anything
-	(let ((anything-candidate-number-limit 9999))
-	  (anything :sources lctags-params
-		    :buffer (concat "*lctags gtags*"
-				    (substring (buffer-name (current-buffer)) 15))))
-      (let ((helm-candidate-number-limit 9999))
-	(helm :sources lctags-params
-	      :buffer (concat "*lctags gtags*"
-			      (substring (buffer-name (current-buffer)) 15)))))))
+			(if (< (plist-get infoX :line) (plist-get infoY :line))
+			    t
+			  nil))))))
+      (when (not header-name)
+	(setq header-name (buffer-name (current-buffer))))
+      (setq lctags-params
+	    `((name . ,header-name)
+	      (candidates . ,candidate-list)
+	      (action . ,select-func)))
+      (if lctags-anything
+	  (let ((anything-candidate-number-limit 9999))
+	    (anything :sources lctags-params
+		      :buffer (concat "*lctags gtags*"
+				      (substring (buffer-name (current-buffer)) 15))))
+	(let ((helm-candidate-number-limit 9999))
+	  (helm :sources lctags-params
+		:buffer (concat "*lctags gtags*"
+				(substring (buffer-name (current-buffer)) 15))))))))
 
 (defun lctags-gtags-resume ()
   (interactive)
   (if lctags-anything
       (anything-resume nil "*lctags gtags*")
     (helm-resume nil "*lctags gtags*")))
-
-
-(defun lctags-execute-insert-func (src-buf lctags-buf input &rest lctags-opts)
-  (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
-      (progn
-	(setq lctags-insert-func-info (lctags-xml-get lctags-buf 'functionList))
-	(if (lctags-xml-get-child lctags-insert-func-info 'function)
-	    (setq lctags-diag-info nil)
-	  (setq lctags-diag-info (lctags-xml-get-diag lctags-buf))))
-    (setq lctags-candidate-info nil)
-    (with-current-buffer lctags-buf
-      (setq lctags-diag-info `((message nil ,(buffer-string))))))
-  )
-
-
-(defun lctags-insert-call-func ()
-  (interactive)
-  (let ((pattern (read-string "funcname-pattern: "))
-	(buffer (lctags-get-process-buffer t)))
-    (lctags-execute-insert-func (current-buffer) buffer
-				(buffer-string) "call-func" (buffer-file-name) pattern)
-  ))
 
 
 (provide 'lctags-helm)

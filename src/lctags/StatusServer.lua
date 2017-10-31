@@ -46,8 +46,8 @@ function StatusServer:new( name )
       if not message then
 	 Helper.deleteMQueue( self.name .. "requestStatus" )
 	 Helper.deleteMQueue( self.name .. "replyStatus" )
-	 log( 1, "StatusServer:server end" )
-	 os.exit( 0 )
+	 log( 1, "StatusServer:server error end" )
+	 os.exit( 1 )
       end
       
       --log( 3, "StatusServer: command", message.command, message.value )

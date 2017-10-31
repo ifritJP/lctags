@@ -553,7 +553,11 @@ function Completion:createSourceForAnalyzing(
 	    for lineNo = rawEndLine + 1, targetLine do
 	       crIndex = string.find( fileContents, "\n", crIndex + 1, true )
 	    end
-	    tailTxt = fileContents:sub( crIndex )
+	    if crIndex then
+	       tailTxt = fileContents:sub( crIndex )
+	    else
+	       tailTxt = ""
+	    end
 	    log( 2, tailTxt )
 	 end
       else
@@ -1375,18 +1379,14 @@ function Completion:callFunc( db, currentFile, pattern, target )
 		  then
 		     -- ヘッダに定義されていない別ファイルの関数は除外
 		  else
-		     local incList = { fileInfo.id }
-		     db:mapIncludeCacheForInc(
-			fileInfo,
-			function( item )
-			   table.insert( incList, item.fileId )
-			   return true
-			end
-		     )
 		     stream:write( "<function>" )
+		     local name = db:getNamespace( item.nsId ).name
+		     name = string.gsub( name, "::[%d]+$", "" )
+		     if not string.find( name, "::", 2, true ) then
+			name = string.gsub( name, "::", "" )
+		     end
 		     stream:write( string.format(
-				      "<name>%s</name>\n",
-				      db:getNamespace( item.nsId ).name ) )
+				      "<name>%s</name>\n", name ) )
 		     if fileInfo.incFlag ~= 0 and
 			not currentIncSet[ fileInfo.id ]
 		     then
@@ -1394,11 +1394,9 @@ function Completion:callFunc( db, currentFile, pattern, target )
 					 "<include>%s</include>\n",
 					 db:getSystemPath( fileInfo.path ) ) )
 		     end
-		     stream:write( "<incCandidate>" )
-		     for index, incId in ipairs( incList ) do
-			stream:write( string.format( "<path>%s</path>\n", incId ) )
-		     end
-		     stream:write( "</incCandidate>" )
+		     stream:write( string.format(
+				      "<declaration>%s</declaration>\n",
+				      db:getSystemPath( fileInfo.path ) ) )
 		     stream:write( "</function>\n" )
 		  end
 	       end

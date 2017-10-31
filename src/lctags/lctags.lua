@@ -234,6 +234,8 @@ if lctagOptMap.mode == "list" then
       Query:outputIncRelation(
 	 db, srcList[ 1 ], lctagOptMap.query == "inc",
 	 lctagOptMap.depth, OutputCtrl.txt, io.stdout )
+   elseif lctagOptMap.query == "incSrcHeader" then
+      Query:outputIncSrcHeader( db, srcList[ 1 ], io.stdout )
    end
 
    db:close()

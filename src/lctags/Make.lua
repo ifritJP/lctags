@@ -73,7 +73,7 @@ local function searchNeedUpdateFiles( db, list, target )
    for incId in pairs( needUpdateIncFileInfoMap ) do
       needUpdateIncNum = needUpdateIncNum + 1
    end
-   log( 1, "needUpdateIncNum: start", needUpdateIncNum )
+   log( 2, "needUpdateIncNum: start", needUpdateIncNum )
 
    -- 更新時間が新しいファイルがインクルードしているファイルの更新情報をチェックする。
    -- ソースファイルが更新されていなくても、インクルードファイルが更新されている場合は、
@@ -146,7 +146,7 @@ local function searchNeedUpdateFiles( db, list, target )
       true
    )
 
-   log( 1, "needUpdateIncNum: fix", needUpdateIncNum )
+   log( 2, "needUpdateIncNum: fix", needUpdateIncNum )
 
 
    
@@ -420,7 +420,7 @@ endif
 
 
 setup:
-	%s %s statusServer start --lctags-db %s &
+	%s %s statusServer start --lctags-db %s 2>&1 | tee %s &
 	%s %s statusServer wait --lctags-db %s
 ifdef SRV
 	%s %s server start --lctags-db %s &
@@ -446,8 +446,8 @@ other: $(SRCS)
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
 	 arg[-1], arg[0], dbPath,
 	 -- setup
+	 arg[-1], arg[0], dbPath, Helper.getTempFilename( "lctagsStatus" ),
 	 arg[-1], arg[0], dbPath, arg[-1], arg[0], dbPath,
-	 arg[-1], arg[0], dbPath,
 	 -- %%.lc
 	 arg[-1], arg[0], 
 	 target and ("--lctags-target " .. target ) or "",

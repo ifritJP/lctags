@@ -370,4 +370,21 @@ function Query:outputSymbolRefRelation(
    self:outputRelation( db, symbol, depthLimit, refIf, outputFunc, ... )
 end
 
+function Query:outputIncSrcHeader( db, file, stream )
+   local headerFileInfo = db:getFileInfo( nil, file )
+   if not headerFileInfo then
+      return
+   end
+   db:mapIncludeCacheForInc(
+      headerFileInfo,
+      function( item )
+	 local fileInfo = db:getFileInfo( item.baseFileId )
+	 Util:printLocateDirect(
+	    stream, "path", db:getSystemPath( fileInfo.path ), 1, false )
+	 return true
+      end
+   )
+end
+
+
 return Query

@@ -45,7 +45,7 @@ usage:
    %s ns-at [--lctags-target target] [-i] file line column
    %s comp-at [--lctags-target target] [-i] file line column
    %s inq-at [--lctags-target target] [-i] file line column
-   %s list <incSrc|inc> [-d depth] name
+   %s list <incSrc|inc|incSrcHeader> [-d depth] name
    %s -x[t|s|r][a]  [--use-global] symbol
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol

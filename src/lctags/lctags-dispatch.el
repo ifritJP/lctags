@@ -27,6 +27,11 @@
 	    (:name "convert-enumName-at" :bind "e"
 		   :action lctags-generate-to-convert-enumName-at)
 	   ))
+    (:name "insert" :bind "i"
+	   :submenu
+	   ((:name "insert-to-call-function" :bind "c"
+		   :action lctags-insert-call-func)
+	   ))
     (:name "refactoring" :bind "r"
 	   :submenu
 	   ((:name "sub-routine" :bind "s"

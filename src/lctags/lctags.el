@@ -129,12 +129,32 @@ This parameter can set function and string.
     (recenter)
     ))
 
+(defun lctags-select-gtags (buffer header-name select-func decide-func)
+  (with-current-buffer buffer
+    ;;(message (buffer-string))
+    (let ((lineNum (count-lines (point-min) (point-max))))
+      (cond
+       ((string-match "^lctags:" (buffer-string))
+	(switch-to-buffer buffer)
+	)
+       ((= lineNum 0)
+	(message "not found")
+	(gtags-pop-context)
+	(kill-buffer buffer)
+	nil
+	)
+       (t
+	(funcall select-func decide-func header-name)
+	t)
+       ))  
+    ))
+
 (defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
   (let ((save (current-buffer))
 	(line (lctags-get-line))
 	(column (+ (- (point) (point-at-bol)) 1))
 	(use-global lctags-use-global)
-	buffer lineNum select-name lctags-opt lctags-opt2 opt-list input )
+	buffer select-name lctags-opt lctags-opt2 opt-list input )
     (cond
      ((equal mode "def-at")
       (setq lctags-opt "def-ata")
@@ -199,29 +219,9 @@ This parameter can set function and string.
 			    (number-to-string column)))
 			)))
     (apply 'lctags-execute opt-list)
-
-    (with-current-buffer buffer
-      ;;(message (buffer-string))
-      (setq lineNum (count-lines (point-min) (point-max)))
-      (cond
-       ((string-match "^lctags:" (buffer-string))
-	(switch-to-buffer buffer)
-	)
-       ((= lineNum 0)
-	(message "not found")
-	(gtags-pop-context)
-	(kill-buffer buffer)
-	nil
-	)
-       ((= lineNum 1)
-	(gtags-select-it nil)
-	;;(gtags-select-mode)
-	t)
-       (t
-	;;(gtags-select-mode)
-	(lctags-gtags-select-mode)
-	t)
-       ))))
+    (lctags-select-gtags buffer nil
+			 'lctags-gtags-select-mode 'lctags-gtags-select)
+    ))
 
 (defun lctags-find-file ()
   (interactive)
@@ -287,7 +287,11 @@ This parameter can set function and string.
 
 (defun lctags-get-line ()
   (interactive)
-  (count-lines 1 (1+ (point))))
+  (if (eq (point) (point-max))
+      (if (eq (current-column) 0)
+	  (1+ (count-lines 1 (point)))
+	(count-lines 1 (point)))
+    (count-lines 1 (1+ (point)))))
 
 (defun lctags-get-column ()
   (interactive)
@@ -474,5 +478,6 @@ This parameter can set function and string.
 
 (require 'lctags-dispatch)
 (require 'lctags-split)
+(require 'lctags-insert-func)
 
 (provide 'lctags)
