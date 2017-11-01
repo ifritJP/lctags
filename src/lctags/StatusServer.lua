@@ -42,11 +42,12 @@ end
 function StatusServer:new( name )
    self:setup( name, true )
    while true do
-      local message = Json:convertFrom( self:get() )
+      local txt = self:get()
+      local message = Json:convertFrom( txt )
       if not message then
 	 Helper.deleteMQueue( self.name .. "requestStatus" )
 	 Helper.deleteMQueue( self.name .. "replyStatus" )
-	 log( 1, "StatusServer:server error end" )
+	 log( 1, "StatusServer:server error end:", txt )
 	 os.exit( 1 )
       end
       

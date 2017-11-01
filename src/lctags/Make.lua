@@ -420,7 +420,7 @@ endif
 
 
 setup:
-	%s %s statusServer start --lctags-db %s 2>&1 | tee %s &
+	%s %s statusServer start --lctags-db %s 2>&1 | tee -a %s &
 	%s %s statusServer wait --lctags-db %s
 ifdef SRV
 	%s %s server start --lctags-db %s &
