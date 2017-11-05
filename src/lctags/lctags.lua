@@ -17,6 +17,7 @@ local DynamicCall = require( 'lctags.DynamicCall' )
 local Helper = require( 'lctags.Helper' )
 local StackCalc = require( 'lctags.StackCalc' )
 local Split = require( 'lctags.Split' )
+local Scan = require( 'lctags.Scan' )
 
 local startTime = Helper.getTime( true )
 
@@ -213,15 +214,6 @@ if lctagOptMap.mode == "query" then
    else
       Query:exec( db, lctagOptMap.query, nil )
    end
-
-   db:close()
-   finish( 0 )
-end
-
-if lctagOptMap.mode == "call-func" then
-   local db = lctagOptMap.dbPath and DBCtrl:open( lctagOptMap.dbPath,
-						  true, os.getenv( "PWD" ) )
-   Completion:callFunc( db, srcList[1], srcList[2] )
 
    db:close()
    finish( 0 )
@@ -463,6 +455,33 @@ if lctagOptMap.mode == "inq-at" or lctagOptMap.mode == "expand" then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "scan" then
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+
+   Scan:outputIncSrcHeader( lctagOptMap.scan, analyzer,
+			    srcList[ 1 ], lctagOptMap.target, fileContents )
+   finish( 0 )
+end
+
+if lctagOptMap.mode == "call-func" then
+   local db = lctagOptMap.dbPath and DBCtrl:open( lctagOptMap.dbPath,
+						  true, os.getenv( "PWD" ) )
+
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+   
+   Completion:callFunc(
+      analyzer, db, srcList[1], srcList[2], lctagOptMap.target, fileContents )
+
+   db:close()
+   finish( 0 )
+end
+
 
 if lctagOptMap.mode == "diag" then
    local fileContents
@@ -482,5 +501,10 @@ end
 
 if lctagOptMap.mode == "testOpe" then
    require( 'lctags.testOperator' ):at( analyzer, srcList[ 1 ], lctagOptMap.target )
+   finish( 0 )
+end
+
+if lctagOptMap.mode == "testInc" then
+   require( 'lctags.testInc' ):run( analyzer, srcList[ 1 ], lctagOptMap.target )
    finish( 0 )
 end

@@ -564,3 +564,15 @@ libs.getRangeOffset = function( range )
 
    return { startPos = startOffset, endPos = endOffset }
 end
+
+libs.getInclusionList = function( unit )
+   local list = {}
+   libs.visitChildrenFast(
+      unit:getTranslationUnitCursor(),
+      function( cursor, parent, info )
+	 table.insert( list, cursor )
+      end,
+      nil, { libclangcore.CXCursor_InclusionDirective }, 1 )
+   return list
+end
+

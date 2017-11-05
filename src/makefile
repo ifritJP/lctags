@@ -6,6 +6,8 @@ PROXY=
 
 SWIG=swig
 
+INSTALL=/usr/bin/install -c
+
 ####### customize Lua environment ######
 
 # LUA_COMMAND=lua5.1
@@ -423,14 +425,14 @@ install-lib:
 	mkdir -p $(LUA_MOD_DIR)
 	mkdir -p $(LUA_MOD_DIR)/libclanglua
 	mkdir -p $(LUA_MOD_DIR)/lctags
-	cp $(CORE_SO) $(LUA_LIB_DIR)/libclanglua
-	cp $(IF_LUA) $(IFC_LUA) $(LUA_MOD_DIR)/libclanglua
-	if [ -f lsqlite3.so  ]; then cp lsqlite3.so $(LUA_LIB_DIR); fi
+	$(INSTALL) $(CORE_SO) $(LUA_LIB_DIR)/libclanglua
+	$(INSTALL) $(IF_LUA) $(IFC_LUA) $(LUA_MOD_DIR)/libclanglua
+	if [ -f lsqlite3.so  ]; then $(INSTALL) lsqlite3.so $(LUA_LIB_DIR); fi
 	mkdir -p $(LUA_MOD_DIR)/lctags
-	cp -a lctags/*.lua $(LUA_MOD_DIR)/lctags
-	cp -a lctags/*.so $(LUA_LIB_DIR)/lctags
+	$(INSTALL) lctags/*.lua $(LUA_MOD_DIR)/lctags
+	$(INSTALL) lctags/*.so $(LUA_LIB_DIR)/lctags
 ifneq ($(LUA_INST_DIR),)
-	cp $(LUA_COMMAND) $(LUA_INST_DIR)
+	$(INSTALL) $(LUA_COMMAND) $(LUA_INST_DIR)
 endif
 
 uninstall-lib:

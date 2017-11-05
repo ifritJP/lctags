@@ -72,6 +72,7 @@
       (when (string-match (concat func-name "(") args)
 	(setq pos (point))
 	(insert (substring args (length (concat func-name))))
+	(insert (concat " => " (lctags-candidate-item-get-result inq-info)))
 	(goto-char pos))
       )
     ))
@@ -110,6 +111,8 @@
        (insert (substring simple (length prefix)))
        (when (equal (lctags-candidate-item-get-kind item) "f")
 	 ;; (not (string-match "\\.\\|->" front))
+	 (when (string-match "(" simple)
+	   (insert (concat " => " (lctags-candidate-item-get-result item))))
 	 (lctags-expand-function-arg simple pos (buffer-string)
 				     (lctags-get-line) (- (lctags-get-column) 2)))
        (when (>= (length items) 1)
@@ -157,6 +160,10 @@
 
 (defun lctags-candidate-item-get-type (item)
   (lctags-xml-get-val item 'type)
+  )
+
+(defun lctags-candidate-item-get-result (item)
+  (lctags-xml-get-val item 'result)
   )
 
 (defun lctags-candidate-item-get-hash (item)
@@ -590,13 +597,14 @@
     (beginning-of-line)
     (gtags-select-it nil)))
 
-(defun lctags-conv-disp-path (path)
+(defun lctags-conv-disp-path (path omit)
   (let* ((relative-path (file-relative-name path default-directory))
 	 (abs-path (expand-file-name path))
 	 (disp-path relative-path))
-    (when (< (length abs-path) (length abs-path))
+    (when (< (length abs-path) (length relative-path))
       (setq disp-path abs-path))
-    (if (or (not lctags-path-length)
+    (if (or (not omit)
+	    (not lctags-path-length)
 	    (> lctags-path-length (length disp-path)))
 	disp-path
       (concat "..."
@@ -614,7 +622,7 @@
 	     (txt (gtags-match-string 3)))
 	(setq candidate-list
 	      (cons (cons (format "%s:%d:%s"
-				  (lctags-conv-disp-path path) line txt)
+				  (lctags-conv-disp-path path t) line txt)
 			  (list :line line :path path))
 		    candidate-list)))
       (next-line))

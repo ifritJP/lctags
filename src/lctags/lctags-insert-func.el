@@ -17,7 +17,8 @@
 
 (defun lctags-function-make-candidates (info candidates-info)
   (cons (format "%-30s\t%s" (concat (lctags-function-item-get-name info) ":")
-		(lctags-conv-disp-path (lctags-function-item-get-declaration info)))
+		(lctags-conv-disp-path 
+		 (lctags-function-item-get-declaration info) t))
 	info))
 
 (defun lctags-execute-insert-func (src-buf lctags-buf input &rest lctags-opts)
@@ -77,8 +78,8 @@
       (lctags-select-gtags (lctags-get-process-buffer nil) "select include file"
 			   'lctags-gtags-select-mode 'lctags-insert-inc-decide)
       
-      (insert (format "\n// #include \"%s\"\n"
-		      (file-relative-name lctags-insert-inc default-directory)))
+      (insert (format "\n// #include <%s>\n"
+		      (lctags-conv-disp-path lctags-insert-inc nil)))
       (end-of-line))
     (indent-region bak-pos (point))
     (goto-char mark)
@@ -91,7 +92,8 @@
 	(buffer (lctags-get-process-buffer t))
 	candidates)
     (lctags-execute-insert-func (current-buffer) buffer
-				(buffer-string) "call-func" (buffer-file-name) pattern)
+				(buffer-string) "call-func"
+				(buffer-file-name) pattern "-i")
     (if lctags-diag-info
 	(lctags-helm-display-diag)
       (with-current-buffer buffer

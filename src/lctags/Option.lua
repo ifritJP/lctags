@@ -258,6 +258,10 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    skipArgNum = 1
+	 elseif arg == "scan" then
+	    lctagOptMap.mode = arg
+	    lctagOptMap.scan = argList[ index + 1 ]
+	    skipArgNum = 1
 	 elseif arg == "split-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "comp-at" then
@@ -290,6 +294,8 @@ function Option:analyzeOption( argList )
 	 elseif arg == "clang-ver" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "testOpe" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "testInc" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "kill" then
 	    lctagOptMap.mode = arg

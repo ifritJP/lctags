@@ -14,8 +14,9 @@ local function convertXmlTxt( txt )
 end
 
 local function createCandidate(
-      canonical, simple, expand, kind, typeName, hash,
+      canonical, simple, expand, kind, typeName, result, hash,
       filePath, startLine, startColmun, endLine, endColmun, value )
+
    if kind == clang.core.CXCursor_FunctionDecl or
       kind == clang.core.CXCursor_CXXMethod
    then
@@ -49,6 +50,7 @@ local function createCandidate(
 <expand>%s</expand>
 <kind>%s</kind>
 <type>%s</type>
+<result>%s</result>
 <hash>%s</hash>
 <val>%s</val>
 <file>%s</file>
@@ -62,7 +64,7 @@ local function createCandidate(
 </endPos>
 </candidate>]],
       convertXmlTxt( canonical ), convertXmlTxt( simple ),
-      convertXmlTxt( expand ), kind, convertXmlTxt( typeName ), hash,
+      convertXmlTxt( expand ), kind, convertXmlTxt( typeName ), result, hash,
       value and string.format( "%d", value ) or "", filePath or "",
       startLine or 0, startColmun or 0, endLine or 0, endColmun or 0 )
 end
@@ -620,7 +622,7 @@ function Completion:createSourceForAnalyzing(
       fileHandle.__txt = fileHandle.__txt .. tailTxt
    end
    
-   log( 3, fileHandle.__txt )
+   log( 4, fileHandle.__txt )
    log( 2, "tgt:", targetLine, targetColmun, prefix, targetToken )
 
    return fileHandle.__txt, targetLine, targetColmun, prefix, compMode, frontSyntax, targetToken
@@ -641,8 +643,8 @@ function Completion:completeSymbol( db, path, cursor, compMode, prefix, frontSyn
 	 local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
 	 simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
 	 print( createCandidate(
-		   nsInfo.name, simpleName, "",
-		   item.type, "", "", db:getSystemPath( fileInfo.path ),
+		   nsInfo.name, simpleName, "", item.type,
+		   "", "", "", db:getSystemPath( fileInfo.path ),
 		   item.line, item.column, item.endLine, item.endColmun ) )
       end
    )
@@ -978,7 +980,8 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
 
 	 
 	 print( createCandidate(
-		   name, name, expand, childKind, typeName, digest,
+		   name, name, expand, childKind, typeName,
+		   resultType:getTypeSpelling(), digest,
 		   fileInfo and db:getSystemPath( fileInfo.path ) or "",
 		   startInfo and startInfo[ 2 ],
 		   startInfo and startInfo[ 3 ],
@@ -1188,7 +1191,7 @@ function Completion:analyzeAt(
 	 targetIndex = #tokenInfoList
       end
       
-      log( 3, index + 1, getTokenKindSpelling( tokenKind ), token )
+      log( 4, index + 1, getTokenKindSpelling( tokenKind ), token )
    end
    unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 
@@ -1308,7 +1311,7 @@ function Completion:expandCursor( db, path, cursor, frontSyntax )
 	    local memberKind = aCursor:getCursorKind()
 
       	    print( createCandidate(
-      		      canonical, name, "", memberKind, fullnameBase, "",
+      		      canonical, name, "", memberKind, fullnameBase, "", "",
       		      db:getSystemPath( fileInfo.path ),
       		      startInfo and startInfo[ 2 ], startInfo and startInfo[ 3 ],
       		      endInfo and endInfo[ 2 ], endInfo and endInfo[ 3 ],
@@ -1335,7 +1338,7 @@ function Completion:analyzeDiagnostic( analyzer, path, target, fileContents )
    )
 end
 
-function Completion:callFunc( db, currentFile, pattern, target )
+function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileContents )
    pattern = pattern or ""
    local cond = string.format(
       "symbolDecl.type = %d OR symbolDecl.type = %d",
@@ -1343,15 +1346,33 @@ function Completion:callFunc( db, currentFile, pattern, target )
    cond = string.format( "(%s) AND (namespace.name LIKE '%%%s%%')", cond, pattern )
 
    local currentFileInfo = db:getFileInfo( nil, db:convFullpath( currentFile ) )
+   if not currentFileInfo then
+      error( string.format( "not register this file -- %s", currentFile ) )
+   end
 
    local currentIncSet = {}
-   db:mapIncludeCache(
-      currentFileInfo,
-      function( item )
-	 currentIncSet[ item.id ] = true
-	 return true
+   -- db:mapIncludeCache(
+   --    currentFileInfo,
+   --    function( item )
+   -- 	 currentIncSet[ item.id ] = true
+   -- 	 return true
+   --    end
+   -- )
+
+
+   --currentFile からインクルードしているヘッダセット取得
+   local unit, compileOp, newAnalyzer =
+      analyzer:createUnit( currentFile, target, false, fileContents )
+   local incList = clang.getInclusionList( unit )
+   for index, incFile in ipairs( incList ) do
+      local incPath = db:convFullpath( incFile:getIncludedFile():getFileName() )
+      local incFileInfo = db:getFileInfo( nil, incPath )
+      log( 1, "inc", incFileInfo, incPath )
+      if incFileInfo then
+	 currentIncSet[ incFileInfo.id ] = true
       end
-   )
+   end
+
    
    self:outputResult(
       clang.core.CXDiagnostic_Error,
