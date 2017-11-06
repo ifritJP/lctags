@@ -4,14 +4,10 @@
 
 #+TITLE: lctags で C 言語の関数コールを簡単に
 
-プログラミングしていると、
-使用したい関数名の一部は覚えているけど prefix が分からない場合や、
+ある関数をコールする際、その関数の名前がうろ覚えの場合や、
 使いたい関数がどのヘッダで定義しているか分からないケースが多いと思います。
 
-lctags では、そのような場合でも簡単に関数補完できるように別の方法を提供しています。
-
-なお、使用したい関数を定義しているファイルを、
-事前に lctags に登録しておく必要があります。
+lctags では、そのような場合でも簡単に関数補完できる方法を提供しています。
 
 * 使用方法
 
@@ -28,5 +24,143 @@ mini buffer に funcname-pattern: の入力が求められるので、
 もしも、その関数を定義するインクルードファイルをインクルードしていなかった場合、
 インクルードすべきファイルがリストされます。
 
+なお、使用したい関数を定義しているヘッダーファイルを、
+事前に lctags に登録しておく必要があります。
 
-* 
+* hello world サンプル
+
+[[https://www.youtube.com/watch?v=gMgyNMBmqws][https://www.youtube.com/watch?v=gMgyNMBmqws]]
+  
+上記リンクは、実際に emacs で操作した際の解説動画です。
+
+simple.c で hello world 出力するサンプルです。
+
+** DB 生成
+
+まずはプロジェクトディレクトリのトップで DB を生成します。
+
+#+BEGIN_SRC txt
+$ lctags init .
+#+END_SRC
+
+** ソース登録
+
+プロジェクトのソースを登録します。
+ここでは simple.c を登録します。
+   
+#+BEGIN_SRC txt
+$ lctags addStdInc
+$ lctags build gcc test/simple.c
+#+END_SRC
+
+addStdInc は、C の標準ヘッダを登録します。
+
+simple.c は次の内容です。
+   
+#+BEGIN_SRC c
+int main() {
+  const char * hello = "hello ";
+
+}
+#+END_SRC
+
+   
+** 関数コール
+
+simple.c を emacs で開いて 3 行目の空行に移動し、次を入力します。
+
+~C-c l i c~
+
+次に mini buffer に、使用した関数名の一部を入力します。
+
+ここでは write を入力します。
+
+すると、 関数名に write を含む関数一覧がリストされます。
+このリストは、DB に登録してあるファイル内で定義された関数情報を元に生成します。
+
+リストの中から、 fwrite を選択します。
+
+すると、次にヘッダファイルの選択になります。
+このサンプルでは、何も include していないため、
+fwrite を使用するにはヘッダファイルを include する必要があります。
+
+リストされているヘッダファイルには、
+先頭に fwrite を直接宣言しているヘッダ stdio.h がリストされ、
+残りは stdio.h を include しているヘッダがリストされます。
+
+ヘッダを選択すると、
+fwrite() の関数プロトタイプと、必要なヘッダが展開されます。
+
+#+BEGIN_SRC c
+int main() {
+  const char * hello = "hello ";
+  fwrite( const void * __restrict __ptr, size_t __size, size_t __n, FILE * __restrict __s ) => size_t
+    // #include </usr/include/stdio.h>
+}
+#+END_SRC
+
+次に、fwrite の第 1 引数に hello を指定し、
+fwrite の第2引数には strlen( hello ) を指定します。
+
+strlen をコールするとき、再度関数展開 ~C-c l i c~ を利用します。
+
+mini buffer には、 len と入力します。
+
+これにより len を含む関数一覧がリストされるので、strlen を選択します。
+
+strlen を利用するために必要な string.h がまだ include されていないため、
+ヘッダ選択モードになります。
+
+ヘッダを選択すると、次のようになります。
+
+#+BEGIN_SRC c
+int main() {
+  const char * hello = "hello ";
+  fwrite( hello, strlen( const char * __s ) => unsigned long, size_t __n, FILE * __restrict __s ) => size_t
+    // #include </usr/include/string.h>
+    // #include </usr/include/stdio.h>
+}
+#+END_SRC
+
+fwrite の残りの引数を適宜指定し、
+展開された #include をファイル先頭に移動し、コメントを外します。
+
+#+BEGIN_SRC c
+#include <string.h>
+#include <stdio.h>
+int main() {
+  const char * hello = "hello ";
+  fwrite( hello, strlen( hello ), 1, stdout );
+}
+#+END_SRC
+
+次に world を出力するため 再度関数展開 ~C-c l i c~ を利用します。
+
+ここでは put を指定します。
+リストに表示されている関数から puts を選択すると、次のように展開されます。
+
+#+BEGIN_SRC c
+#include <string.h>
+#include <stdio.h>
+int main() {
+  const char * hello = "hello ";
+  fwrite( hello, strlen( hello ), 1, stdout );
+  puts( const char * __s ) => int
+}
+#+END_SRC
+
+ここで include が展開されません。
+なぜなら puts は stdio.h に定義されており、
+stdio.h は既に include 済みだからです。
+
+最後に puts() の引数を次のように編集して終了です。
+
+#+BEGIN_SRC c
+#include <string.h>
+#include <stdio.h>
+int main() {
+  const char * hello = "hello ";
+  fwrite( hello, strlen( hello ), 1, stdout );
+  puts( "world" );
+}
+#+END_SRC

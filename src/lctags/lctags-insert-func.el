@@ -78,7 +78,7 @@
       (lctags-select-gtags (lctags-get-process-buffer nil) "select include file"
 			   'lctags-gtags-select-mode 'lctags-insert-inc-decide)
       
-      (insert (format "\n// #include <%s>\n"
+      (insert (format "\n// #include <%s>"
 		      (lctags-conv-disp-path lctags-insert-inc nil)))
       (end-of-line))
     (indent-region bak-pos (point))

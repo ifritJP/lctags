@@ -886,7 +886,7 @@ end
 
 
 
-function Analyzer:analyzeUnit( transUnit, compileOp, target )
+function Analyzer:analyzeUnit( transUnit, compileOp, target, srcFlag )
    
    local targetPath = transUnit:getTranslationUnitSpelling()
    log( -1, string.gsub( targetPath, ".*/", "" ) .. ":" )
@@ -1085,7 +1085,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target )
    targetSpInfo.fixDigest = targetSpInfo.digest:fix()
    targetSpInfo.fileInfo = db:addFile(
       targetPath, self:getCurrentTime(), targetSpInfo.fixDigest,
-      compileOp, self.currentDir, true, target, 0 )
+      compileOp, self.currentDir, srcFlag, target, 0 )
    
    -- 残りのヘッダファイルを登録
    for filePath, spInfo in pairs( self.path2InfoMap ) do
@@ -1344,13 +1344,14 @@ function Analyzer:update( path, target )
    end
 
    -- これが呼ばれるときは更新が必要な時だけなので、uptodate チェックしない。
-   local transUnit, compileOp, analyzer = self:createUnit( path, target, false )
+   local transUnit, compileOp, analyzer, stdMode, fileInfo =
+      self:createUnit( path, target, false )
 
    if transUnit == "uptodate" then
       return
    end
 
-   analyzer:analyzeUnit( transUnit, compileOp, target )
+   analyzer:analyzeUnit( transUnit, compileOp, target, fileInfo.incFlag ~= 0 )
 end
 
 function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
@@ -1450,7 +1451,7 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
       compileOp = compileOp .. option .. " "
    end
 
-   return unit, compileOp, analyzer, stdMode
+   return unit, compileOp, analyzer, stdMode, fileInfo
 end
 
 
@@ -1497,7 +1498,8 @@ function Analyzer:onlyRegister( path, options, target )
    
 end
 
-function Analyzer:analyzeSource( path, options, target, unsavedFileTable )
+function Analyzer:analyzeSource(
+      path, options, target, unsavedFileTable, srcFlag )
    self.targetFilePath = path
 
    if not target then
@@ -1551,7 +1553,7 @@ function Analyzer:analyzeSource( path, options, target, unsavedFileTable )
       unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
    --]]
 
-   self:analyzeUnit( transUnit, compileOp, target )
+   self:analyzeUnit( transUnit, compileOp, target, srcFlag )
 end
 
 function Analyzer:getDiagList( transUnit, diagList )

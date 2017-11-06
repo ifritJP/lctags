@@ -117,6 +117,8 @@ function Option:analyzeOption( argList )
    local lctagOptMap = {}
    local converter = nil
 
+   lctagOptMap.cc = "gcc"
+
    for index, arg in ipairs( argList ) do
       if skipArgNum > 0 then
 	 skipArgNum = skipArgNum - 1
@@ -262,6 +264,10 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	    lctagOptMap.scan = argList[ index + 1 ]
 	    skipArgNum = 1
+	 elseif arg == "addInc" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "addStdInc" then
+	    lctagOptMap.mode = arg
 	 elseif arg == "split-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "comp-at" then
@@ -354,7 +360,8 @@ function Option:analyzeOption( argList )
 		  lctagOptMap.subRetTypeInfo.brk = subRetType[ 4 ]
 		  lctagOptMap.subRetTypeInfo.cnt = subRetType[ 5 ]
 	       else
-		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs"
+		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs" or
+		     lctagOptMap.mode == "addStdInc"
 		  then
 		     processMode = "conv"
 		  elseif lctagOptMap.mode == "graph" or
@@ -410,9 +417,10 @@ function Option:analyzeOption( argList )
 		  end
 	       end
 	    else
-	       if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs" then
+	       if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs" or
+		  lctagOptMap.mode == "addStdInc"
+	       then
 		  processMode = "conv"
-		  
 	       else
 		  processMode = nil
 	       end
@@ -445,7 +453,9 @@ function Option:analyzeOption( argList )
       end
    end
 
-   if lctagOptMap.mode == "build" then
+   if lctagOptMap.mode == "build" or lctagOptMap.mode == "addInc" or
+      lctagOptMap.mode == "addStdInc"
+   then
       local clangVer = require( 'libclanglua.if' ).getClangVersion()
       clangVer3 = string.gsub(
       	 clangVer, "^clang version (%d+)%.(%d+)%.(%d+)[^%d].*", "%1.%2.%3" )

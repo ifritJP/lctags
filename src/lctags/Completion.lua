@@ -652,6 +652,24 @@ function Completion:completeSymbol( db, path, cursor, compMode, prefix, frontSyn
    print( '</completion>' )
 end
 
+function Completion:getIncludeFileIdList( path, analyzer, db, target, fileContents )
+   --currentFile からインクルードしているヘッダセット取得
+   local unit, compileOp, newAnalyzer =
+      analyzer:createUnit( path, target, false, fileContents )
+   local incList = clang.getInclusionList( unit )
+   local incFileIdSet = {}
+   for index, incFile in ipairs( incList ) do
+      local incPath = db:convFullpath( incFile:getIncludedFile():getFileName() )
+      local incFileInfo = db:getFileInfo( nil, incPath )
+      if incFileInfo then
+	 incFileIdSet[ incFileInfo.id ] = true
+      else
+	 log( 1, "not found", incPath )
+      end
+   end
+   return incFileIdSet
+end
+
 
 function Completion:completeSymbolFunc(
       db, path, cursor, compMode, prefix, frontSyntax, func )
@@ -940,8 +958,16 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
 		     str = rootType:getTypeSpelling()
 		  end
 	       end
-	       str = string.gsub( str, '.*%(', "(" )
+	       log( 1, str, aCursor:getCursorSpelling() )
+	       str = string.gsub( str, '.*' .. aCursor:getCursorSpelling() .. '%s*%(', "(" )
+	       -- 決め打ちで __THROW __attribute_pure__ __nonnull を除去する。。。
+	       str = string.gsub( str, '%)[^()]*__THROW.*;', ")" )
+	       str = string.gsub( str, '%)[^()]*__attribute_pure__.*;', ")" )
+	       str = string.gsub( str, '%)[^()]*__nonnull.*;', ")" )
+
+
 	       str = string.gsub( str, "const$", "" )
+	       log( 1, str )
 	    else
 	       childKind = clang.core.CXCursor_FunctionDecl
 	       
@@ -1361,18 +1387,8 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
 
 
    --currentFile からインクルードしているヘッダセット取得
-   local unit, compileOp, newAnalyzer =
-      analyzer:createUnit( currentFile, target, false, fileContents )
-   local incList = clang.getInclusionList( unit )
-   for index, incFile in ipairs( incList ) do
-      local incPath = db:convFullpath( incFile:getIncludedFile():getFileName() )
-      local incFileInfo = db:getFileInfo( nil, incPath )
-      log( 1, "inc", incFileInfo, incPath )
-      if incFileInfo then
-	 currentIncSet[ incFileInfo.id ] = true
-      end
-   end
-
+   currentIncSet = self:getIncludeFileIdList(
+      currentFile, analyzer, db, target, fileContents )
    
    self:outputResult(
       clang.core.CXDiagnostic_Error,

@@ -489,6 +489,7 @@ else
 endif
 
 
+
 build_for_apt:
 #	-sudo apt-get -o Acquire::http::proxy="$(PROXY)" update
 
@@ -515,4 +516,4 @@ endif
 	$(MAKE) download_luasqlite3
 
 	$(MAKE) build SWIG=swig3.0
-	$(MAKE) test
+

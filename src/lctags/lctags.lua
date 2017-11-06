@@ -371,7 +371,57 @@ if lctagOptMap.mode == "build" then
    if lctagOptMap.onlyReg then
       analyzer:onlyRegister( src, optList, lctagOptMap.target )
    else
-      analyzer:analyzeSource( src, optList, lctagOptMap.target )
+      analyzer:analyzeSource( src, optList, lctagOptMap.target, nil, true )
+   end
+   finish( 0 )
+end
+
+if lctagOptMap.mode == "addInc" or lctagOptMap.mode == "addStdInc" then
+   if lctagOptMap.mode == "addStdInc" then
+      workSrcList = {
+	 "/usr/include/assert.h",
+	 "/usr/include/complex.h",
+	 "/usr/include/ctype.h",
+	 "/usr/include/errno.h",
+	 "/usr/include/fenv.h",
+	 "/usr/include/float.h",
+	 "/usr/include/inttypes.h",
+	 "/usr/include/iso646.h",
+	 "/usr/include/limits.h",
+	 "/usr/include/locale.h",
+	 "/usr/include/math.h",
+	 "/usr/include/setjmp.h",
+	 "/usr/include/signal.h",
+	 "/usr/include/stdalign.h",
+	 "/usr/include/stdarg.h",
+	 "/usr/include/stdatomic.h",
+	 "/usr/include/stdbool.h",
+	 "/usr/include/stddef.h",
+	 "/usr/include/stdint.h",
+	 "/usr/include/stdio.h",
+	 "/usr/include/stdlib.h",
+	 "/usr/include/stdnoreturn.h",
+	 "/usr/include/string.h",
+	 "/usr/include/tgmath.h",
+	 "/usr/include/threads.h",
+	 "/usr/include/time.h",
+	 "/usr/include/uchar.h",
+	 "/usr/include/wchar.h",
+	 "/usr/include/wctype.h",
+      }
+      srcList = {}
+      for index, src in ipairs( workSrcList ) do
+	 local fileObj = io.open( src )
+	 if fileObj then
+	    table.insert( srcList, src )
+	    fileObj:close()
+	 end
+      end
+   end
+   
+   for index, src in ipairs( srcList ) do
+      local newAnalyzer = analyzer:newAs( false, true, os.getenv( "PWD" ) )
+      newAnalyzer:analyzeSource( src, optList, lctagOptMap.target, nil, false )
    end
    finish( 0 )
 end
