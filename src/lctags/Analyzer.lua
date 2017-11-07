@@ -1756,7 +1756,67 @@ function Analyzer:queryAtFunc(
 end
 
 
+function Analyzer:refAt(
+      filePath, line, column, absFlag, target, fileContents, diagList )
 
+   log( 2, "refAt" )
+
+
+   local fullPath = self:convFullpath( filePath )
+
+   local db = self:openDBForReadOnly()
+   
+   local fileInfo, optionList, updateTime = db:getFileOpt( fullPath, target )
+   if not optionList then
+      print( "not register target", fullPath, target )
+      os.exit( 1 )
+   end
+
+   local stream = io.stdout
+   
+   local visit = function( cursor, parent, param, exInfo )
+      dumpCursorInfo( cursor, 1, "ref:", nil )
+      local appendInfo = clang.getVisitAppendInfo( exInfo )
+
+      stream:write( "<location>" )
+      stream:write( string.format( "<line>%d</line>", appendInfo.line ) )
+      stream:write( string.format( "<column>%d</column>", appendInfo.column ) )
+      stream:write( string.format( "<endLine>%d</endLine>", appendInfo.endLine ) )
+      stream:write( string.format( "<endColumn>%d</endColumn>", appendInfo.endColumn ) )
+      stream:write( "</location>\n" )
+
+      return 1
+   end
+
+   local diagList = {}
+
+   Util:outputResult(
+      clang.core.CXDiagnostic_Error,
+      function()
+	 stream:write( "<ref>\n" )
+	 self:analyzeSourceAtWithFunc(
+	    fullPath, fullPath, line, column,
+	    optionList, target, fileContents,
+	    function( db, targetFileId, nsInfo, declCursor, cursor )
+	       dumpCursorInfo( cursor, 1, nil, nil )
+	       local cursorKind = cursor:getCursorKind()
+	       if cursorKind == clang.core.CXCursor_DeclRefExpr then
+		  local declCursor = cursor:getCursorReferenced()
+		  dumpCursorInfo( declCursor, 1, nil, nil )
+		  local parentCursor = declCursor:getCursorSemanticParent()
+		  dumpCursorInfo( parentCursor, 1, nil, nil )
+		  local unit = parentCursor:getTranslationUnit()
+		  clang.visitChildrenFast(
+		     parentCursor, visit, {}, { clang.core.CXCursor_DeclRefExpr }, 2 )
+	       end
+	    end,
+	    diagList )
+	 stream:write( "</ref>" )
+      end,
+      diagList)
+
+   db:close()
+end
 
 function Analyzer:queryAt(
       mode, filePath, line, column, absFlag, target, fileContents, diagList )
@@ -1764,6 +1824,7 @@ function Analyzer:queryAt(
       filePath, line, column, target, mode == "call-at", fileContents, diagList, 
       function( db, targetFileId, nsInfo, declCursor, cursor )
 	 log( 2, "queryAt", nsInfo and nsInfo.name )
+
 	 if nsInfo then
 	    if mode == "ref-at" then
 	       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name )

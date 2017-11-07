@@ -459,6 +459,20 @@ then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "ref-at-all" then
+   local filePath = srcList[ 1 ]
+   local fileContents
+   if lctagOptMap.inputFromStdin then
+      fileContents = io.stdin:read( "*a" )
+   end
+
+   analyzer:refAt( filePath, tonumber( srcList[ 2 ] ),
+		   tonumber( srcList[ 3 ] ), lctagOptMap.abs,
+		   lctagOptMap.target, fileContents )
+   finish( 0 )
+end
+
+
 if lctagOptMap.mode == "graph-at" then
    analyzer:graphAt(
       lctagOptMap.graph, srcList[ 1 ], tonumber( srcList[ 2 ] ),

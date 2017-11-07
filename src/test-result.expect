@@ -1,4 +1,3 @@
-make[1]: Entering directory 'NDIR'
 lua lctags/lctags.lua dump all >> dump
 lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
@@ -76,7 +75,6 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <kind>E</kind>
 <type>::@enum::&lt;enum_enum_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>0</val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -95,7 +93,6 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <kind>E</kind>
 <type>::@enum::&lt;enum_enum_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>1</val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -114,7 +111,6 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <kind>E</kind>
 <type>::@enum::&lt;enum_enum_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>1000</val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -153,7 +149,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>E</kind>
 <type>::@enum::&lt;enum_enum_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>0</val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -172,7 +167,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>E</kind>
 <type>::@enum::&lt;enum_enum_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>1</val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -191,7 +185,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>E</kind>
 <type>::@enum::&lt;enum_enum_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>1000</val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -216,7 +209,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>f</kind>
 <type>Callback_t *</type>
 <result>ZZZZ</result>
-<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -235,7 +227,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -254,7 +245,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -273,7 +263,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -292,7 +281,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -305,7 +293,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 </endPos>
 </candidate>
 <typeInfo>
-<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
 
 </typeInfo>
 </completion>
@@ -321,7 +308,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>f</kind>
 <type>Callback_t *</type>
 <result>ZZZZ</result>
-<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -340,7 +326,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>m</kind>
 <type>struct (anonymous struct at NDIR/test/hoge.cpp:158:9)</type>
 <result></result>
-<hash>c075a8979c1596623bb9e9372f018d69</hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -353,7 +338,9 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 </endPos>
 </candidate>
 <typeInfo>
-<hash>c075a8979c1596623bb9e9372f018d69</hash>
+
+</typeInfo>
+<typeInfo>
 
 <candidate>
 <canonical>efgh</canonical>
@@ -362,7 +349,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -374,10 +360,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <column>19</column>
 </endPos>
 </candidate>
-</typeInfo>
-<typeInfo>
-<hash>c9ec9d7f85dc99bb7430cd43125f098b</hash>
-
 </typeInfo>
 </completion>
 <diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
@@ -391,7 +373,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>v</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -410,7 +391,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>n</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -429,7 +409,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>n</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -448,7 +427,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>t</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -467,7 +445,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>f</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -486,7 +463,6 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <kind>v</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/hoge.cpp</file>
 <startPos>
@@ -500,7 +476,7 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 </candidate>
 </completion>
 <diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:280: recipe for target 'test-query' failed
+makefile:287: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
 <prefix>me</prefix>
@@ -513,7 +489,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp.cpp</file>
 <startPos>
@@ -538,7 +513,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>Test1 *</type>
 <result></result>
-<hash>e1b849f9631ffc1829b2e31402373e3c</hash>
 <val></val>
 <file>NDIR/test/comp-2.cpp</file>
 <startPos>
@@ -551,7 +525,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 <typeInfo>
-<hash>e1b849f9631ffc1829b2e31402373e3c</hash>
 
 <candidate>
 <canonical>member</canonical>
@@ -560,7 +533,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp-2.cpp</file>
 <startPos>
@@ -579,7 +551,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>Test2 *</type>
 <result></result>
-<hash>c454552d52d55d3ef56408742887362b</hash>
 <val></val>
 <file>NDIR/test/comp-2.cpp</file>
 <startPos>
@@ -598,7 +569,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>int ()</type>
 <result>int</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp-2.cpp</file>
 <startPos>
@@ -617,7 +587,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>int ()</type>
 <result>int</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp-2.cpp</file>
 <startPos>
@@ -631,7 +600,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </candidate>
 </typeInfo>
 <typeInfo>
-<hash>c454552d52d55d3ef56408742887362b</hash>
 
 <candidate>
 <canonical>pTest</canonical>
@@ -640,7 +608,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>Test1 *</type>
 <result></result>
-<hash>e1b849f9631ffc1829b2e31402373e3c</hash>
 <val></val>
 <file>NDIR/test/comp-2.cpp</file>
 <startPos>
@@ -666,7 +633,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>int ()</type>
 <result>int</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp2.cpp</file>
 <startPos>
@@ -691,7 +657,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>int ()</type>
 <result>int</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp3.cpp</file>
 <startPos>
@@ -716,7 +681,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp4.cpp</file>
 <startPos>
@@ -735,7 +699,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>int ()</type>
 <result>int</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp4.cpp</file>
 <startPos>
@@ -754,7 +717,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>int ()</type>
 <result>int</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp4.cpp</file>
 <startPos>
@@ -779,7 +741,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>int ()</type>
 <result>int</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp5.cpp</file>
 <startPos>
@@ -803,7 +764,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -822,7 +782,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -841,7 +800,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -860,7 +818,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -879,7 +836,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -898,7 +854,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -917,7 +872,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -936,7 +890,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -955,7 +908,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -974,7 +926,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -993,7 +944,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1012,7 +962,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1031,7 +980,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1050,7 +998,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1069,7 +1016,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1088,7 +1034,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1107,7 +1052,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1126,7 +1070,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp6.cpp</file>
 <startPos>
@@ -1150,7 +1093,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>n</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1169,7 +1111,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1188,7 +1129,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1207,7 +1147,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1226,7 +1165,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1245,7 +1183,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>t</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1264,7 +1201,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1283,7 +1219,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1302,7 +1237,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp7.cpp</file>
 <startPos>
@@ -1326,7 +1260,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp8.cpp</file>
 <startPos>
@@ -1345,7 +1278,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp8.cpp</file>
 <startPos>
@@ -1364,7 +1296,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp8.cpp</file>
 <startPos>
@@ -1383,7 +1314,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp8.cpp</file>
 <startPos>
@@ -1402,7 +1332,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp8.cpp</file>
 <startPos>
@@ -1421,7 +1350,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp8.cpp</file>
 <startPos>
@@ -1445,7 +1373,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp9.cpp</file>
 <startPos>
@@ -1464,7 +1391,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp9.cpp</file>
 <startPos>
@@ -1483,7 +1409,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp9.cpp</file>
 <startPos>
@@ -1502,7 +1427,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>M</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>/usr/include/x86_64-linux-gnu/bits/stdio_lim.h</file>
 <startPos>
@@ -1521,7 +1445,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp9.cpp</file>
 <startPos>
@@ -1540,7 +1463,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp9.cpp</file>
 <startPos>
@@ -1559,7 +1481,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp9.cpp</file>
 <startPos>
@@ -1583,7 +1504,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>M</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>/usr/include/x86_64-linux-gnu/bits/stdio_lim.h</file>
 <startPos>
@@ -1602,7 +1522,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1621,7 +1540,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1640,7 +1558,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1659,7 +1576,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1678,7 +1594,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1697,7 +1612,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1716,7 +1630,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1735,7 +1648,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1754,7 +1666,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1773,7 +1684,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1792,7 +1702,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1811,7 +1720,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>c</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1830,7 +1738,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1849,7 +1756,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1868,7 +1774,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1887,7 +1792,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1906,7 +1810,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1925,7 +1828,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>E</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp10.cpp</file>
 <startPos>
@@ -1949,7 +1851,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp11.cpp</file>
 <startPos>
@@ -1968,7 +1869,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp11.cpp</file>
 <startPos>
@@ -1993,7 +1893,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp12.cpp</file>
 <startPos>
@@ -2012,7 +1911,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp12.cpp</file>
 <startPos>
@@ -2036,7 +1934,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type></type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp13.cpp</file>
 <startPos>
@@ -2061,7 +1958,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>CCCC *()</type>
 <result>CCCC *</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp14.cpp</file>
 <startPos>
@@ -2080,7 +1976,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>CCCC *</type>
 <result></result>
-<hash>b41c1949bef0cb7c83998d0a5d83bcc2</hash>
 <val></val>
 <file>NDIR/test/comp14.cpp</file>
 <startPos>
@@ -2093,7 +1988,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 <typeInfo>
-<hash>b41c1949bef0cb7c83998d0a5d83bcc2</hash>
 
 <candidate>
 <canonical>func()</canonical>
@@ -2102,7 +1996,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>CCCC *()</type>
 <result>CCCC *</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/comp14.cpp</file>
 <startPos>
@@ -2121,7 +2014,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>CCCC *</type>
 <result></result>
-<hash>b41c1949bef0cb7c83998d0a5d83bcc2</hash>
 <val></val>
 <file>NDIR/test/comp14.cpp</file>
 <startPos>
@@ -2147,7 +2039,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>func *</type>
 <result>void</result>
-<hash>9018f5256a12915ba8e0091951d3665b</hash>
 <val></val>
 <file>NDIR/test/comp16.cpp</file>
 <startPos>
@@ -2160,7 +2051,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 <typeInfo>
-<hash>9018f5256a12915ba8e0091951d3665b</hash>
 
 </typeInfo>
 </completion>
@@ -2176,7 +2066,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class2.cpp</file>
 <startPos>
@@ -2195,7 +2084,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class2.cpp</file>
 <startPos>
@@ -2214,7 +2102,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class2.cpp</file>
 <startPos>
@@ -2233,7 +2120,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>void ()</type>
 <result>void</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class2.cpp</file>
 <startPos>
@@ -2258,7 +2144,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class3.cpp</file>
 <startPos>
@@ -2277,7 +2162,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>T</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class3.cpp</file>
 <startPos>
@@ -2296,7 +2180,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>T</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class3.cpp</file>
 <startPos>
@@ -2315,7 +2198,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>Super2&lt;T&gt; (T)</type>
 <result>Super2<T></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class3.cpp</file>
 <startPos>
@@ -2340,7 +2222,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>int</type>
 <result></result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class4.cpp</file>
 <startPos>
@@ -2365,7 +2246,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>m</kind>
 <type>const tmp_t</type>
 <result></result>
-<hash>ce499dea30cfce118f4fe85da0227e83</hash>
 <val></val>
 <file>NDIR/test/class5.cpp</file>
 <startPos>
@@ -2384,7 +2264,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>T2 (const T1 &amp;) const</type>
 <result>T2</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class5.cpp</file>
 <startPos>
@@ -2403,7 +2282,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <kind>f</kind>
 <type>T2 (const T1 &amp;) const</type>
 <result>T2</result>
-<hash></hash>
 <val></val>
 <file>NDIR/test/class5.cpp</file>
 <startPos>
@@ -2416,7 +2294,6 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 <typeInfo>
-<hash>ce499dea30cfce118f4fe85da0227e83</hash>
 
 </typeInfo>
 </completion>
@@ -2549,7 +2426,7 @@ static int func4__sub( int* pFuncRet__ )
 </sub_routine>
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:280: recipe for target 'test-query' failed
+makefile:287: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <args>
@@ -2795,7 +2672,6 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 <kind>E</kind>
 <type>::@enum::&lt;enum_eval_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>0</val>
 <file>NDIR/test/enum.cpp</file>
 <startPos>
@@ -2814,7 +2690,6 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 <kind>E</kind>
 <type>::@enum::&lt;enum_eval_t&gt;</type>
 <result></result>
-<hash></hash>
 <val>1</val>
 <file>NDIR/test/enum.cpp</file>
 <startPos>
@@ -2839,7 +2714,6 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 <kind>E</kind>
 <type>eval_t</type>
 <result></result>
-<hash>bcba0db3c229947a877e4ca2fad7afcb</hash>
 <val></val>
 <file>NDIR/test/enum.cpp</file>
 <startPos>
@@ -2858,7 +2732,6 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 <kind>E</kind>
 <type>eval_t</type>
 <result></result>
-<hash>bcba0db3c229947a877e4ca2fad7afcb</hash>
 <val></val>
 <file>NDIR/test/enum.cpp</file>
 <startPos>
@@ -2871,7 +2744,6 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 </endPos>
 </candidate>
 <typeInfo>
-<hash>bcba0db3c229947a877e4ca2fad7afcb</hash>
 
 <candidate>
 <canonical>eval_val1</canonical>
@@ -2880,7 +2752,6 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 <kind>E</kind>
 <type>eval_t</type>
 <result></result>
-<hash>bcba0db3c229947a877e4ca2fad7afcb</hash>
 <val></val>
 <file>NDIR/test/enum.cpp</file>
 <startPos>
@@ -2899,7 +2770,6 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 <kind>E</kind>
 <type>eval_t</type>
 <result></result>
-<hash>bcba0db3c229947a877e4ca2fad7afcb</hash>
 <val></val>
 <file>NDIR/test/enum.cpp</file>
 <startPos>
@@ -2918,10 +2788,7 @@ test/inc1.cpp       1 NDIR/test/inc2.h
 lua lctags/lctags.lua def-at test/inc2.h 7 1
 test/inc2.h         1 NDIR/test/inc3.h 
 make test-chg-proj
-make[2]: Entering directory 'NDIR'
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:362: recipe for target 'test-chg-proj' failed
+makefile:369: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null
-make[2]: Leaving directory 'NDIR'
-make[1]: Leaving directory 'NDIR'

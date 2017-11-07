@@ -86,11 +86,12 @@
     ))
 
 
-(defun lctags-insert-call-func ()
+(defun lctags-insert-call-func (&optional pattern)
   (interactive)
-  (let ((pattern (read-string "funcname-pattern: "))
-	(buffer (lctags-get-process-buffer t))
+  (let ((buffer (lctags-get-process-buffer t))
 	candidates)
+    (when (not pattern)
+      (setq pattern (read-string "funcname-pattern: ")))
     (lctags-execute-insert-func (current-buffer) buffer
 				(buffer-string) "call-func"
 				(buffer-file-name) pattern "-i")

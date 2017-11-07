@@ -958,16 +958,20 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
 		     str = rootType:getTypeSpelling()
 		  end
 	       end
-	       log( 1, str, aCursor:getCursorSpelling() )
-	       str = string.gsub( str, '.*' .. aCursor:getCursorSpelling() .. '%s*%(', "(" )
+	       log( 3, "str:", str, aCursor:getCursorSpelling() )
+	       str = string.gsub(
+		  str, '.*' .. aCursor:getCursorSpelling() .. '%s*%(', "(" )
+	       
 	       -- 決め打ちで __THROW __attribute_pure__ __nonnull を除去する。。。
 	       str = string.gsub( str, '%)[^()]*__THROW.*;', ")" )
 	       str = string.gsub( str, '%)[^()]*__attribute_pure__.*;', ")" )
 	       str = string.gsub( str, '%)[^()]*__nonnull.*;', ")" )
 
+	       str = string.gsub( str, '.*%(', "(" )
 
+	       
 	       str = string.gsub( str, "const$", "" )
-	       log( 1, str )
+	       log( 3, "str:", str )
 	    else
 	       childKind = clang.core.CXCursor_FunctionDecl
 	       

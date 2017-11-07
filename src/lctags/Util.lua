@@ -163,7 +163,7 @@ function Util:convertXmlTxt( txt )
    return txt
 end
 
-function Util:outputResult( level, func, diagList )
+function Util:outputResult( diagLevel, func, diagList )
    local stream = io.stdout
 
    stream:write( '<lctags_result>' )
@@ -178,7 +178,7 @@ function Util:outputResult( level, func, diagList )
 
    stream:write( '<diagnostics>' )
    for index, diag in ipairs( diagList ) do
-      if diag.level >= level then
+      if diag.level >= diagLevel then
 	 stream:write( '<message>' .. self:convertXmlTxt( diag.message ) .. '</message>' )
       end
    end

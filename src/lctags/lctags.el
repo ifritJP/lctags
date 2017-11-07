@@ -476,6 +476,22 @@ This parameter can set function and string.
     ad-do-it))
 
 
+(defun lctags-execute-xml (src-buf lctags-buf input set-symbol 
+				   xml-element xml-sub-element
+				   &rest lctags-opts)
+  (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
+      (progn
+	(set set-symbol (lctags-xml-get lctags-buf xml-element))
+	(if (lctags-xml-get-child (eval set-symbol) xml-sub-element)
+	    (setq lctags-diag-info nil)
+	  (setq lctags-diag-info (lctags-xml-get-diag lctags-buf))))
+    (set set-symbol nil)
+    (with-current-buffer lctags-buf
+      (setq lctags-diag-info `((message nil ,(buffer-string))))))
+  )
+
+
+
 (require 'lctags-dispatch)
 (require 'lctags-split)
 (require 'lctags-insert-func)

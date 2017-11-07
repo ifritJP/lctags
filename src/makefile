@@ -195,6 +195,7 @@ endif
 	LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(NDIR)@NDIR@g" | \
+		grep -v -e '<hash>' -e 'Leaving directory' -e 'Entering directory' | \
 		sed "s@$(LUA_COMMAND)@lua@g" | \
 		tee -a test-result
 	$(MAKE) test-stack
@@ -204,6 +205,12 @@ ifdef TEST_DB_DUMP
 	$(call dumpDB, lctags.sqlite3, db.dump, test/*.cpp, test/*.h)
 	diff -c db.dump test-db.dump.expect
 endif
+
+
+test-simple:
+	lctags init .
+	lctags addStdInc -I$(LIBCLANG_STD_INC)
+	lctags build gcc test/simple.c -I$(LIBCLANG_STD_INC)
 
 
 ifdef BATCH

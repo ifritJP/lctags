@@ -30,16 +30,19 @@ function Option:printUsage( message )
 usage:
  - build DB
    %s init projDir [-it] [-is] [-im]
-   %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] [--lctags-srv] [--lctags-indiv] comp-op [...] src
+   %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] [--lctags-srv] [--lctags-indiv] [comp-op] [...] src
    %s update [-j jobs] pattrn
    %s register [--lctags-conf conf] [--lctags-target target] <-i|file>
-   %s depIncs comp-op src
+   %s depIncs [comp-op] src [--lctags-target target]
+   %s addInc [comp-op] header [--lctags-target target]
+   %s addStdInc [comp-op] [--lctags-target target]
    %s server [--lctags-target target] <start|stop>
    %s statusServer <start|stop|wait>
    %s status
  - query DB
    %s dump <ver|all|target|targetList|file|ref|def|call|inc|digest|prepro> [path]
    %s ref-at[a] [--lctags-target target] [-i] file line column 
+   %s ref-at-all [--lctags-target target] [-i] file line column 
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
    %s ns-at [--lctags-target target] [-i] file line column
@@ -191,6 +194,8 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = "update"
 	 elseif arg == "updateForMake" then
 	    lctagOptMap.mode = "updateForMake"
+	 elseif arg == "ref-at-all" then
+	    lctagOptMap.mode = arg
 	 elseif string.find( arg, "ref-at", 1, true ) then
 	    lctagOptMap.mode = "ref-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
