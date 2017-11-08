@@ -208,9 +208,9 @@ endif
 
 
 test-simple:
-	lctags init .
-	lctags addStdInc -I$(LIBCLANG_STD_INC)
-	lctags build gcc test/simple.c -I$(LIBCLANG_STD_INC)
+	$(LUA_COMMAND) $(LCTAGS_LUA) init .
+	$(LUA_COMMAND) $(LCTAGS_LUA) addStdInc -I$(LIBCLANG_STD_INC)
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/simple.c -I$(LIBCLANG_STD_INC)
 
 
 ifdef BATCH
@@ -228,6 +228,7 @@ ifdef LCTAGS_SERVER_ON
 	$(LUA_COMMAND) $(LCTAGS_LUA) server start $(LOCKLOG) $(INDIV_OP) --lctags-log 2 &
 	sleep 1
 endif
+	$(LUA_COMMAND) $(LCTAGS_LUA) addStdInc -I$(LIBCLANG_STD_INC)
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 5 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
 	$(call build-test, test/sub.cpp, hoge )
 	$(call build-test, test/sub.cpp, hoge1 )
@@ -261,6 +262,8 @@ endif
 	$(call build-test, test/operator.cpp )
 	$(call build-test, test/split.cpp )
 	$(call build-test, test/enum.cpp )
+	$(call build-test, test/incFuncTest.c )
+	$(call build-test, test/highlight.c )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -361,6 +364,10 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc1.cpp 2 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc2.h 7 1
+
+
+	$(LUA_COMMAND) $(LCTAGS_LUA) addIncRef test/incFuncTest.c /usr/include/string.h
+	sed 's@//@@' test/incFuncTest.c | $(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/incFuncTest.c 3 8 -i
 
 	$(MAKE) test-chg-proj
 

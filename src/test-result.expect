@@ -16,6 +16,7 @@ sub                 9 ./test/comp16.cpp void sub( DATA * pData )
 sub                 4 ./test/stack.cpp static void sub();
 sub                52 ./test/stack.cpp static void sub()
 sub                 6 ./test/enum.cpp  static void sub( eval_t val )
+sub                11 ./test/highlight.c void sub( VAL_t * pVal, VAL2_t * pVal2 )
 lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
@@ -58,7 +59,7 @@ lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
-::ns1::ns2::func2::2  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
+::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua lctags/lctags.lua def-at test/hoge.cpp 231 20
 ::Callback_t      218 ./test/hoge.cpp          int func3( Callback_t * pCallback ) {
 lua lctags/lctags.lua ref-at test/hoge.cpp 284 3
@@ -457,7 +458,7 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 </endPos>
 </candidate>
 <candidate>
-<canonical>::ns1::s_static::2</canonical>
+<canonical>::ns1::s_static::84</canonical>
 <simple>s_static</simple>
 <expand></expand>
 <kind>v</kind>
@@ -476,7 +477,7 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 </candidate>
 </completion>
 <diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:287: recipe for target 'test-query' failed
+makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
 <prefix>me</prefix>
@@ -1863,7 +1864,7 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 <candidate>
-<canonical>::func::38</canonical>
+<canonical>::func::101</canonical>
 <simple>func</simple>
 <expand></expand>
 <kind>f</kind>
@@ -2426,7 +2427,7 @@ static int func4__sub( int* pFuncRet__ )
 </sub_routine>
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:287: recipe for target 'test-query' failed
+makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <args>
@@ -2787,8 +2788,32 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 test/inc1.cpp       1 NDIR/test/inc2.h 
 lua lctags/lctags.lua def-at test/inc2.h 7 1
 test/inc2.h         1 NDIR/test/inc3.h 
-make test-chg-proj
+lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
+sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
+<lctags_result><completion>
+<prefix>strl</prefix>
+
+<candidate>
+<canonical>::strlen</canonical>
+<simple>strlen</simple>
+<expand></expand>
+<kind>f</kind>
+<type></type>
+<result></result>
+<val></val>
+<file>/usr/include/string.h</file>
+<startPos>
+<line>394</line>
+<column>1</column>
+</startPos>
+<endPos>
+<line>395</line>
+<column>0</column>
+</endPos>
+</candidate>
+</completion>
+<diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:369: recipe for target 'test-chg-proj' failed
+makefile:376: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

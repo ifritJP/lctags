@@ -1778,12 +1778,15 @@ function Analyzer:refAt(
       dumpCursorInfo( cursor, 1, "ref:", nil )
       local appendInfo = clang.getVisitAppendInfo( exInfo )
 
-      stream:write( "<location>" )
-      stream:write( string.format( "<line>%d</line>", appendInfo.line ) )
-      stream:write( string.format( "<column>%d</column>", appendInfo.column ) )
-      stream:write( string.format( "<endLine>%d</endLine>", appendInfo.endLine ) )
-      stream:write( string.format( "<endColumn>%d</endColumn>", appendInfo.endColumn ) )
-      stream:write( "</location>\n" )
+      if cursor:getCursorReferenced():hashCursor() == param.hash then
+	 stream:write( "<location>" )
+	 stream:write( string.format( "<line>%d</line>", appendInfo.line ) )
+	 stream:write( string.format( "<column>%d</column>", appendInfo.column ) )
+	 stream:write( string.format( "<endLine>%d</endLine>", appendInfo.endLine ) )
+	 stream:write( string.format( "<endColumn>%d</endColumn>",
+				      appendInfo.endColumn ) )
+	 stream:write( "</location>\n" )
+      end
 
       return 1
    end
@@ -1800,14 +1803,32 @@ function Analyzer:refAt(
 	    function( db, targetFileId, nsInfo, declCursor, cursor )
 	       dumpCursorInfo( cursor, 1, nil, nil )
 	       local cursorKind = cursor:getCursorKind()
-	       if cursorKind == clang.core.CXCursor_DeclRefExpr then
-		  local declCursor = cursor:getCursorReferenced()
+	       local declCursor
+	       if cursorKind == clang.core.CXCursor_DeclRefExpr or
+		  cursorKind == clang.core.CXCursor_MemberRefExpr
+	       then
+		  declCursor = cursor:getCursorDefinition()
+	       end
+	       if cursorKind == clang.core.CXCursor_ParmDecl or
+		  cursorKind == clang.core.CXCursor_VarDecl or
+		  cursorKind == clang.core.CXCursor_FieldDecl
+	       then
+		  declCursor = cursor
+	       end
+	       if declCursor then
 		  dumpCursorInfo( declCursor, 1, nil, nil )
-		  local parentCursor = declCursor:getCursorSemanticParent()
+		  local parentCursor
+		  local unit = cursor:getTranslationUnit()
+		  if declCursor:getCursorKind() == clang.core.CXCursor_FieldDecl then
+		     parentCursor = unit:getTranslationUnitCursor()
+		  else
+		     parentCursor = declCursor:getCursorSemanticParent()
+		  end
 		  dumpCursorInfo( parentCursor, 1, nil, nil )
-		  local unit = parentCursor:getTranslationUnit()
 		  clang.visitChildrenFast(
-		     parentCursor, visit, {}, { clang.core.CXCursor_DeclRefExpr }, 2 )
+		     parentCursor, visit, { hash = declCursor:hashCursor() },
+		     { clang.core.CXCursor_DeclRefExpr,
+		       clang.core.CXCursor_MemberRefExpr }, 2 )
 	       end
 	    end,
 	    diagList )

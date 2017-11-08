@@ -1794,6 +1794,30 @@ function DBCtrl:addInclude( cursor, digest, fileId2IncFileInfoListMap )
    return fileInfo
 end
 
+-- 簡易登録。
+-- emacs で lctags-insert-call-func を使って関数入力した際に、
+-- 追加した include が DB に反映されるのは、
+-- 次に lctags update したタイミングになってしまう。
+-- これだと他の補完に影響が出るため、暫定的に include を登録する。
+function DBCtrl:addIncludeDirect( srcFilePath, incPath )
+   local srcFileInfo = self:getFileInfo( nil, self:convFullpath( srcFilePath ) )
+   local incFileInfo = self:getFileInfo( nil, self:convFullpath( incPath ) )
+
+   if not srcFileInfo or not incFileInfo then
+      error( string.format( "not found %s %s", srcFilePath, incPath ) )
+   end
+
+   -- 行番号が分からないので、とりあえず 0 とする
+   self:insert(
+      "incRef",
+      string.format( "%d, %d, %d", incFileInfo.id, srcFileInfo.id, 0 ) )
+
+   local fileId2IncFileInfoListMap = {}
+   fileId2IncFileInfoListMap[ srcFileInfo.id ] = { incFileInfo }
+
+   self:addIncludeCache( srcFileInfo, fileId2IncFileInfoListMap )
+end
+
 
 function DBCtrl:addIncBelong( incBelong )
    if not incBelong.cxfile then
@@ -2162,6 +2186,7 @@ function DBCtrl:isInProjFile( path )
    return false
 end
 
+--- system path を DB 登録用 path に変換する
 function DBCtrl:convPath( path )
    if path:byte( 1 ) == self.projDirPrefix:byte( 1 ) then
       return path

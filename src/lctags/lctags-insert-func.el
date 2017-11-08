@@ -66,21 +66,24 @@
     (end-of-line)
     ;; 必要な include の挿入
     (when include
-      (lctags-execute-heml (current-buffer) (lctags-get-process-buffer t) nil
-			   "list" "incSrcHeader" include)
-      (with-current-buffer (lctags-get-process-buffer nil)
-	(goto-char 1)
-	;; ソートで先頭になるように パスに ! を付加する
-	(insert (format "%-16s %4d !%-16s \n" "path" 1 include))
-	;;(end-of-buffer)
-	(beginning-of-buffer)
-	)
-      (lctags-select-gtags (lctags-get-process-buffer nil) "select include file"
-			   'lctags-gtags-select-mode 'lctags-insert-inc-decide)
-      
-      (insert (format "\n// #include <%s>"
-		      (lctags-conv-disp-path lctags-insert-inc nil)))
-      (end-of-line))
+      (let ((lctags-buf (lctags-get-process-buffer t)))
+	(lctags-execute-heml (current-buffer) lctags-buf nil
+			     "list" "incSrcHeader" include)
+	(with-current-buffer lctags-buf
+	  (goto-char 1)
+	  ;; ソートで先頭になるように パスに ! を付加する
+	  (insert (format "%-16s %4d !%-16s \n" "path" 1 include))
+	  ;;(end-of-buffer)
+	  (beginning-of-buffer)
+	  )
+	(lctags-select-gtags lctags-buf "select include file"
+			     'lctags-gtags-select-mode 'lctags-insert-inc-decide)
+	
+	(insert (format "\n// #include <%s>"
+			(lctags-conv-disp-path lctags-insert-inc nil)))
+	(lctags-execute-op2 (current-buffer) lctags-buf nil nil
+			    "addIncRef" (buffer-file-name) include)
+	(end-of-line)))
     (indent-region bak-pos (point))
     (goto-char mark)
     ))

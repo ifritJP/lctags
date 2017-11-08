@@ -271,6 +271,8 @@ function Option:analyzeOption( argList )
 	    skipArgNum = 1
 	 elseif arg == "addInc" then
 	    lctagOptMap.mode = arg
+	 elseif arg == "addIncRef" then -- これは emacs 用
+	    lctagOptMap.mode = arg
 	 elseif arg == "addStdInc" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "split-at" then
@@ -474,6 +476,9 @@ function Option:analyzeOption( argList )
 
    for key, val in pairs( lctagOptMap ) do
       log( 3, "lctagOptMap", key, val )
+   end
+   for key, val in pairs( srcList ) do
+      log( 3, "srcList", key, val )
    end
    
    return srcList, optList, lctagOptMap

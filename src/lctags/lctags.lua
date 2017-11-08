@@ -311,6 +311,14 @@ if lctagOptMap.mode == "dcall" then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "addIncRef" then
+   local db = DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) )
+   db:addIncludeDirect( srcList[ 1 ], srcList[ 2 ] )
+   db:close()
+   finish( 0 )
+end
+
+
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
@@ -572,3 +580,8 @@ if lctagOptMap.mode == "testInc" then
    require( 'lctags.testInc' ):run( analyzer, srcList[ 1 ], lctagOptMap.target )
    finish( 0 )
 end
+
+
+
+print( "not found mode", lctagOptMap.mode )
+finish( 1 )
