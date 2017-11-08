@@ -9,6 +9,12 @@
 
 lctags では、そのような場合でも簡単に関数補完できる方法を提供しています。
 
+lctags 全般の紹介は次を参照してください。
+
+- C/C++ ソースコードタグシステム lctags の紹介
+https://qiita.com/dwarfJP/items/982ef7ee3f3bfd435156
+
+
 * 使用方法
 
 関数コールしたい箇所で M-x lctags-insert-call-func します。

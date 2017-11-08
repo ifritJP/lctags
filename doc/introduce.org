@@ -150,6 +150,15 @@ lctags は、主に gtags の置き換えを目的に作成したソースコー
 
 [[https://github.com/ifritJP/lctags]]
 
+
+次も参考にしてください。
+
+- lctags で C 言語の関数コールを簡単に
+https://qiita.com/dwarfJP/items/5fe29d4c22c8d76aac0b
+
+- lctags を使って C/C++ ソースコードをリファクタリング(サブルーチン化編)
+https://qiita.com/dwarfJP/items/263db943fe8ebc407abb
+
 ** チュートリアル
 
 *** DB の作成
