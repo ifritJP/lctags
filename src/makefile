@@ -364,6 +364,13 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc1.cpp 2 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc2.h 7 1
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 21 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 24 12
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 25 10
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 27 13
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 26 19
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 27 19
+
 
 
 	$(LUA_COMMAND) $(LCTAGS_LUA) addIncRef test/incFuncTest.c /usr/include/string.h

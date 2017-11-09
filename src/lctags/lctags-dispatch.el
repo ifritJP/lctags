@@ -32,6 +32,12 @@
 	   ((:name "insert-to-call-function" :bind "c"
 		   :action lctags-insert-call-func)
 	   ))
+    (:name "highlight" :bind "h"
+	   :submenu
+	   ((:name "highlight-at" :bind "h" :action lctags-highlight-at)
+	    (:name "rescan" :bind "r" :action lctags-highlight-rescan)
+	    (:name "clear" :bind "c" :action lctags-highlight-clear)
+	   ))
     (:name "refactoring" :bind "r"
 	   :submenu
 	   ((:name "sub-routine" :bind "s"

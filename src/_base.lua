@@ -296,6 +296,7 @@ libs.getOffset = function( location )
 end
 
 -- obtain file location from location.
+-- @return cxfile, line, colmn, offset =
 libs.getLocation = function( location )
    return libs.getFileLocation( location.__ptr, libclangcore.clang_getFileLocation )
 end

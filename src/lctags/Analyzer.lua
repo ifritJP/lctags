@@ -1755,6 +1755,19 @@ function Analyzer:queryAtFunc(
       optionList, target, fileContents, func, diagList )
 end
 
+function Analyzer:outputLocation( stream, cursor )
+   local range = cursor:getCursorExtent()
+   local file, line, column = clang.getLocation( range:getRangeStart() )
+   stream:write( "<location>" )
+   stream:write(
+      string.format( "<file>%s</file>", self:convFullpath( file:getFileName() ) ) )
+   stream:write( string.format( "<line>%d</line>", line ) )
+   stream:write( string.format( "<column>%d</column>", column ) )
+   file, line, column = clang.getLocation( range:getRangeEnd() )
+   stream:write( string.format( "<endLine>%d</endLine>", line ) )
+   stream:write( string.format( "<endColumn>%d</endColumn>", column ) )
+   stream:write( "</location>\n" )
+end
 
 function Analyzer:refAt(
       filePath, line, column, absFlag, target, fileContents, diagList )
@@ -1778,14 +1791,8 @@ function Analyzer:refAt(
       dumpCursorInfo( cursor, 1, "ref:", nil )
       local appendInfo = clang.getVisitAppendInfo( exInfo )
 
-      if cursor:getCursorReferenced():hashCursor() == param.hash then
-	 stream:write( "<location>" )
-	 stream:write( string.format( "<line>%d</line>", appendInfo.line ) )
-	 stream:write( string.format( "<column>%d</column>", appendInfo.column ) )
-	 stream:write( string.format( "<endLine>%d</endLine>", appendInfo.endLine ) )
-	 stream:write( string.format( "<endColumn>%d</endColumn>",
-				      appendInfo.endColumn ) )
-	 stream:write( "</location>\n" )
+      if cursor:getCursorDefinition():hashCursor() == param.hash then
+	 self:outputLocation( stream, cursor )
       end
 
       return 1
@@ -1805,30 +1812,40 @@ function Analyzer:refAt(
 	       local cursorKind = cursor:getCursorKind()
 	       local declCursor
 	       if cursorKind == clang.core.CXCursor_DeclRefExpr or
-		  cursorKind == clang.core.CXCursor_MemberRefExpr
+		  cursorKind == clang.core.CXCursor_MemberRefExpr or
+		  cursorKind == clang.core.CXCursor_MacroExpansion
 	       then
 		  declCursor = cursor:getCursorDefinition()
 	       end
 	       if cursorKind == clang.core.CXCursor_ParmDecl or
 		  cursorKind == clang.core.CXCursor_VarDecl or
-		  cursorKind == clang.core.CXCursor_FieldDecl
+		  cursorKind == clang.core.CXCursor_FieldDecl or
+		  cursorKind == clang.core.CXCursor_EnumConstantDecl or
+		  cursorKind == clang.core.CXCursor_MacroDefinition
 	       then
 		  declCursor = cursor
 	       end
 	       if declCursor then
-		  dumpCursorInfo( declCursor, 1, nil, nil )
+		  dumpCursorInfo( declCursor, 1, "declCursor", nil )
 		  local parentCursor
 		  local unit = cursor:getTranslationUnit()
-		  if declCursor:getCursorKind() == clang.core.CXCursor_FieldDecl then
+		  if declCursor:getCursorKind() == clang.core.CXCursor_FieldDecl or
+		     declCursor:getCursorKind() == clang.core.CXCursor_MacroDefinition or
+		     declCursor:getCursorKind() == clang.core.CXCursor_EnumConstantDecl
+		  then
 		     parentCursor = unit:getTranslationUnitCursor()
 		  else
 		     parentCursor = declCursor:getCursorSemanticParent()
 		  end
-		  dumpCursorInfo( parentCursor, 1, nil, nil )
+		  dumpCursorInfo( parentCursor, 1, "parentCursor", nil )
+
+		  self:outputLocation( stream, declCursor )
+		  
 		  clang.visitChildrenFast(
 		     parentCursor, visit, { hash = declCursor:hashCursor() },
 		     { clang.core.CXCursor_DeclRefExpr,
-		       clang.core.CXCursor_MemberRefExpr }, 2 )
+		       clang.core.CXCursor_MemberRefExpr,
+		       clang.core.CXCursor_MacroExpansion }, 2 )
 	       end
 	    end,
 	    diagList )

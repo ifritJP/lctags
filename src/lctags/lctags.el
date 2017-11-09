@@ -295,7 +295,8 @@ This parameter can set function and string.
 
 (defun lctags-get-column ()
   (interactive)
-  (+ (- (point) (point-at-bol)) 1))
+  (1+ (string-bytes (buffer-substring (point-at-bol) (point)))))
+  
 
 (defun lctags-graph-at ( graph depth )
   (let ((org-buf (current-buffer))
@@ -495,5 +496,6 @@ This parameter can set function and string.
 (require 'lctags-dispatch)
 (require 'lctags-split)
 (require 'lctags-insert-func)
+(require 'lctags-highlight)
 
 (provide 'lctags)

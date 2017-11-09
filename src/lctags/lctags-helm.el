@@ -141,6 +141,14 @@
       (setq info (xml-parse-region (point-min) (point-max)))
       (lctags-xml-get-child (assoc 'lctags_result info) symbol))))
 
+(defun lctags-xml-get-list (item symbol)
+  (delq nil (mapcar (lambda (X)
+		      (when (listp X)
+			(when (eq (car X) symbol)
+			  X)))
+		    item)))
+
+
 (defun lctags-xml-get-diag (buf)
   (delq nil (mapcar (lambda (X)
 		      (when (listp X)
