@@ -1,7 +1,8 @@
 local Helper = require( 'lctags.Helper' )
 local Json = require( 'lctags.Json' )
 
-local mqueue = Helper.createMQueue( "test" )
+local lock = Helper.createLock( "test" )
+local mqueue = Helper.createMQueue( "test", true, lock )
 
 print( os.clock(), os.date() )
 for index = 1, 10000 do
@@ -14,3 +15,5 @@ for index = 1, 10000 do
    Json:convertFrom( mqueue:get() )
 end
 print( os.clock(), os.date() )
+
+Helper.deleteLock( "test" )

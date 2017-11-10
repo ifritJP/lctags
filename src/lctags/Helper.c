@@ -82,6 +82,7 @@ typedef struct {
 typedef struct {
     mqd_t mqueue;
     char buf[ MQUEUE_MSG_SIZE ];
+    sem_t * pSem;
 } helper_mqueueInfo_t;
 
 typedef struct {
@@ -457,6 +458,11 @@ static int helper_createMQueue( lua_State * pLua )
     snprintf( name, sizeof( name ), MQUEUE_NAME_PREFIX "%s", pName );
     name[ sizeof( name ) - 1 ] = '\0';
 
+    helper_lock_t * pLock = NULL;
+    if ( lua_isuserdata( pLua, 3 ) ) {
+        pLock = ((helper_lock_t *)luaL_checkudata( pLua, 3, LOCK_ID));
+    }
+
     helper_mqueue_t * pMqueue =
         helper_newUserData( pLua, MQUEUE_ID, sizeof( helper_mqueue_t ) );
     if ( pMqueue == NULL ) {
@@ -489,6 +495,7 @@ static int helper_createMQueue( lua_State * pLua )
         return 2;
     }
 
+
     helper_mqueueInfo_t * pInfo = malloc( sizeof( helper_mqueueInfo_t ) );
     if ( pInfo == NULL ) {
         printf( "%s: malloc() return NULL\n", __func__ );
@@ -497,6 +504,12 @@ static int helper_createMQueue( lua_State * pLua )
     }
     pMqueue->pInfo = pInfo;
     pInfo->mqueue = mqueue;
+    if ( pLock != NULL ) {
+        pInfo->pSem = pLock->pInfo->pSem;
+    }
+    else {
+        pInfo->pSem = NULL;
+    }
 
     return 1;
 }
@@ -718,6 +731,10 @@ static int helper_mqueue_put( lua_State * pLua )
         return 0;
     }
 
+    if ( pMqueue->pInfo->pSem != NULL ) {
+        sem_wait( pMqueue->pInfo->pSem );
+    }
+
     int needZeroFlag = 0;
     for ( index = 0; index < length; index += chunkSize ) {
         size_t size = restSize;
@@ -737,6 +754,10 @@ static int helper_mqueue_put( lua_State * pLua )
 	*(short*)pMqueue->pInfo->buf = 0;
         mq_send( pMqueue->pInfo->mqueue, pMqueue->pInfo->buf, 2, 0 );
     }
+
+    if ( pMqueue->pInfo->pSem != NULL ) {
+        sem_post( pMqueue->pInfo->pSem );
+    }
     
     return 0;
 }
@@ -748,7 +769,7 @@ static int helper_mqueue_get( lua_State * pLua )
 
     luaL_Buffer buffer;
     luaL_buffinit( pLua, &buffer );
-    
+
     while ( 1 ) {
         length = mq_receive( pMqueue->pInfo->mqueue, pMqueue->pInfo->buf,
                              MQUEUE_MSG_SIZE, NULL );
@@ -774,7 +795,7 @@ static int helper_mqueue_get( lua_State * pLua )
         }
     }
     luaL_pushresult( &buffer );
-    
+
     return 1;
 }
 

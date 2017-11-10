@@ -436,7 +436,7 @@ install: build
 		LUA_COMMAND=$(LUA_COMMAND) LUA_MOD_DIR=$(LUA_MOD_DIR)
 
 uninstall:
-	$(MAKE) uninstall-lib
+	PATH=$(PATH):$(INST_DIR) $(MAKE) uninstall-lib
 	$(MAKE) -C lctags uninstall INST_DIR=$(INST_DIR)
 
 install-lib:

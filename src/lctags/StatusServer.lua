@@ -22,10 +22,12 @@ function StatusServer:setup( name, serverFlag, createFlag )
 	 Helper.deleteMQueue( self.name .. "requestStatus" )
 	 Helper.deleteMQueue( self.name .. "replyStatus" )
       end
+      self.requestLock = Helper.createLock( name .. ".requestLock" )
       self.requestQueue = Helper.createMQueue(
-	 name .. "requestStatus", serverFlag or createFlag )
+	 name .. "requestStatus", serverFlag or createFlag, self.requestLock )
+      self.replyLock = Helper.createLock( name .. ".replyLock" )
       self.replyQueue = Helper.createMQueue(
-	 name .. "replyStatus", serverFlag or createFlag )
+	 name .. "replyStatus", serverFlag or createFlag, self.replyLock )
       if not self.requestQueue or not self.replyQueue then
 	 print( "failed to mqueue", serverFlag, createFlag )
 	 os.exit( 1 )
@@ -43,16 +45,19 @@ function StatusServer:new( name )
    self:setup( name, true )
    while true do
       local txt = self:get()
-      local message = Json:convertFrom( txt )
-      if not message then
+      if not txt then
 	 Helper.deleteMQueue( self.name .. "requestStatus" )
 	 Helper.deleteMQueue( self.name .. "replyStatus" )
 	 log( 1, "StatusServer:server error end:", txt )
 	 os.exit( 1 )
       end
-      
-      --log( 3, "StatusServer: command", message.command, message.value )
-      self[ message.command ]( self, message.value )
+      local message = Json:convertFrom( txt )
+      if not message then
+	 log( 1, "StatusServer:server error:", txt )
+      else
+	 --log( 3, "StatusServer: command", message.command, message.value )
+	 self[ message.command ]( self, message.value )
+      end
    end
 end
 
