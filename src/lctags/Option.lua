@@ -63,6 +63,7 @@ usage:
    %s chg-proj projDir [--lctags-db path] [src@dst src@dst src@dst src@dst]
    %s set-projDir projDir [--lctags-db path]
  - misc
+   %s cursors [--lctags-target target] file
    %s split-at [--lctags-target target] [-i] file line column [-ignore-sym-list sym1,sym2,...]
    %s clang-ver
    %s kill
@@ -265,6 +266,10 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    skipArgNum = 1
+	 elseif arg == "cursors" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "cursor-at" then
+	    lctagOptMap.mode = arg
 	 elseif arg == "scan" then
 	    lctagOptMap.mode = arg
 	    lctagOptMap.scan = argList[ index + 1 ]

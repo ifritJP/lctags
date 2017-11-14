@@ -138,14 +138,20 @@ function Util:dumpCursorInfo( cursor, depth, prefix, cursorOffset )
 
    log( 5,
 	function()
+	   local range = cursor:getCursorExtent()
+	   local startFile, startLine, startColmn, startOffset =
+	      clang.getLocation( range:getRangeStart() )
+	   local endFile, endLine, endColmn, endOffset =
+	      clang.getLocation( range:getRangeEnd() )
 	   return string.format(
-	      "%s |%s%s %s(%d) %d %s %s %s",
+	      "%s |%s%s %s(%d) %d %s %s %s %d:%d-%d:%d",
 	      string.rep( "  ", depth ),
 	      prefix and (prefix .. " ") or "", txt, 
 	      clang.getCursorKindSpelling( cursorKind ), cursorKind,
 	      cursor:hashCursor(), "",
 	      cursorOffset or "",
-	      clang.isExprKind( cursorKind ) )
+	      clang.isExprKind( cursorKind ),
+	      startLine, startColmn, endLine, endColmn )
 	end
    )
 end

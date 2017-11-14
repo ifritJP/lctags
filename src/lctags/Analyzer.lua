@@ -491,6 +491,7 @@ local Analyzer = {}
 
 function Analyzer:newAs( recordDigestSrcFlag, displayDiagnostics, currentDir )
    if currentDir then
+      log( 2, "chdir", currentDir )
       Helper.chdir( currentDir )
    end
    return Analyzer:new(
@@ -1643,6 +1644,8 @@ function Analyzer:analyzeSourceAtWithFunc(
    func( db, db:getFileInfo( nil, targetFullPath ).id,  nil, declCursor, cursor )
    
    db:close()
+
+   return transUnit
 end
 
 
@@ -1792,7 +1795,7 @@ function Analyzer:refAt(
       local appendInfo = clang.getVisitAppendInfo( exInfo )
 
       if cursor:getCursorDefinition():hashCursor() == param.hash then
-	 self:outputLocation( stream, cursor )
+      	 self:outputLocation( stream, cursor )
       end
 
       return 1
@@ -1800,55 +1803,101 @@ function Analyzer:refAt(
 
    local diagList = {}
 
+   local refKindList = {
+      clang.core.CXCursor_DeclRefExpr,
+      clang.core.CXCursor_MemberRefExpr,
+      clang.core.CXCursor_MacroExpansion
+   }
+   local refKindSet = {}
+   for index, kind in ipairs( refKindList ) do
+      refKindSet[ kind ] = true
+   end
+
+
+
+   local declKindSet = {}
+   declKindSet[ clang.core.CXCursor_ParmDecl ] = true
+   declKindSet[ clang.core.CXCursor_VarDecl ] = true
+   declKindSet[ clang.core.CXCursor_FieldDecl ] = true
+   declKindSet[ clang.core.CXCursor_EnumConstantDecl ] = true
+   declKindSet[ clang.core.CXCursor_MacroDefinition ] = true
+   
+   local targetCursor
+   local unit = self:analyzeSourceAtWithFunc(
+	    fullPath, fullPath, line, column,
+	    optionList, target, fileContents,
+	    function( db, targetFileId, nsInfo, aDeclCursor, cursor )
+	       targetCursor = cursor
+	    end, diagList )
+   local targetCursorKind = targetCursor:getCursorKind()
+
+   local rootCursor = unit:getTranslationUnitCursor()
+
+   local dumpRef = function( cursor )
+      dumpCursorInfo( cursor, 1, nil, nil )
+      local cursorKind = cursor:getCursorKind()
+      local declCursor
+      if refKindSet[ cursorKind ] then
+	 declCursor = cursor:getCursorDefinition()
+      end
+      if declKindSet[ cursorKind ] then
+	 declCursor = cursor
+      end
+      if declCursor then
+	 dumpCursorInfo( declCursor, 1, "declCursor", nil )
+	 self:outputLocation( stream, declCursor )
+
+	 local parentCursor
+	 if declCursor:getCursorKind() == clang.core.CXCursor_FieldDecl or
+	    declCursor:getCursorKind() == clang.core.CXCursor_MacroDefinition or
+	    declCursor:getCursorKind() == clang.core.CXCursor_EnumConstantDecl
+	 then
+	    parentCursor = rootCursor
+	 else
+	    parentCursor = declCursor:getCursorSemanticParent()
+	 end
+
+	 if parentCursor then
+	    dumpCursorInfo( parentCursor, 1, "parentCursor", nil )
+	    clang.visitChildrenFast(
+	       parentCursor, visit, { hash = declCursor:hashCursor() },
+	       refKindList, 2 )
+	 end
+      end
+   end
+
    Util:outputResult(
       clang.core.CXDiagnostic_Error,
       function()
 	 stream:write( "<ref>\n" )
-	 self:analyzeSourceAtWithFunc(
-	    fullPath, fullPath, line, column,
-	    optionList, target, fileContents,
-	    function( db, targetFileId, nsInfo, declCursor, cursor )
-	       dumpCursorInfo( cursor, 1, nil, nil )
-	       local cursorKind = cursor:getCursorKind()
-	       local declCursor
-	       if cursorKind == clang.core.CXCursor_DeclRefExpr or
-		  cursorKind == clang.core.CXCursor_MemberRefExpr or
-		  cursorKind == clang.core.CXCursor_MacroExpansion
-	       then
-		  declCursor = cursor:getCursorDefinition()
-	       end
-	       if cursorKind == clang.core.CXCursor_ParmDecl or
-		  cursorKind == clang.core.CXCursor_VarDecl or
-		  cursorKind == clang.core.CXCursor_FieldDecl or
-		  cursorKind == clang.core.CXCursor_EnumConstantDecl or
-		  cursorKind == clang.core.CXCursor_MacroDefinition
-	       then
-		  declCursor = cursor
-	       end
-	       if declCursor then
-		  dumpCursorInfo( declCursor, 1, "declCursor", nil )
-		  local parentCursor
-		  local unit = cursor:getTranslationUnit()
-		  if declCursor:getCursorKind() == clang.core.CXCursor_FieldDecl or
-		     declCursor:getCursorKind() == clang.core.CXCursor_MacroDefinition or
-		     declCursor:getCursorKind() == clang.core.CXCursor_EnumConstantDecl
-		  then
-		     parentCursor = unit:getTranslationUnitCursor()
-		  else
-		     parentCursor = declCursor:getCursorSemanticParent()
-		  end
-		  dumpCursorInfo( parentCursor, 1, "parentCursor", nil )
 
-		  self:outputLocation( stream, declCursor )
-		  
-		  clang.visitChildrenFast(
-		     parentCursor, visit, { hash = declCursor:hashCursor() },
-		     { clang.core.CXCursor_DeclRefExpr,
-		       clang.core.CXCursor_MemberRefExpr,
-		       clang.core.CXCursor_MacroExpansion }, 2 )
-	       end
-	    end,
-	    diagList )
+	 if targetCursorKind == clang.core.CXCursor_FunctionDecl or
+	    targetCursorKind == clang.core.CXCursor_CXXMethod
+	 then
+	    stream:write( "<refsInFunc>true</refsInFunc>\n" )
+	    local declHash2RefMap = {}
+	    clang.visitChildrenFast(
+	       targetCursor,
+	       function( cursor )
+		  local cursorKind = cursor:getCursorKind()
+		  local declCursor = cursor:getCursorDefinition()
+		  local declCursorKind = declCursor:getCursorKind()
+		  if cursorKind ~= clang.core.CXCursor_MemberRefExpr and
+		     declCursorKind == clang.core.CXCursor_VarDecl or
+		     declCursorKind == clang.core.CXCursor_ParmDecl 
+		  then
+		     local hash = declCursor:hashCursor()
+		     if not declHash2RefMap[ hash ] then
+			declHash2RefMap[ hash ] = cursor
+			self:outputLocation( stream, cursor )
+		     end
+		  end
+	       end,
+	       {}, refKindList, 2 )
+	 else
+	    dumpRef( targetCursor )
+	 end
+	 
 	 stream:write( "</ref>" )
       end,
       diagList)
@@ -2099,5 +2148,40 @@ end
 function Analyzer:convFullpath( path )
    return DBCtrl:convFullpath( path, self.currentDir )
 end
+
+function Analyzer:dumpCurosr( filePath, target )
+   local transUnit, compileOp, analyzer, stdMode, fileInfo =
+      self:createUnit( filePath, target, false )
+
+   local hashSet = {}
+
+   local visit;
+   visit = function ( cursor, parent, exInfo, append )
+      Util:dumpCursorInfo( cursor, exInfo, nil, 0 )
+      
+      local hash = cursor:hashCursor()
+      if not hashSet[ hash ] then
+	 clang.visitChildrenFast( cursor, visit, exInfo + 1, nil, 1 )
+      end
+      hashSet[ hash ] = true
+      return 1
+   end
+   
+   clang.visitChildrenFast(
+      transUnit:getTranslationUnitCursor(),
+      visit, 1, nil, 1 )
+end
+
+function Analyzer:cursorAt( filePath, line, column, target )
+   local transUnit, compileOp, analyzer, stdMode, fileInfo =
+      self:createUnit( filePath, target, false )
+
+   local cxfile = transUnit:getFile( filePath )
+   local location = transUnit:getLocation( cxfile, line, column )
+   local cursor = transUnit:getCursor( location )
+
+   Util:dumpCursorInfo( cursor, 1, nil, 0 )
+end
+
 
 return Analyzer

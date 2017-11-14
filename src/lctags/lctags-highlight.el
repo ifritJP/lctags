@@ -3,6 +3,7 @@
     "yellow4" "DeepSkyBlue4" "gray34"))
 
 (setq lctags-search-token-color nil)
+(setq lctags-search-token-color-first t)
 
 (defvar lctags-highlight-overlay-list nil)
 (defvar lctags-highlight-overlay-mark-list nil)
@@ -53,6 +54,7 @@
   (setq lctags-highlight-overlay-list nil)
   (setq lctags-highlight-overlay-mark-list nil)
   (setq lctags-search-token-color nil)
+  (setq lctags-search-token-color-first t)
   (dolist (overlay (overlays-in (point-min) (point-max)))
     (when (string-match "^lctags-" (symbol-name (overlay-get overlay 'face)))
       (delete-overlay overlay))))
@@ -65,17 +67,24 @@
 (defun lctags-highlight-at-op (&optional face)
   (let ((buffer (lctags-get-process-buffer t))
 	highlight-info overlay color mark)
-    (when (not face)
+    (when (or (not face) (eq face 'auto))
       (when (not lctags-search-token-color)
-	(setq lctags-search-token-color lctags-search-token-color-list))
-      (setq color (read-color (format "face-color?(default %s): "
-				      (car lctags-search-token-color) )
-			      nil t nil))
+	(setq lctags-search-token-color lctags-search-token-color-list)
+	(setq lctags-search-token-color-first (not lctags-search-token-color-first)))
+      (if (not face)
+	  (setq color (read-color (format "face-color?(default %s): "
+					  (car lctags-search-token-color) )
+				  nil t nil))
+	(setq color (car lctags-search-token-color)))
       (when (equal color "")
 	(setq color (car lctags-search-token-color)))
       (setq lctags-search-token-color (cdr lctags-search-token-color))
       (setq face (make-face (make-symbol (format "lctags-search-token-face-%s" color))))
-      (set-face-background face color))
+      (set-face-attribute face nil
+			  :background color
+			  ;;:overline lctags-search-token-color-first
+			  :underline lctags-search-token-color-first)
+      )
     
     (lctags-execute-xml (current-buffer) buffer
 			(buffer-string)
@@ -84,8 +93,19 @@
 			(buffer-file-name)
 			(number-to-string (lctags-get-line))
 			(number-to-string (lctags-get-column)) "-i")
-    (if lctags-diag-info
-	(lctags-helm-display-diag)
+    (cond
+     (lctags-diag-info
+      (lctags-helm-display-diag))
+     ((lctags-xml-get-list highlight-info 'refsInFunc)
+      (dolist (location (lctags-xml-get-list highlight-info 'location))
+	(when (equal (lctags-location-item-get-file location)
+		     (buffer-file-name))
+	  (save-excursion
+	    (lctags-goto-line-column (lctags-location-item-get-line location)
+				     (lctags-location-item-get-column location))
+	    (lctags-highlight-at-op 'auto))
+	    )))
+     (t
       (dolist (location (lctags-xml-get-list highlight-info 'location))
 	(when (equal (lctags-location-item-get-file location)
 		     (buffer-file-name))
@@ -108,7 +128,7 @@
 			 (list mark face))
 	    )
 	  (overlay-put overlay 'face face)
-	  )))
+	  ))))
   ))
 
 

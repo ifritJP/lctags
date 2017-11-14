@@ -318,11 +318,24 @@ if lctagOptMap.mode == "addIncRef" then
    finish( 0 )
 end
 
-
+--- これ以降は、 srcList[1] にはソースが指定されていることを前提にする
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
 local db = analyzer:openDBForReadOnly( os.getenv( "PWD" ) )
+
+local targetFileInfo
+local targetFullPath = srcList[ 1 ]
+if srcList[ 1 ] then
+   targetFileInfo = db:getFileInfo( nil, db:convFullpath( srcList[ 1 ] ) )
+   if targetFileInfo then
+      analyzer = analyzer:newAs(
+	 lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet,
+	 db:convFullpath( db:getSystemPath( targetFileInfo.currentDir ) ) )
+      targetFullPath = db:convFullpath( db:getSystemPath( targetFileInfo.path ) )
+   end
+end
+
 
 local modOptList = {}
 for index, opt in ipairs( optList ) do
@@ -340,12 +353,12 @@ optList = modOptList
 db:close()
 
 if lctagOptMap.mode == "depIncs" then
-   analyzer:dumpIncludeList( srcList[ 1 ], optList, nil )
+   analyzer:dumpIncludeList( targetFullPath, optList, nil )
    finish( 0 )
 end
 
 if lctagOptMap.mode == "build" then
-   local src = srcList[1]
+   local src = targetFullPath
    if not src then
       log( 1, "src is nil" )
       finish( 1 )
@@ -435,7 +448,7 @@ if lctagOptMap.mode == "addInc" or lctagOptMap.mode == "addStdInc" then
 end
 
 if lctagOptMap.mode == "updateForMake" then
-   local src = srcList[1]
+   local src = targetFullPath
    if not src then
       Option:printUsage( "" )
    end
@@ -455,7 +468,7 @@ end
 if lctagOptMap.mode == "ref-at" or lctagOptMap.mode == "def-at" or
    lctagOptMap.mode == "call-at" or lctagOptMap.mode == "ns-at"
 then
-   local filePath = srcList[ 1 ]
+   local filePath = targetFullPath
    local fileContents
    if lctagOptMap.inputFromStdin then
       fileContents = io.stdin:read( "*a" )
@@ -468,7 +481,7 @@ then
 end
 
 if lctagOptMap.mode == "ref-at-all" then
-   local filePath = srcList[ 1 ]
+   local filePath = targetFullPath
    local fileContents
    if lctagOptMap.inputFromStdin then
       fileContents = io.stdin:read( "*a" )
@@ -483,7 +496,7 @@ end
 
 if lctagOptMap.mode == "graph-at" then
    analyzer:graphAt(
-      lctagOptMap.graph, srcList[ 1 ], tonumber( srcList[ 2 ] ),
+      lctagOptMap.graph, targetFullPath, tonumber( srcList[ 2 ] ),
       tonumber( srcList[ 3 ] ), lctagOptMap.target,
       lctagOptMap.depth, lctagOptMap.browse,
       lctagOptMap.outputFile, lctagOptMap.imageFormat )
@@ -496,7 +509,7 @@ if lctagOptMap.mode == "split-at" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Split:at( analyzer, srcList[ 1 ],
+   Split:at( analyzer, targetFullPath,
 	     tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 	     lctagOptMap.ignoreSymMap, lctagOptMap.subRetTypeInfo,
 	     lctagOptMap.target, fileContents )
@@ -509,7 +522,7 @@ if lctagOptMap.mode == "comp-at" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Completion:at( analyzer, srcList[ 1 ],
+   Completion:at( analyzer, targetFullPath,
 		tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
 		lctagOptMap.target, fileContents )
    finish( 0 )
@@ -521,9 +534,9 @@ if lctagOptMap.mode == "inq-at" or lctagOptMap.mode == "expand" then
       fileContents = io.stdin:read( "*a" )
    end
 
-   Completion:inqAt( analyzer, srcList[ 1 ],
-		   tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
-		   lctagOptMap.target, fileContents, lctagOptMap.mode )
+   Completion:inqAt( analyzer, targetFullPath,
+		     tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
+		     lctagOptMap.target, fileContents, lctagOptMap.mode )
    finish( 0 )
 end
 
@@ -534,7 +547,7 @@ if lctagOptMap.mode == "scan" then
    end
 
    Scan:outputIncSrcHeader( lctagOptMap.scan, analyzer,
-			    srcList[ 1 ], lctagOptMap.target, fileContents )
+			    targetFullPath, lctagOptMap.target, fileContents )
    finish( 0 )
 end
 
@@ -548,7 +561,7 @@ if lctagOptMap.mode == "call-func" then
    end
    
    Completion:callFunc(
-      analyzer, db, srcList[1], srcList[2], lctagOptMap.target, fileContents )
+      analyzer, db, targetFullPath, srcList[2], lctagOptMap.target, fileContents )
 
    db:close()
    finish( 0 )
@@ -562,22 +575,34 @@ if lctagOptMap.mode == "diag" then
    end
 
    Completion:analyzeDiagnostic(
-      analyzer, srcList[ 1 ], lctagOptMap.target, fileContents )
+      analyzer, targetFullPath, lctagOptMap.target, fileContents )
+   finish( 0 )
+end
+
+if lctagOptMap.mode == "cursors" then
+   analyzer:dumpCurosr( targetFullPath, lctagOptMap.target )
+   finish( 0 )
+end
+
+if lctagOptMap.mode == "cursor-at" then
+   analyzer:cursorAt( targetFullPath,
+		      tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
+		      lctagOptMap.target )
    finish( 0 )
 end
 
 if lctagOptMap.mode == "stack" then
-   StackCalc:analyze( srcList[ 1 ], lctagOptMap.target, analyzer )
+   StackCalc:analyze( targetFullPath, lctagOptMap.target, analyzer )
    finish( 0 )
 end
 
 if lctagOptMap.mode == "testOpe" then
-   require( 'lctags.testOperator' ):at( analyzer, srcList[ 1 ], lctagOptMap.target )
+   require( 'lctags.testOperator' ):at( analyzer, targetFullPath, lctagOptMap.target )
    finish( 0 )
 end
 
 if lctagOptMap.mode == "testInc" then
-   require( 'lctags.testInc' ):run( analyzer, srcList[ 1 ], lctagOptMap.target )
+   require( 'lctags.testInc' ):run( analyzer, targetFullPath, lctagOptMap.target )
    finish( 0 )
 end
 

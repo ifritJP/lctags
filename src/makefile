@@ -263,7 +263,7 @@ endif
 	$(call build-test, test/split.cpp )
 	$(call build-test, test/enum.cpp )
 	$(call build-test, test/incFuncTest.c )
-	$(call build-test, test/highlight.c )
+	$(call build-test, test/highlight.cpp )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -305,6 +305,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/hoge.cpp 299 12
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand test/hoge.cpp 316 29
 	-rm -f graph.sample/*
+	-mkdir -f graph.sample
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph caller ::Callback_t -o graph.sample/caller.svg
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 	$(LUA_COMMAND) $(LCTAGS_LUA) graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -364,12 +365,13 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc1.cpp 2 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc2.h 7 1
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 21 18
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 24 12
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 25 10
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 27 13
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 26 19
-	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.c 27 19
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 21 7
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 21 18
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 24 12
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 25 10
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 27 13
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 26 19
+	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 27 19
 
 
 

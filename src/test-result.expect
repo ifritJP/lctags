@@ -16,7 +16,7 @@ sub                 9 ./test/comp16.cpp void sub( DATA * pData )
 sub                 4 ./test/stack.cpp static void sub();
 sub                52 ./test/stack.cpp static void sub()
 sub                 6 ./test/enum.cpp  static void sub( eval_t val )
-sub                21 ./test/highlight.c void sub( VAL_t * pVal, VAL2_t * pVal2 )
+sub                21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2 )
 lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
@@ -28,7 +28,7 @@ enum_val1         237 ./test/hoge.cpp              return enum_val1;
 enum_val1         316 ./test/hoge.cpp  static int s_vals[] = { enum_val1, enum_val2 };
 enum_val1         326 ./test/hoge.cpp        int val2[] = { enum_val1 };
 enum_val1          12 ./test/sample.c      case enum_val1:
-enum_val1          23 ./test/highlight.c     /** テスト */ pVal->val = enum_val1;
+enum_val1          23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
@@ -42,7 +42,7 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
 lua lctags/lctags.lua ref-at test/hoge.cpp 237 23 | sort
 ::@enum::<enum_enum_t>::enum_val1   12 ./test/sample.c      case enum_val1:
 ::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
-::@enum::<enum_enum_t>::enum_val1   23 ./test/highlight.c     /** テスト */ pVal->val = enum_val1;
+::@enum::<enum_enum_t>::enum_val1   23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
 ::@enum::<enum_enum_t>::enum_val1  195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
 ::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
 ::@enum::<enum_enum_t>::enum_val1  316 ./test/hoge.cpp  static int s_vals[] = { enum_val1, enum_val2 };
@@ -127,6 +127,8 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 </candidate>
 </completion>
 <diagnostics><message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message></diagnostics></lctags_result>rm -f graph.sample/*
+mkdir -f graph.sample
+makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -2787,38 +2789,43 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 </typeInfo>
 </completion>
 <diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua def-at test/inc1.cpp 2 1
-test/inc1.cpp       1 NDIR/test/inc2.h 
+NDIR/test/inc1.cpp    1 NDIR/test/inc2.h 
 lua lctags/lctags.lua def-at test/inc2.h 7 1
-test/inc2.h         1 NDIR/test/inc3.h 
-lua lctags/lctags.lua ref-at-all test/highlight.c 21 18
+NDIR/test/inc2.h    1 NDIR/test/inc3.h 
+lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 7
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.c</file><line>21</line><column>11</column><endLine>21</endLine><endColumn>23</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>9</endColumn></location>
-</ref><diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.c 24 12
+<refsInFunc>true</refsInFunc>
+<location><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>10</endColumn></location>
+</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 18
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.c</file><line>7</line><column>5</column><endLine>7</endLine><endColumn>12</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
-</ref><diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.c 25 10
+<location><file>NDIR/test/highlight.cpp</file><line>21</line><column>11</column><endLine>21</endLine><endColumn>23</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>9</endColumn></location>
+</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 24 12
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.c</file><line>3</line><column>5</column><endLine>3</endLine><endColumn>13</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>15</endColumn></location>
-</ref><diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.c 27 13
+<location><file>NDIR/test/highlight.cpp</file><line>7</line><column>5</column><endLine>7</endLine><endColumn>12</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
+</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 25 10
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.c</file><line>7</line><column>5</column><endLine>7</endLine><endColumn>12</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
-</ref><diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.c 26 19
+<location><file>NDIR/test/highlight.cpp</file><line>3</line><column>5</column><endLine>3</endLine><endColumn>13</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>15</endColumn></location>
+</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 13
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.c</file><line>17</line><column>9</column><endLine>17</endLine><endColumn>24</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>26</line><column>19</column><endLine>26</endLine><endColumn>24</endColumn></location>
-</ref><diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.c 27 19
+<location><file>NDIR/test/highlight.cpp</file><line>7</line><column>5</column><endLine>7</endLine><endColumn>12</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
+</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 26 19
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.c</file><line>13</line><column>5</column><endLine>13</endLine><endColumn>14</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>24</line><column>18</column><endLine>24</endLine><endColumn>27</endColumn></location>
-<location><file>NDIR/test/highlight.c</file><line>27</line><column>19</column><endLine>27</endLine><endColumn>28</endColumn></location>
-</ref><diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
+<location><file>NDIR/test/highlight.cpp</file><line>17</line><column>9</column><endLine>17</endLine><endColumn>24</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>26</line><column>19</column><endLine>26</endLine><endColumn>24</endColumn></location>
+</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
+<lctags_result><ref>
+<location><file>NDIR/test/highlight.cpp</file><line>13</line><column>5</column><endLine>13</endLine><endColumn>14</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>18</column><endLine>24</endLine><endColumn>27</endColumn></location>
+<location><file>NDIR/test/highlight.cpp</file><line>27</line><column>19</column><endLine>27</endLine><endColumn>28</endColumn></location>
+</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
 sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result><completion>
 <prefix>strl</prefix>
@@ -2845,5 +2852,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 <diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:383: recipe for target 'test-chg-proj' failed
+makefile:385: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

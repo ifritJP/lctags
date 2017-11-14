@@ -320,6 +320,8 @@ end
 
 
 function DBCtrl:checkRemovedFiles( dbPath )
+   log( 2, "checkRemovedFiles" )
+   
    local obj = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
    
    if not obj then
@@ -331,7 +333,9 @@ function DBCtrl:checkRemovedFiles( dbPath )
    obj:mapRowList(
       "filePath", nil, nil, nil,
       function( item )
-	 if not Helper.getFileModTime( obj:getSystemPath( item.path ) ) then
+	 local path = obj:convFullpath( obj:getSystemPath( item.path ) )
+	 if not Helper.getFileModTime( path ) then
+	    log( 4, "checkRemovedFiles", path )
 	    table.insert( deleteFileList, item )
 	 end
 	 return true
@@ -753,7 +757,7 @@ function DBCtrl:updateFile( fileInfo, removeFlag )
    fileInfo.uptodate = false
    fileInfo.renew = true
    
-   log( 1, "updateFile", fileInfo.path, fileId )
+   log( 1, "updateFile", removeFlag, fileInfo.path, fileId )
    self:delete( "symbolDecl", "fileId = " .. tostring( fileId ) )
    self:delete( "symbolRef", "fileId = " .. tostring( fileId ) )
    self:delete( "incRef", string.format( "baseFileId = %d", fileId ) )
