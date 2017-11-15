@@ -1760,6 +1760,29 @@ end
 
 function Analyzer:outputLocation( stream, cursor )
    local range = cursor:getCursorExtent()
+   if clang.isDeclKind( cursor:getCursorKind() ) then
+      local unit = cursor:getTranslationUnit()
+      local valName = cursor:getCursorSpelling()
+      local skipFlag = nil
+      clang.mapRangeToken(
+	 unit, range,
+	 function( cxtoken )
+	    if skipFlag then
+	       skipFlag = nil
+	       return true
+	    end
+	    local token = unit:getTokenSpelling( cxtoken )
+	    if token == "struct" or token == "union" or token == "enum" then
+	       skipFlag = true
+	    elseif valName == token then
+	       range = unit:getTokenExtent( cxtoken )
+	       return nil
+	    end
+	    return true
+	 end
+      )
+   end
+
    local file, line, column = clang.getLocation( range:getRangeStart() )
    stream:write( "<location>" )
    stream:write(
@@ -1874,6 +1897,7 @@ function Analyzer:refAt(
 	 if targetCursorKind == clang.core.CXCursor_FunctionDecl or
 	    targetCursorKind == clang.core.CXCursor_CXXMethod
 	 then
+	    -- 関数定義の場合、引数とローカル変数の参照箇所をリストする
 	    stream:write( "<refsInFunc>true</refsInFunc>\n" )
 	    local declHash2RefMap = {}
 	    clang.visitChildrenFast(

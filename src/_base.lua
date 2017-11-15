@@ -378,6 +378,11 @@ libs.isExprKind = function( cursorKind )
       cursorKind <= libclangcore.CXCursor_LastExpr
 end
 
+libs.isDeclKind = function( cursorKind )
+   return cursorKind >= libclangcore.CXCursor_FirstDecl and
+      cursorKind <= libclangcore.CXCursor_LastDecl
+end
+
 
 libs.getDeclCursorFromType = function( cxtype )
    while true do

@@ -291,7 +291,8 @@ function Completion:concatToken(
       fileHandle, depthList, tokenInfoList, targetIndex,
       startIndex, endIndex, newLineNo, newColmun, compMode )
 
-   log( 2, "concatToken", targetIndex, startIndex, endIndex, compMode )
+   log( 2, "concatToken", targetIndex, startIndex, endIndex,
+	newLineNo, newColmun, compMode )
 
    local targetToken
    
@@ -560,7 +561,7 @@ function Completion:createSourceForAnalyzing(
 	    else
 	       tailTxt = ""
 	    end
-	    log( 2, tailTxt )
+	    log( 2, "tailTxt", tailTxt )
 	 end
       else
 	 for index, rIndex in ipairs( rdepthList ) do
@@ -572,8 +573,9 @@ function Completion:createSourceForAnalyzing(
    
 
    -- 解析に不要な情報を削除して、 token を展開する
-   local newLineNo = rawEndTokenIndex + 1
-   local newColmun = 0
+   --local newLineNo = rawEndTokenIndex + 1
+   local newLineNo = rawEndLine + 1
+   local newColmun = 1
 
    local targetLine
    local targetColmun
@@ -1221,7 +1223,7 @@ function Completion:analyzeAt(
 	 targetIndex = #tokenInfoList
       end
       
-      log( 4, index + 1, getTokenKindSpelling( tokenKind ), token )
+      log( 4, index + 1, getTokenKindSpelling( tokenKind ), token, aLine, aColumn )
    end
    unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 
