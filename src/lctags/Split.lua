@@ -19,6 +19,8 @@ local function visit( cursor, parent, info, addInfo )
    local cxtype = cursor:getCursorType()
 
    if cursorKind == clang.core.CXCursor_DeclRefExpr then
+      info.refSymbolSet[ cursor:getCursorSpelling() ] = true
+      
       local declCursor = cursor:getCursorDefinition()
       local declCursorKind = declCursor:getCursorKind()
       if declCursorKind == clang.core.CXCursor_ParmDecl or
@@ -59,6 +61,10 @@ local function visit( cursor, parent, info, addInfo )
 			  { cursor = cursor, offset = appendInfo.offset } )
 	 end
       end
+   elseif cursorKind == clang.core.CXCursor_ParmDecl or
+      cursorKind == clang.core.CXCursor_VarDecl
+   then
+      info.refSymbolSet[ cursor:getCursorSpelling() ] = true
    elseif cursorKind == clang.core.CXCursor_UnaryOperator then
       table.insert( info.unaryList, cursor )
       if clang.getUnaryOperatorTxt( cursor ) == "&" then
@@ -131,6 +137,10 @@ local function visit( cursor, parent, info, addInfo )
    return 1
 end
 
+local function makeAddressSymbol( symbol )
+   return "p" .. symbol:sub( 1, 1 ):upper() .. symbol:sub( 2 )
+end
+
 local function getDeclTxt( declCursorInfo )
    local pointerFlag = isNeedPassAddress( declCursorInfo )
    local cursor = declCursorInfo.cursor
@@ -146,7 +156,7 @@ local function getDeclTxt( declCursorInfo )
    local callArg = name
    if pointerFlag then
       callArg = "&" .. name
-      name = "p" .. name
+      name = declCursorInfo.addressSymbol
       prefix = prefix .. "* "
    else
       prefix = prefix .. " "
@@ -158,7 +168,8 @@ end
 
 local function outputCode(
       stream, unit, fileContents, startOffset, endOffset, endPos,
-      info, boolTypeInfo, hash2MemberAccessRef )
+      info, boolTypeInfo, hash2MemberAccessRef, resultTypeTxt,
+      onlyReturnFlag )
 
    table.sort( info.repList,
 	       function( repInfo1, repInfo2 )
@@ -205,9 +216,11 @@ local function outputCode(
 
 	 startOffset = tailOffset + 1
 
+	 local addressRefName = declCursorInfo.addressSymbol
+	 
 	 local refTxt
 	 if addressAccessFlag then
-	    refTxt = string.format( "p%s", ref:getCursorSpelling() )
+	    refTxt = addressRefName
 	 else
 	    if hash2MemberAccessRef[ ref:hashCursor() ] then
 	       -- . を見つける
@@ -234,7 +247,7 @@ local function outputCode(
 	       )
 
 	       if dotOffset then
-		  stream:write( string.format( "p%s", ref:getCursorSpelling() ) )
+		  stream:write( addressRefName )
 		  writeSubstr( dotOffset - 1 )
 		  
 		  refTxt = "->"
@@ -242,12 +255,13 @@ local function outputCode(
 	       end
 	    end
 	    if not refTxt then
-	       refTxt = string.format( "(*p%s)", ref:getCursorSpelling() )
+	       refTxt = string.format( "(*%s)", addressRefName )
 	    end
 	 end
 	 stream:write( refTxt )
       end
    end
+
 
    startOffset = startOffset + 1
    local skipFlag = false
@@ -257,7 +271,7 @@ local function outputCode(
       else
 	 local target = repInfo.cursor
 	 local kind = target:getCursorKind()
-	 if kind == clang.core.CXCursor_ReturnStmt then
+	 if not onlyReturnFlag and kind == clang.core.CXCursor_ReturnStmt then
 	    local valCursor = clang.getNthCursor( target, 1, nil )
 
 	    if valCursor then
@@ -337,7 +351,7 @@ local function outputCode(
 end
 
 function Split:at( analyzer, path, line, column, ignoreSymMap,
-		   subRetTypeInfo, target, fileContents )
+		   subRetTypeInfo, directRet, target, fileContents )
    if not subRetTypeInfo then
       subRetTypeInfo = {}
    end
@@ -420,6 +434,7 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
    info.breakList = {}
    info.continueList = {}
    info.memberRefList = {}
+   info.refSymbolSet = {}
    clang.visitChildrenFast( cursor, visit, info, {}, 2 )
 
    local range = cursor:getCursorExtent()
@@ -586,6 +601,20 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
    end
    info.symbol2DeclMap = newSymbol2DeclMap
 
+   -- アドレス渡し用変数名の決定
+   for key, declCursorInfo in pairs( info.symbol2DeclMap ) do
+      local declCursor = declCursorInfo.cursor
+      if isNeedPassAddress( declCursorInfo ) then
+	 local symbol = makeAddressSymbol( declCursor:getCursorSpelling() )
+	 while info.refSymbolSet[ symbol ] do
+	    symbol = symbol .. "_";
+	 end
+	 declCursorInfo.addressSymbol = symbol
+      end
+   end
+   
+   
+
    local callArgs = ""
    local declArgs = ""
 
@@ -597,9 +626,19 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
    }
 
    print( "<lctags_result><refactoring_split>" )
-   print( "<args>" )
 
-   if resultTypeTxt then
+   local onlyReturnFlag = false
+   if (#info.breakList == 0) and (#info.continueList == 0) and
+      (#info.returnList > 0) and resultTypeTxt
+   then
+      onlyReturnFlag = directRet
+      print( string.format( "<directRet>%s</directRet>",
+			    directRet and "true" or "false" ) )
+   end
+
+   print( "<args>" )
+   
+   if resultTypeTxt and not onlyReturnFlag then
       declArgs = declArgs .. ", " .. resultTypeTxt .. "* pFuncRet__"
       callArgs = callArgs .. ", &funcRet__"
    end
@@ -625,9 +664,8 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
    print( "</args>" )
    print( "<call>" )
 
-
    local retValDecl = ""
-   if resultTypeTxt then
+   if resultTypeTxt and not onlyReturnFlag then
       retValDecl = string.format( "%s funcRet__ = 0;\n", resultTypeTxt )
    end
    local callTxt = string.format(
@@ -638,14 +676,19 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
       stream:write( string.format( "%s( %s );", subroutineName,
 				   string.gsub( callArgs, "^, ", "" ) ) )
    elseif #info.returnList > 0 and #info.breakList == 0 and #info.continueList == 0 then
-      stream:write(
-	 string.format( [[
+      if not onlyReturnFlag then
+	 stream:write(
+	    string.format( [[
 {
     %sif ( %s ) {
        return funcRet__;
     }
 }]],
-	    retValDecl, callTxt ) )
+	       retValDecl, callTxt ) )
+      else
+	 subModType = resultTypeTxt
+	 stream:write( callTxt .. ";" )
+      end
    elseif #info.returnList == 0 and #info.breakList > 0 and #info.continueList == 0 then
       stream:write(
 	 string.format( [[
@@ -697,7 +740,8 @@ if ( %s ) {
 
    
    outputCode( stream, unit, fileContents, startOffset, endOffset, endLoc,
-	       info, subRetTypeInfo, hash2MemberAccessRef )
+	       info, subRetTypeInfo, hash2MemberAccessRef, resultTypeTxt,
+	       onlyReturnFlag )
 
    print( "</sub_routine>" )
    print( "</refactoring_split></lctags_result>" )

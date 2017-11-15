@@ -4,6 +4,11 @@
   (xml-get-children (car (xml-get-children info 'args)) 'arg)
   )
 
+(defun lctags-split-can-directRet (info)
+  (car (xml-node-children (car (xml-get-children info 'directRet))))
+  )
+
+
 (defun lctags-split-arg-isAddressAccess (arg)
   (equal (car (xml-node-children (car (xml-get-children arg 'addressAccess))))
 	 "true"))
@@ -63,6 +68,11 @@
       (with-current-buffer lctags-split-buffer
 	(erase-buffer)
 	(insert "/* please edit 'x' or 'o' of following items,\n    and push C-c C-c to update.\n")
+	(when (lctags-split-can-directRet split-info)
+	  (insert (format "%s: indirect-return\n"
+			  (if (equal (lctags-split-can-directRet split-info)
+				     "true")
+			      "x" "o"))))
 	(dolist (arg (lctags-split-get-args split-info))
 	  (insert (format "%s: %s\n"
 			  (if (lctags-split-arg-isAddressAccess arg)
@@ -83,7 +93,7 @@
 
 
 
-(defun lctags-split-at (&rest ignore-list)
+(defun lctags-split-at (&optional direct-return &rest ignore-list)
   (interactive)
   (let ((buffer (lctags-get-process-buffer t)))
     (lctags-execute-split (current-buffer) buffer (buffer-string) "split-at"
@@ -92,6 +102,7 @@
 			  (number-to-string (- (lctags-get-column) 1)) "-i"
 			  (when lctags-sub-ret-type "--lctags-subRet")
 			  (when lctags-sub-ret-type lctags-sub-ret-type)
+			  direct-return
 			  (when ignore-list "-ignore-sym-list")
 			  (mapconcat (lambda (X) X) 
 				     ignore-list "," ))
@@ -99,18 +110,21 @@
 
 (defun lctags-split-retry ()
   (interactive)
-  (let (ignore-list pos)
+  (let (ignore-list pos direct-return)
     (save-excursion
       (beginning-of-buffer)
       (while (re-search-forward "^x: " nil t)
-	(setq pos (point))
-	(end-of-line)
-	(setq ignore-list (cons (buffer-substring-no-properties pos (point))
-				ignore-list))))
+	(let (symbol)
+	  (setq pos (point))
+	  (end-of-line)
+	  (setq symbol (buffer-substring-no-properties pos (point)))
+	  (if (equal symbol "indirect-return")
+	      (setq direct-return "--lctags-directRet")
+	    (setq ignore-list (cons symbol ignore-list))))))
     (with-current-buffer lctags-split-target-buffer
       (message "%s" ignore-list)
       (goto-char lctags-split-target-pos-mark)
-      (apply 'lctags-split-at ignore-list)
+      (apply 'lctags-split-at direct-return ignore-list)
       )))
 
 (provide 'lctags-split)

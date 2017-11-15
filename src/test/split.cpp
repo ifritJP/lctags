@@ -179,12 +179,14 @@ static void func9( type_t * pTyp )
 
 static void func10( void ) {
     type_t type;
+    type_t * pType_;
     {
         type_t * pType = &type;
         int * pVal1 = &type.val;
         int * pVal2 = &(type).val;
         int * pVal3 = &(type.val);
         int * pVal4 = &(&type)->val;
+        type_t * pType2 = pType_;
     }
 }
 
@@ -203,6 +205,15 @@ static void func11( int val ) {
         int val;
         pVal = &val;
     }
+}
+
+static char func12( char val )
+{
+  if ( val ) {
+    val++;
+    return val;
+  }
+  return -val;
 }
 
 

@@ -2341,6 +2341,7 @@ lctags:	1	fileId	hasPch	upTime	target	path	compOp
 	 -Iclang -I./test -std=c++11 -Iclang
 lua lctags/lctags.lua split-at test/split.cpp 62 13
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 </args>
 <call>
@@ -2359,6 +2360,7 @@ static int func4__sub( int* pFuncRet__ )
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 65 18
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 <arg><addressAccess>false</addressAccess><name>val</name></arg>
 </args>
@@ -2378,6 +2380,7 @@ static int func4__sub( int* pFuncRet__, int val )
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 68 18
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 <arg><addressAccess>false</addressAccess><name>val</name></arg>
 </args>
@@ -2397,6 +2400,7 @@ static int func4__sub( int* pFuncRet__, int val )
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 71 18
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 <arg><addressAccess>false</addressAccess><name>val</name></arg>
 </args>
@@ -2416,6 +2420,7 @@ static int func4__sub( int* pFuncRet__, int val )
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 74 18
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 </args>
 <call>
@@ -2436,6 +2441,7 @@ lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
 makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 <arg><addressAccess>true</addressAccess><name>typ</name></arg>
 <arg><addressAccess>false</addressAccess><name>typArray</name></arg>
@@ -2448,9 +2454,9 @@ if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
     }
 }</call>
 <sub_routine>
-static int func5__sub( int* pFuncRet__, type_t* ptyp, type_t typArray[1] )
+static int func5__sub( int* pFuncRet__, type_t* pTyp, type_t typArray[1] )
 {
-        ptyp-&gt;val = 1;
+        pTyp-&gt;val = 1;
         typArray[0].val = 2;
         return *pFuncRet__= 0, 1;
     }
@@ -2458,6 +2464,7 @@ static int func5__sub( int* pFuncRet__, type_t* ptyp, type_t typArray[1] )
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 118 20
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 <arg><addressAccess>true</addressAccess><name>typ</name></arg>
 <arg><addressAccess>true</addressAccess><name>val</name></arg>
@@ -2470,19 +2477,20 @@ if ( func6__sub( &amp;funcRet__, &amp;typ, &amp;val ) ) {
     }
 }</call>
 <sub_routine>
-static int func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
+static int func6__sub( int* pFuncRet__, type_t* pTyp, int* pVal )
 {
-        (*pval) = 1;
-        ptyp // hoge
+        (*pVal) = 1;
+        pTyp // hoge
 	  /** */   -&gt;
-            val = (*pval);
-        ptyp-&gt;val = (*pval);
+            val = (*pVal);
+        pTyp-&gt;val = (*pVal);
         return *pFuncRet__= 0, 1;
     }
 </sub_routine>
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 129 0
 <lctags_result><refactoring_split>
+<directRet>false</directRet>
 <args>
 <arg><addressAccess>false</addressAccess><name>val</name></arg>
 </args>
@@ -2576,9 +2584,9 @@ int result__ = func7__sub( &amp;funcRet__, &amp;index, val );
 }
 </call>
 <sub_routine>
-static int func7__sub( int* pFuncRet__, int* pindex, int val )
+static int func7__sub( int* pFuncRet__, int* pIndex, int val )
 {
-        (*pindex)++;
+        (*pIndex)++;
         if ( val == 10 ) {
             return 3;
         }
@@ -2600,9 +2608,9 @@ if ( func7__sub( &amp;funcRet__, &amp;index, val ) ) {
 }
 </call>
 <sub_routine>
-static int func7__sub( int* pFuncRet__, int* pindex, int val )
+static int func7__sub( int* pFuncRet__, int* pIndex, int val )
 {
-        (*pindex)++;
+        (*pIndex)++;
         if ( val == 10 ) {
             return 3;
         }
@@ -2640,32 +2648,53 @@ lua lctags/lctags.lua split-at test/split.cpp 166 0
     }
 }</call>
 <sub_routine>
-static int func8__sub( int* pval )
+static int func8__sub( int* pVal_ )
 {
-    if ( (*pval) == 1 ) {
+    if ( (*pVal_) == 1 ) {
         return 1;
     }
-    int * pVal = pval;
+    int * pVal = pVal_;
     return 0;
 }
 </sub_routine>
 </refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 182 4
+lua lctags/lctags.lua split-at test/split.cpp 183 4
 <lctags_result><refactoring_split>
 <args>
+<arg><addressAccess>false</addressAccess><name>pType_</name></arg>
 <arg><addressAccess>true</addressAccess><name>type</name></arg>
 </args>
 <call>
-func10__sub( &amp;type );</call>
+func10__sub( pType_, &amp;type );</call>
 <sub_routine>
-static void func10__sub( type_t* ptype )
+static void func10__sub( type_t * pType_, type_t* pType__ )
 {
-        type_t * pType = ptype;
-        int * pVal1 = &amp;ptype-&gt;val;
-        int * pVal2 = &amp;((*ptype)).val;
-        int * pVal3 = &amp;(ptype-&gt;val);
-        int * pVal4 = &amp;(ptype)-&gt;val;
+        type_t * pType = pType__;
+        int * pVal1 = &amp;pType__-&gt;val;
+        int * pVal2 = &amp;((*pType__)).val;
+        int * pVal3 = &amp;(pType__-&gt;val);
+        int * pVal4 = &amp;(pType__)-&gt;val;
+        type_t * pType2 = pType_;
     }
+</sub_routine>
+</refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
+<lctags_result><refactoring_split>
+<directRet>true</directRet>
+<args>
+<arg><addressAccess>true</addressAccess><name>val</name></arg>
+</args>
+<call>
+func12__sub( &amp;val );</call>
+<sub_routine>
+static char func12__sub( char* pVal )
+{
+  if ( (*pVal) ) {
+    (*pVal)++;
+    return (*pVal);
+  }
+  return -(*pVal);
+}
 </sub_routine>
 </refactoring_split></lctags_result>
 lua lctags/lctags.lua expand test/enum.cpp 9 15
@@ -2858,5 +2887,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 <diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:385: recipe for target 'test-chg-proj' failed
+makefile:386: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

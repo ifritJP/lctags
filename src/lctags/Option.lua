@@ -359,6 +359,8 @@ function Option:analyzeOption( argList )
 	       elseif arg == "--lctags-uptime" then
 		  skipArgNum = 1
 		  self.updateTime = tonumber( argList[ index + 1 ] )
+	       elseif arg == "--lctags-directRet" then
+		  lctagOptMap.directRet = true
 	       elseif arg == "--lctags-subRet" then
 		  skipArgNum = 1
 		  local subRetType = {}
