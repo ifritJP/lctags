@@ -4,7 +4,7 @@ local clang = require( 'libclanglua.if' )
 local Split = {}
 
 local function isNeedPassAddress( info )
-   if info.ignoreFlag then
+   if info.directPassFlag then
       return false
    end
    return not info.arrayAccess and
@@ -43,7 +43,7 @@ local function visit( cursor, parent, info, addInfo )
 	       addressAccess = false,
 	       setAccess = false,
 	       arrayAccess = false,
-	       ignoreFlag = false,
+	       directPassFlag = false,
 	    }
 	    log( "refSymbol:", symbol )
 	    info.symbol2DeclMap[ symbol ] = declCursorInfo
@@ -350,7 +350,7 @@ local function outputCode(
    stream:write( "}\n" )
 end
 
-function Split:at( analyzer, path, line, column, ignoreSymMap,
+function Split:at( analyzer, path, line, column, directPassMap,
 		   subRetTypeInfo, directRet, target, fileContents )
    if not subRetTypeInfo then
       subRetTypeInfo = {}
@@ -510,9 +510,9 @@ function Split:at( analyzer, path, line, column, ignoreSymMap,
 	 nil, {}, 2 )
    end
 
-   if ignoreSymMap then
-      for sym in pairs( ignoreSymMap ) do
-	 info.symbol2DeclMap[ sym ].ignoreFlag = true      
+   if directPassMap then
+      for sym in pairs( directPassMap ) do
+	 info.symbol2DeclMap[ sym ].directPassFlag = true      
       end
    end
 

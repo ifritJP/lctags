@@ -341,25 +341,30 @@ libs.mapRangePlainText = function( cxUnit, cxRange, func, ... )
    local tokenNum = libclangcore.clang_tokenize( unit, cxRange, tokenPBuf )
    local tokenArray = libclangcore.CXTokenPArray_getitem( tokenPBuf, 0 )
 
-   for index = 0, tokenNum - 1 do
-      local token = libclangcore.CXTokenArray_getitem( tokenArray, index )
-      func( libs.cx2string( libclangcore.clang_getTokenSpelling( unit, token ) ), ... )
+   if tokenArray then
+      for index = 0, tokenNum - 1 do
+	 local token = libclangcore.CXTokenArray_getitem( tokenArray, index )
+	 func( libs.cx2string( libclangcore.clang_getTokenSpelling( unit, token ) ), ... )
+      end
+      libclangcore.clang_disposeTokens( unit, tokenArray, tokenNum )
    end
-   libclangcore.clang_disposeTokens( unit, tokenArray, tokenNum )
    libclangcore.delete_CXTokenPArray( tokenPBuf )
 end
 
 libs.mapRangeToken = function( unit, range, func )
    local tokenP = libs.mkCXTokenPArray( nil, 1 )
    local num = unit:tokenize( range, tokenP:getPtr() )
-   local cxtokenArray = libs.mkCXTokenArray( tokenP:getItem( 0 ), num )
+   local tokenPtr = tokenP:getItem( 0 )
+   if tokenPtr then
+      local cxtokenArray = libs.mkCXTokenArray( tokenPtr, num )
 
-   for index = 0, num - 1 do
-      if not func( libs.CXToken:new( cxtokenArray:getItem( index ) ) ) then
-	 break
+      for index = 0, num - 1 do
+	 if not func( libs.CXToken:new( cxtokenArray:getItem( index ) ) ) then
+	    break
+	 end
       end
+      unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
    end
-   unit:disposeTokens( cxtokenArray:getPtr(), cxtokenArray:getLength() )
 end
 
 

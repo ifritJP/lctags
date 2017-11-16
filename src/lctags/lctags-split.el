@@ -103,7 +103,7 @@
 			  (when lctags-sub-ret-type "--lctags-subRet")
 			  (when lctags-sub-ret-type lctags-sub-ret-type)
 			  direct-return
-			  (when ignore-list "-ignore-sym-list")
+			  (when ignore-list "-split-param-list")
 			  (mapconcat (lambda (X) X) 
 				     ignore-list "," ))
   ))

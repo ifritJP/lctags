@@ -42,6 +42,8 @@
 	   :submenu
 	   ((:name "sub-routine" :bind "s"
 		   :action lctags-split-at)
+	    (:name "rename" :bind "r"
+		   :action lctags-rename-at)
 	   ))
     (:name "update this file" :bind "u" :action lctags-update-this-file)))
 (defvar lctags-dispatch-menu-info-current nil)

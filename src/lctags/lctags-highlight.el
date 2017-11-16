@@ -2,6 +2,14 @@
   '("OrangeRed4" "OrangeRed3" "dark green" "dark magenta" "dark blue"
     "yellow4" "DeepSkyBlue4" "gray34"))
 
+(defface lctags-search-token-color-default
+  `((t
+     :background ,(car lctags-search-token-color-list)))
+  "default highlight face")
+
+(defvar lctags-search-token-color-default 'lctags-search-token-color-default)
+
+
 (setq lctags-search-token-color nil)
 (setq lctags-search-token-color-first t)
 
@@ -26,6 +34,12 @@
     (goto-char now)
     pos))
 
+(defun lctags-location-item-get-kind (item)
+  (lctags-xml-get-val item 'kind))
+
+(defun lctags-location-item-get-symbol (item)
+  (lctags-xml-get-val item 'symbol))
+
 (defun lctags-location-item-get-file (item)
   (lctags-xml-get-val item 'file))
 
@@ -41,9 +55,17 @@
   (string-to-number (lctags-xml-get-val item 'endLine))
   )
 
-(defun lctags-location-item-get-end-colmun (item)
+(defun lctags-location-item-get-end-column (item)
   (string-to-number (lctags-xml-get-val item 'endColumn))
   )
+
+(defun lctags-location-item-get-point (item)
+  (lctags-get-point-at-line-column (lctags-location-item-get-line item)
+				   (lctags-location-item-get-column item)))
+
+(defun lctags-location-item-get-end-point (item)
+  (lctags-get-point-at-line-column (lctags-location-item-get-end-line item)
+				   (lctags-location-item-get-end-column item)))
 
 
 
@@ -115,7 +137,7 @@
 			       (lctags-location-item-get-column location))
 			      (lctags-get-point-at-line-column
 			       (lctags-location-item-get-end-line location)
-			       (lctags-location-item-get-end-colmun location))))
+			       (lctags-location-item-get-end-column location))))
 	  (setq mark (point-marker))
 	  (if (not lctags-highlight-overlay-list)
 	      (progn

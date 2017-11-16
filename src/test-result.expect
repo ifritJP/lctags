@@ -2826,40 +2826,40 @@ NDIR/test/inc2.h    1 NDIR/test/inc3.h
 lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 7
 <lctags_result><ref>
 <refsInFunc>true</refsInFunc>
-<location><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>10</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>28</line><column>5</column><endLine>28</endLine><endColumn>10</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>11</endColumn></location>
+<location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
+<location><symbol>pVal2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>10</endColumn></location>
+<location><symbol>pVal3</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>28</line><column>5</column><endLine>28</endLine><endColumn>10</endColumn></location>
+<location><symbol>VAL2_t</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>11</endColumn></location>
 </ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 18
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.cpp</file><line>21</line><column>19</column><endLine>21</endLine><endColumn>23</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>9</endColumn></location>
+<location><symbol>pVal</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>19</column><endLine>21</endLine><endColumn>23</endColumn></location>
+<location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
+<location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>9</endColumn></location>
 </ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 24 12
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>15</endColumn></location>
+<location><symbol>val</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
+<location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
+<location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
+<location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>15</endColumn></location>
 </ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 25 10
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.cpp</file><line>3</line><column>9</column><endLine>3</endLine><endColumn>13</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>15</endColumn></location>
+<location><symbol>val2</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>3</line><column>9</column><endLine>3</endLine><endColumn>13</endColumn></location>
+<location><symbol>val2</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>15</endColumn></location>
 </ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 13
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>15</endColumn></location>
+<location><symbol>val</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
+<location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
+<location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
+<location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>15</endColumn></location>
 </ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 26 19
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.cpp</file><line>17</line><column>9</column><endLine>17</endLine><endColumn>24</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>26</line><column>19</column><endLine>26</endLine><endColumn>24</endColumn></location>
+<location><symbol>M_VAL</symbol><kind>macro definition</kind><file>NDIR/test/highlight.cpp</file><line>17</line><column>9</column><endLine>17</endLine><endColumn>24</endColumn></location>
+<location><symbol>M_VAL</symbol><kind>macro expansion</kind><file>NDIR/test/highlight.cpp</file><line>26</line><column>19</column><endLine>26</endLine><endColumn>24</endColumn></location>
 </ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
 <lctags_result><ref>
-<location><file>NDIR/test/highlight.cpp</file><line>13</line><column>5</column><endLine>13</endLine><endColumn>14</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>24</line><column>18</column><endLine>24</endLine><endColumn>27</endColumn></location>
-<location><file>NDIR/test/highlight.cpp</file><line>27</line><column>19</column><endLine>27</endLine><endColumn>28</endColumn></location>
+<location><symbol>enum_val2</symbol><kind>EnumConstantDecl</kind><file>NDIR/test/highlight.cpp</file><line>13</line><column>5</column><endLine>13</endLine><endColumn>14</endColumn></location>
+<location><symbol>enum_val2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>18</column><endLine>24</endLine><endColumn>27</endColumn></location>
+<location><symbol>enum_val2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>27</line><column>19</column><endLine>27</endLine><endColumn>28</endColumn></location>
 </ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
 sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result><completion>

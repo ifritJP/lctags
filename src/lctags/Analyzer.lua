@@ -1765,26 +1765,31 @@ function Analyzer:outputLocation( stream, cursor )
       local valName = cursor:getCursorSpelling()
       local skipFlag = nil
       clang.mapRangeToken(
-	 unit, range,
-	 function( cxtoken )
-	    if skipFlag then
-	       skipFlag = nil
-	       return true
-	    end
-	    local token = unit:getTokenSpelling( cxtoken )
-	    if token == "struct" or token == "union" or token == "enum" then
-	       skipFlag = true
-	    elseif valName == token then
-	       range = unit:getTokenExtent( cxtoken )
-	       return nil
-	    end
-	    return true
-	 end
+      	 unit, range,
+      	 function( cxtoken )
+      	    if skipFlag then
+      	       skipFlag = nil
+      	       return true
+      	    end
+      	    local token = unit:getTokenSpelling( cxtoken )
+      	    if token == "struct" or token == "union" or token == "enum" then
+      	       skipFlag = true
+      	    elseif valName == token then
+      	       range = unit:getTokenExtent( cxtoken )
+      	       return nil
+      	    end
+      	    return true
+      	 end
       )
    end
 
    local file, line, column = clang.getLocation( range:getRangeStart() )
    stream:write( "<location>" )
+   stream:write(
+      string.format( "<symbol>%s</symbol>", cursor:getCursorSpelling() ) )
+   stream:write(
+      string.format( "<kind>%s</kind>",
+		     clang.getCursorKindSpelling( cursor:getCursorKind() ) ) )
    stream:write(
       string.format( "<file>%s</file>", self:convFullpath( file:getFileName() ) ) )
    stream:write( string.format( "<line>%d</line>", line ) )
@@ -1813,17 +1818,6 @@ function Analyzer:refAt(
 
    local stream = io.stdout
    
-   local visit = function( cursor, parent, param, exInfo )
-      dumpCursorInfo( cursor, 1, "ref:", nil )
-      local appendInfo = clang.getVisitAppendInfo( exInfo )
-
-      if cursor:getCursorDefinition():hashCursor() == param.hash then
-      	 self:outputLocation( stream, cursor )
-      end
-
-      return 1
-   end
-
    local diagList = {}
 
    local refKindList = {
@@ -1853,8 +1847,18 @@ function Analyzer:refAt(
 	       targetCursor = cursor
 	    end, diagList )
    local targetCursorKind = targetCursor:getCursorKind()
-
    local rootCursor = unit:getTranslationUnitCursor()
+
+   local visit = function( cursor, parent, param, exInfo )
+      dumpCursorInfo( cursor, 1, "ref:", nil )
+      local appendInfo = clang.getVisitAppendInfo( exInfo )
+
+      if cursor:getCursorDefinition():hashCursor() == param.hash then
+      	 self:outputLocation( stream, cursor )
+      end
+
+      return 1
+   end
 
    local dumpRef = function( cursor )
       dumpCursorInfo( cursor, 1, nil, nil )

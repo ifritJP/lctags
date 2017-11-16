@@ -64,7 +64,7 @@ usage:
    %s set-projDir projDir [--lctags-db path]
  - misc
    %s cursors [--lctags-target target] file
-   %s split-at [--lctags-target target] [-i] file line column [-ignore-sym-list sym1,sym2,...]
+   %s split-at [--lctags-target target] [-i] file line column [-split-param-list sym1,sym2,...]
    %s clang-ver
    %s kill
    %s cancel-kill
@@ -411,10 +411,10 @@ function Option:analyzeOption( argList )
 			skipArgNum = 1
 		     end
 		  elseif lctagOptMap.mode == "split-at" then
-		     if string.find( arg, "-ignore-sym-list", 1, true ) then
-			lctagOptMap.ignoreSymMap = {}
+		     if string.find( arg, "-split-param-list", 1, true ) then
+			lctagOptMap.directPassMap = {}
 			for val in string.gmatch( argList[ index + 1 ], "[^,]+" ) do
-			   lctagOptMap.ignoreSymMap[ val ] = true
+			   lctagOptMap.directPassMap[ val ] = true
 			end
 			skipArgNum = 2
 		     elseif arg == "-i" then

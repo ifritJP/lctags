@@ -475,7 +475,7 @@ else
 	-if [ -f lsqlite3.so ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.so; fi
 endif
 ifneq ($(LUA_INST_DIR),)
-	rm $(LUA_INST_DIR)/$(LUA_COMMAND)
+	-rm $(LUA_INST_DIR)/$(LUA_COMMAND)
 endif
 
 define dumpDB
