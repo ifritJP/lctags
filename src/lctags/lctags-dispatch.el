@@ -36,6 +36,7 @@
 	   :submenu
 	   ((:name "highlight-at" :bind "h" :action lctags-highlight-at)
 	    (:name "rescan" :bind "r" :action lctags-highlight-rescan)
+	    (:name "grep" :bind "g" :action lctags-highlight-grep-at)
 	    (:name "clear" :bind "c" :action lctags-highlight-clear)
 	   ))
     (:name "refactoring" :bind "r"

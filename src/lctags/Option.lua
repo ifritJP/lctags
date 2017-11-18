@@ -412,9 +412,19 @@ function Option:analyzeOption( argList )
 		     end
 		  elseif lctagOptMap.mode == "split-at" then
 		     if string.find( arg, "-split-param-list", 1, true ) then
-			lctagOptMap.directPassMap = {}
+			lctagOptMap.splitParamInfoList = {}
 			for val in string.gmatch( argList[ index + 1 ], "[^,]+" ) do
-			   lctagOptMap.directPassMap[ val ] = true
+			   local tokenList = {}
+			   for info in string.gmatch( val, "[^:]+" ) do
+			      table.insert( tokenList, info )
+			   end
+			   table.insert(
+			      lctagOptMap.splitParamInfoList,
+			      {
+				 directPassFlag = tokenList[ 1 ] == "x",
+				 argSymbol = tokenList[ 2 ],
+				 symbol = tokenList[ 3 ],
+			   } )
 			end
 			skipArgNum = 2
 		     elseif arg == "-i" then

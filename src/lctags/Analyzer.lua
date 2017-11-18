@@ -1758,7 +1758,7 @@ function Analyzer:queryAtFunc(
       optionList, target, fileContents, func, diagList )
 end
 
-function Analyzer:outputLocation( stream, cursor )
+function Analyzer:outputLocation( stream, cursor, rangeSet )
    local range = cursor:getCursorExtent()
    if clang.isDeclKind( cursor:getCursorKind() ) then
       local unit = cursor:getTranslationUnit()
@@ -1784,6 +1784,16 @@ function Analyzer:outputLocation( stream, cursor )
    end
 
    local file, line, column = clang.getLocation( range:getRangeStart() )
+   local endFile, endLine, endColumn = clang.getLocation( range:getRangeEnd() )
+
+   local key = string.format( "%s:%d:%d-%d:%d",
+			      file:getFileName(), line, column, endLine, endColumn )
+   if rangeSet[ key ] then
+      -- マクロ内で複数使用されている場合は除外する
+      return
+   end
+   rangeSet[ key ] = true
+   
    stream:write( "<location>" )
    stream:write(
       string.format( "<symbol>%s</symbol>", cursor:getCursorSpelling() ) )
@@ -1794,10 +1804,11 @@ function Analyzer:outputLocation( stream, cursor )
       string.format( "<file>%s</file>", self:convFullpath( file:getFileName() ) ) )
    stream:write( string.format( "<line>%d</line>", line ) )
    stream:write( string.format( "<column>%d</column>", column ) )
-   file, line, column = clang.getLocation( range:getRangeEnd() )
-   stream:write( string.format( "<endLine>%d</endLine>", line ) )
-   stream:write( string.format( "<endColumn>%d</endColumn>", column ) )
+   stream:write( string.format( "<endLine>%d</endLine>", endLine ) )
+   stream:write( string.format( "<endColumn>%d</endColumn>", endColumn ) )
    stream:write( "</location>\n" )
+
+   
 end
 
 function Analyzer:refAt(
@@ -1854,13 +1865,13 @@ function Analyzer:refAt(
       local appendInfo = clang.getVisitAppendInfo( exInfo )
 
       if cursor:getCursorDefinition():hashCursor() == param.hash then
-      	 self:outputLocation( stream, cursor )
+	 table.insert( param.locationList, cursor )
       end
 
       return 1
    end
 
-   local dumpRef = function( cursor )
+   local dumpRef = function( cursor, locationList )
       dumpCursorInfo( cursor, 1, nil, nil )
       local cursorKind = cursor:getCursorKind()
       local declCursor
@@ -1872,7 +1883,7 @@ function Analyzer:refAt(
       end
       if declCursor then
 	 dumpCursorInfo( declCursor, 1, "declCursor", nil )
-	 self:outputLocation( stream, declCursor )
+	 table.insert( locationList, declCursor )
 
 	 local parentCursor
 	 if declCursor:getCursorKind() == clang.core.CXCursor_FieldDecl or
@@ -1887,48 +1898,68 @@ function Analyzer:refAt(
 	 if parentCursor then
 	    dumpCursorInfo( parentCursor, 1, "parentCursor", nil )
 	    clang.visitChildrenFast(
-	       parentCursor, visit, { hash = declCursor:hashCursor() },
+	       parentCursor, visit,
+	       { hash = declCursor:hashCursor(), locationList = locationList },
 	       refKindList, 2 )
 	 end
       end
    end
 
+   local targetCursorList = {}
+   if targetCursorKind == clang.core.CXCursor_FunctionDecl or
+      targetCursorKind == clang.core.CXCursor_CXXMethod
+   then
+      -- 関数定義の場合、引数とローカル変数の参照箇所をリストする
+      local declHash2RefMap = {}
+      clang.visitChildrenFast(
+	 targetCursor,
+	 function( cursor )
+	    local cursorKind = cursor:getCursorKind()
+	    local declCursor = cursor:getCursorDefinition()
+	    local declCursorKind = declCursor:getCursorKind()
+	    if cursorKind ~= clang.core.CXCursor_MemberRefExpr and
+	       declCursorKind == clang.core.CXCursor_VarDecl or
+	       declCursorKind == clang.core.CXCursor_ParmDecl 
+	    then
+	       local hash = declCursor:hashCursor()
+	       if not declHash2RefMap[ hash ] then
+		  declHash2RefMap[ hash ] = cursor
+
+		  table.insert( targetCursorList, cursor )
+	       end
+	    end
+	 end,
+	 {}, refKindList, 2 )
+   else
+      table.insert( targetCursorList, targetCursor )
+   end
+
+   local locationSetList = {}
+   for index, cursor in ipairs( targetCursorList ) do
+      local locationList = {}
+      table.insert( locationSetList, locationList )
+      dumpRef( cursor, locationList )
+   end
+   
+
    Util:outputResult(
       clang.core.CXDiagnostic_Error,
       function()
 	 stream:write( "<ref>\n" )
-
-	 if targetCursorKind == clang.core.CXCursor_FunctionDecl or
-	    targetCursorKind == clang.core.CXCursor_CXXMethod
-	 then
-	    -- 関数定義の場合、引数とローカル変数の参照箇所をリストする
-	    stream:write( "<refsInFunc>true</refsInFunc>\n" )
-	    local declHash2RefMap = {}
-	    clang.visitChildrenFast(
-	       targetCursor,
-	       function( cursor )
-		  local cursorKind = cursor:getCursorKind()
-		  local declCursor = cursor:getCursorDefinition()
-		  local declCursorKind = declCursor:getCursorKind()
-		  if cursorKind ~= clang.core.CXCursor_MemberRefExpr and
-		     declCursorKind == clang.core.CXCursor_VarDecl or
-		     declCursorKind == clang.core.CXCursor_ParmDecl 
-		  then
-		     local hash = declCursor:hashCursor()
-		     if not declHash2RefMap[ hash ] then
-			declHash2RefMap[ hash ] = cursor
-			self:outputLocation( stream, cursor )
-		     end
-		  end
-	       end,
-	       {}, refKindList, 2 )
-	 else
-	    dumpRef( targetCursor )
+	 local rangeSet = {}
+	 for infdex, locationSet in ipairs( locationSetList ) do
+	    stream:write( "<locationSet>" )
+	    for index2, cursor in ipairs( locationSet ) do
+	       self:outputLocation( stream, cursor, rangeSet )
+	    end
+	    stream:write( "</locationSet>" )
 	 end
 	 
 	 stream:write( "</ref>" )
       end,
       diagList)
+
+   
 
    db:close()
 end

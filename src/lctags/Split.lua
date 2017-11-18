@@ -44,6 +44,8 @@ local function visit( cursor, parent, info, addInfo )
 	       setAccess = false,
 	       arrayAccess = false,
 	       directPassFlag = false,
+	       argSymbol = symbol,
+	       orgSymbol = symbol,
 	    }
 	    log( "refSymbol:", symbol )
 	    info.symbol2DeclMap[ symbol ] = declCursorInfo
@@ -152,11 +154,10 @@ local function getDeclTxt( declCursorInfo )
    if prefix == suffix then
       suffix = ""
    end
-   local name = cursor:getCursorSpelling()
-   local callArg = name
+   local name = declCursorInfo.argSymbol
+   local callArg = cursor:getCursorSpelling()
    if pointerFlag then
-      callArg = "&" .. name
-      name = declCursorInfo.addressSymbol
+      callArg = "&" .. callArg
       prefix = prefix .. "* "
    else
       prefix = prefix .. " "
@@ -179,6 +180,8 @@ local function outputCode(
 
    local retEndOffset = nil
 
+   local prevReplacePos = 0
+   
    local function writeSubstr( frontOffset )
       if retEndOffset and retEndOffset <= frontOffset then
 	 stream:write( fileContents:sub( startOffset, retEndOffset ) )
@@ -188,8 +191,9 @@ local function outputCode(
       end
 
       stream:write( fileContents:sub( startOffset, frontOffset ) )
+      prevReplacePos = frontOffset
    end
-
+   
    local function replaceSymbol( target, addressAccessFlag )
       local ref = target
       local sym = ref:getCursorSpelling()
@@ -211,12 +215,19 @@ local function outputCode(
 				  fileContents:sub( frontOffset, tailOffset ),
 				  sym, frontLine, frontColmn, tailColmn ) )
 	 end
+	 if prevReplacePos == frontOffset then
+	    -- マクロ内で複数使用されている変数を処理すると、
+	    -- 不正な置換処理になるため、 skip する
+	    log( 2, "skip same pos" )
+	    return
+	 end
 
 	 writeSubstr( frontOffset )
+	 
 
 	 startOffset = tailOffset + 1
 
-	 local addressRefName = declCursorInfo.addressSymbol
+	 local addressRefName = declCursorInfo.argSymbol
 	 
 	 local refTxt
 	 if addressAccessFlag then
@@ -259,6 +270,33 @@ local function outputCode(
 	    end
 	 end
 	 stream:write( refTxt )
+      elseif ref:getCursorKind() == clang.core.CXCursor_DeclRefExpr then
+	 if declCursorInfo.argSymbol ~= declCursorInfo.orgSymbol then
+	    local range = ref:getCursorExtent()
+	    local frontFile, frontLine, frontColmn, frontOffset =
+	       clang.getLocation( range:getRangeStart() )
+	    local tailFile, tailLine, tailColmn, tailOffset =
+	       clang.getLocation( range:getRangeEnd() )
+
+	    if tailOffset - frontOffset ~= #sym or
+	       fileContents:sub( frontOffset + 1, tailOffset ) ~= sym 
+	    then
+	       error( string.format( "sym %s, %s, %d:%d-%d",
+				     fileContents:sub( frontOffset, tailOffset ),
+				     sym, frontLine, frontColmn, tailColmn ) )
+	    end
+
+	    if prevReplacePos == frontOffset then
+	       -- マクロ内で複数使用されている変数を処理すると、
+	       -- 不正な置換処理になるため、 skip する
+	       log( 2, "skip same pos" )
+	       return
+	    end
+	    
+	    writeSubstr( frontOffset )
+	    startOffset = tailOffset + 1
+	    stream:write( declCursorInfo.argSymbol )
+	 end
       end
    end
 
@@ -343,14 +381,17 @@ local function outputCode(
 	    info.lastStmtInfo.parent:getCursorExtent() ) or
 	 info.lastStmtInfo.cursor:getCursorKind() ~= clang.core.CXCursor_ReturnStmt
       then
-	 stream:write( string.format( "    return %s;\n", boolTypeInfo.non ) )
-      else
+	 if onlyReturnFlag then
+	    stream:write( string.format( "    return; // please set default value.\n" ) )
+	 else
+	    stream:write( string.format( "    return %s;\n", boolTypeInfo.non ) )
+	 end
       end
    end
    stream:write( "}\n" )
 end
 
-function Split:at( analyzer, path, line, column, directPassMap,
+function Split:at( analyzer, path, line, column, splitParamInfoList,
 		   subRetTypeInfo, directRet, target, fileContents )
    if not subRetTypeInfo then
       subRetTypeInfo = {}
@@ -510,12 +551,6 @@ function Split:at( analyzer, path, line, column, directPassMap,
 	 nil, {}, 2 )
    end
 
-   if directPassMap then
-      for sym in pairs( directPassMap ) do
-	 info.symbol2DeclMap[ sym ].directPassFlag = true      
-      end
-   end
-
    for key, array in pairs( info.arrayList ) do
       clang.visitChildrenFast(
 	 array,
@@ -601,7 +636,7 @@ function Split:at( analyzer, path, line, column, directPassMap,
    end
    info.symbol2DeclMap = newSymbol2DeclMap
 
-   -- アドレス渡し用変数名の決定
+   -- 変数名の決定
    for key, declCursorInfo in pairs( info.symbol2DeclMap ) do
       local declCursor = declCursorInfo.cursor
       if isNeedPassAddress( declCursorInfo ) then
@@ -609,40 +644,62 @@ function Split:at( analyzer, path, line, column, directPassMap,
 	 while info.refSymbolSet[ symbol ] do
 	    symbol = symbol .. "_";
 	 end
-	 declCursorInfo.addressSymbol = symbol
+	 declCursorInfo.argSymbol = symbol
       end
    end
-   
-   
 
    local callArgs = ""
    local declArgs = ""
 
 
+   local streamRaw = io.stdout
    local stream = {
       write = function( self, txt )
 	 io.stdout:write( Util:convertXmlTxt( txt ) )
       end
    }
 
-   print( "<lctags_result><refactoring_split>" )
+   streamRaw:write( "<lctags_result><refactoring_split>\n" )
 
    local onlyReturnFlag = false
    if (#info.breakList == 0) and (#info.continueList == 0) and
       (#info.returnList > 0) and resultTypeTxt
    then
       onlyReturnFlag = directRet
-      print( string.format( "<directRet>%s</directRet>",
-			    directRet and "true" or "false" ) )
+      streamRaw:write( string.format( "<directRet>%s</directRet>\n",
+				   directRet and "true" or "false" ) )
    end
 
-   print( "<args>" )
+   streamRaw:write( "<args>" )
    
-   if resultTypeTxt and not onlyReturnFlag then
+   if resultTypeTxt and #info.returnList > 0 and not onlyReturnFlag then
       declArgs = declArgs .. ", " .. resultTypeTxt .. "* pFuncRet__"
       callArgs = callArgs .. ", &funcRet__"
    end
-   table.sort( symbolList )
+
+
+   if splitParamInfoList then
+      local workSymList = {}
+      local workSymSet = {}
+      for key, symbol in ipairs( symbolList ) do
+	 workSymSet[ symbol ] = true
+      end
+   
+      for index, splitParamInfo in pairs( splitParamInfoList ) do
+	 local declCursorInfo = info.symbol2DeclMap[ splitParamInfo.symbol ]
+	 declCursorInfo.directPassFlag = splitParamInfo.directPassFlag
+	 declCursorInfo.argSymbol = splitParamInfo.argSymbol
+	 table.insert( workSymList, splitParamInfo.symbol )
+	 workSymSet[ splitParamInfo.symbol ] = nil
+      end
+      for symbol in pairs( workSymSet ) do
+	 table.insert( workSymList, symbol )
+      end
+      symbolList = workSymList
+   else
+      table.sort( symbolList )
+   end
+   
    for index, symbol in ipairs( symbolList ) do
       local declCursorInfo = info.symbol2DeclMap[ symbol ] 
       local declCursor = declCursorInfo.cursor
@@ -656,13 +713,16 @@ function Split:at( analyzer, path, line, column, directPassMap,
       declArgs = declArgs .. ", " .. declArgTxt
       callArgs = callArgs .. ", " .. callArgTxt
 
-      print( string.format(
-		"<arg><addressAccess>%s</addressAccess><name>%s</name></arg>",
-		isNeedPassAddress( declCursorInfo ), declCursor:getCursorSpelling() ) )
+      streamRaw:write(
+	 string.format(
+	    "<arg><addressAccess>%s</addressAccess>" ..
+	       "<name>%s</name><argSymbol>%s</argSymbol></arg>",
+	    isNeedPassAddress( declCursorInfo ), declCursor:getCursorSpelling(),
+	    declCursorInfo.argSymbol ) )
    end
 
-   print( "</args>" )
-   print( "<call>" )
+   streamRaw:write( "</args>" )
+   streamRaw:write( "<call>" )
 
    local retValDecl = ""
    if resultTypeTxt and not onlyReturnFlag then
@@ -732,8 +792,8 @@ if ( %s ) {
       end
       stream:write( "}\n" )
    end
-   print( "</call>" )
-   print( "<sub_routine>" )
+   streamRaw:write( "</call>" )
+   streamRaw:write( "<sub_routine>" )
    stream:write( string.format(
 		    "static %s %s( %s )\n", subModType,
 		    subroutineName, string.gsub( declArgs, "^, ", "" ) ) )
@@ -743,8 +803,8 @@ if ( %s ) {
 	       info, subRetTypeInfo, hash2MemberAccessRef, resultTypeTxt,
 	       onlyReturnFlag )
 
-   print( "</sub_routine>" )
-   print( "</refactoring_split></lctags_result>" )
+   streamRaw:write( "</sub_routine>" )
+   streamRaw:write( "</refactoring_split></lctags_result>" )
 end
 
 return Split

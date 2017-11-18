@@ -511,7 +511,7 @@ if lctagOptMap.mode == "split-at" then
 
    Split:at( analyzer, targetFullPath,
 	     tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
-	     lctagOptMap.directPassMap, lctagOptMap.subRetTypeInfo,
+	     lctagOptMap.splitParamInfoList, lctagOptMap.subRetTypeInfo,
 	     lctagOptMap.directRet, lctagOptMap.target, fileContents )
    finish( 0 )
 end

@@ -189,7 +189,7 @@ function Util:outputResult( diagLevel, func, diagList )
       end
    end
    stream:write( '</diagnostics>' )
-   stream:write( '</lctags_result>' )
+   stream:write( '</lctags_result>\n' )
 end
 
 

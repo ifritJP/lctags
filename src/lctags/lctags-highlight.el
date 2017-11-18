@@ -13,8 +13,9 @@
 (setq lctags-search-token-color nil)
 (setq lctags-search-token-color-first t)
 
-(defvar lctags-highlight-overlay-list nil)
-(defvar lctags-highlight-overlay-mark-list nil)
+(setq lctags-highlight-locationSet-list nil)
+(setq lctags-highlight-overlay-list nil)
+(setq lctags-highlight-overlay-mark-list nil)
 
 
 (defun lctags-goto-line-column (line column)
@@ -76,6 +77,7 @@
   (setq lctags-highlight-overlay-list nil)
   (setq lctags-highlight-overlay-mark-list nil)
   (setq lctags-search-token-color nil)
+  (setq lctags-highlight-locationSet-list nil)
   (setq lctags-search-token-color-first t)
   (dolist (overlay (overlays-in (point-min) (point-max)))
     (when (string-match "^lctags-" (symbol-name (overlay-get overlay 'face)))
@@ -86,31 +88,33 @@
   (interactive)
   (lctags-highlight-at-op))
 
+(defun lctags-highlight-make-face (&optional color)
+  (when (not lctags-search-token-color)
+    (setq lctags-search-token-color lctags-search-token-color-list)
+    (setq lctags-search-token-color-first (not lctags-search-token-color-first)))
+  (when (not color)
+    (setq color (read-color (format "face-color?(default %s): "
+				    (car lctags-search-token-color) )
+			    nil t nil)))
+  (when (or (eq color t) (equal color ""))
+    (setq color (car lctags-search-token-color))
+    (setq lctags-search-token-color (cdr lctags-search-token-color)))
+  (setq face (make-face (make-symbol (format "lctags-search-token-face-%s" color))))
+  (set-face-attribute face nil
+		      :background color
+		      ;;:overline lctags-search-token-color-first
+		      :underline lctags-search-token-color-first)
+  face
+  )
+
 (defun lctags-highlight-at-op (&optional face)
   (let ((buffer (lctags-get-process-buffer t))
-	highlight-info overlay color mark)
+	highlight-info overlay color mark locationSet-list)
     (when (or (not face) (eq face 'auto))
-      (when (not lctags-search-token-color)
-	(setq lctags-search-token-color lctags-search-token-color-list)
-	(setq lctags-search-token-color-first (not lctags-search-token-color-first)))
-      (if (not face)
-	  (setq color (read-color (format "face-color?(default %s): "
-					  (car lctags-search-token-color) )
-				  nil t nil))
-	(setq color (car lctags-search-token-color)))
-      (when (equal color "")
-	(setq color (car lctags-search-token-color)))
-      (setq lctags-search-token-color (cdr lctags-search-token-color))
-      (setq face (make-face (make-symbol (format "lctags-search-token-face-%s" color))))
-      (set-face-attribute face nil
-			  :background color
-			  ;;:overline lctags-search-token-color-first
-			  :underline lctags-search-token-color-first)
-      )
-    
+      (setq face (lctags-highlight-make-face nil)))
     (lctags-execute-xml (current-buffer) buffer
 			(buffer-string)
-			'highlight-info 'ref 'location
+			'highlight-info 'ref 'locationSet
 			"ref-at-all"
 			(buffer-file-name)
 			(number-to-string (lctags-get-line))
@@ -118,40 +122,37 @@
     (cond
      (lctags-diag-info
       (lctags-helm-display-diag))
-     ((lctags-xml-get-list highlight-info 'refsInFunc)
-      (dolist (location (lctags-xml-get-list highlight-info 'location))
-	(when (equal (lctags-location-item-get-file location)
-		     (buffer-file-name))
-	  (save-excursion
-	    (lctags-goto-line-column (lctags-location-item-get-line location)
-				     (lctags-location-item-get-column location))
-	    (lctags-highlight-at-op 'auto))
-	    )))
      (t
-      (dolist (location (lctags-xml-get-list highlight-info 'location))
-	(when (equal (lctags-location-item-get-file location)
-		     (buffer-file-name))
-	  (setq overlay
-		(make-overlay (lctags-get-point-at-line-column
-			       (lctags-location-item-get-line location)
-			       (lctags-location-item-get-column location))
-			      (lctags-get-point-at-line-column
-			       (lctags-location-item-get-end-line location)
-			       (lctags-location-item-get-end-column location))))
-	  (setq mark (point-marker))
-	  (if (not lctags-highlight-overlay-list)
-	      (progn
-		(setq lctags-highlight-overlay-list (list overlay))
-		(setq lctags-highlight-overlay-mark-list
-		      (list (list mark face)))
-		)
-	    (add-to-list 'lctags-highlight-overlay-list overlay)
-	    (add-to-list 'lctags-highlight-overlay-mark-list
-			 (list mark face))
-	    )
-	  (overlay-put overlay 'face face)
-	  ))))
-  ))
+      (setq locationSet-list (lctags-xml-get-list highlight-info 'locationSet))
+      (dolist (locationSet locationSet-list)
+	(dolist (location (lctags-xml-get-list locationSet 'location))
+	  (when (equal (lctags-location-item-get-file location)
+		       (buffer-file-name))
+	    (setq overlay
+		  (make-overlay (lctags-get-point-at-line-column
+				 (lctags-location-item-get-line location)
+				 (lctags-location-item-get-column location))
+				(lctags-get-point-at-line-column
+				 (lctags-location-item-get-end-line location)
+				 (lctags-location-item-get-end-column location))))
+	    (setq mark (point-marker))
+	    (if (not lctags-highlight-overlay-list)
+		(progn
+		  (setq lctags-highlight-overlay-list (list overlay))
+		  (setq lctags-highlight-overlay-mark-list
+			(list (list mark face)))
+		  )
+	      (add-to-list 'lctags-highlight-overlay-list overlay)
+	      (add-to-list 'lctags-highlight-overlay-mark-list
+			   (list mark face))
+	      )
+	    (overlay-put overlay 'face face)
+	    ))
+	(setq face (lctags-highlight-make-face t)))
+      (setq lctags-highlight-locationSet-list
+	    (append locationSet-list lctags-highlight-locationSet-list))
+      )
+     )))
 
 
 (defun lctags-highlight-rescan ()
@@ -164,6 +165,55 @@
 	      (face (nth 1 info)))
 	  (goto-char mark)
 	  (lctags-highlight-at-op face))))))
+
+(defun lctags-highlight-grep-at ()
+  "カーソル位置のハイライト箇所の grep バッファを作成する"
+  (interactive)
+  (let ((pos (point))
+	(dir default-directory)
+	(cur-buf (current-buffer))
+	target-locationSet)
+    (dolist (locationSet lctags-highlight-locationSet-list)
+      (dolist (location (lctags-xml-get-list locationSet 'location))
+	(when (and (equal (lctags-location-item-get-file location)
+			  (buffer-file-name))
+		   (when (and (<= (lctags-location-item-get-point location) pos)
+			      (> (lctags-location-item-get-end-point location) pos))
+		     (setq target-locationSet locationSet)
+		   )))))
+    (if (not target-locationSet)
+	(message "not found")
+      (let ((buffer (get-buffer-create "*lctags-highlight-grep*"))
+	    line begin-pos)
+	(with-current-buffer buffer
+	  (setq buffer-read-only nil)
+	  (setq default-directory dir)
+	  (erase-buffer)
+	  (insert (format "grep for \"%s\".\n\n"
+			  (lctags-location-item-get-symbol
+			   (car (lctags-xml-get-list target-locationSet 'location)))))
+	  (dolist (location (lctags-xml-get-list target-locationSet 'location))
+	    (setq line (lctags-location-item-get-line location))
+	    (insert (format "%s:%d: %s\n"
+			    (file-relative-name (lctags-location-item-get-file location)
+						default-directory)
+			    line
+			    (with-current-buffer cur-buf
+			      (save-excursion
+				(goto-line line)
+				(beginning-of-line)
+				(setq begin-pos (point))
+				(end-of-line)
+				(buffer-substring begin-pos (point)))
+			      )
+			    )))
+	  (grep-mode)
+	  )
+	(lctags-switch-to-buffer-other-window buffer)
+	(with-current-buffer buffer
+	  (fit-window-to-buffer nil (/ (frame-height) 3)))
+	  (beginning-of-buffer)
+	))))
 
 
 (provide 'lctags-highlight)

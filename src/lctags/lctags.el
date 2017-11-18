@@ -21,6 +21,14 @@
 
 (require 'gtags)
 
+(require 'lctags-dispatch)
+(require 'lctags-split)
+(require 'lctags-insert-func)
+(require 'lctags-highlight)
+(require 'lctags-rename)
+
+
+
 (defvar lctags-process-buf-name "*lctags-process*"
   "")
 
@@ -492,10 +500,11 @@ This parameter can set function and string.
   )
 
 
+(defun lctags-switch-to-buffer-other-window (buf)
+  (if (not (get-buffer-window buf))
+      (switch-to-buffer-other-window buf)
+    (select-window (get-buffer-window buf))
+    ))
 
-(require 'lctags-dispatch)
-(require 'lctags-split)
-(require 'lctags-insert-func)
-(require 'lctags-highlight)
 
 (provide 'lctags)

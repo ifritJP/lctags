@@ -16,9 +16,13 @@
 (defun lctags-split-arg-get-name (arg)
   (car (xml-node-children (car (xml-get-children arg 'name)))))
 
+(defun lctags-split-arg-get-argSym (arg)
+  (car (xml-node-children (car (xml-get-children arg 'argSymbol)))))
+
+
 (defun lctags-split-get-call (info)
   (let ((call-txt (car (xml-node-children (car (xml-get-children info 'call))))))
-    (when (string-match "[\n\t]" call-txt)
+    (when (string-match "^[\n\t]+" call-txt)
       (setq call-txt (replace-match "" nil nil call-txt)))
     call-txt
     ))
@@ -61,22 +65,22 @@
       (setq lctags-split-target-pos-mark (point-marker))
       (when (not (buffer-live-p lctags-split-buffer))
 	(setq lctags-split-buffer (get-buffer-create "*lctags-split*")))
-      (if (not (get-buffer-window lctags-split-buffer))
-	  (switch-to-buffer-other-window lctags-split-buffer))
+      (lctags-switch-to-buffer-other-window lctags-split-buffer)
       (setq split-info (lctags-xml-get lctags-buf 'refactoring_split))
 
       (with-current-buffer lctags-split-buffer
 	(erase-buffer)
-	(insert "/* please edit 'x' or 'o' of following items,\n    and push C-c C-c to update.\n")
+	(insert "/* please edit 'x' or 'o' and symbol and order of following items,\n    and push C-c C-c to update.\n")
 	(when (lctags-split-can-directRet split-info)
-	  (insert (format "%s: indirect-return\n"
+	  (insert (format ":%s:indirect-return\n"
 			  (if (equal (lctags-split-can-directRet split-info)
 				     "true")
 			      "x" "o"))))
 	(dolist (arg (lctags-split-get-args split-info))
-	  (insert (format "%s: %s\n"
+	  (insert (format ":%s:%s:%s\n"
 			  (if (lctags-split-arg-isAddressAccess arg)
 			      "o" "x")
+			  (lctags-split-arg-get-argSym arg)
 			  (lctags-split-arg-get-name arg)
 			  arg)))
 	(c++-mode)
@@ -110,21 +114,27 @@
 
 (defun lctags-split-retry ()
   (interactive)
-  (let (ignore-list pos direct-return)
+  (let ((back-pos (point))
+	ignore-list direct-return)
     (save-excursion
       (beginning-of-buffer)
-      (while (re-search-forward "^x: " nil t)
-	(let (symbol)
+      (while (re-search-forward "^:[xo]:" nil t)
+	(let (symbol pos param endpos)
 	  (setq pos (point))
 	  (end-of-line)
-	  (setq symbol (buffer-substring-no-properties pos (point)))
+	  (setq endpos (point))
+	  (setq param (buffer-substring-no-properties (- pos 2) endpos))
+	  (re-search-backward ":" nil t)
+	  (setq symbol (buffer-substring-no-properties (1+ (point)) endpos))
 	  (if (equal symbol "indirect-return")
-	      (setq direct-return "--lctags-directRet")
-	    (setq ignore-list (cons symbol ignore-list))))))
+	      (when (string-match "^x:" param)
+		(setq direct-return "--lctags-directRet"))
+	    (setq ignore-list (append ignore-list (list param)))))))
     (with-current-buffer lctags-split-target-buffer
-      (message "%s" ignore-list)
       (goto-char lctags-split-target-pos-mark)
       (apply 'lctags-split-at direct-return ignore-list)
-      )))
+      )
+    (goto-char back-pos)
+    ))
 
 (provide 'lctags-split)

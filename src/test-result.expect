@@ -128,7 +128,8 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message></diagnostics></lctags_result>rm -f graph.sample/*
+<diagnostics><message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message></diagnostics></lctags_result>
+rm -f graph.sample/*
 mkdir -f graph.sample
 makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
@@ -204,7 +205,8 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pClass-&gt;</frontExpr>
@@ -303,7 +305,8 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 
 </typeInfo>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>val.</frontExpr>
@@ -369,7 +372,8 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 
 </typeInfo>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <lctags_result><completion>
 <prefix></prefix>
 
@@ -482,7 +486,8 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
+<diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>
+lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
 makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
@@ -508,7 +513,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pTest1-&gt;pTest-&gt;</frontExpr>
@@ -628,7 +634,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </candidate>
 </typeInfo>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <lctags_result><completion>
 <prefix>f</prefix>
 <frontExpr>hoge()-&gt;</frontExpr>
@@ -652,7 +659,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <lctags_result><completion>
 <prefix>s</prefix>
 <frontExpr>hoge(1,2)-&gt;</frontExpr>
@@ -676,7 +684,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>((Test1*)NULL)-&gt;</frontExpr>
@@ -736,7 +745,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <lctags_result><completion>
 <prefix>f</prefix>
 <frontExpr>((Test1*)NULL)-&gt;</frontExpr>
@@ -760,7 +770,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
 <lctags_result><completion>
 <prefix>TE</prefix>
 
@@ -1089,7 +1100,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <lctags_result><completion>
 <prefix></prefix>
 
@@ -1256,7 +1268,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>NDIR/test/comp7.cpp:48: error: unexpected namespace name &apos;ns72&apos;: expected expression</message></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
+<diagnostics><message>NDIR/test/comp7.cpp:48: error: unexpected namespace name &apos;ns72&apos;: expected expression</message></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <lctags_result><completion>
 <prefix>TE</prefix>
 
@@ -1369,7 +1382,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>NDIR/test/comp8.cpp:48: error: unexpected namespace name &apos;ns81&apos;: expected expression</message></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
+<diagnostics><message>NDIR/test/comp8.cpp:48: error: unexpected namespace name &apos;ns81&apos;: expected expression</message></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <lctags_result><completion>
 <prefix>T</prefix>
 
@@ -1500,7 +1514,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <lctags_result><completion>
 <prefix>T</prefix>
 
@@ -1847,7 +1862,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
 <lctags_result><completion>
 <prefix>f</prefix>
 
@@ -1888,7 +1904,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>aaa.</frontExpr>
@@ -1930,7 +1947,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp13.cpp 3 8
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp13.cpp 3 8
 <lctags_result><completion>
 <prefix>m_val</prefix>
 
@@ -1953,7 +1971,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>NDIR/test/comp13.cpp:2: error: expected &apos;;&apos; after class</message></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
+<diagnostics><message>NDIR/test/comp13.cpp:2: error: expected &apos;;&apos; after class</message></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>func()-&gt;</frontExpr>
@@ -2034,7 +2053,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </candidate>
 </typeInfo>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pData-&gt;</frontExpr>
@@ -2061,7 +2081,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 
 </typeInfo>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/class2.cpp 13 10
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/class2.cpp 13 10
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>this-&gt;</frontExpr>
@@ -2139,7 +2160,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>NDIR/test/class2.cpp:15: error: expected &apos;;&apos; after class</message></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/class3.cpp 16 10
+<diagnostics><message>NDIR/test/class2.cpp:15: error: expected &apos;;&apos; after class</message></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/class3.cpp 16 10
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>this-&gt;</frontExpr>
@@ -2217,7 +2239,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>NDIR/test/class3.cpp:18: error: expected &apos;;&apos; after class</message></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/class4.cpp 11 7
+<diagnostics><message>NDIR/test/class3.cpp:18: error: expected &apos;;&apos; after class</message></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/class4.cpp 11 7
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>val.</frontExpr>
@@ -2241,7 +2264,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/class5.cpp 24 6
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/class5.cpp 24 6
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>tmp.</frontExpr>
@@ -2304,7 +2328,8 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 
 </typeInfo>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua testOpe test/operator.cpp
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua testOpe test/operator.cpp
 lctags:	1	=
 lctags:	1	||
 lctags:	1	|
@@ -2342,142 +2367,88 @@ lctags:	1	fileId	hasPch	upTime	target	path	compOp
 lua lctags/lctags.lua split-at test/split.cpp 62 13
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-</args>
-<call>
-{
+<args></args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__ ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func4__sub( int* pFuncRet__ )
+}</call><sub_routine>static int func4__sub( int* pFuncRet__ )
 {
     return *pFuncRet__= 1, 1;
   }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 65 18
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 65 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func4__sub( int* pFuncRet__, int val )
+}</call><sub_routine>static int func4__sub( int* pFuncRet__, int val )
 {
     return *pFuncRet__= val, 1;
   }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 68 18
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 68 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func4__sub( int* pFuncRet__, int val )
+}</call><sub_routine>static int func4__sub( int* pFuncRet__, int val )
 {
     return *pFuncRet__= val + 2, 1;
   }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 71 18
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 71 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func4__sub( int* pFuncRet__, int val )
+}</call><sub_routine>static int func4__sub( int* pFuncRet__, int val )
 {
     return *pFuncRet__= SYM, 1;
   }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 74 18
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 74 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-</args>
-<call>
-{
+<args></args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__ ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func4__sub( int* pFuncRet__ )
+}</call><sub_routine>static int func4__sub( int* pFuncRet__ )
 {
     RET   *pFuncRet__= 1, 1   ;
   }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
 makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-<arg><addressAccess>true</addressAccess><name>typ</name></arg>
-<arg><addressAccess>false</addressAccess><name>typArray</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol></arg><arg><addressAccess>false</addressAccess><name>typArray</name><argSymbol>typArray</argSymbol></arg></args><call>{
     int funcRet__ = 0;
 if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func5__sub( int* pFuncRet__, type_t* pTyp, type_t typArray[1] )
+}</call><sub_routine>static int func5__sub( int* pFuncRet__, type_t* pTyp, type_t typArray[1] )
 {
         pTyp-&gt;val = 1;
         typArray[0].val = 2;
         return *pFuncRet__= 0, 1;
     }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 118 20
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 118 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-<arg><addressAccess>true</addressAccess><name>typ</name></arg>
-<arg><addressAccess>true</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol></arg><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol></arg></args><call>{
     int funcRet__ = 0;
 if ( func6__sub( &amp;funcRet__, &amp;typ, &amp;val ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func6__sub( int* pFuncRet__, type_t* pTyp, int* pVal )
+}</call><sub_routine>static int func6__sub( int* pFuncRet__, type_t* pTyp, int* pVal )
 {
         (*pVal) = 1;
         pTyp // hoge
@@ -2486,23 +2457,15 @@ static int func6__sub( int* pFuncRet__, type_t* pTyp, int* pVal )
         pTyp-&gt;val = (*pVal);
         return *pFuncRet__= 0, 1;
     }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 129 0
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 129 0
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
     int funcRet__ = 0;
 if ( func7__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func7__sub( int* pFuncRet__, int val )
+}</call><sub_routine>static int func7__sub( int* pFuncRet__, int val )
 {
     int index; 
     for ( index = 0; index &lt; 10; index++ ) {
@@ -2538,24 +2501,16 @@ static int func7__sub( int* pFuncRet__, int val )
     }
     return *pFuncRet__= 1, 1;
 }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 131 43
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 131 43
 <lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
 int funcRet__ = 0;
 int result__ = func7__sub( &amp;funcRet__, val );
  if ( result__ == 1 ) { return funcRet__; }
  else if ( result__ == 2 ) { break; }
  else if ( result__ == 3 ) { continue; }
 }
-</call>
-<sub_routine>
-static int func7__sub( int* pFuncRet__, int val )
+</call><sub_routine>static int func7__sub( int* pFuncRet__, int val )
 {
         if ( val == 10 ) {
             return 3;
@@ -2568,23 +2523,14 @@ static int func7__sub( int* pFuncRet__, int val )
         }
         return 0;
 }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 142 25
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 142 25
 <lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>true</addressAccess><name>index</name></arg>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
-int result__ = func7__sub( &amp;funcRet__, &amp;index, val );
+<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol></arg><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
+int result__ = func7__sub( &amp;index, val );
  if ( result__ == 2 ) { break; }
  else if ( result__ == 3 ) { continue; }
 }
-</call>
-<sub_routine>
-static int func7__sub( int* pFuncRet__, int* pIndex, int val )
+</call><sub_routine>static int func7__sub( int* pIndex, int val )
 {
         (*pIndex)++;
         if ( val == 10 ) {
@@ -2594,61 +2540,36 @@ static int func7__sub( int* pFuncRet__, int* pIndex, int val )
             return 2;
         }
     }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 151 7
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 151 7
 <lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>true</addressAccess><name>index</name></arg>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-if ( func7__sub( &amp;funcRet__, &amp;index, val ) ) {
+<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol></arg><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>if ( func7__sub( &amp;index, val ) ) {
   continue;
 }
-</call>
-<sub_routine>
-static int func7__sub( int* pFuncRet__, int* pIndex, int val )
+</call><sub_routine>static int func7__sub( int* pIndex, int val )
 {
         (*pIndex)++;
         if ( val == 10 ) {
             return 3;
         }
     }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 157 43
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 157 43
 <lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>false</addressAccess><name>val</name></arg>
-</args>
-<call>
-if ( func7__sub( &amp;funcRet__, val ) ) {
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>if ( func7__sub( val ) ) {
   break;
 }
-</call>
-<sub_routine>
-static int func7__sub( int* pFuncRet__, int val )
+</call><sub_routine>static int func7__sub( int val )
 {
         if ( val == 20 ) {
             return 2;
         }
     }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 166 0
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 166 0
 <lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>true</addressAccess><name>val</name></arg>
-</args>
-<call>
-{
+<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal_</argSymbol></arg></args><call>{
     if ( func8__sub( &amp;val ) ) {
        return funcRet__;
     }
-}</call>
-<sub_routine>
-static int func8__sub( int* pVal_ )
+}</call><sub_routine>static int func8__sub( int* pVal_ )
 {
     if ( (*pVal_) == 1 ) {
         return 1;
@@ -2656,18 +2577,9 @@ static int func8__sub( int* pVal_ )
     int * pVal = pVal_;
     return 0;
 }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 183 4
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 183 4
 <lctags_result><refactoring_split>
-<args>
-<arg><addressAccess>false</addressAccess><name>pType_</name></arg>
-<arg><addressAccess>true</addressAccess><name>type</name></arg>
-</args>
-<call>
-func10__sub( pType_, &amp;type );</call>
-<sub_routine>
-static void func10__sub( type_t * pType_, type_t* pType__ )
+<args><arg><addressAccess>false</addressAccess><name>pType_</name><argSymbol>pType_</argSymbol></arg><arg><addressAccess>true</addressAccess><name>type</name><argSymbol>pType__</argSymbol></arg></args><call>func10__sub( pType_, &amp;type );</call><sub_routine>static void func10__sub( type_t * pType_, type_t* pType__ )
 {
         type_t * pType = pType__;
         int * pVal1 = &amp;pType__-&gt;val;
@@ -2676,18 +2588,10 @@ static void func10__sub( type_t * pType_, type_t* pType__ )
         int * pVal4 = &amp;(pType__)-&gt;val;
         type_t * pType2 = pType_;
     }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
 <lctags_result><refactoring_split>
 <directRet>true</directRet>
-<args>
-<arg><addressAccess>true</addressAccess><name>val</name></arg>
-</args>
-<call>
-func12__sub( &amp;val );</call>
-<sub_routine>
-static char func12__sub( char* pVal )
+<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol></arg></args><call>func12__sub( &amp;val );</call><sub_routine>static char func12__sub( char* pVal )
 {
   if ( (*pVal) ) {
     (*pVal)++;
@@ -2695,9 +2599,7 @@ static char func12__sub( char* pVal )
   }
   return -(*pVal);
 }
-</sub_routine>
-</refactoring_split></lctags_result>
-lua lctags/lctags.lua expand test/enum.cpp 9 15
+</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua expand test/enum.cpp 9 15
 <lctags_result><completion>
 <prefix></prefix>
 
@@ -2738,7 +2640,8 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 </endPos>
 </candidate>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua comp-at test/enum.cpp 11 9
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua comp-at test/enum.cpp 11 9
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>func().</frontExpr>
@@ -2819,48 +2722,61 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 </candidate>
 </typeInfo>
 </completion>
-<diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua def-at test/inc1.cpp 2 1
+<diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua def-at test/inc1.cpp 2 1
 NDIR/test/inc1.cpp    1 NDIR/test/inc2.h 
 lua lctags/lctags.lua def-at test/inc2.h 7 1
 NDIR/test/inc2.h    1 NDIR/test/inc3.h 
 lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 7
 <lctags_result><ref>
-<refsInFunc>true</refsInFunc>
-<location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
-<location><symbol>pVal2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>10</endColumn></location>
-<location><symbol>pVal3</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>28</line><column>5</column><endLine>28</endLine><endColumn>10</endColumn></location>
-<location><symbol>VAL2_t</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>11</endColumn></location>
-</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 18
-<lctags_result><ref>
-<location><symbol>pVal</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>19</column><endLine>21</endLine><endColumn>23</endColumn></location>
+<locationSet><location><symbol>pVal</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>19</column><endLine>21</endLine><endColumn>23</endColumn></location>
 <location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
 <location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>9</endColumn></location>
-</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 24 12
+</locationSet><locationSet><location><symbol>pVal2</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>34</column><endLine>21</endLine><endColumn>39</endColumn></location>
+<location><symbol>pVal2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>10</endColumn></location>
+<location><symbol>pVal2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>26</line><column>5</column><endLine>26</endLine><endColumn>10</endColumn></location>
+</locationSet><locationSet><location><symbol>pVal3</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>49</column><endLine>21</endLine><endColumn>54</endColumn></location>
+<location><symbol>pVal3</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>28</line><column>5</column><endLine>28</endLine><endColumn>10</endColumn></location>
+</locationSet><locationSet><location><symbol>VAL2_t</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>72</column><endLine>21</endLine><endColumn>78</endColumn></location>
+<location><symbol>VAL2_t</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>11</endColumn></location>
+</locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 18
 <lctags_result><ref>
-<location><symbol>val</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
+<locationSet><location><symbol>pVal</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>19</column><endLine>21</endLine><endColumn>23</endColumn></location>
+<location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>23</line><column>22</column><endLine>23</endLine><endColumn>26</endColumn></location>
+<location><symbol>pVal</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>9</endColumn></location>
+</locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua ref-at-all test/highlight.cpp 24 12
+<lctags_result><ref>
+<locationSet><location><symbol>val</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
 <location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
 <location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
 <location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>15</endColumn></location>
-</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 25 10
+</locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua ref-at-all test/highlight.cpp 25 10
 <lctags_result><ref>
-<location><symbol>val2</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>3</line><column>9</column><endLine>3</endLine><endColumn>13</endColumn></location>
+<locationSet><location><symbol>val2</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>3</line><column>9</column><endLine>3</endLine><endColumn>13</endColumn></location>
 <location><symbol>val2</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>25</line><column>5</column><endLine>25</endLine><endColumn>15</endColumn></location>
-</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 13
+</locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 13
 <lctags_result><ref>
-<location><symbol>val</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
+<locationSet><location><symbol>val</symbol><kind>FieldDecl</kind><file>NDIR/test/highlight.cpp</file><line>7</line><column>9</column><endLine>7</endLine><endColumn>12</endColumn></location>
 <location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>5</column><endLine>24</endLine><endColumn>15</endColumn></location>
 <location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>27</line><column>5</column><endLine>27</endLine><endColumn>16</endColumn></location>
 <location><symbol>val</symbol><kind>MemberRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>29</line><column>5</column><endLine>29</endLine><endColumn>15</endColumn></location>
-</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 26 19
+</locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua ref-at-all test/highlight.cpp 26 19
 <lctags_result><ref>
-<location><symbol>M_VAL</symbol><kind>macro definition</kind><file>NDIR/test/highlight.cpp</file><line>17</line><column>9</column><endLine>17</endLine><endColumn>24</endColumn></location>
+<locationSet><location><symbol>M_VAL</symbol><kind>macro definition</kind><file>NDIR/test/highlight.cpp</file><line>17</line><column>9</column><endLine>17</endLine><endColumn>24</endColumn></location>
 <location><symbol>M_VAL</symbol><kind>macro expansion</kind><file>NDIR/test/highlight.cpp</file><line>26</line><column>19</column><endLine>26</endLine><endColumn>24</endColumn></location>
-</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
+</locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
 <lctags_result><ref>
-<location><symbol>enum_val2</symbol><kind>EnumConstantDecl</kind><file>NDIR/test/highlight.cpp</file><line>13</line><column>5</column><endLine>13</endLine><endColumn>14</endColumn></location>
+<locationSet><location><symbol>enum_val2</symbol><kind>EnumConstantDecl</kind><file>NDIR/test/highlight.cpp</file><line>13</line><column>5</column><endLine>13</endLine><endColumn>14</endColumn></location>
 <location><symbol>enum_val2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>18</column><endLine>24</endLine><endColumn>27</endColumn></location>
 <location><symbol>enum_val2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>27</line><column>19</column><endLine>27</endLine><endColumn>28</endColumn></location>
-</ref><diagnostics></diagnostics></lctags_result>lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
+</locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
 sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result><completion>
 <prefix>strl</prefix>
@@ -2884,7 +2800,8 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 </endPos>
 </candidate>
 </completion>
-<diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>make test-chg-proj
+<diagnostics><message>error: invalid argument &apos;-std=c++11&apos; not allowed with &apos;C/ObjC&apos;</message></diagnostics></lctags_result>
+make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
 makefile:386: recipe for target 'test-chg-proj' failed
