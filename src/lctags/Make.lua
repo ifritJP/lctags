@@ -2,6 +2,7 @@ local Helper = require( 'lctags.Helper' )
 local DBCtrl = require( 'lctags.DBCtrl' )
 local log = require( 'lctags.LogCtrl' )
 local Option = require( 'lctags.Option' )
+local Analyzer = require( 'lctags.Analyzer' )
 
 local Make = {}
 
@@ -20,6 +21,15 @@ local function searchNeedUpdateFiles( db, list, target )
    if not db:hasTarget( nil, target ) then
       log( 1, string.format( "The files does not have target (%s)", target ) )
       return {}
+   end
+
+   if #list == 1 then
+      -- ファイル 1 つの場合は、面倒な確認はせずにそのまま返す
+      local fileInfo = list[ 1 ]
+      local targetInfo = db:getTargetInfo( fileInfo.id, target )
+      if targetInfo and fileInfo.incFlag == 0 then
+	 return list
+      end
    end
 
 
@@ -337,7 +347,18 @@ function Make:updateFor( dbPath, target, jobs, src )
    list, needUpdateIncIdList = searchNeedUpdateFiles( db, list, target )
    if #list == 0 then
       log( 1, 'all file is analyzed already' )
-      os.exit( 0 )
+      return
+   end
+
+   if #list == 1 then
+      -- ファイルが 1 つの場合は、make せずに直接更新する
+      local analyzer = Analyzer:new(
+	 dbPath, false, false,
+	 db:convFullpath( db:getSystemPath( list[1].currentDir ) ))
+
+      analyzer:update(
+	 db:convFullpath( db:getSystemPath( list[1].path ) ), target )
+      return
    end
 
 

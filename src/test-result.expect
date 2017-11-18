@@ -59,8 +59,8 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
 lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
-::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
+::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
@@ -349,6 +349,9 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </candidate>
 <typeInfo>
 
+</typeInfo>
+<typeInfo>
+
 <candidate>
 <canonical>efgh</canonical>
 <simple>efgh</simple>
@@ -367,9 +370,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
-</typeInfo>
-<typeInfo>
-
 </typeInfo>
 </completion>
 <diagnostics></diagnostics></lctags_result>
@@ -2376,10 +2376,12 @@ if ( func4__sub( &amp;funcRet__ ) ) {
 {
     return *pFuncRet__= 1, 1;
   }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 65 18
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 65 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
@@ -2388,10 +2390,12 @@ if ( func4__sub( &amp;funcRet__, val ) ) {
 {
     return *pFuncRet__= val, 1;
   }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 68 18
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 68 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
@@ -2400,10 +2404,12 @@ if ( func4__sub( &amp;funcRet__, val ) ) {
 {
     return *pFuncRet__= val + 2, 1;
   }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 71 18
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 71 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
     int funcRet__ = 0;
 if ( func4__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
@@ -2412,7 +2418,8 @@ if ( func4__sub( &amp;funcRet__, val ) ) {
 {
     return *pFuncRet__= SYM, 1;
   }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 74 18
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 74 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args></args><call>{
@@ -2424,12 +2431,15 @@ if ( func4__sub( &amp;funcRet__ ) ) {
 {
     RET   *pFuncRet__= 1, 1   ;
   }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
 makefile:290: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol></arg><arg><addressAccess>false</addressAccess><name>typArray</name><argSymbol>typArray</argSymbol></arg></args><call>{
+<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>false</addressAccess><name>typArray</name><argSymbol>typArray</argSymbol><directRet>false</directRet></arg>
+</args><call>{
     int funcRet__ = 0;
 if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
        return funcRet__;
@@ -2440,10 +2450,13 @@ if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
         typArray[0].val = 2;
         return *pFuncRet__= 0, 1;
     }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 118 20
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 118 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol></arg><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol></arg></args><call>{
+<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol><directRet>false</directRet></arg>
+</args><call>{
     int funcRet__ = 0;
 if ( func6__sub( &amp;funcRet__, &amp;typ, &amp;val ) ) {
        return funcRet__;
@@ -2457,10 +2470,12 @@ if ( func6__sub( &amp;funcRet__, &amp;typ, &amp;val ) ) {
         pTyp-&gt;val = (*pVal);
         return *pFuncRet__= 0, 1;
     }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 129 0
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 129 0
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
-<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
     int funcRet__ = 0;
 if ( func7__sub( &amp;funcRet__, val ) ) {
        return funcRet__;
@@ -2501,9 +2516,11 @@ if ( func7__sub( &amp;funcRet__, val ) ) {
     }
     return *pFuncRet__= 1, 1;
 }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 131 43
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 131 43
 <lctags_result><refactoring_split>
-<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
 int funcRet__ = 0;
 int result__ = func7__sub( &amp;funcRet__, val );
  if ( result__ == 1 ) { return funcRet__; }
@@ -2523,9 +2540,12 @@ int result__ = func7__sub( &amp;funcRet__, val );
         }
         return 0;
 }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 142 25
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 142 25
 <lctags_result><refactoring_split>
-<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol></arg><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>{
+<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
 int result__ = func7__sub( &amp;index, val );
  if ( result__ == 2 ) { break; }
  else if ( result__ == 3 ) { continue; }
@@ -2540,9 +2560,12 @@ int result__ = func7__sub( &amp;index, val );
             return 2;
         }
     }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 151 7
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 151 7
 <lctags_result><refactoring_split>
-<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol></arg><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>if ( func7__sub( &amp;index, val ) ) {
+<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>if ( func7__sub( &amp;index, val ) ) {
   continue;
 }
 </call><sub_routine>static int func7__sub( int* pIndex, int val )
@@ -2552,9 +2575,11 @@ int result__ = func7__sub( &amp;index, val );
             return 3;
         }
     }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 157 43
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 157 43
 <lctags_result><refactoring_split>
-<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol></arg></args><call>if ( func7__sub( val ) ) {
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>if ( func7__sub( val ) ) {
   break;
 }
 </call><sub_routine>static int func7__sub( int val )
@@ -2563,9 +2588,11 @@ int result__ = func7__sub( &amp;index, val );
             return 2;
         }
     }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 166 0
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 166 0
 <lctags_result><refactoring_split>
-<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal_</argSymbol></arg></args><call>{
+<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal_</argSymbol><directRet>false</directRet></arg>
+</args><call>{
     if ( func8__sub( &amp;val ) ) {
        return funcRet__;
     }
@@ -2577,9 +2604,12 @@ int result__ = func7__sub( &amp;index, val );
     int * pVal = pVal_;
     return 0;
 }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 183 4
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 183 4
 <lctags_result><refactoring_split>
-<args><arg><addressAccess>false</addressAccess><name>pType_</name><argSymbol>pType_</argSymbol></arg><arg><addressAccess>true</addressAccess><name>type</name><argSymbol>pType__</argSymbol></arg></args><call>func10__sub( pType_, &amp;type );</call><sub_routine>static void func10__sub( type_t * pType_, type_t* pType__ )
+<args><arg><addressAccess>false</addressAccess><name>pType_</name><argSymbol>pType_</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>true</addressAccess><name>type</name><argSymbol>pType__</argSymbol><directRet>false</directRet></arg>
+</args><call>func10__sub( pType_, &amp;type );</call><sub_routine>static void func10__sub( type_t * pType_, type_t* pType__ )
 {
         type_t * pType = pType__;
         int * pVal1 = &amp;pType__-&gt;val;
@@ -2588,10 +2618,12 @@ int result__ = func7__sub( &amp;index, val );
         int * pVal4 = &amp;(pType__)-&gt;val;
         type_t * pType2 = pType_;
     }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
 <lctags_result><refactoring_split>
 <directRet>true</directRet>
-<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol></arg></args><call>func12__sub( &amp;val );</call><sub_routine>static char func12__sub( char* pVal )
+<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol><directRet>false</directRet></arg>
+</args><call>func12__sub( &amp;val );</call><sub_routine>static char func12__sub( char* pVal )
 {
   if ( (*pVal) ) {
     (*pVal)++;
@@ -2599,7 +2631,8 @@ int result__ = func7__sub( &amp;index, val );
   }
   return -(*pVal);
 }
-</sub_routine></refactoring_split></lctags_result>lua lctags/lctags.lua expand test/enum.cpp 9 15
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua expand test/enum.cpp 9 15
 <lctags_result><completion>
 <prefix></prefix>
 

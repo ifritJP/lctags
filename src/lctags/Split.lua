@@ -44,6 +44,7 @@ local function visit( cursor, parent, info, addInfo )
 	       setAccess = false,
 	       arrayAccess = false,
 	       directPassFlag = false,
+	       directRetFlag = false,
 	       argSymbol = symbol,
 	       orgSymbol = symbol,
 	    }
@@ -170,7 +171,7 @@ end
 local function outputCode(
       stream, unit, fileContents, startOffset, endOffset, endPos,
       info, boolTypeInfo, hash2MemberAccessRef, resultTypeTxt,
-      onlyReturnFlag )
+      onlyReturnFlag, customResultInfo )
 
    table.sort( info.repList,
 	       function( repInfo1, repInfo2 )
@@ -388,6 +389,11 @@ local function outputCode(
 	 end
       end
    end
+
+   if customResultInfo then
+      stream:write( string.format( "    return %s;\n", customResultInfo.argSymbol ) )
+   end
+   
    stream:write( "}\n" )
 end
 
@@ -606,7 +612,7 @@ function Split:at( analyzer, path, line, column, splitParamInfoList,
       end
    end
 
-   -- ブロック文内の変数は除外
+   -- ブロック文内で宣言している変数を除外
    local newSymbol2DeclMap = {}
    local symbolList = {}
    for key, declCursorInfo in pairs( info.symbol2DeclMap ) do
@@ -661,6 +667,54 @@ function Split:at( analyzer, path, line, column, splitParamInfoList,
 
    streamRaw:write( "<lctags_result><refactoring_split>\n" )
 
+   local simpleModuleFlag = false
+   if (#info.breakList == 0) and (#info.continueList == 0) and
+      (#info.returnList == 0)
+   then
+      simpleModuleFlag = true
+   end
+
+   local customResultInfo
+
+   if splitParamInfoList then
+      -- - 引数の並び換え
+      -- - 引数の名前決定
+      -- - 値渡し設定
+      local workSymList = {}
+      local workSymSet = {}
+      for key, symbol in ipairs( symbolList ) do
+	 workSymSet[ symbol ] = true
+      end
+   
+      for index, splitParamInfo in pairs( splitParamInfoList ) do
+	 local declCursorInfo = info.symbol2DeclMap[ splitParamInfo.symbol ]
+	 declCursorInfo.directPassFlag = splitParamInfo.directPassFlag
+	 declCursorInfo.directRetFlag = splitParamInfo.directRetFlag
+	 if splitParamInfo.directRetFlag then
+	    if not simpleModuleFlag then
+	       -- 単純モジュールでない場合は、直接戻り値を返せない
+	       error( "this module can't use direct to return." )
+	    end
+	    if customResultInfo then
+	       -- 戻り値を複数返せない
+	       error( "can't use multiple direct to return." )
+	    end
+	    customResultInfo = declCursorInfo
+	 end
+	 declCursorInfo.argSymbol = splitParamInfo.argSymbol
+	 table.insert( workSymList, splitParamInfo.symbol )
+	 workSymSet[ splitParamInfo.symbol ] = nil
+      end
+      for symbol in pairs( workSymSet ) do
+	 table.insert( workSymList, symbol )
+      end
+      symbolList = workSymList
+   else
+      table.sort( symbolList )
+   end
+   
+      
+
    local onlyReturnFlag = false
    if (#info.breakList == 0) and (#info.continueList == 0) and
       (#info.returnList > 0) and resultTypeTxt
@@ -677,28 +731,6 @@ function Split:at( analyzer, path, line, column, splitParamInfoList,
       callArgs = callArgs .. ", &funcRet__"
    end
 
-
-   if splitParamInfoList then
-      local workSymList = {}
-      local workSymSet = {}
-      for key, symbol in ipairs( symbolList ) do
-	 workSymSet[ symbol ] = true
-      end
-   
-      for index, splitParamInfo in pairs( splitParamInfoList ) do
-	 local declCursorInfo = info.symbol2DeclMap[ splitParamInfo.symbol ]
-	 declCursorInfo.directPassFlag = splitParamInfo.directPassFlag
-	 declCursorInfo.argSymbol = splitParamInfo.argSymbol
-	 table.insert( workSymList, splitParamInfo.symbol )
-	 workSymSet[ splitParamInfo.symbol ] = nil
-      end
-      for symbol in pairs( workSymSet ) do
-	 table.insert( workSymList, symbol )
-      end
-      symbolList = workSymList
-   else
-      table.sort( symbolList )
-   end
    
    for index, symbol in ipairs( symbolList ) do
       local declCursorInfo = info.symbol2DeclMap[ symbol ] 
@@ -716,9 +748,10 @@ function Split:at( analyzer, path, line, column, splitParamInfoList,
       streamRaw:write(
 	 string.format(
 	    "<arg><addressAccess>%s</addressAccess>" ..
-	       "<name>%s</name><argSymbol>%s</argSymbol></arg>",
+	       "<name>%s</name><argSymbol>%s</argSymbol>" ..
+	       "<directRet>%s</directRet></arg>\n",
 	    isNeedPassAddress( declCursorInfo ), declCursor:getCursorSpelling(),
-	    declCursorInfo.argSymbol ) )
+	    declCursorInfo.argSymbol, declCursorInfo.directRetFlag ) )
    end
 
    streamRaw:write( "</args>" )
@@ -731,8 +764,12 @@ function Split:at( analyzer, path, line, column, splitParamInfoList,
    local callTxt = string.format(
       "%s( %s )", subroutineName, string.gsub( callArgs, "^, ", "" ) )
    local subModType = subRetTypeInfo.type
-   if #info.returnList == 0 and #info.breakList == 0 and #info.continueList == 0 then
-      subModType = "void"
+   if simpleModuleFlag then
+      if customResultInfo  then
+	 subModType = customResultInfo.cursor:getCursorType():getTypeSpelling()
+      else
+	 subModType = "void"
+      end
       stream:write( string.format( "%s( %s );", subroutineName,
 				   string.gsub( callArgs, "^, ", "" ) ) )
    elseif #info.returnList > 0 and #info.breakList == 0 and #info.continueList == 0 then
@@ -801,10 +838,10 @@ if ( %s ) {
    
    outputCode( stream, unit, fileContents, startOffset, endOffset, endLoc,
 	       info, subRetTypeInfo, hash2MemberAccessRef, resultTypeTxt,
-	       onlyReturnFlag )
+	       onlyReturnFlag, customResultInfo )
 
    streamRaw:write( "</sub_routine>" )
-   streamRaw:write( "</refactoring_split></lctags_result>" )
+   streamRaw:write( "</refactoring_split></lctags_result>\n" )
 end
 
 return Split

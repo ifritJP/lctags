@@ -216,7 +216,14 @@ static char func12( char val )
   return -val;
 }
 
-
+static void func13( char val )
+{
+  int val2;
+  if ( val ) {
+    val++;
+    val2 = 1;
+  }
+}
 
 
 int main()

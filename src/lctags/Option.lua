@@ -421,7 +421,8 @@ function Option:analyzeOption( argList )
 			   table.insert(
 			      lctagOptMap.splitParamInfoList,
 			      {
-				 directPassFlag = tokenList[ 1 ] == "x",
+				 directPassFlag = tokenList[ 1 ] ~= "o",
+				 directRetFlag = tokenList[ 1 ] == "r",
 				 argSymbol = tokenList[ 2 ],
 				 symbol = tokenList[ 3 ],
 			   } )

@@ -35,7 +35,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
    end
    log(3, "DBAccess:open", flag )
 
-   local transLockObj = Helper.createLock( DBAccess:getLockName( path ) )
+   --local transLockObj = Helper.createLock( DBAccess:getLockName( path ) )
    -- transLockObj:begin()
    local db
    if onMemoryFlag then
@@ -74,7 +74,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       inLockFlag = nil,
       inActLockFlag = nil,
       actDepth = 0,
-      transLockObj = transLockObj,
+      --transLockObj = transLockObj,
       --actLockObj = Helper.createLock("act"),
       writeAccessFlag = false,
       lockCount = 0,
@@ -85,9 +85,9 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       {
 	 __index = DBAccess,
 	 __gc = function()
-	    if obj.inLockFlag then
-	       transLockObj:fin()
-	    end
+	    -- if obj.inLockFlag then
+	    --    transLockObj:fin()
+	    -- end
 	 end,
       }
    )

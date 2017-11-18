@@ -19,8 +19,7 @@ function StatusServer:setup( name, serverFlag, createFlag )
       end
    else
       if serverFlag then
-	 Helper.deleteMQueue( self.name .. "requestStatus" )
-	 Helper.deleteMQueue( self.name .. "replyStatus" )
+	 self:cleanResource()
       end
       self.requestLock = Helper.createLock( name .. ".requestLock" )
       self.requestQueue = Helper.createMQueue(
@@ -46,8 +45,7 @@ function StatusServer:new( name )
    while true do
       local txt = self:get()
       if not txt then
-	 Helper.deleteMQueue( self.name .. "requestStatus" )
-	 Helper.deleteMQueue( self.name .. "replyStatus" )
+	 self:cleanResource()
 	 log( 1, "StatusServer:server error end:", txt )
 	 os.exit( 1 )
       end
@@ -121,11 +119,16 @@ function StatusServer:requestEndStatus( name )
    self:request( "updateStatus", { name = name, endFlag = true } )
 end
 
+function StatusServer:cleanResource()
+   Helper.deleteMQueue( self.name .. "requestStatus" )
+   Helper.deleteMQueue( self.name .. "replyStatus" )
+   Helper.deleteLock( self.name .. ".requestLock" )
+   Helper.deleteLock( self.name .. ".replyLock" )
+end
 
 function StatusServer:exit()
    self:reply( { endFlag = true } )
-   Helper.deleteMQueue( self.name .. "requestStatus" )
-   Helper.deleteMQueue( self.name .. "replyStatus" )
+   self:cleanResource()
    log( 1, "StatusServer:server end" )
    os.exit( 0 )
 end

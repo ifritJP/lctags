@@ -13,6 +13,10 @@
   (equal (car (xml-node-children (car (xml-get-children arg 'addressAccess))))
 	 "true"))
 
+(defun lctags-split-arg-isDirectReturn (arg)
+  (equal (car (xml-node-children (car (xml-get-children arg 'directRet))))
+	 "true"))
+
 (defun lctags-split-arg-get-name (arg)
   (car (xml-node-children (car (xml-get-children arg 'name)))))
 
@@ -70,7 +74,14 @@
 
       (with-current-buffer lctags-split-buffer
 	(erase-buffer)
-	(insert "/* please edit 'x' or 'o' and symbol and order of following items,\n    and push C-c C-c to update.\n")
+	(insert "/* please edit 'x' or 'o' and symbol and order of following items,\n    and push C-c C-c to update.
+    format:
+       :[xor]:argName:orgName
+     x is to pass value.
+     o is to pass address of value.
+     r is to pass value and to return directly.
+----------------
+")
 	(when (lctags-split-can-directRet split-info)
 	  (insert (format ":%s:indirect-return\n"
 			  (if (equal (lctags-split-can-directRet split-info)
@@ -78,11 +89,14 @@
 			      "x" "o"))))
 	(dolist (arg (lctags-split-get-args split-info))
 	  (insert (format ":%s:%s:%s\n"
-			  (if (lctags-split-arg-isAddressAccess arg)
-			      "o" "x")
+			  (cond
+			   ((lctags-split-arg-isDirectReturn arg) "r")
+			   ((lctags-split-arg-isAddressAccess arg) "o")
+			   (t "x"))
 			  (lctags-split-arg-get-argSym arg)
 			  (lctags-split-arg-get-name arg)
 			  arg)))
+	(insert "----------------\n")
 	(c++-mode)
 	(insert "*/\n")
 	(setq subroutine-pos (point))
@@ -118,7 +132,7 @@
 	ignore-list direct-return)
     (save-excursion
       (beginning-of-buffer)
-      (while (re-search-forward "^:[xo]:" nil t)
+      (while (re-search-forward "^:[xor]:" nil t)
 	(let (symbol pos param endpos)
 	  (setq pos (point))
 	  (end-of-line)

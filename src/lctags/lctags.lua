@@ -76,12 +76,12 @@ if not lctagOptMap.dbPath then
    end
 end
 
-local lockObj = Helper.createLock( DBAccess:getLockName( lctagOptMap.dbPath ) )
-if not lockObj then
-   Helper.deleteLock()
-else
-   lockObj = nil
-end
+-- local lockObj = Helper.createLock( DBAccess:getLockName( lctagOptMap.dbPath ) )
+-- if not lockObj then
+--    Helper.deleteLock()
+-- else
+--    lockObj = nil
+-- end
 
 
 if lctagOptMap.mode == "server" then
