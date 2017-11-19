@@ -767,11 +767,12 @@ function Split:at( analyzer, path, line, column, splitParamInfoList,
    if simpleModuleFlag then
       if customResultInfo  then
 	 subModType = customResultInfo.cursor:getCursorType():getTypeSpelling()
+	 stream:write( string.format( "%s = %s;",
+				      customResultInfo.orgSymbol, callTxt ) )
       else
 	 subModType = "void"
+	 stream:write( callTxt .. ";" )
       end
-      stream:write( string.format( "%s( %s );", subroutineName,
-				   string.gsub( callArgs, "^, ", "" ) ) )
    elseif #info.returnList > 0 and #info.breakList == 0 and #info.continueList == 0 then
       if not onlyReturnFlag then
 	 stream:write(

@@ -42,6 +42,12 @@ emacs でソースファイルを開き、サブルーチン化したいブロ�
 
 後は、この表示されたコードに置き換えればサブルーチン化作業が完了します。
 
+* デモ
+
+次のリンクは、lctags を使って emacs から C 言語の関数をサブルーチン化する操作のデモ動画です。
+
+[[https://youtu.be/_9xPcL5VNVM]]
+
 * チュートリアル
 
 ** 準備
@@ -74,10 +80,18 @@ lctags メニューでは、 refactoring の 'r' を押し、さらに subroutin
 これにより、対象ブロックの解析とサブルーチンの生成が行なわれ、次の内容のバッファが開かれます。
 
 #+BEGIN_SRC C
-/* please edit 'x' or 'o' of following items,
+/* please edit 'x' or 'o' and symbol and order of following items,
     and push C-c C-c to update.
-o: typ
-o: val
+    format:
+       :[xor]:argName:orgName
+     x is to pass value.
+     o is to pass address of value.
+     r is to pass value and to return directly.
+----------------
+:o:indirect-return
+:o:pTyp:typ
+:o:pVal:val
+----------------
 */
 //======= call ======
 {
@@ -87,11 +101,11 @@ o: val
   }
 }
 //======= sub routine ======
-static bool_t func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
+static int func6__sub( int* pFuncRet__, type_t* pTyp, int* pVal )
 {
-  (*pval) = 1;
-  ptyp->val = (*pval);
-  return *pFuncRet__= 0, TRUE;
+  (*pVal) = 1;
+  pTyp->val = (*pVal);
+  return *pFuncRet__= 0, 1;
 }
 #+END_SRC
 
@@ -104,24 +118,21 @@ static bool_t func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
 
 置き換えると次のようになります。
 #+BEGIN_SRC C
-/* please edit 'x' or 'o' of following items,
-    and push C-c C-c to update.
-o: typ
-o: val
-*/
-//======= call ======
+static int func6__sub( int* pFuncRet__, type_t* pTyp, int* pVal )
 {
-  int funcRet__ = 0;
-  if ( func6__sub( &funcRet__, &typ, &val ) ) {
-    return funcRet__;
-  }
-}
-//======= sub routine ======
-static int func6__sub( int* pFuncRet__, type_t* ptyp, int* pval )
-{
-  (*pval) = 1;
-  ptyp->val = (*pval);
+  (*pVal) = 1;
+  pTyp->val = (*pVal);
   return *pFuncRet__= 0, 1;
+}
+int func6( int val )
+{
+    type_t typ;
+    if ( val == 0 ) {
+       int funcRet__ = 0;
+       if ( func6__sub( &funcRet__, &typ, &val ) ) {
+          return funcRet__;
+       }
+    }
 }
 #+END_SRC
 
@@ -178,25 +189,26 @@ int func6( int val )
 生成されたバッファの上部に表示されている次の箇所を注目してください。
 
 #+BEGIN_SRC TXT
-/* please edit 'x' or 'o' of following items,
+/* please edit 'x' or 'o' and symbol and order of following items,
     and push C-c C-c to update.
-o: typ
-o: val
+    format:
+       :[xor]:argName:orgName
+     x is to pass value.
+     o is to pass address of value.
+     r is to pass value and to return directly.
+----------------
+:o:indirect-return
+:o:pTyp:typ
+:o:pVal:val
+----------------
 */
 #+END_SRC
 
-この o:val を x:val に編集し C-c C-c すると、
+この ~:o:pVal:val~ を ~:x:pVal:val~ に編集し C-c C-c すると、
 val が値渡しになったサブルーチンコードが生成されます。
 
 
-
 #+BEGIN_SRC C
-/* please edit 'x' or 'o' of following items,
-    and push C-c C-c to update.
-o: typ
-x: val
-*/
-//======= call ======
 {
   int funcRet__ = 0;
   if ( func6__sub( &funcRet__, &typ, val ) ) {
@@ -204,13 +216,59 @@ x: val
   }
 }
 //======= sub routine ======
-static int func6__sub( int* pFuncRet__, type_t* ptyp, int val )
+static int func6__sub( int* pFuncRet__, type_t* pTyp, int pVal )
 {
-  val = 1;
-  ptyp->val = val;
+  pVal = 1;
+  pTyp->val = pVal;
+  pTyp->val = pVal;
   return *pFuncRet__= 0, 1;
 }
 #+END_SRC
+
+** 引数名の変更
+
+サブルーチン化したブロックの引数名は、元の変数と同じ名前になります。
+この変数名を違う名前に変更できます。
+
+#+BEGIN_SRC TXT
+/* please edit 'x' or 'o' and symbol and order of following items,
+    and push C-c C-c to update.
+    format:
+       :[xor]:argName:orgName
+     x is to pass value.
+     o is to pass address of value.
+     r is to pass value and to return directly.
+----------------
+:o:indirect-return
+:o:pTyp:typ
+:o:pVal:val
+----------------
+*/
+#+END_SRC
+
+バッファ上部に出力されている ~:o:pVal:val~ の pVal の部分を変更し C-c C-c すると、
+引数が変更した名前になります。
+
+** アドレス渡しの変数を戻り値に
+
+ブロック内で変更されている変数は、サブルーチン化の際にアドレス渡しの引数になります。
+この変数を戻り値とすることで、引数は値渡しに出来ます。
+
+アドレス渡しの変数を戻り値にするには、 ~:o:pVal:val~ の o の部分を r とし、
+C-c C-c することで更新されます。
+
+** return 文を持つブロック
+
+reutrn 文を持つブロックをサブルーチン化すると、
+その return 文は ~return *pFuncRet__= 0, 1;~ のようになります。
+
+この return 文が気になる場合は、元ブロックの return 文の形にすることができます。
+
+元ブロックの return 文の形に変更するには、 ~:o:indirect-return~ の o の部分を x とし、
+C-c C-c することで更新されます。
+
+この場合、サブルーチンの呼び出し側は、戻り値から return するかどうかを判別する必要があります。
+
 
 * カスタマイズ
 
