@@ -246,7 +246,7 @@ function DBCtrl:changeProjDir(
       )
 
       for index, info in ipairs( fileIdTargetCompOpList ) do
-	 log( 1, string.format( "change dir %d/%d", index, #fileIdTargetCompOpList ) )
+	 -- log( 1, string.format( "change dir %d/%d", index, #fileIdTargetCompOpList ) )
 	 obj:updateCompileOpWithFileId( info[ 1 ], info[ 2 ], info[ 3 ] )
       end
 
@@ -258,7 +258,7 @@ function DBCtrl:changeProjDir(
 	    if fileInfo.id ~= systemFileId then
 	       for srcDir, dstDir in pairs( chgDirMap ) do
 		  srcDir = obj:convPath( srcDir )
-		  log( 1, srcDir, fileInfo.path )
+		  -- log( 1, srcDir, fileInfo.path )
 		  if string.find( fileInfo.path, srcDir .. "/", 1, true ) == 1 then
 		     local path = dstDir .. fileInfo.path:sub( #srcDir + 1 )
 		     table.insert( updateList,
@@ -2460,8 +2460,13 @@ function DBCtrl:dumpTargetInfo( level, path )
    log( level, "-- table target -- " )
    log( level, "fileId", "hasPch", "upTime", "target", "path", "compOp" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
    self:mapRowList(
-      "targetInfo", self:getFileIdCondition( path ), nil, nil,
+      "targetInfo", fileIdCond, nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
 	 log( level, row.fileId, row.hasPch, row.updateTime,
@@ -2474,9 +2479,15 @@ end
 function DBCtrl:dumpTargetList( level, path )
    log( level, "-- table target -- " )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    local map = {}
    self:mapRowList(
-      "targetInfo", self:getFileIdCondition( path ), nil, nil,
+      "targetInfo", fileIdCond, nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
 	 map[ row.target ] = ""
@@ -2494,8 +2505,14 @@ function DBCtrl:dumpFile( level, path )
    log( level, "id", "incFlag", "skip", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    self:mapRowList(
-      "filePath", self:getFileIdCondition( path, "id" ), nil, nil,
+      "filePath", fileIdCond, nil, nil,
       function( row ) 
 	 log( level, row.id, row.incFlag, row.invalidSkip == 0 and 'o' or 'x',
 	      row.digest, row.path, row.currentDir )
@@ -2508,8 +2525,14 @@ function DBCtrl:dumpIncCache( level, path )
    log( level, "-- table incCache -- " )
    log( level, "baseFileId", "id", "incFlag", "basePath", "path" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    self:mapRowList(
-      "incCache", self:getFileIdCondition( path, "baseFileId" ), nil, nil,
+      "incCache", fileIdCond, nil, nil,
       function( row )
 	 local baseFileInfo = self:getFileInfo( row.baseFileId )
 	 local incFileInfo = self:getFileInfo( row.id )
@@ -2524,8 +2547,14 @@ function DBCtrl:dumpIncSrc( level, path )
    log( level, "-- table incSrc -- " )
    log( level, "baseFileId", "id", "incFlag", "basePath", "path" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    self:mapRowList(
-      "incCache", self:getFileIdCondition( path, "id" ), nil, nil,
+      "incCache", fileIdCond, nil, nil,
       function( row )
 	 local baseFileInfo = self:getFileInfo( row.baseFileId )
 	 local incFileInfo = self:getFileInfo( row.id )
@@ -2540,8 +2569,14 @@ function DBCtrl:dumpTokenDigest( level, path )
    log( level, "-- table tokenDigest -- " )
    log( level, "incFile", "digest" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    self:mapRowList(
-      "tokenDigest", self:getFileIdCondition( path ), nil, nil,
+      "tokenDigest", fileIdCond, nil, nil,
       function( row ) 
 	 local fileInfo = self:getFileInfo( row.fileId )
 	 log( level, row.fileId, row.digest, fileInfo.path )
@@ -2555,8 +2590,14 @@ function DBCtrl:dumpPreproDigest( level, path )
    log( level, "-- table preproDigest -- " )
    log( level, "incFile", "nsId", "digest", "path", "ns" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    self:mapRowList(
-      "preproDigest", self:getFileIdCondition( path ), nil, nil,
+      "preproDigest", fileIdCond, nil, nil,
       function( row )
 	 local fileInfo = self:getFileInfo( row.fileId )
 	 local nsInfo = self:getNamespace( row.nsId )
@@ -2572,8 +2613,14 @@ function DBCtrl:dumpSymbolRef( level, path )
    log( level, "refed", "snameId", "fileId", "line", "colum",
 	"eLine", "eColumn", "belong", "belong", "callee" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    self:mapRowList(
-      "symbolRef", self:getFileIdCondition( path ), nil, nil,
+      "symbolRef", fileIdCond, nil, nil,
       function( row ) 
 	 local nsInfo = self:getNamespace( row.nsId )
 	 local belongNsInfo = self:getNamespace( row.belongNsId )
@@ -2590,9 +2637,15 @@ end
 function DBCtrl:dumpSymbolDecl( level, path )
    log( level, "-- table symbolDecl -- " )
    log( level, "nsId", "snameId", "type", "hasBody", "file", "line", "column", "eLine", "eColumn", "size", "comment", "name" )
+
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
    
    self:mapRowList(
-      "symbolDecl", self:getFileIdCondition( path ), nil, nil,
+      "symbolDecl", fileIdCond, nil, nil,
       function( row ) 
 	 local nsInfo = self:getNamespace( row.nsId )
 	 log( level, row.nsId, row.snameId, row.type, row.hasBodyFlag, row.fileId,
@@ -2607,8 +2660,14 @@ function DBCtrl:dumpCall( level, path )
    log( level, "-- table funcCall -- " )
    log( level, "callee", "snameId", "caller", "fileId", "line", "CALLEE", "CALLER" )
 
+   local fileIdCond = self:getFileIdCondition( path )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+   
    self:mapRowList(
-      "funcCall", self:getFileIdCondition( path ), nil, nil,
+      "funcCall", fileIdCond, nil, nil,
       function( row )
 	 local nsInfo = self:getNamespace( row.nsId )
 	 local belongNsInfo = self:getNamespace( row.belongNsId )

@@ -208,6 +208,7 @@
 			      )
 			    )))
 	  (grep-mode)
+	  (run-hooks 'grep-setup-hook)
 	  )
 	(lctags-switch-to-buffer-other-window buffer)
 	(with-current-buffer buffer

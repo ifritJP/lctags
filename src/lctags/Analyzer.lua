@@ -1355,6 +1355,48 @@ function Analyzer:update( path, target )
    analyzer:analyzeUnit( transUnit, compileOp, target, fileInfo.incFlag ~= 0 )
 end
 
+function Analyzer:createUnitDirect( analyzer, targetFullPath, optionList )
+   analyzer.targetFilePath = targetFullPath
+
+
+   local stdMode = self:getStdMode( optionList, targetFullPath )
+   
+   local newOptList = { table.unpack( optionList )}
+   -- for index, incPath in ipairs( includeList ) do
+   --    local pchPath = db:getPchPath( incPath, target, stdMode )
+   --    local modTime = Helper.getFileModTime( pchPath )
+   --    if modTime and modTime > Helper.getFileModTime( incPath ) then
+   -- 	 --table.insert( newOptList, "-Xclang" )
+   -- 	 table.insert( newOptList, "-include-pch" )
+   -- 	 table.insert( newOptList, pchPath )
+   --    end
+   -- end
+
+   local args = clang.mkcharPArray( newOptList )
+   local unsavedFileTable
+   if fileContents then
+      unsavedFileTable = {}
+      local unsavedFile = clang.core.CXUnsavedFile()
+      unsavedFile.Filename = targetFullPath
+      unsavedFile.Contents = fileContents
+      unsavedFile.Length = #unsavedFile.Contents
+      table.insert( unsavedFileTable, unsavedFile )
+   end
+   
+   local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
+   local unit = analyzer.clangIndex:createTranslationUnitFromSourceFile(
+      targetFullPath, args:getLength(), args:getPtr(),
+      unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
+   log( 2, "end createTrans", os.clock(), os.date() )
+
+   local compileOp = ""
+   for index, option in ipairs( optionList ) do
+      compileOp = compileOp .. option .. " "
+   end
+
+   return unit, compileOp, analyzer, stdMode, fileInfo
+end
+
 function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
    self.targetFilePath = path
 
@@ -1414,45 +1456,8 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
 
    local analyzer = self:newAs(
       self.recordDigestSrcFlag, self.displayDiagnostics, compDir )
-   analyzer.targetFilePath = targetFullPath
 
-
-   local stdMode = self:getStdMode( optionList, targetFullPath )
-   
-   local newOptList = { table.unpack( optionList )}
-   -- for index, incPath in ipairs( includeList ) do
-   --    local pchPath = db:getPchPath( incPath, target, stdMode )
-   --    local modTime = Helper.getFileModTime( pchPath )
-   --    if modTime and modTime > Helper.getFileModTime( incPath ) then
-   -- 	 --table.insert( newOptList, "-Xclang" )
-   -- 	 table.insert( newOptList, "-include-pch" )
-   -- 	 table.insert( newOptList, pchPath )
-   --    end
-   -- end
-
-   local args = clang.mkcharPArray( newOptList )
-   local unsavedFileTable
-   if fileContents then
-      unsavedFileTable = {}
-      local unsavedFile = clang.core.CXUnsavedFile()
-      unsavedFile.Filename = targetFullPath
-      unsavedFile.Contents = fileContents
-      unsavedFile.Length = #unsavedFile.Contents
-      table.insert( unsavedFileTable, unsavedFile )
-   end
-   
-   local unsavedFileArray = clang.mkCXUnsavedFileArray( unsavedFileTable )
-   local unit = analyzer.clangIndex:createTranslationUnitFromSourceFile(
-      targetFullPath, args:getLength(), args:getPtr(),
-      unsavedFileArray:getLength(), unsavedFileArray:getPtr() )
-   log( 2, "end createTrans", os.clock(), os.date() )
-
-   local compileOp = ""
-   for index, option in ipairs( optionList ) do
-      compileOp = compileOp .. option .. " "
-   end
-
-   return unit, compileOp, analyzer, stdMode, fileInfo
+   return self:createUnitDirect( analyzer, targetFullPath, optionList )
 end
 
 
@@ -2208,9 +2213,24 @@ function Analyzer:convFullpath( path )
    return DBCtrl:convFullpath( path, self.currentDir )
 end
 
-function Analyzer:dumpCurosr( filePath, target )
-   local transUnit, compileOp, analyzer, stdMode, fileInfo =
-      self:createUnit( filePath, target, false )
+function Analyzer:dumpCurosr( filePath, target, optionList )
+
+   local transUnit
+
+   local targetFileInfo
+   local db = self:openDBForReadOnly()
+   targetFileInfo = db:getFileInfo( nil, filePath )
+   db:close()
+   
+   if optionList or not targetFileInfo then
+      local unit, compileOp, analyzer, stdMode, fileInfo =
+	 self:createUnitDirect( self, filePath, optionList )
+      transUnit = unit
+   else
+      local unit, compileOp, analyzer, stdMode, fileInfo =
+	 self:createUnit( filePath, target, false )
+      transUnit = unit
+   end
 
    local hashSet = {}
 

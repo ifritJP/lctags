@@ -159,6 +159,13 @@ https://qiita.com/dwarfJP/items/5fe29d4c22c8d76aac0b
 - lctags を使って C/C++ ソースコードをリファクタリング(サブルーチン化編)
 https://qiita.com/dwarfJP/items/263db943fe8ebc407abb
 
+- C/C++ ソースコードをリファクタリング by lctags on emacs (リネーム編)
+https://qiita.com/dwarfJP/items/b702c60ff0381750e746
+
+- C/C++ の特定シンボルをハイライト by lctags on emacs  
+https://qiita.com/dwarfJP/items/418541e8de1e040ed78b  
+
+
 ** チュートリアル
 
 *** DB の作成

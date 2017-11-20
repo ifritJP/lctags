@@ -580,7 +580,7 @@ if lctagOptMap.mode == "diag" then
 end
 
 if lctagOptMap.mode == "cursors" then
-   analyzer:dumpCurosr( targetFullPath, lctagOptMap.target )
+   analyzer:dumpCurosr( targetFullPath, lctagOptMap.target, optList )
    finish( 0 )
 end
 

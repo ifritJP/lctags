@@ -375,7 +375,7 @@ function Option:analyzeOption( argList )
 		  lctagOptMap.subRetTypeInfo.cnt = subRetType[ 5 ]
 	       else
 		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs" or
-		     lctagOptMap.mode == "addStdInc"
+		     lctagOptMap.mode == "addStdInc" or lctagOptMap.mode == "cursors"
 		  then
 		     processMode = "conv"
 		  elseif lctagOptMap.mode == "graph" or
@@ -443,7 +443,7 @@ function Option:analyzeOption( argList )
 	       end
 	    else
 	       if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs" or
-		  lctagOptMap.mode == "addStdInc"
+		  lctagOptMap.mode == "addStdInc" or lctagOptMap.mode == "cursors"
 	       then
 		  processMode = "conv"
 	       else
@@ -479,7 +479,7 @@ function Option:analyzeOption( argList )
    end
 
    if lctagOptMap.mode == "build" or lctagOptMap.mode == "addInc" or
-      lctagOptMap.mode == "addStdInc"
+      lctagOptMap.mode == "addStdInc" or lctagOptMap.mode == "cursors"
    then
       local clangVer = require( 'libclanglua.if' ).getClangVersion()
       clangVer3 = string.gsub(
