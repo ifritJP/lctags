@@ -13,6 +13,7 @@ sub                46 ./test/comp8.cpp     int sub()
 sub                46 ./test/comp9.cpp     int sub()
 sub                46 ./test/comp10.cpp     int sub()
 sub                 9 ./test/comp16.cpp void sub( DATA * pData )
+sub                 5 ./test/comp17.cpp void sub( DATA * pData )
 sub                 4 ./test/stack.cpp static void sub();
 sub                52 ./test/stack.cpp static void sub()
 sub                 6 ./test/enum.cpp  static void sub( eval_t val )
@@ -59,9 +60,9 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
 lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
-::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
-::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
+::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
+::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua lctags/lctags.lua def-at test/hoge.cpp 231 20
@@ -131,7 +132,7 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <diagnostics><message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message></diagnostics></lctags_result>
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:290: recipe for target 'test-query' failed
+makefile:297: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -488,7 +489,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </completion>
 <diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:290: recipe for target 'test-query' failed
+makefile:297: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
 <prefix>me</prefix>
@@ -2082,6 +2083,31 @@ lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
 </typeInfo>
 </completion>
 <diagnostics></diagnostics></lctags_result>
+cat test/comp17-2.cpp | lua lctags/lctags.lua comp-at test/comp17.cpp 7 11 -i
+<lctags_result><completion>
+<prefix></prefix>
+<frontExpr>pData-&gt;</frontExpr>
+
+<candidate>
+<canonical>val</canonical>
+<simple>val</simple>
+<expand></expand>
+<kind>m</kind>
+<type>int</type>
+<result></result>
+<val></val>
+<file>NDIR/test/comp17.cpp</file>
+<startPos>
+<line>2</line>
+<column>5</column>
+</startPos>
+<endPos>
+<line>2</line>
+<column>12</column>
+</endPos>
+</candidate>
+</completion>
+<diagnostics></diagnostics></lctags_result>
 lua lctags/lctags.lua comp-at test/class2.cpp 13 10
 <lctags_result><completion>
 <prefix></prefix>
@@ -2433,7 +2459,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
   }
 </sub_routine></refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:290: recipe for target 'test-query' failed
+makefile:297: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
@@ -2837,5 +2863,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:386: recipe for target 'test-chg-proj' failed
+makefile:394: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

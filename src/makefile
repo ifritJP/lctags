@@ -251,6 +251,7 @@ endif
 	$(call build-test, test/comp14.cpp )
 	$(call build-test, test/comp15.cpp )
 	$(call build-test, test/comp16.cpp )
+	$(call build-test, test/comp17.cpp )
 	$(call build-test, test/class2.cpp )
 	$(call build-test, test/class3.cpp )
 	$(call build-test, test/class4.cpp )
@@ -336,6 +337,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp13.cpp 3 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp14.cpp 4 12
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp16.cpp 11 9
+	cat test/comp17-2.cpp | $(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp17.cpp 7 11 -i
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class2.cpp 13 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class3.cpp 16 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class4.cpp 11 7

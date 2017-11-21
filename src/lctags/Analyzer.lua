@@ -1355,7 +1355,8 @@ function Analyzer:update( path, target )
    analyzer:analyzeUnit( transUnit, compileOp, target, fileInfo.incFlag ~= 0 )
 end
 
-function Analyzer:createUnitDirect( analyzer, targetFullPath, optionList )
+function Analyzer:createUnitDirect(
+      analyzer, targetFullPath, optionList, fileContents )
    analyzer.targetFilePath = targetFullPath
 
 
@@ -1394,7 +1395,7 @@ function Analyzer:createUnitDirect( analyzer, targetFullPath, optionList )
       compileOp = compileOp .. option .. " "
    end
 
-   return unit, compileOp, analyzer, stdMode, fileInfo
+   return unit, compileOp, stdMode
 end
 
 function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
@@ -1420,11 +1421,7 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
       os.exit( 1 )
    end
 
-   local compileOp = ""
-   for index, option in ipairs( optionList ) do
-      compileOp = compileOp .. option .. " "
-   end
-   log( 3, "src:", fileInfo.path, "target:", target, "compOP:", compileOp )
+   log( 3, "src:", fileInfo.path, "target:", target )
 
    local compDir = db:getSystemPath( fileInfo.currentDir )
 
@@ -1457,7 +1454,10 @@ function Analyzer:createUnit( path, target, checkUptodateFlag, fileContents )
    local analyzer = self:newAs(
       self.recordDigestSrcFlag, self.displayDiagnostics, compDir )
 
-   return self:createUnitDirect( analyzer, targetFullPath, optionList )
+   local unit, compileOp, stdMode =
+      self:createUnitDirect( analyzer, targetFullPath, optionList, fileContents )
+
+   return unit, compileOp, analyzer, stdMode, fileInfo
 end
 
 
@@ -2223,11 +2223,11 @@ function Analyzer:dumpCurosr( filePath, target, optionList )
    db:close()
    
    if optionList or not targetFileInfo then
-      local unit, compileOp, analyzer, stdMode, fileInfo =
+      local unit, compileOp, stdMode =
 	 self:createUnitDirect( self, filePath, optionList )
       transUnit = unit
    else
-      local unit, compileOp, analyzer, stdMode, fileInfo =
+      local unit, compileOp, analyzer, stdMode =
 	 self:createUnit( filePath, target, false )
       transUnit = unit
    end

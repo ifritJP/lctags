@@ -1187,7 +1187,7 @@ function Completion:analyzeAt(
       log( -4 ) >= 2 and true or false, false )
    local unit, compileOp, newAnalyzer =
       analyzerForTokenize:createUnit( path, target, false, fileContents )
-
+   log( 2, "fileContents", fileContents and #fileContents )
 
    local tokenP = clang.mkCXTokenPArray( nil, 1 )
 
