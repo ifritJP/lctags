@@ -170,7 +170,8 @@ This parameter can set function and string.
       (setq input (buffer-string))
       (setq lctags-opt2 '( "-i" ))
       (setq select-name
-	    (format "(D)%s:%d:%d"
+	    (format "(D)%s<%s:%d:%d>"
+		    (lctags-get-current-token)
 		    (file-name-nondirectory buffer-file-name) line column)))
      ((equal mode "ref-at")
       (setq lctags-opt "ref-ata")
@@ -178,7 +179,8 @@ This parameter can set function and string.
       (setq input (buffer-string))
       (setq lctags-opt2 '( "-i" ))
       (setq select-name
-	    (format "(R)%s:%d:%d"
+	    (format "(R)%s<%s:%d:%d>"
+		    (lctags-get-current-token)
 		    (file-name-nondirectory buffer-file-name) line column)))
      ((equal mode "call-at")
       (setq lctags-opt "call-ata")
@@ -186,7 +188,8 @@ This parameter can set function and string.
       (setq input (buffer-string))
       (setq lctags-opt2 '( "-i" ))
       (setq select-name
-	    (format "(C)%s:%d:%d"
+	    (format "(C)%s<%s:%d:%d>"
+		    (lctags-get-current-token)
 		    (file-name-nondirectory buffer-file-name) line column)))
      ((equal mode "file")
       (setq lctags-opt "-xP")
@@ -505,6 +508,40 @@ This parameter can set function and string.
       (switch-to-buffer-other-window buf)
     (select-window (get-buffer-window buf))
     ))
+
+
+(defun lctags-def-pickup-symbol ()
+  (interactive)
+  (let (pattern)
+    (setq pattern (read-string "symbol (^match_front or match_tail$ or match_any): "
+			       (lctags-get-current-token) ))
+    (lctags-def-pickup-symbol-op pattern)
+  ))
+
+(defun lctags-def-pickup-symbol-op (pattern)
+  (let ((buffer (lctags-get-process-buffer t))
+	lctags-params symbol)
+    (cond
+     ((string-match "$$" pattern)
+      t)
+     ((string-match "^\\^" pattern)
+      (setq pattern (substring pattern 1 )))
+     (t 
+      (setq pattern (concat "%" pattern ))))
+    (lctags-execute-op2 (current-buffer) buffer nil nil
+			"-c" pattern)
+    (with-current-buffer buffer
+      (setq lctags-params
+	    `((name . "pickup symbol")
+	      (candidates . ,(split-string (buffer-string) "\n"))
+	      (action . ,(lambda (item) (setq symbol item)))
+	      )))
+    (lctags-helm-wrap lctags-params nil nil)
+    (gtags-push-context)
+    (lctags-pos-at "def" symbol)
+    ))
+
+
 
 
 (provide 'lctags)

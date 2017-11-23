@@ -32,6 +32,8 @@ function Query:execWithDb( db, query, target )
       db:dumpIncCache( 1, target )
    elseif query == "dumpIncSrc" then
       db:dumpIncSrc( 1, target )
+   elseif query == "dumpBelong" then
+      db:dumpIncBelong( 1, target )
    elseif query == "dumpDigest" then
       db:dumpTokenDigest( 1, target )
    elseif query == "dumpPrepro" then
@@ -47,16 +49,24 @@ function Query:execWithDb( db, query, target )
    elseif query:find( "c" ) then
       local nsFlag = true
       local snameFlag = true
+      local pattern = "'%s%%'"
       if target then
 	 if string.find( target, "^:" ) then
 	    snameFlag = false
 	 else
 	    nsFlag = false
 	 end
+	 if target:sub( #target ) == "$" then
+	    target = target:sub( 1, #target - 1 )
+	    pattern = "'%%%s'"
+	 elseif target:sub( 1, 1 ) == "%" then
+	    target = target:sub( 2 )
+	    pattern = "'%%%s%%'"
+	 end
       end
       if nsFlag then
 	 db:mapNamespace(
-	    target and string.format( "name like '%s%%'", target ),
+	    target and string.format( "name like " .. pattern, target ),
 	    function( item )
 	       if item.name ~= "" then
 		  print( item.name )
@@ -67,7 +77,7 @@ function Query:execWithDb( db, query, target )
       end
       if snameFlag then
 	 db:mapSimpleName(
-	    target and string.format( "name like '%s%%'", target ),
+	    target and string.format( "name like " .. pattern, target ),
 	    function( item )
 	       if item.name ~= "" then
 		  print( item.name )

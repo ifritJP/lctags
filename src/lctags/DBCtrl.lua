@@ -1426,11 +1426,14 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
       local samePosDecl = self:getRow( "symbolDecl", condition )
       if samePosDecl then
 	 local samePosDeclNsInfo = self:getNamespace( samePosDecl.nsId )
-	 log( 1, "multiple decl in macro",
-	      fullnameBase, samePosDeclNsInfo.name, fileInfo.path,
-	      symbolDecl.line, symbolDecl.column )
-	 self:update( "filePath", "invalidSkip = 1",
-		      "id = " .. tostring( fileInfo.id ) )
+	 if samePosDeclNsInfo.name ~= fullnameBase then
+	    log( 1, "multiple decl in macro",
+		 fullnameBase, samePosDeclNsInfo.name, fileInfo.path,
+		 symbolDecl.line, symbolDecl.column,
+		 symbolDecl.nsId, samePosDecl.nsId )
+	    self:update( "filePath", "invalidSkip = 1",
+			 "id = " .. tostring( fileInfo.id ) )
+	 end
       end
       
       if structUptodate then
@@ -1441,13 +1444,19 @@ function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj
    local count = 0
    local workFileInfo = fileInfo
 
-   local prevFile = nil
+   local prevFile = getFileLocation( decl )
    for index, info in ipairs( memberList ) do
       local cursor = info[ 1 ]
       local cxfile = info[ 2 ]
       local cursorKind = cursor:getCursorKind()
       if not prevFile or not cxfile:isEqual( prevFile ) then
 	 workFileInfo = self:getFileInfo( nil, cxfile:getFileName() )
+	 if fileInfo.id ~= workFileInfo.id then
+	    log( 2, "addEnumStructDecl: change file", workFileInfo.path,
+		 cursor:getCursorSpelling() )
+	    self:update( "filePath", "invalidSkip = 1",
+			 "id = " .. tostring( workFileInfo.id ) )
+	 end
       end
       prevFile = cxfile
       
@@ -2679,6 +2688,30 @@ function DBCtrl:dumpCall( level, path )
    )
 end
 
+function DBCtrl:dumpIncBelong( level, path )
+   log( level, "-- table incBelong -- " )
+   log( level, "incFile", "baseFileId", "belong", "belongNs", "file" )
+
+   local fileIdCond = self:getFileIdCondition( path, "baseFileId" )
+   if path and not fileIdCond then
+      log( 1, "not found", path )
+      return
+   end
+
+   self:mapRowList(
+      "incBelong", fileIdCond, nil, nil,
+      function( row ) 
+	 local fileInfo = self:getFileInfo( row.id )
+	 local belongNs = self:getNamespace( row.nsId )
+	 if not belongNs then
+	    log( 1, "not found ns", row.nsId )
+	 end
+	 log( level, row.id, row.baseFileId, row.nsId, belongNs.name, fileInfo.path )
+	 return true
+      end
+   )
+end
+
 
 function DBCtrl:dump( level )
    if not level then
@@ -2740,21 +2773,8 @@ function DBCtrl:dump( level )
    self:dumpSymbolRef( level, nil )
 
    self:dumpCall( level, nil )
-   
-   log( level, "-- table incBelong -- " )
-   log( level, "incFile", "baseFileId", "belong", "belongNs", "file" )
-   self:mapRowList(
-      "incBelong", nil, nil, nil,
-      function( row ) 
-	 local fileInfo = self:getFileInfo( row.id )
-	 local belongNs = self:getNamespace( row.nsId )
-	 if not belongNs then
-	    log( 1, "not found ns", row.nsId )
-	 end
-	 log( level, row.id, row.baseFileId, row.nsId, belongNs.name, fileInfo.path )
-	 return true
-      end
-   )
+
+   self:dumpIncBelong( level, nil )
 
    self:dumpTokenDigest( level )
 

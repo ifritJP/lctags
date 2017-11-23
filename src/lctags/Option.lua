@@ -241,6 +241,8 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.query = "dumpDigest"
 	    elseif argList[ index + 1 ] == "prepro" then
 	       lctagOptMap.query = "dumpPrepro"
+	    elseif argList[ index + 1 ] == "belong" then
+	       lctagOptMap.query = "dumpBelong"
 	    elseif argList[ index + 1 ] == "ver" then
 	       lctagOptMap.query = "dumpVersion"
 	    else
@@ -268,6 +270,7 @@ function Option:analyzeOption( argList )
 	    skipArgNum = 1
 	 elseif arg == "cursors" then
 	    lctagOptMap.mode = arg
+	    self.cursors = true
 	 elseif arg == "cursor-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "scan" then
@@ -524,6 +527,10 @@ end
 
 function Option:getUpdateTime()
    return self.updateTime
+end
+
+function Option:isValidCursors()
+   return self.cursors
 end
 
 return Option

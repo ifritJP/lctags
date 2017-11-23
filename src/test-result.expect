@@ -31,6 +31,28 @@ enum_val1         326 ./test/hoge.cpp        int val2[] = { enum_val1 };
 enum_val1          12 ./test/sample.c      case enum_val1:
 enum_val1          23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
 enum_val1          28 ./test/highlight.cpp     pVal3[0]->val = enum_val1;
+lua lctags/lctags.lua -c sub
+sub2
+sub
+Sub
+substr
+lua lctags/lctags.lua -c sub$
+FPE_FLTSUB
+__tgmath_real_type_sub
+sub
+Sub
+func10__sub
+lua lctags/lctags.lua -c %sub
+FP_SUBNORMAL
+FPE_FLTSUB
+getsubopt
+__tgmath_real_type_sub
+sub2
+sub
+Sub
+__glibcxx_requires_subscript
+substr
+func10__sub
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
@@ -60,9 +82,9 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
 lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
-::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 ::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
+::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua lctags/lctags.lua def-at test/hoge.cpp 231 20
@@ -132,7 +154,7 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <diagnostics><message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message></diagnostics></lctags_result>
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:297: recipe for target 'test-query' failed
+makefile:291: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -489,7 +511,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </completion>
 <diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:297: recipe for target 'test-query' failed
+makefile:291: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
 <prefix>me</prefix>
@@ -2459,7 +2481,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
   }
 </sub_routine></refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:297: recipe for target 'test-query' failed
+makefile:291: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
@@ -2863,5 +2885,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:394: recipe for target 'test-chg-proj' failed
+makefile:391: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

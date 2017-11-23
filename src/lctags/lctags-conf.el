@@ -1,6 +1,7 @@
 (add-hook 'lctags-mode-hook
       '(lambda ()
          (local-set-key (kbd "M-t") 'lctags-def)
+	 (local-set-key (kbd "C-M-t") 'lctags-def-pickup-symbol)
          (local-set-key (kbd "M-r") 'lctags-ref)
          (local-set-key (kbd "C-c l") 'lctags-dispatch-mode)
          (local-set-key (kbd "C-c C-/") 'lctags-helm-completion-at)

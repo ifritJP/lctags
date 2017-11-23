@@ -44,39 +44,62 @@ local function searchNeedUpdateFiles( db, list, target )
    -- 情報が新しいファイル
    local uptodateFileMap = {}
    
+   local dependFileInfoMap = {}
+
+
+   -- fileInfo の更新時間を調べて、古い場合は次の処理を行なう。
+   --  - ヘッダの場合 needUpdateIncFileInfoMap に追加
+   --  - ソースの場合 needUpdateSrcMap に追加
+   -- 新しい場合、そのファイルがインクルードしているヘッダを dependFileInfoMap に追加
+   local checkModTime = function( fileInfo, validCheckIncCache )
+      -- log( 3, "check path", fileInfo.path )
+      if not uptodateFileMap[ fileInfo.id ] then
+	 local targetInfo = db:getTargetInfo( fileInfo.id, target )
+	 if targetInfo then
+	    local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
+	    fileId2ModTime[ fileInfo.id ] = modTime
+	    if modTime then
+	       if not targetInfo or modTime > targetInfo.updateTime then
+		  -- 更新時間が古い場合はマップに登録
+		  log( 3, "modified", fileInfo.path, modTime,
+		       targetInfo and targetInfo.updateTime or "none" )
+		  if fileInfo.incFlag ~= 0 then
+		     needUpdateIncFileInfoMap[ fileInfo.id ] = fileInfo
+		     table.insert( needUpdateIncIdList, fileInfo.id )
+		  else
+		     needUpdateSrcMap[ fileInfo.id ] = fileInfo
+		  end
+	       else
+		  uptodateFileMap[ fileInfo.id ] = fileInfo
+		  if validCheckIncCache then
+		     -- 更新情報が新しい場合、
+		     -- そのファイルがインクルードしているファイルをチェック対象に入れる。
+		     db:mapIncludeCache(
+			fileInfo,
+			function( item )
+			   local incFileInfo = db:getFileInfo( item.id )
+			   -- log( 3, "add needUpdateIncFileInfoMap", incFileInfo.path )
+			   dependFileInfoMap[ item.id ] = incFileInfo
+			   return true
+			end
+		     )
+		  end
+	       end
+	    end
+	 else
+	    log( 2, string.format( "this file is not target %s", fileInfo.path ) )
+	 end
+      end
+   end
+
+   
    log( 1, "check modified files", #list )
    for index, fileInfo in ipairs( list ) do
-      -- log( 3, "check path", fileInfo.path )
-      local targetInfo = db:getTargetInfo( fileInfo.id, target )
-      if targetInfo or fileInfo.incFlag ~= 0 then
-	 local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
-	 fileId2ModTime[ fileInfo.id ] = modTime
-	 if modTime then
-	    if not targetInfo or modTime > targetInfo.updateTime then
-	       -- 更新時間が古い場合はマップに登録
-	       if fileInfo.incFlag ~= 0 then
-		  needUpdateIncFileInfoMap[ fileInfo.id ] = fileInfo
-		  table.insert( needUpdateIncIdList, fileInfo.id )
-		  log( 3, "modified", fileInfo.path, modTime )
-	       else
-		  needUpdateSrcMap[ fileInfo.id ] = fileInfo
-	       end
-	    else
-	       uptodateFileMap[ fileInfo.id ] = fileInfo
-	       db:mapIncludeCache(
-		  fileInfo,
-		  function( item )
-		     local incFileInfo = db:getFileInfo( item.id )
-		     -- log( 3, "add needUpdateIncFileInfoMap", incFileInfo.path )
-		     needUpdateIncFileInfoMap[ item.id ] = incFileInfo
-		     return true
-		  end
-	       )
-	    end
-	 end
-      else
-	 log( 1, string.format( "this file is not target %s", fileInfo.path ) )
-      end
+      checkModTime( fileInfo, true )
+   end
+
+   for fileId, fileInfo in pairs( dependFileInfoMap ) do
+      checkModTime( fileInfo, false )
    end
 
    local needUpdateIncNum = 0
@@ -123,16 +146,17 @@ local function searchNeedUpdateFiles( db, list, target )
       end
    )
 
-   -- 編集されていないファイルからインクルードしているファイルが更新されている場合、
+   -- 編集されていないファイルから、更新されているファイルをインクルードしている場合、
    -- 編集されていないファイルを更新対象にする。
    -- これは list に指定されているものを対象にする。
    db:mapIncludeCache(
       nil,
       function( item )
 	 if needUpdateIncFileInfoMap[ item.id ] then
-	    log( 3, "check needUpdateIncFileInfoMap",
-		 needUpdateIncFileInfoMap[ item.id ].path )
 	    if uptodateFileMap[ item.baseFileId ] then
+	       log( 3, "check needUpdateIncFileInfoMap",
+		    needUpdateIncFileInfoMap[ item.id ].path,
+		    uptodateFileMap[ item.baseFileId ].path )
 	       -- 編集されていないファイルからインクルードしている
 	       if not needUpdateSrcMap[ item.baseFileId ] then
 		  -- インクルードしているファイルが更新が必要になっていない
@@ -144,11 +168,11 @@ local function searchNeedUpdateFiles( db, list, target )
 		     needUpdateSrcMap[ fileInfo.id ] = fileInfo
 		  end
 	       end
-	       needUpdateIncFileInfoMap[ item.id ] = nil
-	       needUpdateIncNum = needUpdateIncNum - 1
-	       if needUpdateIncNum <= 0 then
-		  return false
-	       end
+	       -- needUpdateIncFileInfoMap[ item.id ] = nil
+	       -- needUpdateIncNum = needUpdateIncNum - 1
+	       -- if needUpdateIncNum <= 0 then
+	       -- 	  return false
+	       -- end
 	    end
 	 end
 	 return true
@@ -356,8 +380,9 @@ function Make:updateFor( dbPath, target, jobs, src )
 	 dbPath, false, false,
 	 db:convFullpath( db:getSystemPath( list[1].currentDir ) ))
 
-      analyzer:update(
-	 db:convFullpath( db:getSystemPath( list[1].path ) ), target )
+      local fullPath = db:convFullpath( db:getSystemPath( list[1].path ) )
+      db:close()
+      analyzer:update( fullPath, target )
       return
    end
 

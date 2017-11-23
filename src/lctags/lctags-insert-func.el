@@ -46,17 +46,21 @@
 	(name (lctags-function-item-get-name item))
 	(include (lctags-function-item-get-include item))
 	(buffer-txt (buffer-string))
-	lineno column txt pos bak-pos mark lctags-insert-inc)
+	(pos (point))
+	lineno column txt bak-pos mark lctags-insert-inc)
     ;; 関数の情報を取得するために、関数を参照するソースを作成
     (with-temp-buffer
+      (insert buffer-txt)
+      (goto-char pos)
+      (setq mark (point-marker))
+      (beginning-of-buffer)
       (when include
 	(insert (format "#include <%s>\n" include)))
-      (insert buffer-txt)
-      (insert "\nstatic void ___tmpfunc___( void ) { \n" )
+      (goto-char mark)
       (setq pos (point))
       (setq lineno (lctags-get-line))
-      (setq column 1)
-      (insert (format "%s; }" name ))
+      (setq column (lctags-get-column))
+      (insert (format "%s;" name ))
       (setq txt (buffer-string)))
     (setq bak-pos (point))
     ;; 関数の展開

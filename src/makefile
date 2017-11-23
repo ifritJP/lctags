@@ -292,6 +292,9 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) -x sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) -x ccccc
 	$(LUA_COMMAND) $(LCTAGS_LUA) -xr enum_val1
+	$(LUA_COMMAND) $(LCTAGS_LUA) -c sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) -c sub$$
+	$(LUA_COMMAND) $(LCTAGS_LUA) -c %sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 14 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 44 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 236 23

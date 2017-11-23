@@ -135,8 +135,14 @@ end
 function Util:dumpCursorInfo( cursor, depth, prefix, cursorOffset )
    local cursorKind = cursor:getCursorKind()
    local txt = cursor:getCursorSpelling()
+   local level = 5
 
-   log( 5,
+   if Option:isValidCursors() then
+      level = 1
+   end
+
+   
+   log( level,
 	function()
 	   local range = cursor:getCursorExtent()
 	   local startFile, startLine, startColmn, startOffset =

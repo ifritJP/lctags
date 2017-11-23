@@ -1604,7 +1604,23 @@ function Analyzer:analyzeSourceAtWithFunc(
 
 
    log( 2, "analyzeSourceAtWithFunc:", self.currentDir,
-	compileFullPath, targetFullPath, line, column )
+	compileFullPath, targetFullPath, line, column,
+	fileContents and #fileContents or "none" )
+   if fileContents then
+      local crIndex = 0
+      for lineNo = 2, line do
+	 crIndex = string.find( fileContents, "\n", crIndex + 1, true )
+	 if not crIndex then
+	    error( string.format( "not found line -- %d", lineNo ) )
+	    break
+	 end
+      end
+      if crIndex then
+	 log( 2, "analyzeSourceAtWithFunc: at", crIndex,
+	      string.sub( fileContents, crIndex + 1,
+			  string.find( fileContents, "\n", crIndex + 1, true ) ) )
+      end
+   end
 
    local now = Helper.getTime( true )
    
@@ -2222,7 +2238,7 @@ function Analyzer:dumpCurosr( filePath, target, optionList )
    targetFileInfo = db:getFileInfo( nil, filePath )
    db:close()
    
-   if optionList or not targetFileInfo then
+   if optionList and not targetFileInfo then
       local unit, compileOp, stdMode =
 	 self:createUnitDirect( self, filePath, optionList )
       transUnit = unit
