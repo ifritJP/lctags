@@ -260,6 +260,7 @@ endif
 	$(call build-test, test/stack.cpp )
 #	$(call build-test, test/class.cpp )
 	$(call build-test, test/sample.c )
+	$(call build-test, test/simple.c )
 	$(call build-test, test/operator.cpp )
 	$(call build-test, test/split.cpp )
 	$(call build-test, test/enum.cpp )

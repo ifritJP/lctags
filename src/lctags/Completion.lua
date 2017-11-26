@@ -1371,11 +1371,10 @@ function Completion:analyzeDiagnostic( analyzer, path, target, fileContents )
 end
 
 function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileContents )
-   pattern = pattern or ""
-   local cond = string.format(
-      "symbolDecl.type = %d OR symbolDecl.type = %d",
-      clang.core.CXCursor_FunctionDecl, clang.core.CXCursor_MacroDefinition )
-   cond = string.format( "(%s) AND (namespace.name LIKE '%%%s%%')", cond, pattern )
+   if not pattern then
+      error( "pattern is null" )
+   end
+   local searchPattern = string.format( "%%%s%%", pattern )
 
    local currentFileInfo = db:getFileInfo( nil, db:convFullpath( currentFile ) )
    if not currentFileInfo then
@@ -1400,12 +1399,9 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
       clang.core.CXDiagnostic_Error,
       function( diagList, stream )
 	 stream:write( '<functionList>' )
-	 
-	 db:mapJoin(
-	    "namespace", "symbolDecl", "namespace.id = symbolDecl.nsId",
-	    cond, 10000,
-	    "namespace.name, symbolDecl.nsId, "
-	    .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column",
+
+	 db:mapFuncDeclPattern(
+	    searchPattern,
 	    function( item )
 
 	       if not string.find( item.name, pattern, 1, true ) or
@@ -1429,17 +1425,20 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
 			name = string.gsub( name, "::", "" )
 		     end
 		     stream:write( string.format(
-				      "<name>%s</name>\n", name ) )
+				      "<name>%s</name>\n",
+				      Util:convertXmlTxt( name ) ) )
 		     if fileInfo.incFlag ~= 0 and
 			not currentIncSet[ fileInfo.id ]
 		     then
-			stream:write( string.format(
-					 "<include>%s</include>\n",
-					 db:getSystemPath( fileInfo.path ) ) )
+			stream:write(
+			   string.format(
+			      "<include>%s</include>\n",
+			      Util:convertXmlTxt( db:getSystemPath( fileInfo.path ) ) ) )
 		     end
-		     stream:write( string.format(
-				      "<declaration>%s</declaration>\n",
-				      db:getSystemPath( fileInfo.path ) ) )
+		     stream:write(
+			string.format(
+			   "<declaration>%s</declaration>\n",
+			   Util:convertXmlTxt( db:getSystemPath( fileInfo.path ) ) ) )
 		     stream:write( "</function>\n" )
 		  end
 	       end

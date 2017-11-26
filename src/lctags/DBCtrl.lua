@@ -2451,6 +2451,10 @@ function DBCtrl:dumpVersion()
    print( DB_VERSION, self.projDir )
 end
 
+function DBCtrl:dumpProjDir()
+   print( self.projDir )
+end
+
 function DBCtrl:isAlreadyAnalyzed( fileInfo )
    local analyzedFlag = true
    self:mapRowList(
@@ -3030,6 +3034,43 @@ end
 
 function DBCtrl:setRecordSqlObj( obj )
    self.db:setRecordSqlObj( obj )
+end
+
+function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
+   local cond
+   if typeList and #typeList ~= 0 then
+      for index, kind in ipairs( kindList ) do
+	 local work = string.format( "symbolDecl.type = %d", kind )
+	 if index == 1 then
+	    cond = work
+	 else
+	    cond = string.format( "%s OR %s", cond, work )
+	 end
+      end
+   end
+   if pattern and pattern ~= "" then
+      local work = string.format( "(namespace.name LIKE '%s' escape '$')", pattern )
+      if cond then
+	 cond = string.format( "(%s) AND (%s)", cond, work )
+      else
+	 cond = work
+      end
+   end
+   log( 3, "mapSymbolDeclPattern", cond )
+
+   self:mapJoin(
+      "namespace", "symbolDecl", "namespace.id = symbolDecl.nsId",
+      cond, 10000,
+      "namespace.name, symbolDecl.nsId, "
+	 .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column",
+      func )
+end
+
+
+function DBCtrl:mapFuncDeclPattern( pattern, func )
+   local kindList = { clang.core.CXCursor_FunctionDecl,
+		      clang.core.CXCursor_MacroDefinition }
+   self:mapSymbolDeclPattern( pattern, kindList, func )
 end
 
 return DBCtrl

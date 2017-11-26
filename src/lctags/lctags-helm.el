@@ -233,6 +233,13 @@
   "candidate face")
 (defvar lctags-candidate-face 'lctags-candidate-face)
 
+(defface lctags-candidate-path-face
+  '((t
+     :foreground "green"))
+  "candidate path face")
+(defvar lctags-candidate-path-face 'lctags-candidate-path-face)
+
+
 (defface lctags-expandable-candidate-face
   '((t
      :foreground "dark orange"))
@@ -481,8 +488,10 @@
 				   (lctags-candidate-item-get-canonical X)
 				   'face 'lctags-candidate-face)
 				  (if (lctags-candidate-item-get-val X)
-				      (format " => %s"
-					      (lctags-candidate-item-get-val X))
+				      (let* ((val (lctags-candidate-item-get-val X))
+					     (hex_val (calc-eval `(,val calc-number-radix 16))))
+					(format " => %s(0x%s)"
+						val (substring hex_val 3)))
 				    "")
 				  (if (lctags-candidate-item-get-type X)
 				      (format "<%s>"
@@ -605,8 +614,11 @@
     (beginning-of-line)
     (gtags-select-it nil)))
 
-(defun lctags-conv-disp-path (path omit)
-  (let* ((relative-path (file-relative-name path default-directory))
+(defun lctags-conv-disp-path (path omit &optional base-dir)
+  (when (string-match "^!" path)
+    (setq path (substring path 1)))
+  (let* ((relative-path (file-relative-name path
+					    (or base-dir default-directory)))
 	 (abs-path (expand-file-name path))
 	 (disp-path relative-path))
     (when (< (length abs-path) (length relative-path))
@@ -619,39 +631,52 @@
 	      (substring disp-path
 			 (+ (* -1 lctags-path-length) 3))))))
 
-(defun lctags-gtags-create-candidate-list ()
-  (let (candidate-list)
+(defun lctags-gtags-create-candidate-list (&optional output-symbol-flag)
+  (let (projDir candidate-list)
+    (setq projDir (lctags-get-projDir (current-buffer)))
     (while (not (eobp))
       (beginning-of-line)
-      (when (not (looking-at "[^ \t]+[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.*\\)$"))
+      (when (not (looking-at "^\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.*\\)$"))
 	(error "illegal format"))
-      (let* ((line (string-to-number (gtags-match-string 1)))
-	     (path (gtags-match-string 2))
-	     (txt (gtags-match-string 3)))
+      (let* ((symbol (gtags-match-string 1))
+	     (line (string-to-number (gtags-match-string 2)))
+	     (path (gtags-match-string 3))
+	     (txt (gtags-match-string 4)))
 	(setq candidate-list
-	      (cons (cons (format "%s:%d:%s"
-				  (lctags-conv-disp-path path t) line txt)
+	      (cons (cons (concat
+			   (when output-symbol-flag
+			     (concat (propertize symbol 'face lctags-candidate-face)
+				     ":\t"))
+			   (format "%s:%d:%s"
+				   (propertize
+				    (lctags-conv-disp-path path t projDir)
+				    'face lctags-candidate-path-face)
+				    line txt))
 			  (list :line line :path path))
 		    candidate-list)))
       (next-line))
     candidate-list
     ))
 
-(defun lctags-gtags-select-mode (select-func &optional header-name)
+(defun lctags-gtags-select-mode (select-func create-candidate-list-func
+					     &optional header-name)
   (let (candidate-list lctags-params)
-    (setq candidate-list (lctags-gtags-create-candidate-list))
+    (setq candidate-list (funcall create-candidate-list-func))
     (if (eq (length candidate-list) 1)
 	(funcall select-func (cdr (car candidate-list)))
       (setq candidate-list
 	    (sort candidate-list
 		  (lambda (X Y)
-		    (let ((infoX (cdr X))
-			  (infoY (cdr Y)))
-		      (if (string< (plist-get infoX :path) (plist-get infoY :path))
+		    (let* ((infoX (cdr X))
+			   (infoY (cdr Y))
+			   (pathX (plist-get infoX :path))
+			   (pathY (plist-get infoY :path)))
+		      (if (string< pathX pathY)
 			  t
-			(if (< (plist-get infoX :line) (plist-get infoY :line))
-			    t
-			  nil))))))
+			(if (string= pathX pathY)
+			    (if (< (plist-get infoX :line) (plist-get infoY :line))
+				t
+			      nil)))))))
       (when (not header-name)
 	(setq header-name (buffer-name (current-buffer))))
       (setq lctags-params

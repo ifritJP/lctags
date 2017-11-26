@@ -6,6 +6,7 @@
   '((:name "list" :bind "l"
 	   :submenu
 	   ((:name "def-at" :bind "d" :action lctags-def-at)
+	    (:name "def-search" :bind "s" :action lctags-def-pickup-symbol)
 	    (:name "ref-at" :bind "r" :action lctags-ref-at)
 	    (:name "call-at" :bind "c" :action lctags-call-at)
 	    (:name "inc" :bind "i" :action lctags-list-inc-this-file)

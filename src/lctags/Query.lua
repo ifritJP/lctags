@@ -9,6 +9,16 @@ local Util = require( 'lctags.Util' )
 
 local Query = {}
 
+local function getPattern( pattern, symbol )
+   if symbol:sub( #symbol ) == "$" then
+      symbol = symbol:sub( 1, #symbol - 1 )
+      pattern = "%%%s"
+   elseif symbol:sub( 1, 1 ) == "%" then
+      symbol = symbol:sub( 2 )
+      pattern = "%%%s%%"
+   end
+   return pattern, symbol:gsub( "_", "$_" )
+end
 
 function Query:execWithDb( db, query, target )
    local absFlag = query:find( "a" )
@@ -20,6 +30,8 @@ function Query:execWithDb( db, query, target )
       db:dumpTargetList( 1, target )
    elseif query == "dumpVersion" then
       db:dumpVersion( 1 )
+   elseif query == "dumpProjDir" then
+      db:dumpProjDir( 1 )
    elseif query == "dumpFile" then
       db:dumpFile( 1, target )
    elseif query == "dumpRef" then
@@ -40,7 +52,8 @@ function Query:execWithDb( db, query, target )
       db:dumpPreproDigest( 1, target )
    elseif query:find( "P" ) then
       db:mapFile(
-	 target and string.format( "path like '%%%s%%'", target ),
+	 target and string.format( "path like '%%%s%%' escape '$'",
+				   target:gsub( "_", "$_" ) ),
 	 function( item )
 	    Util:printLocate( db, "path", item.id, 1, absFlag, false )
 	    return true
@@ -49,24 +62,19 @@ function Query:execWithDb( db, query, target )
    elseif query:find( "c" ) then
       local nsFlag = true
       local snameFlag = true
-      local pattern = "'%s%%'"
+      local pattern = "%s%%"
       if target then
 	 if string.find( target, "^:" ) then
 	    snameFlag = false
 	 else
 	    nsFlag = false
 	 end
-	 if target:sub( #target ) == "$" then
-	    target = target:sub( 1, #target - 1 )
-	    pattern = "'%%%s'"
-	 elseif target:sub( 1, 1 ) == "%" then
-	    target = target:sub( 2 )
-	    pattern = "'%%%s%%'"
-	 end
+	 pattern, target = getPattern( pattern, target )
+	 pattern = string.format( "'%s'", pattern )
       end
       if nsFlag then
 	 db:mapNamespace(
-	    target and string.format( "name like " .. pattern, target ),
+	    target and string.format( "name like " .. pattern .. "escape '$'", target ),
 	    function( item )
 	       if item.name ~= "" then
 		  print( item.name )
@@ -77,7 +85,7 @@ function Query:execWithDb( db, query, target )
       end
       if snameFlag then
 	 db:mapSimpleName(
-	    target and string.format( "name like " .. pattern, target ),
+	    target and string.format( "name like " .. pattern .. " escape '$'", target ),
 	    function( item )
 	       if item.name ~= "" then
 		  print( item.name )
@@ -106,6 +114,20 @@ function Query:execWithDb( db, query, target )
 	 target,
 	 function( item )
 	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    return true
+	 end
+      )
+   elseif query:find( "T" ) then
+      if not target then
+	 return false
+      end
+      local pattern = "%s%%"
+      pattern, target = getPattern( pattern, target )
+
+      db:mapFuncDeclPattern(
+	 string.format( pattern, target ),
+	 function( item )
+	    Util:printLocate( db, item.name, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
       )

@@ -245,6 +245,8 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.query = "dumpBelong"
 	    elseif argList[ index + 1 ] == "ver" then
 	       lctagOptMap.query = "dumpVersion"
+	    elseif argList[ index + 1 ] == "projDir" then
+	       lctagOptMap.query = "dumpProjDir"
 	    else
 	       self:printUsage( "unknown dump option" )
 	    end

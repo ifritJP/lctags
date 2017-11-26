@@ -351,7 +351,7 @@ function Make:updateFor( dbPath, target, jobs, src )
    local list = {}
    if not targetFileInfo then
       local condition = string.format(
-	 "path like '%s%%'", db:convPath( src ) )
+	 "path like '%s%%' escape '$'", db:convPath( src ) )
       db:mapFile(
 	 condition,
 	 function( item )

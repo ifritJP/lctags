@@ -77,6 +77,12 @@ This parameter can set function and string.
   (run-hooks 'lctags-mode-hook)
   )
 
+(defun lctags-get-projDir (buffer)
+  (with-temp-buffer
+    (lctags-execute-op2 buffer (current-buffer) nil nil "dump" "projDir")
+    (car (split-string (buffer-string)))))
+
+
 (defun lctags-execute-op2 (src-buf lctags-buf input async &rest lctags-opts)
   (lctags-execute-op src-buf lctags-buf input async lctags-opts))
 
@@ -137,7 +143,8 @@ This parameter can set function and string.
     (recenter)
     ))
 
-(defun lctags-select-gtags (buffer header-name select-func decide-func)
+(defun lctags-select-gtags (buffer header-name select-func decide-func
+				   &optional create-candidate-list)
   (with-current-buffer buffer
     ;;(message (buffer-string))
     (let ((lineNum (count-lines (point-min) (point-max))))
@@ -152,7 +159,11 @@ This parameter can set function and string.
 	nil
 	)
        (t
-	(funcall select-func decide-func header-name)
+	(funcall select-func decide-func
+		 (if create-candidate-list
+		     create-candidate-list
+		   'lctags-gtags-create-candidate-list)
+		 header-name)
 	t)
        ))  
     ))
@@ -519,26 +530,24 @@ This parameter can set function and string.
   ))
 
 (defun lctags-def-pickup-symbol-op (pattern)
-  (let ((buffer (lctags-get-process-buffer t))
-	lctags-params symbol)
+  (let ((buffer (generate-new-buffer
+		 (concat "GTAGS SELECT* (T)" pattern)))
+	lctags-params)
     (cond
      ((string-match "$$" pattern)
       t)
      ((string-match "^\\^" pattern)
-      (setq pattern (substring pattern 1 )))
+      (setq pattern (concat "::" (substring pattern 1 ))))
      (t 
       (setq pattern (concat "%" pattern ))))
     (lctags-execute-op2 (current-buffer) buffer nil nil
-			"-c" pattern)
-    (with-current-buffer buffer
-      (setq lctags-params
-	    `((name . "pickup symbol")
-	      (candidates . ,(split-string (buffer-string) "\n"))
-	      (action . ,(lambda (item) (setq symbol item)))
-	      )))
-    (lctags-helm-wrap lctags-params nil nil)
+			"-xTa" pattern)
     (gtags-push-context)
-    (lctags-pos-at "def" symbol)
+    (lctags-select-gtags buffer pattern
+			 'lctags-gtags-select-mode 'lctags-gtags-select
+			 (lambda ()
+			   (lctags-gtags-create-candidate-list t))
+			 )
     ))
 
 
