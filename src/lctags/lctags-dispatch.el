@@ -47,7 +47,11 @@
 	    (:name "rename" :bind "r"
 		   :action lctags-rename-at)
 	   ))
-    (:name "update this file" :bind "u" :action lctags-update-this-file)))
+    (:name "misc" :bind "m" :submenu
+	   ((:name "expand-macro" :bind "e" :action lctags-expand-macro)
+	    (:name "grep-cursor" :bind "g" :action lctags-grep-cursor)))
+    (:name "update this file" :bind "u" :action lctags-update-this-file)
+    ))
 (defvar lctags-dispatch-menu-info-current nil)
 
 

@@ -130,6 +130,7 @@ This parameter can set function and string.
 		      command))
 	(setq exit-code (apply 'call-process-region command))))
     (with-current-buffer lctags-buf
+      (setq default-directory dir)
       (goto-char (point-min))
       )
     exit-code))
@@ -357,13 +358,16 @@ This parameter can set function and string.
 			  ))))
 
 
-
-(defun lctags-get-process-buffer (init)
-  (let ((buffer (get-buffer-create lctags-process-buf-name)))
+(defun lctags-get-buffer (name &optional init)
+  (let ((buffer (get-buffer-create name)))
     (when init
       (with-current-buffer buffer
+	(setq buffer-read-only nil)
 	(erase-buffer)))
     buffer))
+
+(defun lctags-get-process-buffer (init)
+  (lctags-get-buffer lctags-process-buf-name init))
 
 (defun lctags-update-this-file ()
   (interactive)
@@ -531,8 +535,7 @@ This parameter can set function and string.
 
 (defun lctags-def-pickup-symbol-op (pattern)
   (let ((buffer (generate-new-buffer
-		 (concat "GTAGS SELECT* (T)" pattern)))
-	lctags-params)
+		 (concat "GTAGS SELECT* (T)" pattern))))
     (cond
      ((string-match "$$" pattern)
       t)
@@ -549,6 +552,80 @@ This parameter can set function and string.
 			   (lctags-gtags-create-candidate-list t))
 			 )
     ))
+
+(defvar lctags-cursor-kind-list
+  '( "UnexposedDecl" "StructDecl" "UnionDecl" "ClassDecl" "EnumDecl"
+     "FieldDecl" "EnumConstantDecl" "FunctionDecl" "VarDecl" "ParmDecl"
+     "ObjCInterfaceDecl" "ObjCCategoryDecl" "ObjCProtocolDecl"
+     "ObjCPropertyDecl" "ObjCIvarDecl" "ObjCInstanceMethodDecl"
+     "ObjCClassMethodDecl" "ObjCImplementationDecl" "ObjCCategoryImplDecl"
+     "TypedefDecl" "CXXMethod" "Namespace" "LinkageSpec" "Constructor"
+     "Destructor" "ConversionFunction" "TemplateTypeParameter"
+     "NonTypeTemplateParameter" "TemplateTemplateParameter" "FunctionTemplate"
+     "ClassTemplate" "ClassTemplatePartialSpecialization"
+     "NamespaceAlias" "UsingDirective" "UsingDeclaration" "TypeAliasDecl"
+     "ObjCSynthesizeDecl" "ObjCDynamicDecl" "CXXAccessSpecifier"
+     "ObjCSuperClassRef" "ObjCProtocolRef" "ObjCClassRef" "TypeRef"
+     "CXXBaseSpecifier" "TemplateRef" "NamespaceRef" "MemberRef"
+     "LabelRef" "OverloadedDeclRef" "VariableRef" "InvalidFile"
+     "NoDeclFound" "NotImplemented" "InvalidCode" "UnexposedExpr"
+     "DeclRefExpr" "MemberRefExpr" "CallExpr" "ObjCMessageExpr"
+     "BlockExpr" "IntegerLiteral" "FloatingLiteral" "ImaginaryLiteral"
+     "StringLiteral" "CharacterLiteral" "ParenExpr" "UnaryOperator"
+     "ArraySubscriptExpr" "BinaryOperator" "CompoundAssignOperator"
+     "ConditionalOperator" "CStyleCastExpr" "CompoundLiteralExpr"
+     "InitListExpr" "AddrLabelExpr" "StmtExpr" "GenericSelectionExpr"
+     "GNUNullExpr" "CXXStaticCastExpr" "CXXDynamicCastExpr"
+     "CXXReinterpretCastExpr" "CXXConstCastExpr" "CXXFunctionalCastExpr"
+     "CXXTypeidExpr" "CXXBoolLiteralExpr" "CXXNullPtrLiteralExpr"
+     "CXXThisExpr" "CXXThrowExpr" "CXXNewExpr" "CXXDeleteExpr"
+     "UnaryExpr" "ObjCStringLiteral" "ObjCEncodeExpr" "ObjCSelectorExpr"
+     "ObjCProtocolExpr" "ObjCBridgedCastExpr" "PackExpansionExpr"
+     "SizeOfPackExpr" "LambdaExpr" "ObjCBoolLiteralExpr" "ObjCSelfExpr"
+     "UnexposedStmt" "LabelStmt" "CompoundStmt" "CaseStmt" "DefaultStmt"
+     "IfStmt" "SwitchStmt" "WhileStmt" "DoStmt" "ForStmt" "GotoStmt"
+     "IndirectGotoStmt" "ContinueStmt" "BreakStmt" "ReturnStmt"
+     "GCCAsmStmt" "AsmStmt" "ObjCAtTryStmt" "ObjCAtCatchStmt"
+     "ObjCAtFinallyStmt" "ObjCAtThrowStmt" "ObjCAtSynchronizedStmt"
+     "ObjCAutoreleasePoolStmt" "ObjCForCollectionStmt" "CXXCatchStmt"
+     "CXXTryStmt" "CXXForRangeStmt" "SEHTryStmt" "SEHExceptStmt"
+     "SEHFinallyStmt" "MSAsmStmt" "NullStmt" "DeclStmt" "OMPParallelDirective"
+     "TranslationUnit" "UnexposedAttr" "IBActionAttr" "IBOutletAttr"
+     "IBOutletCollectionAttr" "CXXFinalAttr" "CXXOverrideAttr"
+     "AnnotateAttr" "AsmLabelAttr" "PackedAttr" "PreprocessingDirective"
+     "MacroDefinition" "MacroExpansion" "MacroInstantiation"
+     "InclusionDirective" "ModuleImportDecl" ) )
+
+(defun lctags-grep-cursor ()
+  (interactive)
+  (let (symbol buf kind)
+    (helm :sources `((name . "Cursor Kind?")
+		     (candidates . lctags-cursor-kind-list)
+		     (action . (lambda (X)
+				 (setq kind X)))))
+    (setq symbol (read-string "text?: "))
+    (setq buf (lctags-get-buffer "*lctags-grep*" t))
+    
+    (lctags-execute-op2 (current-buffer) buf nil nil
+			"grep-cursor" buffer-file-name kind symbol)
+    (lctags-switch-to-buffer-other-window buf)
+    (grep-mode)
+    (run-hooks 'grep-setup-hook)
+    (with-current-buffer buf
+      (goto-char 0))
+  ))
+
+(defun lctags-expand-macro ()
+  (interactive)
+  (let (symbol buf kind)
+    (setq buf (lctags-get-buffer "*expand-macro*" t))
+    (lctags-execute-op2 (current-buffer) buf nil nil
+			"expand-macro" buffer-file-name)
+    (lctags-switch-to-buffer-other-window buf)
+    (c-mode)
+    (with-current-buffer buf
+      (goto-char 0))
+  ))
 
 
 

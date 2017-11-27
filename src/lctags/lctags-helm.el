@@ -541,6 +541,7 @@
 
 
 (when lctags-anything
+  (defalias 'helm 'anything)
   (defalias 'helm-get-selection 'anything-get-selection)
   (defalias 'helm-exit-minibuffer 'anything-exit-minibuffer)
   (defalias 'helm-marked-candidates 'anything-marked-candidates)

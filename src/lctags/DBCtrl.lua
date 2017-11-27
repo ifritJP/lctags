@@ -830,6 +830,12 @@ function DBCtrl:mapJoin( tableName, otherTable, on, condition, limit, attrib, fu
    self.db:mapJoin( tableName, otherTable, on, condition, limit, attrib, func )
 end
 
+function DBCtrl:mapJoin2(
+      tableName, otherTable, on, otherTable2, on2, condition, limit, attrib, func )
+   self.db:mapJoin2( tableName, otherTable, on, otherTable2, on2,
+		     condition, limit, attrib, func )
+end
+
 function DBCtrl:mapRowList( tableName, condition, limit, attrib, func )
    self.db:mapRowList( tableName, condition, limit, attrib, func )
 end
@@ -3049,7 +3055,7 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
       end
    end
    if pattern and pattern ~= "" then
-      local work = string.format( "(namespace.name LIKE '%s' escape '$')", pattern )
+      local work = string.format( "(simpleName.name LIKE '%s' escape '$')", pattern )
       if cond then
 	 cond = string.format( "(%s) AND (%s)", cond, work )
       else
@@ -3058,8 +3064,9 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
    end
    log( 3, "mapSymbolDeclPattern", cond )
 
-   self:mapJoin(
+   self:mapJoin2(
       "namespace", "symbolDecl", "namespace.id = symbolDecl.nsId",
+      "simpleName", "simpleName.id = symbolDecl.snameId",
       cond, 10000,
       "namespace.name, symbolDecl.nsId, "
 	 .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column",

@@ -4,6 +4,8 @@ local gcc = require( 'lctags.gcc' )
 
 local Option = {}
 
+Option.orgDir = os.getenv( "PWD" )
+
 local function loadConfig( path, exitOnErr )
    local fileHandle = io.open( path, "r" )
    if fileHandle then
@@ -197,13 +199,13 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = "updateForMake"
 	 elseif arg == "ref-at-all" then
 	    lctagOptMap.mode = arg
-	 elseif string.find( arg, "ref-at", 1, true ) then
+	 elseif string.find( arg, "ref-at", 1, true ) == 1 then
 	    lctagOptMap.mode = "ref-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "def-at", 1, true ) then
+	 elseif string.find( arg, "def-at", 1, true ) == 1 then
 	    lctagOptMap.mode = "def-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "call-at", 1, true ) then
+	 elseif string.find( arg, "call-at", 1, true ) == 1 then
 	    lctagOptMap.mode = "call-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
 	 elseif arg == "ns-at" then
@@ -251,15 +253,15 @@ function Option:analyzeOption( argList )
 	       self:printUsage( "unknown dump option" )
 	    end
 	    skipArgNum = 1
-	 elseif string.find( arg, "-x", 1, true ) then
+	 elseif string.find( arg, "-x", 1, true ) == 1 then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = arg
 	    lctagOptMap.compatibleGlobal = true
-	 elseif string.find( arg, "-c", 1, true ) then
+	 elseif string.find( arg, "-c", 1, true ) == 1 then
 	    lctagOptMap.mode = "query"
 	    lctagOptMap.query = arg
 	    lctagOptMap.compatibleGlobal = true
-	 elseif string.find( arg, "list", 1, true ) then
+	 elseif arg == "list" then
 	    lctagOptMap.mode = "list"
 	    lctagOptMap.query = argList[ index + 1 ]
 	    if lctagOptMap.query == "inc" then
@@ -273,6 +275,10 @@ function Option:analyzeOption( argList )
 	 elseif arg == "cursors" then
 	    lctagOptMap.mode = arg
 	    self.cursors = true
+	 elseif arg == "grep-cursor" then
+	    lctagOptMap.mode = arg
+	 elseif arg == "expand-macro" then
+	    lctagOptMap.mode = arg
 	 elseif arg == "cursor-at" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "scan" then
@@ -412,11 +418,11 @@ function Option:analyzeOption( argList )
 			lctagOptMap.registerFromInfo = true
 		     end
 		  elseif lctagOptMap.mode == "query" then
-		     if string.find( arg, "--encode-path=", 1, true ) then
+		     if string.find( arg, "--encode-path=", 1, true ) == 1 then
 			skipArgNum = 1
 		     end
 		  elseif lctagOptMap.mode == "split-at" then
-		     if string.find( arg, "-split-param-list", 1, true ) then
+		     if arg == "-split-param-list" then
 			lctagOptMap.splitParamInfoList = {}
 			for val in string.gmatch( argList[ index + 1 ], "[^,]+" ) do
 			   local tokenList = {}
@@ -534,5 +540,10 @@ end
 function Option:isValidCursors()
    return self.cursors
 end
+
+function Option:getOrgDir()
+   return self.orgDir
+end
+
 
 return Option

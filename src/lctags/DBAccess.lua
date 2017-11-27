@@ -163,12 +163,29 @@ function DBAccess:mapJoin(
    if not attrib then
       attrib = "*"
    end
+   query = string.format( "SELECT %s FROM %s INNER JOIN %s ON %s",
+			  attrib, tableName, otherTable, on )
    if condition then
-      query = string.format( "SELECT %s FROM %s INNER JOIN %s ON %s WHERE %s",
-			     attrib, tableName, otherTable, on, condition )
-   else
-      query = string.format( "SELECT %s FROM %s INNER JOIN %s ON %s",
-			     attrib, tableName, otherTable, on )
+      query = string.format( "%s WHERE %s", query, condition )
+   end
+   if limit then
+      query = string.format( "%s LIMIT %d", query, limit )
+   end
+
+   self:mapQuery( query, func )
+end
+
+function DBAccess:mapJoin2(
+      tableName, otherTable, on, otherTable2, on2, condition, limit, attrib, func )
+   local query = nil
+   if not attrib then
+      attrib = "*"
+   end
+   query = string.format(
+      "SELECT %s FROM %s INNER JOIN %s ON %s INNER JOIN %s ON %s",
+      attrib, tableName, otherTable, on, otherTable2, on2 )
+   if condition then
+      query = string.format( "%s WHERE %s", query, condition )
    end
    if limit then
       query = string.format( "%s LIMIT %d", query, limit )

@@ -109,10 +109,11 @@
 
 (defun lctags-highlight-at-op (&optional face)
   (let ((buffer (lctags-get-process-buffer t))
+	(cur-buf (current-buffer))
 	highlight-info overlay color mark locationSet-list)
     (when (or (not face) (eq face 'auto))
       (setq face (lctags-highlight-make-face nil)))
-    (lctags-execute-xml (current-buffer) buffer
+    (lctags-execute-xml cur-buf buffer
 			(buffer-string)
 			'highlight-info 'ref 'locationSet
 			"ref-at-all"
@@ -151,8 +152,14 @@
 	(setq face (lctags-highlight-make-face t)))
       (setq lctags-highlight-locationSet-list
 	    (append locationSet-list lctags-highlight-locationSet-list))
-      )
-     )))
+      (save-excursion
+	(let ((location (car (lctags-xml-get-list (car locationSet-list) 'location))))
+	  (lctags-goto-line-column (lctags-location-item-get-line location)
+				   (lctags-location-item-get-column location))
+	  (lctags-highlight-grep-at)
+	  ))
+      (pop-to-buffer cur-buf)
+      ))))
 
 
 (defun lctags-highlight-rescan ()

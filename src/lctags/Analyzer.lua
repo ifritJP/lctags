@@ -2229,7 +2229,19 @@ function Analyzer:convFullpath( path )
    return DBCtrl:convFullpath( path, self.currentDir )
 end
 
-function Analyzer:dumpCurosr( filePath, target, optionList )
+
+function Analyzer:cursorAt( filePath, line, column, target )
+   local transUnit, compileOp, analyzer, stdMode, fileInfo =
+      self:createUnit( filePath, target, false )
+
+   local cxfile = transUnit:getFile( filePath )
+   local location = transUnit:getLocation( cxfile, line, column )
+   local cursor = transUnit:getCursor( location )
+
+   Util:dumpCursorInfo( cursor, 1, nil, 0 )
+end
+
+function Analyzer:visitAST( filePath, target, optionList, func )
 
    local transUnit
 
@@ -2253,13 +2265,17 @@ function Analyzer:dumpCurosr( filePath, target, optionList )
    local visit;
    visit = function ( cursor, parent, exInfo, append )
       Util:dumpCursorInfo( cursor, exInfo, nil, 0 )
-      
-      local hash = cursor:hashCursor()
-      if not hashSet[ hash ] then
-	 clang.visitChildrenFast( cursor, visit, exInfo + 1, nil, 1 )
+
+      local result = func( cursor, parent, append )
+
+      if result ~= 0 then
+	 local hash = cursor:hashCursor()
+	 if not hashSet[ hash ] then
+	    clang.visitChildrenFast( cursor, visit, exInfo + 1, nil, 1 )
+	 end
+	 hashSet[ hash ] = true
       end
-      hashSet[ hash ] = true
-      return 1
+      return result
    end
    
    clang.visitChildrenFast(
@@ -2267,15 +2283,123 @@ function Analyzer:dumpCurosr( filePath, target, optionList )
       visit, 1, nil, 1 )
 end
 
-function Analyzer:cursorAt( filePath, line, column, target )
-   local transUnit, compileOp, analyzer, stdMode, fileInfo =
-      self:createUnit( filePath, target, false )
 
-   local cxfile = transUnit:getFile( filePath )
-   local location = transUnit:getLocation( cxfile, line, column )
-   local cursor = transUnit:getCursor( location )
+function Analyzer:dumpCurosr( filePath, target, optionList )
+   self:visitAST(
+      filePath, target, optionList,
+      function( cursor, parent, append )
+	 return 1
+      end
+   )
+end
 
-   Util:dumpCursorInfo( cursor, 1, nil, 0 )
+function Analyzer:grepCurosr( filePath, target, optionList, kindId, symbol )
+
+   local cursorKind = clang.CXCursorKind[ kindId ]
+   if not cursorKind then
+      error( "kindId is unknown: " .. kindId )
+   end
+   cursorKind = cursorKind.val
+
+   local fullPath = DBCtrl:convFullpath( filePath, self.currentDir )
+   if filePath:find( Option:getOrgDir(), 1, true ) == 1 then
+      filePath = filePath:sub( #Option:getOrgDir() + 2 )
+   end
+
+   local lineNoList = {}
+   local lineNoSet = {}
+   self:visitAST(
+      fullPath, target, optionList,
+      function( cursor, parent, append )
+	 local info = clang.getVisitAppendInfo( append )
+	 if cursorKind == cursor:getCursorKind() and
+	    ( not symbol or cursor:getCursorSpelling() == symbol )
+	 then
+	    local cxfile = getFileLoc( cursor )
+	    local path
+	    if cxfile then
+	       path = DBCtrl:convFullpath( cxfile:getFileName(), self.currentDir )
+	    else
+	       path = ""
+	    end
+	    if fullPath == path then
+	       if not lineNoSet[ info.line ] then
+		  table.insert( lineNoList, info.line )
+		  lineNoSet[ info.line ] = true
+	       end
+	    end
+	 end
+	 return 1
+      end
+   )
+
+   local fileObj = io.open( fullPath, "r" )
+
+   local index = 0
+   while true do
+      local lineTxt = fileObj:read( '*l' )
+      if not lineTxt then
+	 break
+      end
+      index = index + 1
+      if lineNoSet[ index ] then
+	 print( string.format( "%s:%d:%s", filePath, index, lineTxt ) )
+      end
+   end
+end
+
+function Analyzer:expandMacro( filePath, target )
+   local db = self:openDBForReadOnly()
+   local fileInfo, optionList = db:getFileOpt( filePath, target )
+
+   local fullPath = db:convFullpath( filePath )
+
+   local compileOp = "gcc -c -E "
+   for index, option in ipairs( optionList ) do
+      if option:find( "-std=", 1, true ) ~= 1 and
+	 not option:find( "/clang/stdinc", 1, true ) 
+      then
+	 compileOp = string.format( '%s "%s"', compileOp, option )
+      end
+   end
+   compileOp = compileOp .. " " .. fullPath
+
+   local pipe = io.popen( compileOp )
+   local inIncludeFlag = false
+   local nextIncFlag = false
+   while true do
+      local line = pipe:read( '*l' )
+      if not line then
+	 break
+      end
+      if line:find( '^# ' ) then
+	 local incPath
+	 for path in line:gmatch( '# %d+ "(%g+)"' ) do
+	    incPath = path
+	    break
+	 end
+	 if incPath == fullPath then
+	    nextIncFlag = true
+	    inIncludeFlag = false
+	 else
+	    inIncludeFlag = true
+	    if nextIncFlag then
+	       nextIncFlag = false
+	       if incPath ~= "<built-in>" then
+		  print( string.format( "#include <%s>", db:convFullpath( incPath ) ) )
+	       end
+	    end
+	 end
+      elseif inIncludeFlag then
+      else
+	 io.stdout:write( line )
+	 io.stdout:write( '\n' )
+      end
+   end
+   
+   pipe:close()
+
+   db:close()
 end
 
 

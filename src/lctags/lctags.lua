@@ -584,6 +584,17 @@ if lctagOptMap.mode == "cursors" then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "grep-cursor" then
+   analyzer:grepCurosr(
+      targetFullPath, lctagOptMap.target, optList, srcList[ 2 ], srcList[ 3 ] )
+   finish( 0 )
+end
+
+if lctagOptMap.mode == "expand-macro" then
+   analyzer:expandMacro( targetFullPath, lctagOptMap.target )
+   finish( 0 )
+end
+
 if lctagOptMap.mode == "cursor-at" then
    analyzer:cursorAt( targetFullPath,
 		      tonumber( srcList[ 2 ] ), tonumber( srcList[ 3 ] ),
