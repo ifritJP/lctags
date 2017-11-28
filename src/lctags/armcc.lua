@@ -1,9 +1,15 @@
--- -*- coding:utf-8 -*-
--- Copyright (C) 2017 ifritJP
+-- -*- coding:utf-8; mode:lua -*-
 
 local log = require( 'lctags.LogCtrl' )
 
-local gcc = {}
+local config = {}
+
+function config:getIgnorePattern()
+   return {
+      -- { "simple", "ignore.c" }, -- this is simple match. 
+      -- { "lua", "^ignore.c$" }, -- this is lua pattern match.
+   }
+end
 
 local function processParen( arg, macroParen )
    for paren in string.gmatch( arg, "[()]" ) do
@@ -20,15 +26,20 @@ local function processParen( arg, macroParen )
    return macroParen
 end
 
-function gcc:createCompileOptionConverter( compiler )
-   if compiler ~= "gcc" then
+
+--[[
+   This method is compile option converter from your compiler to clang.
+   This is sample for armcc.
+]]
+function config:createCompileOptionConverter( compiler )
+   if compiler ~= "armcc" then
       return nil
    end
    local obj = {
-      nextType = nil,
       macroParen = 0,
+      nextType = nil,
       convert = function( self, arg )
-	 if compiler == "gcc" then
+	 if compiler == "armcc" then
 	    if self.nextType == "skip" then
 	       self.nextType = nil
 	       return "skip"
@@ -43,22 +54,23 @@ function gcc:createCompileOptionConverter( compiler )
 	       return "opt", arg
 	    end
 	    if string.find( arg, "^-" ) then
-	       if string.find( arg, "^-[IDo]" ) then
+	       if string.find( arg, "^-[JDoI]" ) then
 		  if string.find( arg, "^-D" ) then
 		     self.macroParen = processParen( arg, self.macroParen )
 		     if self.macroParen > 0 then
 			self.nextType = "macroParen"
 		     end
 		  end
-		  if arg == "-I" then
+		  if arg == "-J" then
 		     self.nextType = "opt"
 		  end
 		  if arg == "-o" then
 		     self.nextType = "skip"
 		     return "skip"
 		  end
-		  return "opt", arg
-	       elseif string.find( arg, "-std=", 1, true ) then
+		  if string.find( arg, "^-J" ) then
+		     arg = string.gsub( arg, "^-J", "-I" )
+		  end
 		  return "opt", arg
 	       end
 	       return "skip"
@@ -70,8 +82,13 @@ function gcc:createCompileOptionConverter( compiler )
    return obj
 end
 
-function gcc:getDefaultOptionList( compiler )
+function config:getDefaultOptionList( compiler )
    return {}
 end
 
-return gcc
+function config:getClangIncPath()
+   return nil -- clang include path
+end
+
+
+return config

@@ -1,27 +1,12 @@
 local log = require( 'lctags.LogCtrl' )
 local gcc = require( 'lctags.gcc' )
+local config = require( 'lctags.config' )
 
 
 local Option = {}
 
 Option.orgDir = os.getenv( "PWD" )
 
-local function loadConfig( path, exitOnErr )
-   local fileHandle = io.open( path, "r" )
-   if fileHandle then
-      fileHandle:close()
-      local chunk, err = loadfile( path )
-      if chunk then
-	 return chunk()
-      end
-      print( err )
-   end
-   if exitOnErr then
-      print( "loadfile error", err )
-      os.exit( 1 )
-   end
-   return nil
-end
 
 
 function Option:printUsage( message )
@@ -51,7 +36,7 @@ usage:
    %s comp-at [--lctags-target target] [-i] file line column
    %s inq-at [--lctags-target target] [-i] file line column
    %s list <incSrc|inc|incSrcHeader> [-d depth] name
-   %s -x[t|s|r][a]  [--use-global] symbol
+   %s -x[T|t|s|r][a]  [--use-global] symbol
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
    %s dcall
@@ -83,7 +68,7 @@ usage:
      shrink: shrink DB.
      chg-proj: change project directory.
      dump: dump DB.
-     --lctags-conf: confing file.
+     --lctags-conf: config file.
      --lctags-target: set build target.
      -x: query DB.
         -xt: symbol declaration
@@ -130,7 +115,7 @@ function Option:analyzeOption( argList )
 	 skipArgNum = skipArgNum - 1
       elseif string.find( arg, "--lctags-conf", 1, true ) then
 	 skipArgNum = 1
-	 lctagOptMap.conf = loadConfig( argList[ index + 1 ], true )
+	 lctagOptMap.conf = config:loadConfig( argList[ index + 1 ], true )
       elseif string.find( arg, "--lctags-db", 1, true ) then
 	 skipArgNum = 1
 	 lctagOptMap.dbPath = argList[ index + 1 ]
@@ -140,7 +125,7 @@ function Option:analyzeOption( argList )
 	    (os.getenv( "PWD" ) .. "/lctags.conf")
 
 	 if not lctagOptMap.conf then
-	    lctagOptMap.conf = loadConfig( confPath, false )
+	    lctagOptMap.conf = config:loadConfig( confPath, false )
 	 end
       end
    end
@@ -156,7 +141,7 @@ function Option:analyzeOption( argList )
 	    if not lctagOptMap.conf then
 	       local confPath = string.gsub(
 		  lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
-	       lctagOptMap.conf = loadConfig( confPath, false )
+	       lctagOptMap.conf = config:loadConfig( confPath, false )
 	    end
 	    break
 	 end
@@ -167,6 +152,8 @@ function Option:analyzeOption( argList )
 	 end
       end
    end
+
+   lctagOptMap.conf = config
 
    skipArgNum = 0
    for index, arg in ipairs( argList ) do
@@ -465,12 +452,8 @@ function Option:analyzeOption( argList )
 	    if processMode == "conv" then
 	       if not converter then
 		  if lctagOptMap.cc ~=  "gcc" then
-		     if lctagOptMap.conf and
-			lctagOptMap.conf.createCompileOptionConverter
-		     then
-			converter = lctagOptMap.conf:createCompileOptionConverter(
-			   lctagOptMap.cc )
-		     end
+		     converter = lctagOptMap.conf:createCompileOptionConverter(
+			lctagOptMap.cc )
 		  end
 		  if not converter then
 		     converter = gcc:createCompileOptionConverter( "gcc" )
@@ -492,15 +475,11 @@ function Option:analyzeOption( argList )
    if lctagOptMap.mode == "build" or lctagOptMap.mode == "addInc" or
       lctagOptMap.mode == "addStdInc" or lctagOptMap.mode == "cursors"
    then
-      local clangVer = require( 'libclanglua.if' ).getClangVersion()
-      clangVer3 = string.gsub(
-      	 clangVer, "^clang version (%d+)%.(%d+)%.(%d+)[^%d].*", "%1.%2.%3" )
-      clangVer2 = string.gsub( clangVer3, "^(%d+)%.(%d+)[^%d].*", "%1.%2" )
+      local clangIncPath = lctagOptMap.conf:getClangIncPath()
 
-      defInc = string.format(
-      	 "/usr/lib/llvm-%s/lib/clang/%s/include/", clangVer2, clangVer3 )
-      table.insert( optList, "-I" .. defInc )
-      -- table.insert( optList, "-I" ..  "/usr/lib/gcc/x86_64-linux-gnu/5/include" )
+      if clangIncPath and clangIncPath ~= "" then
+	 table.insert( optList, "-I" .. clangIncPath )
+      end
    end
 
    for key, val in pairs( lctagOptMap ) do

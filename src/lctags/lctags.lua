@@ -32,11 +32,9 @@ if not arg[1] then
 end
 
 local srcList, optList, lctagOptMap = Option:analyzeOption( arg )
-if lctagOptMap.conf and lctagOptMap.conf.getDefaultOptionList then
-   local list = lctagOptMap.conf:getDefaultOptionList( lctagOptMap.cc )
-   for index, opt in ipairs( list ) do
-      table.insert( optList, opt )
-   end
+local list = lctagOptMap.conf:getDefaultOptionList( lctagOptMap.cc )
+for index, opt in ipairs( list ) do
+   table.insert( optList, opt )
 end
 
 local projDir = os.getenv( "PWD" )
@@ -372,19 +370,17 @@ if lctagOptMap.mode == "build" then
    log( 3, "opt:", option )
    
    
-   if lctagOptMap.conf then
-      for index, info in ipairs( lctagOptMap.conf:getIgnorePattern() ) do
-	 local fullpath = DBCtrl:convFullpath( src, os.getenv( "PWD" ) )
-	 if info[ 1 ] == "simple" then
-	    if string.find( fullpath, info[ 2 ], 1, true ) then
-	       log( 1, "ignore:", fullpath )
-	       finish( 0 )
-	    end
-	 elseif info[ 1 ] == "lua" then
-	    if string.find( fullpath, info[ 2 ] ) then
-	       log( 1, "ignore:", fullpath )
-	       finish( 0 )
-	    end
+   for index, info in ipairs( lctagOptMap.conf:getIgnorePattern() ) do
+      local fullpath = DBCtrl:convFullpath( src, os.getenv( "PWD" ) )
+      if info[ 1 ] == "simple" then
+	 if string.find( fullpath, info[ 2 ], 1, true ) then
+	    log( 1, "ignore:", fullpath )
+	    finish( 0 )
+	 end
+      elseif info[ 1 ] == "lua" then
+	 if string.find( fullpath, info[ 2 ] ) then
+	    log( 1, "ignore:", fullpath )
+	    finish( 0 )
 	 end
       end
    end
@@ -591,7 +587,7 @@ if lctagOptMap.mode == "grep-cursor" then
 end
 
 if lctagOptMap.mode == "expand-macro" then
-   analyzer:expandMacro( targetFullPath, lctagOptMap.target )
+   analyzer:expandMacro( targetFullPath, lctagOptMap.target, lctagOptMap.conf )
    finish( 0 )
 end
 

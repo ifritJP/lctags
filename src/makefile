@@ -257,6 +257,7 @@ endif
 	$(call build-test, test/class4.cpp )
 	$(call build-test, test/class5.cpp )
 	$(call build-test, test/inc1.cpp )
+	$(call build-test, test/stdinc.cpp )
 	$(call build-test, test/stack.cpp )
 #	$(call build-test, test/class.cpp )
 	$(call build-test, test/sample.c )
@@ -296,6 +297,9 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) -c sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) -c sub$$
 	$(LUA_COMMAND) $(LCTAGS_LUA) -c %sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) -xT sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) -xT sub$$
+	$(LUA_COMMAND) $(LCTAGS_LUA) -xT %sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 14 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 44 8
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at test/hoge.cpp 236 23
@@ -372,6 +376,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc1.cpp 2 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc2.h 7 1
+	$(LUA_COMMAND) $(LCTAGS_LUA) expand-macro test/stdinc.cpp
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 21 7
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 21 18
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 24 12

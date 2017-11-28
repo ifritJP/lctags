@@ -2348,21 +2348,27 @@ function Analyzer:grepCurosr( filePath, target, optionList, kindId, symbol )
    end
 end
 
-function Analyzer:expandMacro( filePath, target )
+function Analyzer:expandMacro( filePath, target, conf )
    local db = self:openDBForReadOnly()
    local fileInfo, optionList = db:getFileOpt( filePath, target )
 
+   fileInfo = db:getSrcForIncOne( fileInfo, target )
+   fileInfo, optionList = db:getFileOpt( db:getSystemPath( fileInfo.path ), target )
+
    local fullPath = db:convFullpath( filePath )
 
+   local clangIncPath = conf:getClangIncPath()
    local compileOp = "gcc -c -E "
    for index, option in ipairs( optionList ) do
       if option:find( "-std=", 1, true ) ~= 1 and
-	 not option:find( "/clang/stdinc", 1, true ) 
+	 not option:find( clangIncPath, 1, true ) 
       then
 	 compileOp = string.format( '%s "%s"', compileOp, option )
       end
    end
    compileOp = compileOp .. " " .. fullPath
+
+   log( 2, compileOp )
 
    local pipe = io.popen( compileOp )
    local inIncludeFlag = false

@@ -2853,7 +2853,6 @@ function DBCtrl:getSrcForIncOne( fileInfo, target )
    else
       if self:hasTarget( fileInfo.id, target ) then
 	 srcFileInfo = fileInfo
-	 return false
       end
    end
 

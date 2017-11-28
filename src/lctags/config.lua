@@ -1,89 +1,74 @@
 -- -*- coding:utf-8; mode:lua -*-
 
+local gcc = require( 'lctags.gcc' )
 local log = require( 'lctags.LogCtrl' )
 
 local config = {}
 
+config.conf = gcc
+
+function config:loadConfig( path, exitOnErr )
+   local fileHandle = io.open( path, "r" )
+   if fileHandle then
+      fileHandle:close()
+      local chunk, err = loadfile( path )
+      if chunk then
+	 self.conf = chunk()
+	 return self
+      end
+      print( err )
+   end
+   if exitOnErr then
+      print( "loadfile error", err )
+      os.exit( 1 )
+   end
+   return nil
+end
+
+
 function config:getIgnorePattern()
+   if self.conf and self.conf.getIgnorePattern then
+      return self.conf:getIgnorePattern()
+   end
    return {
       -- { "simple", "ignore.c" }, -- this is simple match. 
       -- { "lua", "^ignore.c$" }, -- this is lua pattern match.
    }
 end
 
-function processParen( arg, macroParen )
-   for paren in string.gmatch( arg, "[()]" ) do
-      if paren == "(" then
-	 macroParen = macroParen + 1
-      else
-	 macroParen = macroParen - 1
-	 if macroParen < 0 then
-	    log( 1, "unmatch arg paren", arg )
-	    os.exit( 1 )
-	 end
-      end
-   end
-   return macroParen
-end
-
-
 --[[
    This method is compile option converter from your compiler to clang.
-   This is sample for armcc.
 ]]
 function config:createCompileOptionConverter( compiler )
-   if compiler ~= "armcc" then
-      return nil
+   if self.conf and self.conf.createCompileOptionConverter then
+      return self.conf:createCompileOptionConverter( compiler )
    end
-   local obj = {
-      macroParen = 0,
-      nextType = nil,
-      convert = function( self, arg )
-	 if compiler == "armcc" then
-	    if self.nextType == "skip" then
-	       self.nextType = nil
-	       return "skip"
-	    elseif self.nextType == "opt" then
-	       self.nextType = nil
-	       return "opt", arg
-	    elseif self.nextType == "macroParen" then
-	       self.macroParen = processParen( arg, self.macroParen )
-	       if self.macroParen == 0 then
-		  self.nextType = nil
-	       end
-	       return "opt", arg
-	    end
-	    if string.find( arg, "^-" ) then
-	       if string.find( arg, "^-[JDoI]" ) then
-		  if string.find( arg, "^-D" ) then
-		     self.macroParen = processParen( arg, self.macroParen )
-		     if self.macroParen > 0 then
-			self.nextType = "macroParen"
-		     end
-		  end
-		  if arg == "-J" then
-		     self.nextType = "opt"
-		  end
-		  if arg == "-o" then
-		     self.nextType = "skip"
-		     return "skip"
-		  end
-		  if string.find( arg, "^-J" ) then
-		     arg = string.gsub( arg, "^-J", "-I" )
-		  end
-		  return "opt", arg
-	       end
-	       return "skip"
-	    end
-	    return "src", arg
-	 end
-      end,
-   }
-   return obj
+   return nil
 end
 
 function config:getDefaultOptionList( compiler )
+   if self.conf and self.conf.getDefaultOptionList then
+      return self.conf:getDefaultOptionList( compiler )
+   end
    return {}
 end
+
+function config:getClangIncPath()
+   if self.conf and self.conf.getClangIncPath then
+         local path = self.conf:getClangIncPath()
+	 if path and path ~= "" then
+	    return path
+	 end
+   end
+
+   local clangVer = require( 'libclanglua.if' ).getClangVersion()
+   clangVer3 = string.gsub(
+      clangVer, "^clang version (%d+)%.(%d+)%.(%d+)[^%d].*", "%1.%2.%3" )
+   clangVer2 = string.gsub( clangVer3, "^(%d+)%.(%d+)[^%d].*", "%1.%2" )
+
+   return string.format( "/usr/lib/llvm-%s/lib/clang/%s/include/",
+			 clangVer2, clangVer3 )
+end
+
 
 return config
