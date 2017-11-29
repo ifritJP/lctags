@@ -67,13 +67,11 @@
 	(set-marker lctags-split-target-pos-mark nil)
 	(setq lctags-split-target-pos-mark nil))
       (setq lctags-split-target-pos-mark (point-marker))
-      (when (not (buffer-live-p lctags-split-buffer))
-	(setq lctags-split-buffer (get-buffer-create "*lctags-split*")))
+      (lctags-get-unique-buffer 'lctags-split-buffer "*lctags-split*" t)
       (lctags-switch-to-buffer-other-window lctags-split-buffer)
       (setq split-info (lctags-xml-get lctags-buf 'refactoring_split))
 
       (with-current-buffer lctags-split-buffer
-	(erase-buffer)
 	(insert "/* please edit 'x' or 'o' and symbol and order of following items,\n    and push C-c C-c to update.
     format:
        :[xor]:argName:orgName

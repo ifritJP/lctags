@@ -73,7 +73,9 @@
 	(setq pos (point))
 	(insert (substring args (length (concat func-name))))
 	(insert (concat " => " (lctags-candidate-item-get-result inq-info)))
-	(goto-char pos))
+	(goto-char pos)
+	)
+      insert-text
       )
     ))
 

@@ -654,7 +654,7 @@ function Completion:completeSymbol( db, path, cursor, compMode, prefix, frontSyn
    print( '</completion>' )
 end
 
-function Completion:getIncludeFileIdList( path, analyzer, db, target, fileContents )
+function Completion:getIncludeFileIdSet( path, analyzer, db, target, fileContents )
    --currentFile からインクルードしているヘッダセット取得
    local unit, compileOp, newAnalyzer =
       analyzer:createUnit( path, target, false, fileContents )
@@ -664,7 +664,7 @@ function Completion:getIncludeFileIdList( path, analyzer, db, target, fileConten
       local incPath = db:convFullpath( incFile:getIncludedFile():getFileName() )
       local incFileInfo = db:getFileInfo( nil, incPath )
       if incFileInfo then
-	 incFileIdSet[ incFileInfo.id ] = true
+	 incFileIdSet[ incFileInfo.id ] = incFileInfo
       else
 	 log( 1, "not found", incPath )
       end
@@ -1381,7 +1381,8 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
       error( string.format( "not register this file -- %s", currentFile ) )
    end
 
-   local currentIncSet = {}
+   --currentFile からインクルードしているヘッダセット取得
+   -- local currentIncSet = {}
    -- db:mapIncludeCache(
    --    currentFileInfo,
    --    function( item )
@@ -1390,10 +1391,11 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
    --    end
    -- )
 
-
-   --currentFile からインクルードしているヘッダセット取得
-   currentIncSet = self:getIncludeFileIdList(
+   currentIncSet = self:getIncludeFileIdSet(
       currentFile, analyzer, db, target, fileContents )
+   for id, fileInfo in pairs( currentIncSet ) do
+      log( 3, "currentIncSet", id, fileInfo.path )
+   end
    
    self:outputResult(
       clang.core.CXDiagnostic_Error,
@@ -1427,13 +1429,15 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
 		     stream:write( string.format(
 				      "<name>%s</name>\n",
 				      Util:convertXmlTxt( name ) ) )
-		     if fileInfo.incFlag ~= 0 and
-			not currentIncSet[ fileInfo.id ]
-		     then
+		     if fileInfo.incFlag ~= 0 then
 			stream:write(
 			   string.format(
 			      "<include>%s</include>\n",
 			      Util:convertXmlTxt( db:getSystemPath( fileInfo.path ) ) ) )
+			stream:write(
+			   string.format(
+			      "<included>%s</included>\n",
+			      currentIncSet[ fileInfo.id ] and "true" or "false" ) )
 		     end
 		     stream:write(
 			string.format(

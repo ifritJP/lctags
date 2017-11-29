@@ -14,10 +14,12 @@ sub                46 ./test/comp9.cpp     int sub()
 sub                46 ./test/comp10.cpp     int sub()
 sub                 9 ./test/comp16.cpp void sub( DATA * pData )
 sub                 5 ./test/comp17.cpp void sub( DATA * pData )
+sub                 3 ./test/stdinc.cpp static void sub( void )
 sub                 4 ./test/stack.cpp static void sub();
 sub                52 ./test/stack.cpp static void sub()
 sub                 6 ./test/enum.cpp  static void sub( eval_t val )
 sub                21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+sub                 3 ./test/inctest.cpp void sub( void )
 lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
@@ -53,6 +55,93 @@ Sub
 __glibcxx_requires_subscript
 substr
 func10__sub
+lua lctags/lctags.lua -xT sub
+::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+::ns1::ns31::sub2  259 ./test/hoge.cpp          void sub2() {
+::ns1::sub2       264 ./test/hoge.cpp    struct yyyy sub2() {
+::Test1::sub        8 ./test/comp.cpp    static int sub() {
+::Test1::sub        8 ./test/comp-2.cpp   static int sub() {
+::Test1::sub        7 ./test/comp2.cpp   static int sub()
+::Test1::sub        7 ./test/comp3.cpp   static int sub()
+::Test1::sub        7 ./test/comp4.cpp   static int sub()
+::Test1::sub        7 ./test/comp5.cpp   static int sub()
+::ns1::ns2::sub    46 ./test/comp6.cpp     int sub()
+::ns71::ns72::sub   46 ./test/comp7.cpp     int sub()
+::ns81::ns82::sub   46 ./test/comp8.cpp     int sub()
+::ns91::ns92::sub   46 ./test/comp9.cpp     int sub()
+::ns101::ns102::sub   46 ./test/comp10.cpp     int sub()
+::sub               9 ./test/comp16.cpp void sub( DATA * pData )
+::sub               5 ./test/comp17.cpp void sub( DATA * pData )
+::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
+::Sub              11 ./test/class3.cpp template <typename T>
+::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
+::sub::186          3 ./test/stdinc.cpp static void sub( void )
+::sub::187          4 ./test/stack.cpp static void sub();
+::sub::187         52 ./test/stack.cpp static void sub()
+::sub::192          6 ./test/enum.cpp  static void sub( eval_t val )
+::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+::sub               3 ./test/inctest.cpp void sub( void )
+lua lctags/lctags.lua -xT sub$
+::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
+::@enum::<enum_anonymous>::FPE_FLTSUB  222 /usr/include/x86_64-linux-gnu/bits/siginfo.h   FPE_FLTSUB			/* Subscript out of range.  */
+::__tgmath_real_type_sub   60 /usr/include/tgmath.h # define __tgmath_real_type_sub(T, E) \
+::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+::Test1::sub        8 ./test/comp.cpp    static int sub() {
+::Test1::sub        8 ./test/comp-2.cpp   static int sub() {
+::Test1::sub        7 ./test/comp2.cpp   static int sub()
+::Test1::sub        7 ./test/comp3.cpp   static int sub()
+::Test1::sub        7 ./test/comp4.cpp   static int sub()
+::Test1::sub        7 ./test/comp5.cpp   static int sub()
+::ns1::ns2::sub    46 ./test/comp6.cpp     int sub()
+::ns71::ns72::sub   46 ./test/comp7.cpp     int sub()
+::ns81::ns82::sub   46 ./test/comp8.cpp     int sub()
+::ns91::ns92::sub   46 ./test/comp9.cpp     int sub()
+::ns101::ns102::sub   46 ./test/comp10.cpp     int sub()
+::sub               9 ./test/comp16.cpp void sub( DATA * pData )
+::sub               5 ./test/comp17.cpp void sub( DATA * pData )
+::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
+::Sub              11 ./test/class3.cpp template <typename T>
+::sub::186          3 ./test/stdinc.cpp static void sub( void )
+::sub::187          4 ./test/stack.cpp static void sub();
+::sub::187         52 ./test/stack.cpp static void sub()
+::func10__sub::191  193 ./test/split.cpp static void func10__sub( type_t* ptype )
+::sub::192          6 ./test/enum.cpp  static void sub( eval_t val )
+::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+::sub               3 ./test/inctest.cpp void sub( void )
+lua lctags/lctags.lua -xT %sub
+::FP_SUBNORMAL    221 /usr/include/math.h # define FP_SUBNORMAL 3
+::@enum::<enum_anonymous>::FP_SUBNORMAL  220 /usr/include/math.h     FP_SUBNORMAL =
+::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
+::@enum::<enum_anonymous>::FPE_FLTSUB  222 /usr/include/x86_64-linux-gnu/bits/siginfo.h   FPE_FLTSUB			/* Subscript out of range.  */
+::getsubopt       898 /usr/include/stdlib.h extern int getsubopt (char **__restrict __optionp,
+::__tgmath_real_type_sub   60 /usr/include/tgmath.h # define __tgmath_real_type_sub(T, E) \
+::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+::ns1::ns31::sub2  259 ./test/hoge.cpp          void sub2() {
+::ns1::sub2       264 ./test/hoge.cpp    struct yyyy sub2() {
+::Test1::sub        8 ./test/comp.cpp    static int sub() {
+::Test1::sub        8 ./test/comp-2.cpp   static int sub() {
+::Test1::sub        7 ./test/comp2.cpp   static int sub()
+::Test1::sub        7 ./test/comp3.cpp   static int sub()
+::Test1::sub        7 ./test/comp4.cpp   static int sub()
+::Test1::sub        7 ./test/comp5.cpp   static int sub()
+::ns1::ns2::sub    46 ./test/comp6.cpp     int sub()
+::ns71::ns72::sub   46 ./test/comp7.cpp     int sub()
+::ns81::ns82::sub   46 ./test/comp8.cpp     int sub()
+::ns91::ns92::sub   46 ./test/comp9.cpp     int sub()
+::ns101::ns102::sub   46 ./test/comp10.cpp     int sub()
+::sub               9 ./test/comp16.cpp void sub( DATA * pData )
+::sub               5 ./test/comp17.cpp void sub( DATA * pData )
+::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
+::Sub              11 ./test/class3.cpp template <typename T>
+::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
+::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
+::sub::186          3 ./test/stdinc.cpp static void sub( void )
+::sub::187          4 ./test/stack.cpp static void sub();
+::sub::187         52 ./test/stack.cpp static void sub()
+::func10__sub::191  193 ./test/split.cpp static void func10__sub( type_t* ptype )
+::sub::192          6 ./test/enum.cpp  static void sub( eval_t val )
+::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+::sub               3 ./test/inctest.cpp void sub( void )
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
@@ -154,7 +243,7 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <diagnostics><message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message></diagnostics></lctags_result>
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:292: recipe for target 'test-query' failed
+makefile:294: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -372,9 +461,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </candidate>
 <typeInfo>
 
-</typeInfo>
-<typeInfo>
-
 <candidate>
 <canonical>efgh</canonical>
 <simple>efgh</simple>
@@ -393,6 +479,9 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
+</typeInfo>
+<typeInfo>
+
 </typeInfo>
 </completion>
 <diagnostics></diagnostics></lctags_result>
@@ -511,7 +600,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </completion>
 <diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:292: recipe for target 'test-query' failed
+makefile:294: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
 <prefix>me</prefix>
@@ -2481,7 +2570,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
   }
 </sub_routine></refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:292: recipe for target 'test-query' failed
+makefile:294: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
@@ -2808,6 +2897,16 @@ lua lctags/lctags.lua def-at test/inc1.cpp 2 1
 NDIR/test/inc1.cpp    1 NDIR/test/inc2.h 
 lua lctags/lctags.lua def-at test/inc2.h 7 1
 NDIR/test/inc2.h    1 NDIR/test/inc3.h 
+lua lctags/lctags.lua expand-macro test/stdinc.cpp
+#include </usr/include/stdio.h>
+
+
+static void sub( void )
+{
+    void * pVal = 
+                 __null
+                     ;
+}
 lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 7
 <lctags_result><ref>
 <locationSet><location><symbol>pVal</symbol><kind>ParmDecl</kind><file>NDIR/test/highlight.cpp</file><line>21</line><column>19</column><endLine>21</endLine><endColumn>23</endColumn></location>
@@ -2857,6 +2956,10 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
 <location><symbol>enum_val2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>24</line><column>18</column><endLine>24</endLine><endColumn>27</endColumn></location>
 <location><symbol>enum_val2</symbol><kind>DeclRefExpr</kind><file>NDIR/test/highlight.cpp</file><line>27</line><column>19</column><endLine>27</endLine><endColumn>28</endColumn></location>
 </locationSet></ref><diagnostics></diagnostics></lctags_result>
+lua lctags/lctags.lua expand-macro test/inc/inctest1.h
+#include <NDIR/test/hoge.h>
+
+typedef struct { int aaa; } struct_1CC; typedef struct { int aaa; } struct_2CC;;
 lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
 sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result><completion>
@@ -2885,5 +2988,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:392: recipe for target 'test-chg-proj' failed
+makefile:399: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

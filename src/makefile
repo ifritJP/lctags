@@ -210,7 +210,7 @@ endif
 test-simple:
 	$(LUA_COMMAND) $(LCTAGS_LUA) init .
 	$(LUA_COMMAND) $(LCTAGS_LUA) addStdInc -I$(LIBCLANG_STD_INC)
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/simple.c -I$(LIBCLANG_STD_INC)
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/simple.cpp -I$(LIBCLANG_STD_INC)
 
 
 ifdef BATCH
@@ -261,12 +261,13 @@ endif
 	$(call build-test, test/stack.cpp )
 #	$(call build-test, test/class.cpp )
 	$(call build-test, test/sample.c )
-	$(call build-test, test/simple.c )
+	$(call build-test, test/simple.cpp )
 	$(call build-test, test/operator.cpp )
 	$(call build-test, test/split.cpp )
 	$(call build-test, test/enum.cpp )
 	$(call build-test, test/incFuncTest.c )
 	$(call build-test, test/highlight.cpp )
+	$(call build-test, test/inctest.cpp, , -Itest/inc )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -384,6 +385,9 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 27 13
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 26 19
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 27 19
+	$(LUA_COMMAND) $(LCTAGS_LUA) expand-macro test/inc/inctest1.h
+	$(LUA_COMMAND) $(LCTAGS_LUA) call-func test/simple.cpp printf
+	sed 's@//@@' test/simple.cpp | $(LUA_COMMAND) $(LCTAGS_LUA) inq-at test/simple.cpp 4 4 -i 
 
 
 
@@ -496,7 +500,7 @@ define dumpDB
 endef
 
 define build-test
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc $1 -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql  $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) -std=c++11 --lctags-log 3 --lctags-target $2 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc $1 $3 -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql  $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) -std=c++11 --lctags-log 3 --lctags-target $2 >> dump
 
 endef
 

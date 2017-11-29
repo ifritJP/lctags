@@ -1842,7 +1842,7 @@ function Analyzer:refAt(
 
    local db = self:openDBForReadOnly()
    
-   local fileInfo, optionList, updateTime = db:getFileOpt( fullPath, target )
+   local fileInfo, optionList, updateTime = db:getFileOpt( fullPath, target ) 
    if not optionList then
       print( "not register target", fullPath, target )
       os.exit( 1 )
@@ -2248,9 +2248,12 @@ function Analyzer:visitAST( filePath, target, optionList, func )
    local targetFileInfo
    local db = self:openDBForReadOnly()
    targetFileInfo = db:getFileInfo( nil, filePath )
+
+   local targetInfo = targetFileInfo and db:getTargetInfo( targetFileInfo.id, target )
    db:close()
+
    
-   if optionList and not targetFileInfo then
+   if optionList and not targetInfo then
       local unit, compileOp, stdMode =
 	 self:createUnitDirect( self, filePath, optionList )
       transUnit = unit
@@ -2349,14 +2352,25 @@ function Analyzer:grepCurosr( filePath, target, optionList, kindId, symbol )
 end
 
 function Analyzer:expandMacro( filePath, target, conf )
+
    local db = self:openDBForReadOnly()
    local fileInfo, optionList = db:getFileOpt( filePath, target )
 
-   fileInfo = db:getSrcForIncOne( fileInfo, target )
-   fileInfo, optionList = db:getFileOpt( db:getSystemPath( fileInfo.path ), target )
-
    local fullPath = db:convFullpath( filePath )
 
+   if fileInfo.incFlag ~= 0 then
+      local workFileInfo = db:getSrcForIncOne( fileInfo, target )
+      local workAnalyzer = self:newAs(
+      	 self.recordDigestSrcFlag, self.displayDiagnostics,
+      	 db:getSystemPath( workFileInfo.currentDir ) )
+      db:close()
+
+      db = workAnalyzer:openDBForReadOnly()
+
+      fileInfo, optionList = db:getFileOpt(
+	 db:getSystemPath( workFileInfo.path ), target )
+   end
+   
    local clangIncPath = conf:getClangIncPath()
    local compileOp = "gcc -c -E "
    for index, option in ipairs( optionList ) do
@@ -2368,7 +2382,7 @@ function Analyzer:expandMacro( filePath, target, conf )
    end
    compileOp = compileOp .. " " .. fullPath
 
-   log( 2, compileOp )
+   log( 2, "compileOp", clangIncPath, compileOp )
 
    local pipe = io.popen( compileOp )
    local inIncludeFlag = false

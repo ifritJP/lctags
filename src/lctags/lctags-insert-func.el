@@ -8,6 +8,11 @@
   (lctags-xml-get-val item 'include)
   )
 
+(defun lctags-function-item-is-included (item)
+  (string= (lctags-xml-get-val item 'included) "true")
+  )
+
+
 (defun lctags-function-item-get-declaration (item)
   (lctags-xml-get-val item 'declaration)
   )
@@ -45,6 +50,7 @@
   (let ((filename (buffer-file-name (current-buffer)))
 	(name (lctags-function-item-get-name item))
 	(include (lctags-function-item-get-include item))
+	(is-included (lctags-function-item-is-included item))
 	(buffer-txt (buffer-string))
 	(pos (point))
 	lineno column txt bak-pos mark lctags-insert-inc)
@@ -54,7 +60,7 @@
       (goto-char pos)
       (setq mark (point-marker))
       (beginning-of-buffer)
-      (when include
+      (when (and (not is-included) include)
 	(insert (format "#include <%s>\n" include)))
       (goto-char mark)
       (setq pos (point))
@@ -69,7 +75,7 @@
     (setq mark (point-marker))
     (end-of-line)
     ;; 必要な include の挿入
-    (when include
+    (when (and (not is-included) include)
       (let ((lctags-buf (lctags-get-process-buffer t)))
 	(lctags-execute-heml (current-buffer) lctags-buf nil
 			     "list" "incSrcHeader" include)

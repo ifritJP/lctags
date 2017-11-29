@@ -615,15 +615,28 @@ This parameter can set function and string.
       (goto-char 0))
   ))
 
+(defun lctags-get-unique-buffer (symbol name init)
+  (if (not (buffer-live-p (eval symbol)))
+      (set symbol (lctags-get-buffer name init))
+    (with-current-buffer (eval symbol)
+      (erase-buffer)))
+  (eval symbol))
+  
+
+(setq lctags-expand-macro-buf nil)
 (defun lctags-expand-macro ()
   (interactive)
-  (let (symbol buf kind)
-    (setq buf (lctags-get-buffer "*expand-macro*" t))
-    (lctags-execute-op2 (current-buffer) buf nil nil
+  (let (symbol kind cpp-mode-flag)
+    (lctags-get-unique-buffer 'lctags-expand-macro-buf
+			      "*expand-macro*" t)
+    (setq cpp-mode-flag (eq major-mode 'c++-mode))
+    (lctags-execute-op2 (current-buffer) lctags-expand-macro-buf nil nil
 			"expand-macro" buffer-file-name)
-    (lctags-switch-to-buffer-other-window buf)
-    (c-mode)
-    (with-current-buffer buf
+    (lctags-switch-to-buffer-other-window lctags-expand-macro-buf)
+    (if cpp-mode-flag
+	(c++-mode)
+      (c-mode))
+    (with-current-buffer lctags-expand-macro-buf
       (goto-char 0))
   ))
 

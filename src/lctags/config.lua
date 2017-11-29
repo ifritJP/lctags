@@ -57,7 +57,7 @@ function config:getClangIncPath()
    if self.conf and self.conf.getClangIncPath then
          local path = self.conf:getClangIncPath()
 	 if path and path ~= "" then
-	    return path
+	    return string.gsub( path, "/$", "" )
 	 end
    end
 
@@ -66,7 +66,7 @@ function config:getClangIncPath()
       clangVer, "^clang version (%d+)%.(%d+)%.(%d+)[^%d].*", "%1.%2.%3" )
    clangVer2 = string.gsub( clangVer3, "^(%d+)%.(%d+)[^%d].*", "%1.%2" )
 
-   return string.format( "/usr/lib/llvm-%s/lib/clang/%s/include/",
+   return string.format( "/usr/lib/llvm-%s/lib/clang/%s/include",
 			 clangVer2, clangVer3 )
 end
 
