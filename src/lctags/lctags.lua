@@ -548,8 +548,7 @@ if lctagOptMap.mode == "scan" then
 end
 
 if lctagOptMap.mode == "call-func" then
-   local db = lctagOptMap.dbPath and DBCtrl:open( lctagOptMap.dbPath,
-						  true, os.getenv( "PWD" ) )
+   local db = analyzer:openDBForReadOnly()
 
    local fileContents
    if lctagOptMap.inputFromStdin then

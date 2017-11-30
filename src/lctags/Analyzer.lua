@@ -2298,6 +2298,14 @@ end
 
 function Analyzer:grepCurosr( filePath, target, optionList, kindId, symbol )
 
+   if symbol then
+      if symbol == "" then
+	 symbol = nil
+      else
+	 symbol = symbol:upper()
+      end
+   end
+
    local cursorKind = clang.CXCursorKind[ kindId ]
    if not cursorKind then
       error( "kindId is unknown: " .. kindId )
@@ -2316,7 +2324,7 @@ function Analyzer:grepCurosr( filePath, target, optionList, kindId, symbol )
       function( cursor, parent, append )
 	 local info = clang.getVisitAppendInfo( append )
 	 if cursorKind == cursor:getCursorKind() and
-	    ( not symbol or cursor:getCursorSpelling() == symbol )
+	    ( not symbol or cursor:getCursorSpelling():upper():find( symbol, 1, true ) )
 	 then
 	    local cxfile = getFileLoc( cursor )
 	    local path

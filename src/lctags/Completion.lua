@@ -661,7 +661,8 @@ function Completion:getIncludeFileIdSet( path, analyzer, db, target, fileContent
    local incList = clang.getInclusionList( unit )
    local incFileIdSet = {}
    for index, incFile in ipairs( incList ) do
-      local incPath = db:convFullpath( incFile:getIncludedFile():getFileName() )
+      local name = incFile:getIncludedFile():getFileName()
+      local incPath = db:convFullpath( name )
       local incFileInfo = db:getFileInfo( nil, incPath )
       if incFileInfo then
 	 incFileIdSet[ incFileInfo.id ] = incFileInfo

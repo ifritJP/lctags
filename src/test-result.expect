@@ -133,8 +133,8 @@ lua lctags/lctags.lua -xT %sub
 ::sub               5 ./test/comp17.cpp void sub( DATA * pData )
 ::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
 ::Sub              11 ./test/class3.cpp template <typename T>
-::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
 ::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
+::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
 ::sub::186          3 ./test/stdinc.cpp static void sub( void )
 ::sub::187          4 ./test/stack.cpp static void sub();
 ::sub::187         52 ./test/stack.cpp static void sub()
@@ -461,6 +461,9 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </candidate>
 <typeInfo>
 
+</typeInfo>
+<typeInfo>
+
 <candidate>
 <canonical>efgh</canonical>
 <simple>efgh</simple>
@@ -479,9 +482,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
-</typeInfo>
-<typeInfo>
-
 </typeInfo>
 </completion>
 <diagnostics></diagnostics></lctags_result>
@@ -2960,6 +2960,138 @@ lua lctags/lctags.lua expand-macro test/inc/inctest1.h
 #include <NDIR/test/hoge.h>
 
 typedef struct { int aaa; } struct_1CC; typedef struct { int aaa; } struct_2CC;;
+lua lctags/lctags.lua call-func test/simple.cpp printf
+<lctags_result><functionList><function><name>_IO_vfprintf</name>
+<include>/usr/include/libio.h</include>
+<included>false</included>
+<declaration>/usr/include/libio.h</declaration>
+</function>
+<function><name>fprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>printf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>sprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>vfprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>vprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>vsprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>snprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>vsnprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>vdprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>dprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>fwprintf</name>
+<include>/usr/include/wchar.h</include>
+<included>false</included>
+<declaration>/usr/include/wchar.h</declaration>
+</function>
+<function><name>wprintf</name>
+<include>/usr/include/wchar.h</include>
+<included>false</included>
+<declaration>/usr/include/wchar.h</declaration>
+</function>
+<function><name>swprintf</name>
+<include>/usr/include/wchar.h</include>
+<included>false</included>
+<declaration>/usr/include/wchar.h</declaration>
+</function>
+<function><name>vfwprintf</name>
+<include>/usr/include/wchar.h</include>
+<included>false</included>
+<declaration>/usr/include/wchar.h</declaration>
+</function>
+<function><name>vwprintf</name>
+<include>/usr/include/wchar.h</include>
+<included>false</included>
+<declaration>/usr/include/wchar.h</declaration>
+</function>
+<function><name>vswprintf</name>
+<include>/usr/include/wchar.h</include>
+<included>false</included>
+<declaration>/usr/include/wchar.h</declaration>
+</function>
+<function><name>vasprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>__asprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>asprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>obstack_printf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>obstack_vprintf</name>
+<include>/usr/include/stdio.h</include>
+<included>false</included>
+<declaration>/usr/include/stdio.h</declaration>
+</function>
+</functionList><diagnostics></diagnostics></lctags_result>
+sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua inq-at test/simple.cpp 4 4 -i 
+<lctags_result><candidate>
+<canonical>printf( const char * __restrict __format, ... )</canonical>
+<simple>printf( const char * __restrict __format, ... )</simple>
+<expand></expand>
+<kind>f</kind>
+<type>int (const char *__restrict, ...)</type>
+<result>int</result>
+<val></val>
+<file>/usr/include/stdio.h</file>
+<startPos>
+<line>362</line>
+<column>1</column>
+</startPos>
+<endPos>
+<line>362</line>
+<column>57</column>
+</endPos>
+</candidate>
+<diagnostics></diagnostics></lctags_result>
 lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
 sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result><completion>
@@ -2988,5 +3120,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:399: recipe for target 'test-chg-proj' failed
+makefile:401: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null
