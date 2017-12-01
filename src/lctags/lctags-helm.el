@@ -75,7 +75,6 @@
 	(insert (concat " => " (lctags-candidate-item-get-result inq-info)))
 	(goto-char pos)
 	)
-      insert-text
       )
     ))
 
