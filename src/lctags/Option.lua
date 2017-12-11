@@ -1,6 +1,7 @@
 local log = require( 'lctags.LogCtrl' )
 local gcc = require( 'lctags.gcc' )
 local config = require( 'lctags.config' )
+local clang = require( 'libclanglua.if' )
 
 
 local Option = {}
@@ -40,6 +41,8 @@ usage:
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
    %s dcall
+   %s grep-cursors [--lctags-target target] [-i] file kind symbol 
+
  - graph
    %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
    %s graph-at <caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [--lctags-target target] file line column
@@ -359,6 +362,16 @@ function Option:analyzeOption( argList )
 		  self.updateTime = tonumber( argList[ index + 1 ] )
 	       elseif arg == "--lctags-directRet" then
 		  lctagOptMap.directRet = true
+	       elseif arg == "--lctags-cursorKind" then
+		  local kindId = argList[ index + 1 ]
+		  local cursorKind = clang.CXCursorKind[ kindId ]
+		  if not cursorKind then
+		     error( "kindId is unknown: " .. kindId )
+		  end
+		  lctagOptMap.cursorKind = cursorKind.val
+	       elseif arg == "--lctags-candidateLimit" then
+		  skipArgNum = 1
+		  lctagOptMap.candidateLimit = tonumber( argList[ index + 1 ] )
 	       elseif arg == "--lctags-subRet" then
 		  skipArgNum = 1
 		  local subRetType = {}

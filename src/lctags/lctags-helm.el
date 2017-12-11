@@ -12,6 +12,11 @@
 (defvar lctags-candidate-history nil)
 (defvar lctags-diag-info nil)
 
+(defvar lctags-default-expand-candidate-p nil
+  "")
+
+(defvar lctags-helm-expand-ignore-pattern nil
+  "")
 
 
 (when (not lctags-anything)
@@ -33,9 +38,17 @@
       (setq map (copy-keymap helm-map)))
     (define-key map (kbd "C-M-f") 'lctags-helm-type-forward)
     (define-key map (kbd "C-M-b") 'lctags-helm-type-backward)
+    (define-key map (kbd "C-z") 'lctags-helm-execute-persistent-action)
     (define-key map [C-return] 'lctags-helm-select-all)
     (delq nil map))
   "Keymap")
+
+(defun lctags-helm-execute-persistent-action (&optional attr onewindow)
+  (interactive)
+  (let ((lctags-candidate-select-mode :persistent))
+    (helm-execute-persistent-action attr onewindow)
+    ))
+  
 
 (defun lctags-execute-heml (src-buf lctags-buf input &rest lctags-opts)
   (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
@@ -80,6 +93,8 @@
 
 (defun lctags-helm-select (item)
   (case lctags-candidate-select-mode
+    (:persistent
+     (lctags-candidate-item-open-file item))
     (:back)
     (nil)
     (t
@@ -190,6 +205,22 @@
 (defun lctags-candidate-item-get-canonical (item)
   (lctags-xml-get-val item 'canonical)
   )
+
+(defun lctags-candidate-item-open-file (item)
+  (when (lctags-xml-get-val item 'file)
+    (find-file (lctags-xml-get-val item 'file))
+    (goto-line (string-to-number (lctags-xml-get-val (lctags-xml-get-child
+						      item 'startPos) 'line)))))
+
+(defun lctags-candidate-item-rename (item newname)
+  (mapcar (lambda (X)
+	    (if (and (listp X)
+		     (or (eq (car X) 'canonical)
+			 (eq (car X) 'simple)))
+		(list (car X) nil newname)
+	      X))
+	  item))
+
 
 (defun lctags-candidate-get-item-from-canonical (canonical)
   (car (delq nil (mapcar (lambda (X)
@@ -347,12 +378,13 @@
       (kill-buffer lctags-diag-buf-name))))
   
 
-(defun lctags-helm-completion-at ()
-  (interactive)
+(defun lctags-helm-completion-at (&optional toggle-expand)
+  (interactive "P")
   (let ((buffer (lctags-get-process-buffer t))
 	(filename (buffer-file-name (current-buffer)))
 	(lineno (lctags-get-line))
 	(column (- (lctags-get-column) 2))
+	(expand-flag lctags-default-expand-candidate-p)
 	candidates
 	lctags-params
 	)
@@ -360,13 +392,19 @@
 			 (buffer-string) "comp-at" filename
 			 (number-to-string lineno) (number-to-string column)
 			 "--lctags-log" "0" "-i")
+    (when toggle-expand
+      (setq expand-flag (not expand-flag)))
     (if lctags-diag-info
 	(lctags-helm-display-diag)
       (with-current-buffer buffer
 	(setq candidates
 	      (delq nil (lctags-candidate-map-candidate
 			 (symbol-function 'lctags-helm-make-candidates)
-			 lctags-candidate-info lctags-candidate-info)))
+			 (if expand-flag
+			     (lctags-helm-toggle-expand-candidate lctags-candidate-info)
+			   lctags-candidate-info)
+			 ;;lctags-candidate-info
+			 lctags-candidate-info)))
 	)
       (setq lctags-params
 	    `((name . ,(format "comp-at:%s:%d:%d"
@@ -546,6 +584,7 @@
   (defalias 'helm-get-selection 'anything-get-selection)
   (defalias 'helm-exit-minibuffer 'anything-exit-minibuffer)
   (defalias 'helm-marked-candidates 'anything-marked-candidates)
+  (defalias 'helm-execute-persistent-action 'anything-execute-persistent-action)
   )
 
 (defun lctags-get-helm-current-buffer ()
@@ -614,7 +653,9 @@
 		    (plist-get item :line)
 		    (plist-get item :path)))
     (beginning-of-line)
-    (gtags-select-it nil)))
+    (gtags-select-it nil)
+    (recenter)
+    ))
 
 (defun lctags-conv-disp-path (path omit &optional base-dir)
   (when (string-match "^!" path)
@@ -701,5 +742,54 @@
       (anything-resume nil "*lctags gtags*")
     (helm-resume nil "*lctags gtags*")))
 
+
+(defun lctags-helm-select-from-list (message list)
+  (let (item)
+    (helm :sources `((name . ,message)
+		     (candidates . ,list)
+		     (action . (lambda (X)
+				 (setq item X)))))
+    item))
+
+
+(defun lctags-helm-toggle-expand-candidate (candidate-info)
+  (interactive)
+  (lctags-helm-toggle-expand-candidate-sub "" nil candidate-info
+					   candidate-info nil)
+  )
+
+(defun lctags-helm-toggle-expand-candidate-sub (prefix parent candidate-info
+						       all-info checked-hash-list)
+  (let (expand-list)
+    (when (not (and prefix
+		    lctags-helm-expand-ignore-pattern
+		    (string-match lctags-helm-expand-ignore-pattern prefix)))
+      (setq expand-list
+	    (lctags-candidate-map-candidate
+	     (lambda (item XX)
+	       (when item
+		 (let ((hash (lctags-candidate-item-get-hash item))
+		       expr typeInfo)
+		   (setq expr (concat prefix
+				      (lctags-candidate-item-get-expand parent)
+				      (lctags-candidate-item-get-simple item)))
+		   (if (or (not hash)
+			   (not (member hash checked-hash-list)))
+		       (progn
+			 (setq typeInfo (car (lctags-candidate-get-typeInfo all-info hash)))
+			 (setq checked-hash-list (cons hash checked-hash-list))
+			 (lctags-helm-toggle-expand-candidate-sub
+			  expr item typeInfo all-info checked-hash-list))
+		     (list (lctags-candidate-item-rename item expr))
+		     ))))
+	     candidate-info all-info)))
+    (setq expand-list (delq nil expand-list))
+    ;; (if expand-list
+    ;; 	  (apply 'append expand-list)
+    ;; 	(list (lctags-candidate-item-rename parent prefix)))
+    (apply 'append (list (lctags-candidate-item-rename parent prefix))
+	   expand-list)
+    ))
+;; (lctags-helm-toggle-expand-candidate lctags-candidate-info)
 
 (provide 'lctags-helm)

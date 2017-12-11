@@ -20,8 +20,23 @@ local function getPattern( pattern, symbol )
    return pattern, symbol:gsub( "_", "$_" )
 end
 
-function Query:execWithDb( db, query, target )
+function Query:execWithDb( db, query, target, cursorKind, limit )
    local absFlag = query:find( "a" )
+   local count = -1
+   local isLimit = function()
+      count = count + 1
+      if count >= limit then
+	 return true
+      end
+      return false
+   end
+   if not limit then
+      isLimit = function()
+	 return false;
+      end
+   end
+
+   
    if query == "dumpAll" then
       db:dump( 1, target )
    elseif query == "dumpTarget" then
@@ -55,6 +70,7 @@ function Query:execWithDb( db, query, target )
 	 target and string.format( "path like '%%%s%%' escape '$'",
 				   target:gsub( "_", "$_" ) ),
 	 function( item )
+	    if isLimit() then return false; end
 	    Util:printLocate( db, "path", item.id, 1, absFlag, false )
 	    return true
 	 end
@@ -77,6 +93,7 @@ function Query:execWithDb( db, query, target )
 	    target and string.format( "name like " .. pattern .. "escape '$'", target ),
 	    function( item )
 	       if item.name ~= "" then
+		  if isLimit() then return false; end
 		  print( item.name )
 	       end
 	       return true
@@ -88,6 +105,7 @@ function Query:execWithDb( db, query, target )
 	    target and string.format( "name like " .. pattern .. " escape '$'", target ),
 	    function( item )
 	       if item.name ~= "" then
+		  if isLimit() then return false; end
 		  print( item.name )
 	       end
 	       return true
@@ -101,6 +119,7 @@ function Query:execWithDb( db, query, target )
       db:mapSymbolRefInfoList(
 	 target,
 	 function( item )
+	    if isLimit() then return false; end
 	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
@@ -113,6 +132,7 @@ function Query:execWithDb( db, query, target )
       db:mapDeclInfoList(
 	 target,
 	 function( item )
+	    if isLimit() then return false; end
 	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
@@ -124,9 +144,11 @@ function Query:execWithDb( db, query, target )
       local pattern = "%s%%"
       pattern, target = getPattern( pattern, target )
 
-      db:mapFuncDeclPattern(
+      db:mapSymbolDeclPattern(
 	 string.format( pattern, target ),
+	 cursorKind and { cursorKind },
 	 function( item )
+	    if isLimit() then return false; end
 	    Util:printLocate( db, item.name, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
@@ -143,6 +165,7 @@ function Query:execWithDb( db, query, target )
       db:mapCall(
 	 "nsId = " .. tostring( nsInfo.id ),
 	 function( item )
+	    if isLimit() then return false; end
 	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
@@ -154,6 +177,7 @@ function Query:execWithDb( db, query, target )
       db:mapDeclInfoList(
 	 target,
 	 function( item )
+	    if isLimit() then return false; end
 	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
 	    return true
 	 end
@@ -161,8 +185,8 @@ function Query:execWithDb( db, query, target )
    end
 end
 
-function Query:exec( db, query, target )
-   self:execWithDb( db, query, target )
+function Query:exec( db, query, target, cursorKind )
+   self:execWithDb( db, query, target, cursorKind )
 end
 
 

@@ -34,6 +34,16 @@ lctags を利用した際のサンプルです。
 
 [[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/8e9b6c31cb4cffd0dd205647f5c5be21c2e8998f/expand.gif]]
 
+メンバー補完する際、 C-u プレフィックスを付けて C-u C-c C-/ を実行すると、
+構造体型のメンバーを候補にリストします。
+
+lctags-helm-expand-ignore-pattern に構造体メンバー名を指定することで、
+そのメンバーの構造体は候補にリストしません。
+
+lctags-default-expand-candidate-p を nil 意外を指定することで、
+C-c C-/ と C-u C-c C-/ の動作を入れ替えます。
+
+
 ファイルを変更している場合、補完が正常に動作しない場合があります。
 一旦 lctags-update-this-file (C-c l u) で解析情報を更新してから実行してください。
 

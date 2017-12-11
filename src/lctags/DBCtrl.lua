@@ -3043,7 +3043,7 @@ end
 
 function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
    local cond
-   if typeList and #typeList ~= 0 then
+   if kindList and #kindList ~= 0 then
       for index, kind in ipairs( kindList ) do
 	 local work = string.format( "symbolDecl.type = %d", kind )
 	 if index == 1 then

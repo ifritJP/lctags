@@ -50,8 +50,12 @@
     (:name "misc" :bind "m" :submenu
 	   ((:name "expand-macro" :bind "e" :action lctags-expand-macro)
 	    (:name "grep-cursor" :bind "g" :action lctags-grep-cursor)))
-    (:name "update this file" :bind "u" :action lctags-update-this-file)
-    ))
+    (:name "update" :bind "u" :submenu
+	   ((:name "this file" :bind "u" :action lctags-update-this-file)
+	    (:name "this directory" :bind "d" :action lctags-update-this-directory)
+	    (:name "all" :bind "A" :action lctags-update-all)))))
+
+
 (defvar lctags-dispatch-menu-info-current nil)
 
 

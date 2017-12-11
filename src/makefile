@@ -252,6 +252,7 @@ endif
 	$(call build-test, test/comp15.cpp )
 	$(call build-test, test/comp16.cpp )
 	$(call build-test, test/comp17.cpp )
+	$(call build-test, test/comp18.cpp )
 	$(call build-test, test/class2.cpp )
 	$(call build-test, test/class3.cpp )
 	$(call build-test, test/class4.cpp )

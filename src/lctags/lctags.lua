@@ -207,10 +207,12 @@ if lctagOptMap.mode == "query" then
 
    if #srcList > 0 then
       for index, pattern in ipairs( srcList ) do
-	 Query:exec( db, lctagOptMap.query, pattern )
+	 Query:execWithDb( db, lctagOptMap.query, pattern, lctagOptMap.cursorKind,
+			   lctagOptMap.candidateLimit )
       end
    else
-      Query:exec( db, lctagOptMap.query, nil )
+      Query:execWithDb( db, lctagOptMap.query, nil, lctagOptMap.cursorKind,
+			lctagOptMap.candidateLimit )
    end
 
    db:close()
