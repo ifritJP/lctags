@@ -1,3 +1,4 @@
+=======
 #include <hoge.h>
 
 STRUCT2( CC );

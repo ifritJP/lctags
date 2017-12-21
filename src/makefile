@@ -265,6 +265,7 @@ endif
 	$(call build-test, test/simple.cpp )
 	$(call build-test, test/operator.cpp )
 	$(call build-test, test/split.cpp )
+	$(call build-test, test/split2.cpp )
 	$(call build-test, test/enum.cpp )
 	$(call build-test, test/incFuncTest.c )
 	$(call build-test, test/highlight.cpp )
