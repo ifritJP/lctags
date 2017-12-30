@@ -2524,7 +2524,7 @@ function DBCtrl:dumpFile( level, path )
    log( level, "id", "incFlag", "skip", "digest" .. string.rep( ' ', 32 - 6 ),
 	"path" )
 
-   local fileIdCond = self:getFileIdCondition( path )
+   local fileIdCond = self:getFileIdCondition( path, "id" )
    if path and not fileIdCond then
       log( 1, "not found", path )
       return
