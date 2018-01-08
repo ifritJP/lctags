@@ -158,7 +158,7 @@ function Completion:checkStatementReverse( tokenInfoList, startIndex, checkIndex
 	    error( string.format( "illegal paran, %d", index ) )
 	 end
 	 index = beginIndex - 1
-      elseif token == "," then
+      elseif token == "," or token == "(" or token == "[" then
 	 return index + 1
       else
 	 index = index - 1
@@ -980,9 +980,17 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
 	       
 	       local rootCursor = getRootTypeCursor( typeCursor )
 	       str = clang.getCurosrPlainText( rootCursor.__ptr )
-	       if string.gmatch( str, ".*%).*%(" ) then
+	       log( 3, "rootCursor str:", str )
+	       if string.find( str, ".*%).*%(" ) or string.find( str, ".*%(" )
+	       then
+		  -- 関数型の場合
 		  str = string.gsub( str, ";.*", "" )
-		  str = string.gsub( str, '.*%).*%(', "(" )
+		  if string.find( str, ".*%).*%(" ) then
+		     log( 3, "func str:", str )
+		     str = string.gsub( str, '.*%).*%(', "(" )
+		  else
+		     str = string.gsub( str, '.*%(', "(" )
+		  end
 	       else
 		  str = "("
 		  local argNum = 0
@@ -1294,6 +1302,12 @@ function Completion:expandCursor( db, path, cursor, frontSyntax )
 	 kind = cursor:getCursorKind()
       elseif kind == clang.core.CXCursor_TypedefDecl then
 	 cursor = getRootTypeCursor( cursor )
+	 kind = cursor:getCursorKind()
+      elseif kind == clang.core.CXCursor_CallExpr then
+	 -- 関数呼び出しは、その戻り値の型に変換
+	 local retType = getRootType( cursor )
+	 log( 2, "inq4", retType:getTypeSpelling() )
+	 cursor = retType:getTypeDeclaration()
 	 kind = cursor:getCursorKind()
       else
 	 break

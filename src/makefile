@@ -253,6 +253,7 @@ endif
 	$(call build-test, test/comp16.cpp )
 	$(call build-test, test/comp17.cpp )
 	$(call build-test, test/comp18.cpp )
+	$(call build-test, test/comp19.cpp )
 	$(call build-test, test/class2.cpp )
 	$(call build-test, test/class3.cpp )
 	$(call build-test, test/class4.cpp )
@@ -267,6 +268,7 @@ endif
 	$(call build-test, test/split.cpp )
 	$(call build-test, test/split2.cpp )
 	$(call build-test, test/enum.cpp )
+	$(call build-test, test/enum2.cpp )
 	$(call build-test, test/incFuncTest.c )
 	$(call build-test, test/highlight.cpp )
 	$(call build-test, test/inctest.cpp, , -Itest/inc )
@@ -349,6 +351,8 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp14.cpp 4 12
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp16.cpp 11 9
 	cat test/comp17-2.cpp | $(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp17.cpp 7 11 -i
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp18.cpp 9 9
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/comp19.cpp 9 21
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class2.cpp 13 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class3.cpp 16 10
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class4.cpp 11 7
@@ -377,6 +381,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/split.cpp 211 1 --lctags-directRet
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand test/enum.cpp 9 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum2.cpp 8 19
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc1.cpp 2 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc2.h 7 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand-macro test/stdinc.cpp

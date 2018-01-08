@@ -1,18 +1,12 @@
-struct HOGE {
-  int value1;
-  int value2;
-  struct sub_{
-    int value;
-    struct {
-      int value;
-    } sub2;
-    struct sub_ * pSub;
-  } sub;
-};
-
-void func( HOGE * pHoge )
+typedef void sub_t(void);
+typedef void (sub2_t)(void);
+typedef struct {
+    sub_t * pSub;
+    sub2_t * pSub2;
+} TEST;
+void func( TEST * pTest )
 {
-  pHoge->
+  pTest->
 }
 
 
