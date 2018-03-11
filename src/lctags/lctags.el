@@ -106,8 +106,8 @@ This parameter can set function and string.
 
 
 (defvar lctags-decl-cursor-kind-list
-  '( "UnexposedDecl" "StructDecl" "UnionDecl" "ClassDecl" "EnumDecl"
-     "FieldDecl" "EnumConstantDecl" "FunctionDecl" "VarDecl" "ParmDecl"
+  '( "FunctionDecl" "UnexposedDecl" "StructDecl" "UnionDecl" "ClassDecl"
+     "EnumDecl" "FieldDecl" "EnumConstantDecl" "VarDecl" "ParmDecl"
      "ObjCInterfaceDecl" "ObjCCategoryDecl" "ObjCProtocolDecl"
      "ObjCPropertyDecl" "ObjCIvarDecl" "ObjCInstanceMethodDecl"
      "ObjCClassMethodDecl" "ObjCImplementationDecl" "ObjCCategoryImplDecl"

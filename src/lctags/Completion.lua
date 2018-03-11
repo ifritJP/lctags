@@ -377,6 +377,8 @@ function Completion:createSourceForAnalyzing(
 	 checkIndex = checkIndex - 1
       elseif tokenInfoList[ checkIndex ].token == "case" then
 	 compMode = "case"
+      elseif tokenInfoList[ checkIndex ].token == "return" then
+	 compMode = "return"
       elseif string.find( tokenInfoList[ checkIndex ].token,
 			  "[%+%-%/%%%^%*%&%|%>%<%=%(,;]" )
       then
@@ -437,6 +439,10 @@ function Completion:createSourceForAnalyzing(
       syntaxStartIndex = switchParenIndex + 1
       targetIndex = blockIndex - 2
       checkIndex = blockIndex - 2
+   elseif compMode == "return" then
+      statementStartIndex = checkIndex - 1
+      incompletionIndex = checkIndex
+      syntaxStartIndex = checkIndex
    elseif compMode == "expand" and tokenInfoList[ checkIndex - 1 ].token == "case" then
       statementStartIndex = checkIndex - 2
       incompletionIndex = checkIndex
@@ -1257,6 +1263,14 @@ function Completion:analyzeAt(
 			   db, path, cursor, compMode, prefix, frontSyntax )
 		     elseif compMode == "binOP" then
 			self:expandCursor( db, path, cursor, frontSyntax )
+		     elseif compMode == "return" then
+			local parentCursor = cursor:getCursorSemanticParent()
+			local resutType = parentCursor:getCursorResultType()
+			log( 2, "parentCursor",
+			     clang.getCursorKindSpelling( parentCursor:getCursorKind() ),
+			     resutType:getTypeSpelling() )
+			self:expandCursor( db, path, resutType:getTypeDeclaration(),
+					   frontSyntax )
 		     else
 			self:completeMember(
 			   db, path, declCursor, cursor, compMode, prefix, frontSyntax )

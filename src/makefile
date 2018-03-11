@@ -269,6 +269,7 @@ endif
 	$(call build-test, test/split2.cpp )
 	$(call build-test, test/enum.cpp )
 	$(call build-test, test/enum2.cpp )
+	$(call build-test, test/enum3.cpp )
 	$(call build-test, test/incFuncTest.c )
 	$(call build-test, test/highlight.cpp )
 	$(call build-test, test/inctest.cpp, , -Itest/inc )
@@ -382,6 +383,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand test/enum.cpp 9 15
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum.cpp 11 9
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum2.cpp 8 19
+	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/enum3.cpp 7 11
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc1.cpp 2 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) def-at test/inc2.h 7 1
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand-macro test/stdinc.cpp
