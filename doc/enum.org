@@ -23,7 +23,7 @@ https://qiita.com/dwarfJP/items/982ef7ee3f3bfd435156
 次のように enum 型の値に対して 2 項演算する場合に、
 enum 型に合せた enum 値の補完ができます。
   
-#+BEGIN_SRC lua
+#+BEGIN_SRC c
 typedef enum {
     eval_val1,
     eval_val2,
@@ -47,7 +47,7 @@ func() の戻り値が enum 型であるため、
 演算対象から補完候補がリスト出来ると便利です。
 
 これは、補完時に lctags が次の情報を認識しているためです。
-- 2 項演算子 ~"=="~ を認識する
+- 2 項演算子 "==" を認識する
 - 演算対象が enum 型かどうかを判断する
 - enum 型であれば、その enum 値を補完候補としてリストする
 
@@ -60,7 +60,7 @@ func() の戻り値が enum 型であるため、
 次のように戻り値が enum 型の関数内で return する場合、
 enum 型に合せた enum 値の補完ができます。
 
-#+BEGIN_SRC lua
+#+BEGIN_SRC c
 typedef enum {
     eval_val1,
     eval_val2,
@@ -84,7 +84,7 @@ static eval_t sub( void )
 次のように enum 値で switch するような case 文では、
 enum 型に合せた enum 値の補完ができます。
 
-#+BEGIN_SRC lua
+#+BEGIN_SRC c
 typedef enum {
     eval_val1,
     eval_val2,
@@ -110,7 +110,7 @@ static void sub( eval_t val )
 
 enum 値を、同じ enum 型の他の enum 値に補完できます。
 
-#+BEGIN_SRC lua
+#+BEGIN_SRC c
 typedef enum {
     eval_val1,
     eval_val2,
