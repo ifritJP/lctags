@@ -100,9 +100,14 @@
     (t
      (let ((prefix (lctags-candidate-get-prefix))
 	   (front (lctags-candidate-get-frontExpr))
+	   (compMode (lctags-candidate-get-compMode))
 	   (pos (point))
 	   (hist-expr "")
+	   (suffix "")
 	   simple info items)
+       (when (equal compMode "case")
+	 (setq front "case " )
+	 (setq suffix ":\nbreak;"))
        (if (eq lctags-candidate-select-mode :forward)
 	   (setq info (nth 1 lctags-candidate-history))
 	 (setq info (nth 0 lctags-candidate-history)))
@@ -124,7 +129,7 @@
 	 (setq simple (funcall (symbol-function lctags-decide-completion-func)
 			       simple front lctags-candidate-select-mode
 			       lctags-candidate-history)))
-       (insert (substring simple (length prefix)))
+       (insert (substring simple (length prefix)) suffix)
        (when (equal (lctags-candidate-item-get-kind item) "f")
 	 ;; (not (string-match "\\.\\|->" front))
 	 (when (string-match "(" simple)
@@ -139,10 +144,17 @@
 			 (lctags-candidate-item-get-expand (plist-get info :select)))))
 	 (dolist (marked items)
 	   (insert (concat "\n" front hist-expr
-			   (lctags-candidate-item-get-simple marked)))
-	 )))
+			   (lctags-candidate-item-get-simple marked) suffix)))
+	   )
+       (indent-region pos (point))
+       (when (equal compMode "case")
+	 ;; case の場合 break の位置にカーソルを移動させる
+	 (goto-char pos)
+	 (next-line)
+	 (end-of-line)
+	 (search-backward "break;"))
+       ))
      ))
-  )
 
 (defun lctags-helm-select-swap (item)
   (let (simple )
@@ -258,6 +270,10 @@
 (defun lctags-candidate-get-frontExpr (&optional candidate-info)
   (lctags-xml-get-val
    (if candidate-info candidate-info lctags-candidate-info) 'frontExpr))
+
+(defun lctags-candidate-get-compMode (&optional candidate-info)
+  (lctags-xml-get-val
+   (if candidate-info candidate-info lctags-candidate-info) 'compMode))
 
 (defface lctags-candidate-face
   '((t

@@ -348,6 +348,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pClass-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>pCallback( TEST * pTest )</canonical>
@@ -448,6 +449,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>val.</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>pCallback( TEST * pTest )</canonical>
@@ -487,9 +489,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </candidate>
 <typeInfo>
 
-</typeInfo>
-<typeInfo>
-
 <candidate>
 <canonical>efgh</canonical>
 <simple>efgh</simple>
@@ -508,6 +507,9 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
+</typeInfo>
+<typeInfo>
+
 </typeInfo>
 </completion>
 <diagnostics></diagnostics></lctags_result>
@@ -631,6 +633,7 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
 <prefix>me</prefix>
 <frontExpr>pTest1-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>member</canonical>
@@ -656,6 +659,7 @@ lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pTest1-&gt;pTest-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>pTest</canonical>
@@ -777,6 +781,7 @@ lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <lctags_result><completion>
 <prefix>f</prefix>
 <frontExpr>hoge()-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>func()</canonical>
@@ -802,6 +807,7 @@ lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <lctags_result><completion>
 <prefix>s</prefix>
 <frontExpr>hoge(1,2)-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>sub()</canonical>
@@ -827,6 +833,7 @@ lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>((Test1*)NULL)-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>member</canonical>
@@ -888,6 +895,7 @@ lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <lctags_result><completion>
 <prefix>f</prefix>
 <frontExpr>((Test1*)NULL)-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>func()</canonical>
@@ -2047,6 +2055,7 @@ lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>aaa.</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>val1</canonical>
@@ -2114,6 +2123,7 @@ lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>func()-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>func()</canonical>
@@ -2196,6 +2206,7 @@ lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pData-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>pFunc( int val )</canonical>
@@ -2224,6 +2235,7 @@ cat test/comp17-2.cpp | lua lctags/lctags.lua comp-at test/comp17.cpp 7 11 -i
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pData-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>val</canonical>
@@ -2249,6 +2261,7 @@ lua lctags/lctags.lua comp-at test/comp18.cpp 9 9
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pTest-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>pSub()</canonical>
@@ -2295,6 +2308,7 @@ lua lctags/lctags.lua comp-at test/comp19.cpp 9 21
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>pTest-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>val</canonical>
@@ -2320,6 +2334,7 @@ lua lctags/lctags.lua comp-at test/class2.cpp 13 10
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>this-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>val1</canonical>
@@ -2399,6 +2414,7 @@ lua lctags/lctags.lua comp-at test/class3.cpp 16 10
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>this-&gt;</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>val1</canonical>
@@ -2478,6 +2494,7 @@ lua lctags/lctags.lua comp-at test/class4.cpp 11 7
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>val.</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>eeee</canonical>
@@ -2503,6 +2520,7 @@ lua lctags/lctags.lua comp-at test/class5.cpp 24 6
 <lctags_result><completion>
 <prefix></prefix>
 <frontExpr>tmp.</frontExpr>
+<compMode>member</compMode>
 
 <candidate>
 <canonical>s_val</canonical>
@@ -2911,7 +2929,8 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 lua lctags/lctags.lua comp-at test/enum.cpp 11 9
 <lctags_result><completion>
 <prefix></prefix>
-<frontExpr>func().</frontExpr>
+<frontExpr></frontExpr>
+<compMode>case</compMode>
 
 <candidate>
 <canonical>eval_val1</canonical>

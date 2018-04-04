@@ -1,0 +1,135 @@
+# -*- coding:utf-8 -*-
+#+AUTHOR: ifritJP
+#+STARTUP: nofold
+
+#+TITLE: C/C++ の enum 補完 by lctags on emacs
+
+C/C++ でコーディングしていると、 enum を使うことが多いと思います。
+
+lctags を利用することで、簡単に enum 補完が出来るようになります。
+
+他の補完ツールでも、
+prefix を打つことでその prefix に続くシンボルを補完することができますが、
+lctags では prefix を打つことなく文法を解釈して補完出来ます。
+
+lctags 全般の紹介は次を参照してください。
+
+- C/C++ ソースコードタグシステム lctags の紹介
+https://qiita.com/dwarfJP/items/982ef7ee3f3bfd435156
+
+
+* 2 項演算
+
+次のように enum 型の値に対して 2 項演算する場合に、
+enum 型に合せた enum 値の補完ができます。
+  
+#+BEGIN_SRC lua
+typedef enum {
+    eval_val1,
+    eval_val2,
+} eval_t;
+extern eval_t func();
+static void sub( eval_t val )
+{
+    if ( func() == 
+}
+#+END_SRC
+
+上記 "func() ==" の箇所で補完すると、
+func() の戻り値が enum 型であるため、
+その enum 値( ~eval_val1~, ~eval_val2~ )を補完候補として表示します。
+
+もちろん ~==~ 以外の 2 項演算(例えば ~=~ や ~<=~ 等)でも動作しますし、
+演算対象が関数の戻り値ではなく、enum 型の変数でも補完は可能です。
+
+通常 enum 値は、別ファイルに定義していることが多く、
+何を定義しているかを覚えていられません。
+演算対象から補完候補がリスト出来ると便利です。
+
+これは、補完時に lctags が次の情報を認識しているためです。
+- 2 項演算子 ~"=="~ を認識する
+- 演算対象が enum 型かどうかを判断する
+- enum 型であれば、その enum 値を補完候補としてリストする
+
+なお、 lctags での補完は C-c C-/ です。
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum1.gif]]
+
+* return
+
+次のように戻り値が enum 型の関数内で return する場合、
+enum 型に合せた enum 値の補完ができます。
+
+#+BEGIN_SRC lua
+typedef enum {
+    eval_val1,
+    eval_val2,
+} eval_t;
+static eval_t sub( void )
+{
+    return 
+#+END_SRC
+
+上記 "return " の箇所で補完すると、
+この関数の戻り値が enum 型であるため、
+その enum 値( ~eval_val1~, ~eval_val2~ )を補完候補として表示します。
+
+なお、 lctags での補完は C-c C-/ です。
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum2.gif]]
+
+  
+* switch-case
+
+次のように enum 値で switch するような case 文では、
+enum 型に合せた enum 値の補完ができます。
+
+#+BEGIN_SRC lua
+typedef enum {
+    eval_val1,
+    eval_val2,
+} eval_t;
+extern eval_t func();
+static void sub( eval_t val )
+{
+    switch ( func() ) {
+    case eval_val1:
+        break;
+    case 
+#+END_SRC
+
+上記 "case " の箇所で補完すると、
+この switch() の値が enum 型であるため、
+その enum 値( ~eval_val1~, ~eval_val2~ )を補完候補として表示します。
+
+なお、 lctags での補完は C-c C-/ です。
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum3.gif]]
+
+* enum 値
+
+enum 値を、同じ enum 型の他の enum 値に補完できます。
+
+#+BEGIN_SRC lua
+typedef enum {
+    eval_val1,
+    eval_val2,
+} eval_t;
+static void sub( eval_t val )
+{
+    if ( val == eval_val1 ) {
+    }
+}
+#+END_SRC
+
+上記 ~val == eval_val1~ の ~eval_val1~ の箇所で C-c C-x すると、
+~eval_val1~ と同じ型の enum 値( ~eval_val1~, ~eval_val2~ )を補完候補として表示します。
+
+なお、 enum 型のシンボルからも補完可能です。
+
+例えば上記の場合は、 ~eval_t~ から enum 値( ~eval_val1~, ~eval_val2~ ) に
+補完することが可能です。
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum4.gif]]
+
+なお、 lctags でのキーバインドは C-c C-x です。

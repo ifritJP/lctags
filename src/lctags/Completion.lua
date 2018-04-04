@@ -1095,10 +1095,15 @@ function Completion:completeMember(
    end
    log( 2, "frontExprTxt", frontExprTxt )
    frontExprTxt = string.gsub( frontExprTxt, "[};][\n%w]*$", "" )
-   if clang.isPointerType( cursor:getCursorType() ) then
-      frontExprTxt = frontExprTxt .. "->"
+
+   if compMode ~= "case" then
+      if clang.isPointerType( cursor:getCursorType() ) then
+	 frontExprTxt = frontExprTxt .. "->"
+      else
+	 frontExprTxt = frontExprTxt .. "."
+      end
    else
-      frontExprTxt = frontExprTxt .. "."
+      frontExprTxt = ""
    end
 
    if typeCursor:getCursorKind() == clang.core.CXCursor_ClassDecl then
@@ -1139,7 +1144,8 @@ function Completion:completeMember(
 <completion>
 <prefix>%s</prefix>
 <frontExpr>%s</frontExpr>
-]=], convertXmlTxt( prefix ), convertXmlTxt( frontExprTxt ) ) )
+<compMode>%s</compMode>
+]=], convertXmlTxt( prefix ), convertXmlTxt( frontExprTxt ), compMode ) )
 
 
    outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
