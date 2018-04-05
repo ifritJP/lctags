@@ -42,18 +42,18 @@ func() の戻り値が enum 型であるため、
 もちろん ~==~ 以外の 2 項演算(例えば ~=~ や ~<=~ 等)でも動作しますし、
 演算対象が関数の戻り値ではなく、enum 型の変数でも補完は可能です。
 
+lctags は、次の情報を認識して補完に利用しています。
+- 2 項演算子 "==" を認識する
+- 演算対象が enum 型かどうかを判断する
+- enum 型であれば、その enum 値を補完候補としてリストする
+  
 通常 enum 値は、別ファイルに定義していることが多く、
 何を定義しているかを覚えていられません。
 演算対象から補完候補がリスト出来ると便利です。
 
-これは、補完時に lctags が次の情報を認識しているためです。
-- 2 項演算子 "==" を認識する
-- 演算対象が enum 型かどうかを判断する
-- enum 型であれば、その enum 値を補完候補としてリストする
-
 なお、 lctags での補完は C-c C-/ です。
 
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum1.gif]]
+https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum1.gif]]
 
 * return
 
@@ -76,9 +76,8 @@ static eval_t sub( void )
 
 なお、 lctags での補完は C-c C-/ です。
 
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum2.gif]]
+https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum2.gif]]
 
-  
 * switch-case
 
 次のように enum 値で switch するような case 文では、
@@ -104,7 +103,7 @@ static void sub( eval_t val )
 
 なお、 lctags での補完は C-c C-/ です。
 
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum3.gif]]
+https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum3.gif]]
 
 * enum 値
 
@@ -130,6 +129,57 @@ static void sub( eval_t val )
 例えば上記の場合は、 ~eval_t~ から enum 値( ~eval_val1~, ~eval_val2~ ) に
 補完することが可能です。
 
-[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum4.gif]]
+https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum4.gif]]
 
 なお、 lctags でのキーバインドは C-c C-x です。
+
+* 展開
+
+enum 型で定義されている値一覧を展開出来ます。
+
+例えば enum 型で定義されている enum 値と、 enum 名との紐付けを表示するような場合、
+次のようなコードを書く必要があります。
+
+#+BEGIN_SRC c
+typedef enum {
+    eval_val1,
+    eval_val2,
+} eval_t;
+static void display( void )
+{
+    printf( "eval_val1 = %d\n", eval_val1 );
+    printf( "eval_val2 = %d\n", eval_val2 );
+}
+#+END_SRC
+
+lctags の展開機能を利用することで、
+この printf() の部分を一つ一つ書くことなく実現出来ます。
+
+
+まず、次のように enum 型を(~eval_t~)書きます。
+
+#+BEGIN_SRC c
+typedef enum {
+    eval_val1,
+    eval_val2,
+} eval_t;
+static void display( void )
+{
+    eval_t
+}
+#+END_SRC
+
+書いた enum 型(~eval_t~)の所にカーソルを移動して C-c l G E します。
+ここで mini buffer で出力フォームを問合せられるので、次を入力します(*要改行*)。
+
+#+BEGIN_SRC txt
+printf( "%s = %%d\n", %s );
+
+#+END_SRC
+
+これにより、指定したフォームの %s の箇所に enum 値が入った文字列が展開されます。
+
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/87d3e8bd6eeadcb01f05994f164825af2f93c8f5/enum5.gif]]
+
+上記のような単純展開では実現出来ない処理は、
+lctags-expand-enum-and-replace-text 関数に適切な引数を与えることで対応可能です。

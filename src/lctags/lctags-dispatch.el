@@ -27,6 +27,8 @@
 		   :action lctags-generate-to-dump-member-at)
 	    (:name "convert-enumName-at" :bind "e"
 		   :action lctags-generate-to-convert-enumName-at)
+	    (:name "form-enum" :bind "E"
+		   :action lctags-expand-enum-format-at)
 	   ))
     (:name "insert" :bind "i"
 	   :submenu

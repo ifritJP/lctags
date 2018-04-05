@@ -675,6 +675,78 @@ This parameter can set function and string.
   ))
 
 
+(defun lctags-expand-enum-format-at (&optional form)
+  (interactive)
+  (when (not form)
+    (setq form (read-string "form?: " "%s;\n")))
+  (lctags-expand-enum-and-replace-text
+   (lambda (enum)
+     (insert (format form enum enum enum enum enum enum enum)))
+   nil nil))
+
+
+(defun lctags-generate-to-convert-enumName-at ()
+  (interactive)
+  (lctags-expand-enum-and-replace-text
+   (lambda (enum)
+     (insert (format "case %s:\nreturn \"%s\";\n" enum enum)))
+   (lambda (token)
+     (insert (format "switch (%s) {\n" token)))
+   (lambda (token)
+     (insert "default:\nreturn NULL;\n}"))))
+
+(defun lctags-expand-enum-and-replace-text ( enum-func
+					     &optional first-func end-func )
+  "This function expand value of enum type at current cursor,
+and replace text with specified function.
+enum-func parameter is function, and
+it is called with enum value name argument per enum value.
+first-func parameter is function, and
+it is called with symbol at current cursor.
+end-func parameter is function, and
+it is called with symbol at current cursor.
+"
+  (let ((token (lctags-get-current-token))
+	(first-flag t)
+	pos)
+    (lctags-expand-enum-map-at
+     (lambda (enum)
+       (when first-flag
+	 (setq first-flag nil)
+	 (lctags-remove-current-token)
+	 (setq pos (point))
+	 (when first-func
+	   (funcall first-func token)))
+       (funcall enum-func enum)))
+    (when end-func
+      (funcall end-func token))
+    (indent-region pos (point))))
+
+
+
+(defun lctags-expand-enum-map-at ( func )
+  "This function expand value of enum type at current cursor.
+func parameter is called with enum value name argument.
+"
+  (let ((src-buf (current-buffer))
+	tmp-buf result enum-list)
+    (with-temp-buffer
+      (setq tmp-buf (current-buffer))
+      (with-current-buffer src-buf
+	(lctags-execute-op (current-buffer) tmp-buf (buffer-string) nil 
+			   (list "expand" (buffer-file-name)
+				 (number-to-string (lctags-get-line))
+				 (number-to-string (lctags-get-column)) "-i")))
+      (setq result (lctags-xml-get (current-buffer) 'completion))
+      )
+    (setq enum-list
+	  (delq nil
+		(lctags-candidate-map-candidate
+		 (lambda (X XX) (lctags-candidate-item-get-simple X))
+		 result result)))
+    (dolist (enum enum-list)
+      (funcall func enum))
+    ))
 
 
 (provide 'lctags)

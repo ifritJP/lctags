@@ -270,6 +270,7 @@ endif
 	$(call build-test, test/enum.cpp )
 	$(call build-test, test/enum2.cpp )
 	$(call build-test, test/enum3.cpp )
+	$(call build-test, test/enum4.cpp )
 	$(call build-test, test/incFuncTest.c )
 	$(call build-test, test/highlight.cpp )
 	$(call build-test, test/inctest.cpp, , -Itest/inc )

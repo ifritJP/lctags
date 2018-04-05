@@ -392,7 +392,6 @@
     (message "none diagnostics message")
     (when (get-buffer lctags-diag-buf-name)
       (kill-buffer lctags-diag-buf-name))))
-  
 
 (defun lctags-helm-completion-at (&optional toggle-expand)
   (interactive "P")
@@ -485,33 +484,6 @@
 		      "")
 		    val))))
        info info)
-      (indent-region pos (point))
-      )))
-
-
-(defun lctags-generate-to-convert-enumName-at ()
-  (interactive)
-  (let ((info (lctags-get-expand-at))
-	(line-num (line-number-at-pos))
-	(search-token (lctags-get-current-token))
-	(pos (point))
-	)
-    (if lctags-diag-info
-	(lctags-helm-display-diag)
-      (save-excursion
-	(beginning-of-line-text)
-	(if (search-forward search-token)
-	    (replace-match "")))
-      (insert (format "switch (%s) {\n" search-token))
-      (lctags-candidate-map-candidate
-       (lambda (X XX)
-	 (let ((val (lctags-candidate-item-get-simple X) ))
-	   (insert (format
-		    "case %s:\nreturn \"%s\";\n"
-		    val val))))
-       info info)
-      (insert "default:\nreturn NULL;\n")
-      (insert (format "}" search-token))
       (indent-region pos (point))
       )))
 

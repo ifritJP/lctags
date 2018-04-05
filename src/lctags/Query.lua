@@ -200,7 +200,7 @@ end
 
 function Query:mapRelation( db, target, depthLimit, relIf, mapFunc )
    if not depthLimit then
-      depthLimit = 4
+      depthLimit = 3
    elseif string.find( depthLimit, "^[0-9]+$" ) then
       depthLimit = tonumber( depthLimit )
    end
