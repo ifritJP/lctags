@@ -53,7 +53,7 @@ lctags は、次の情報を認識して補完に利用しています。
 
 なお、 lctags での補完は C-c C-/ です。
 
-https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum1.gif
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum1.gif]]
 
 * return
 
@@ -76,7 +76,7 @@ static eval_t sub( void )
 
 なお、 lctags での補完は C-c C-/ です。
 
-https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum2.gif
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum2.gif]]
 
 * switch-case
 
@@ -103,7 +103,7 @@ static void sub( eval_t val )
 
 なお、 lctags での補完は C-c C-/ です。
 
-https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum3.gif
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum3.gif]]
 
 * enum 値
 
@@ -129,7 +129,7 @@ static void sub( eval_t val )
 例えば上記の場合は、 ~eval_t~ から enum 値( ~eval_val1~, ~eval_val2~ ) に
 補完することが可能です。
 
-https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum4.gif
+[[https://gist.githubusercontent.com/ifritJP/e9bd012e0f49f43db3ef230ee50c3fe6/raw/9dd1b8c31a604300a0f0ed75f1037ec54f5a8145/enum4.gif]]
 
 なお、 lctags でのキーバインドは C-c C-x です。
 
