@@ -176,6 +176,11 @@
 			  X)))
 		    item)))
 
+(defun lctags-xml-get-list-root (item)
+  (delq nil (mapcar (lambda (X)
+		      (when (listp X)
+			X)) item)))
+
 
 (defun lctags-xml-get-diag (buf)
   (delq nil (mapcar (lambda (X)

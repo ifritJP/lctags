@@ -29,6 +29,9 @@
 
 
 
+(defvar lctags-cursor-buf-name "*lctags-cursor*"
+  "")
+
 (defvar lctags-process-buf-name "*lctags-process*"
   "")
 
@@ -746,6 +749,52 @@ func parameter is called with enum value name argument.
 		 result result)))
     (dolist (enum enum-list)
       (funcall func enum))
+    ))
+
+
+(defun lctags-cursor-format-val (val)
+  (when val
+    (if (string-match "^[0-9]" val)
+	(format "%s(0x%X)" val (string-to-number val))
+      val)))
+
+(defun lctags-cursor-at ()
+  (interactive)
+  (let ((src-buf (current-buffer))
+	tmp-buf result enum-list cursor-buf)
+    (with-temp-buffer
+      (setq tmp-buf (current-buffer))
+      (with-current-buffer src-buf
+	(lctags-execute-op (current-buffer) tmp-buf (buffer-string) nil 
+			   (list "cursor-at" (buffer-file-name)
+				 (number-to-string (lctags-get-line))
+				 (number-to-string (lctags-get-column)) "-i")))
+      (setq result (lctags-xml-get (current-buffer) 'cursor))
+      )
+    (setq cursor-buf (lctags-get-buffer lctags-cursor-buf-name t))
+    (save-selected-window
+      (delete-other-windows)
+      (split-window-vertically)
+      (other-window 1)
+      (switch-to-buffer cursor-buf)
+      (let ((base-key-list '(spelling kindName type typeSize))
+	    key-list)
+	(dolist (item base-key-list)
+	  (insert (format "%s: %s\n"
+			  item
+			  (lctags-cursor-format-val 
+			   (lctags-xml-get-val result item)))))
+	(dolist (item (lctags-xml-get-list-root result))
+	  (setq key-list (cons (xml-node-name item) key-list)))
+	(dolist (key (sort key-list 'string< ))
+	  (let (val)
+	  (when (not (member key base-key-list))
+	    (setq val (lctags-xml-get-val result key))
+	    (when val 
+	      (insert (format "%s: %s\n" key (lctags-cursor-format-val val))))))))
+      (beginning-of-buffer)
+      (fit-window-to-buffer)
+      )
     ))
 
 

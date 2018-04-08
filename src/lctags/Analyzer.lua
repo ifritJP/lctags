@@ -2238,7 +2238,28 @@ function Analyzer:cursorAt( filePath, line, column, target )
    local location = transUnit:getLocation( cxfile, line, column )
    local cursor = transUnit:getCursor( location )
 
-   Util:dumpCursorInfo( cursor, 1, nil, 0 )
+   local info = { cursor = {} }
+
+   info.cursor.spelling = cursor:getCursorSpelling()
+   info.cursor.kind = cursor:getCursorKind()
+   info.cursor.kindName = clang.getCursorKindSpelling( info.cursor.kind )
+   info.cursor.type = cursor:getCursorType():getTypeSpelling()
+   info.cursor.typeSize = cursor:getCursorType():getSizeOf()
+   info.cursor.resultType = cursor:getCursorType():getResultType():getTypeSpelling()
+   if info.cursor.kind == clang.CXCursor_EnumConstantDecl then
+      info.cursor.enumValue = cursor:getEnumConstantDeclValue()
+   end
+   if info.cursor.kind == clang.core.CXCursor_DeclRefExpr then
+      local refCursor = cursor:getCursorReferenced()
+      local refKind = refCursor:getCursorKind()
+      log( 2, refCursor:getCursorSpelling(),
+	   clang.getCursorKindSpelling( refKind ) )
+      if refKind == clang.core.CXCursor_EnumConstantDecl then
+	 info.cursor.enumValue = refCursor:getEnumConstantDeclValue()
+      end
+   end
+
+   OutputCtrl.form( info )
 end
 
 function Analyzer:visitAST( filePath, target, optionList, func )

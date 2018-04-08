@@ -203,4 +203,24 @@ function obj.txt(
    end
 end
 
+function obj.form( info )
+   io.stdout:write( "<lctags_result>" )
+   obj.formSub( info )
+   io.stdout:write( "</lctags_result>" )
+end
+
+function obj.formSub( info )   
+   for key, val in pairs( info ) do
+      io.stdout:write( string.format( "<%s>", key ) )
+      if type( val ) == "table" then
+	 obj.formSub( val )
+      elseif type( val ) == "number" then
+	 io.stdout:write( string.format( "%g", val ) )
+      else
+	 io.stdout:write( Util:convertXmlTxt( val ) )
+      end
+      io.stdout:write( string.format( "</%s>", key ) )
+   end
+end
+
 return obj

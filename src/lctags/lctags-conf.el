@@ -4,6 +4,7 @@
 	 (local-set-key (kbd "C-M-t") 'lctags-def-pickup-symbol)
          (local-set-key (kbd "M-r") 'lctags-ref)
          (local-set-key (kbd "C-c l") 'lctags-dispatch-mode)
+	 (local-set-key (kbd "C-c I") 'lctags-cursor-at)
          (local-set-key (kbd "C-c C-/") 'lctags-helm-completion-at)
          (local-set-key (kbd "C-c C-x") 'lctags-helm-change-enum-at)
 	 (local-set-key (kbd "C-c C-f") 'lctags-display-diag)

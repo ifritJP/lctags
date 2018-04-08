@@ -157,8 +157,8 @@ lua lctags/lctags.lua -xT %sub
 ::sub               4 ./test/comp19.cpp void sub( int val )
 ::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
 ::Sub              11 ./test/class3.cpp template <typename T>
-::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
 ::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
+::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
 ::sub::188          3 ./test/stdinc.cpp static void sub( void )
 ::sub::189          4 ./test/stack.cpp static void sub();
 ::sub::189         52 ./test/stack.cpp static void sub()
@@ -269,7 +269,7 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <diagnostics><message>NDIR/test/hoge.cpp:316: error: expected &apos;;&apos; after top level declarator</message></diagnostics></lctags_result>
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:299: recipe for target 'test-query' failed
+makefile:300: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -628,7 +628,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </completion>
 <diagnostics><message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message></diagnostics></lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:299: recipe for target 'test-query' failed
+makefile:300: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result><completion>
 <prefix>me</prefix>
@@ -2685,7 +2685,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
   }
 </sub_routine></refactoring_split></lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:299: recipe for target 'test-query' failed
+makefile:300: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
@@ -3321,5 +3321,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:410: recipe for target 'test-chg-proj' failed
+makefile:411: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null
