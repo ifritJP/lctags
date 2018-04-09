@@ -169,6 +169,12 @@ https://qiita.com/dwarfJP/items/418541e8de1e040ed78b
 [[https://qiita.com/dwarfJP/items/29b4b1a4490c1ba42b9a]]  
 
 
+lctags は libclanglua を利用して libclang を操作します。
+
+libclanglua については次を参照してください。
+
+https://qiita.com/dwarfJP/items/607d46e0a1dcb1e3a2a5
+
 ** チュートリアル
 
 *** DB の作成
@@ -420,7 +426,7 @@ Lua を選択した理由は、次の通りです。
 - クロージャ等のいまどきのプログラムに必須の技術をサポートしている。
 - 構成ファイルが最小限。
 - セットアップが簡単。 
-  - パッケージ管理が優秀、という意味ではなく、基本的にファイルコピーだけで動かせるという意味。
+  - 「パッケージ管理が優秀」という意味ではなく、数個のファイルコピーだけで動かせるという意味。
 
 
    

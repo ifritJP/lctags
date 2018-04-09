@@ -132,7 +132,7 @@ static int helper_mqueue_tostring( lua_State * pLua );
 static helper_digestInfo_t * helper_digestLib_setup( const EVP_MD * pEvpMd );
 static int helper_digestLib_write( helper_digestInfo_t * pInfo, const void * pData, int size );
 static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size );
-static void * helper_digestLib_dispose( helper_digestInfo_t * pInfo );
+static void helper_digestLib_dispose( helper_digestInfo_t * pInfo );
 
 
 static const luaL_Reg s_if_lib[] = {
@@ -284,7 +284,6 @@ static int helper_getTime( lua_State * pLua )
 
 static int helper_msleep( lua_State * pLua )
 {
-    int index;
     int msec = luaL_checkinteger( pLua, 1 );
 
     usleep( ( msec % 1000 ) * 1000 );
@@ -338,7 +337,6 @@ static int helper_getCurrentTime( lua_State * pLua )
 
 static int helper_openDigest( lua_State * pLua )
 {
-    int index;
     const helper_typeMap_t * pTypeMap = s_typeMap;
     const char * pName = lua_tostring( pLua, 1 );
     const EVP_MD * pMd = NULL;
@@ -581,7 +579,7 @@ static int helper_digest_fix( lua_State * pLua )
             snprintf( buf, 3, "%02x", pBuf[ index ] );
             memcpy( pBuf + index * 2, buf, 2 );
         }
-        lua_pushlstring( pLua, pBuf, pInfo->mdsize * 2 );
+        lua_pushlstring( pLua, (char *)pBuf, pInfo->mdsize * 2 );
     }
     else {
         lua_pushnil( pLua );
@@ -782,7 +780,7 @@ static int helper_mqueue_get( lua_State * pLua )
 	int size = *(short*)pMqueue->pInfo->buf;
 	if ( size + 2 != length ) {
             printf( "%s: illegal size %d, %ld\n",
-                    __func__, size, length );
+                    __func__, size, (long)length );
             exit( 1 );
 	}
 	if ( size == 0 ) {
@@ -857,7 +855,7 @@ static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int
     return 1;
 }
 
-static void * helper_digestLib_dispose( helper_digestInfo_t * pInfo )
+static void helper_digestLib_dispose( helper_digestInfo_t * pInfo )
 {
   //    EVP_MD_CTX_cleanup( pInfo->pMctx );
     EVP_MD_CTX_destroy( pInfo->pMctx );

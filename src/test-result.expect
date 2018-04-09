@@ -197,9 +197,9 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
 lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
-::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
+::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
 lua lctags/lctags.lua def-at test/hoge.cpp 231 20
@@ -3162,12 +3162,7 @@ lua lctags/lctags.lua expand-macro test/inc/inctest1.h
 
 typedef struct { int aaa; } struct_1CC; typedef struct { int aaa; } struct_2CC;;
 lua lctags/lctags.lua call-func test/simple.cpp printf
-<lctags_result><functionList><function><name>_IO_vfprintf</name>
-<include>/usr/include/libio.h</include>
-<included>false</included>
-<declaration>/usr/include/libio.h</declaration>
-</function>
-<function><name>fprintf</name>
+<lctags_result><functionList><function><name>fprintf</name>
 <include>/usr/include/stdio.h</include>
 <included>false</included>
 <declaration>/usr/include/stdio.h</declaration>
@@ -3216,6 +3211,11 @@ lua lctags/lctags.lua call-func test/simple.cpp printf
 <include>/usr/include/stdio.h</include>
 <included>false</included>
 <declaration>/usr/include/stdio.h</declaration>
+</function>
+<function><name>_IO_vfprintf</name>
+<include>/usr/include/libio.h</include>
+<included>false</included>
+<declaration>/usr/include/libio.h</declaration>
 </function>
 <function><name>fwprintf</name>
 <include>/usr/include/wchar.h</include>
