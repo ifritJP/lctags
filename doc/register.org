@@ -1,0 +1,108 @@
+#+AUTHOR: ifritJP
+#+STARTUP: nofold
+
+* lctags のプロジェクト簡易登録
+
+** lctags のプロジェクト登録のハードルを下げたい
+  
+lctags を利用するには、
+解析対象のソースファイル毎にコンパイルオプションを登録する必要があります。
+
+これは、 lctags の解析処理のバックエンドとして利用している libclang が
+正確なコンパイルオプションを必要としているためです。
+
+libclang を利用することで正確な構文解析を可能としていますが、
+この登録作業は案外面倒なものです。
+
+ちなみに、lctags のコンパイルオプションの登録方法として、
+次の 2 つの方法をサポートしています。
+
+- ファイル毎に lctags build コマンドを実行しコンパイルオプションを指定する
+- 全ソースのコンパイルオプションが記載された JSON Compilation Database を用意し、
+  lctags register コマンドを実行する
+
+cmake を利用しているプロジェクトでは、
+CMAKE_EXPORT_COMPILE_COMMANDS:BOOL を ON にすることで
+JSON ファイルを生成できます。
+また、GNU make の場合は https://github.com/rizsotto/Bear を利用することで、
+JSON ファイルを生成できます。
+
+JSON Compilation Database を利用することで、登録作業を簡単化出来ますが、
+GNU global と比べるとまだ手軽さで劣ります。
+
+ある程度の設定は仕方がないところではありますが、
+小さなプロジェクトやサンプルコードなどでは、
+そもそもコンパイルオプションが不要な場合もあります。
+
+そのような場合に、 lctags をもっと手軽に使いたいです。
+
+そこで、 GNU global レベルの簡単さで、lctags の登録が行なえる方法について説明します。
+
+** 登録方法
+
+次のコマンドを実行するだけで、 lctags に登録が行なえます。
+
+#+BEGIN_SRC txt
+$ cd /proj/top/dir
+$ lctags init .
+$ lctags lazyUpdate -j 10
+#+END_SRC
+
+上記の lctags init コマンドは、通常の lctags のプロジェクト初期化方法と同じです。
+これにより、 lctags の DB を初期化します。
+これは初回だけ行なえば OK です。
+
+次の lctags lazyUpdate が、今回紹介する簡易登録用のコマンドです。
+
+このコマンドにより、次の処理を行ないます。
+
+- プロジェクトのディレクトリ以下のソースファイルを全て検索する
+- 解析対象として登録する
+- 登録された全てのファイルを解析する
+- このとき差分のあるファイルだけ更新する
+
+** 追加設定
+
+このコマンドで登録するコンパイルオプションは、
+プロジェクトディレクトリ以下の全ディレクトリを INCLUDE PATH とします。
+
+これ以外のコンパイルオプションが必要な場合は、次の設定が必要です。
+
+*** 追加のコンパイルオプション設定方法
+
+コンパイルオプションを追加で設定するには、
+lctags.conf ファイルを作成する必要があります。
+
+lctags.conf ファイルは次のコマンドで作成します。
+
+#+BEGIN_SRC txt
+$ lctags copyConf
+#+END_SRC
+
+なお、このコマンドは lctags init . コマンド後に実行する必要があります。
+
+lctags.conf は、lua ファイルになっています。
+このファイルの config:getDefaultOptionList() を適宜編集します。
+
+例えば -DHOGE, -I/inc/path を追加する場合、次のように設定します。
+
+#+BEGIN_SRC lua
+function config:getDefaultOptionList( compiler )
+   return {
+      "-DHOGE",
+      "-I/inc/path"
+   }
+end
+#+END_SRC
+
+これにより、全てのファイルのコンパイルオプションが追加されます。
+
+** 適応条件
+   
+lctags lazyUpdate コマンドを適応して正しく解析できるプロジェクトには
+下記の条件があります。
+
+- 全てのソースファイルのコンパイルオプションを同じに設定可能
+- コンパイル時のカレントディレクトリに影響せずにコンパイル可能
+
+この条件を 1 つでも満さない場合は、lctags lazyUpdate で正しく解析できません。

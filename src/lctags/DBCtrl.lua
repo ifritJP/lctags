@@ -8,6 +8,7 @@ local DBAccess = require( 'lctags.DBAccess' )
 local Util = require( 'lctags.Util' )
 local Query = require( 'lctags.Query' )
 local Option = require( 'lctags.Option' )
+local config = require( 'lctags.config' )
 
 local function getFileLocation( cursor )
    local location = cursor:getCursorLocation()
@@ -2294,7 +2295,7 @@ function DBCtrl:getFileOpt( filePath, target )
    compileOp = targetInfo and targetInfo.compOp
    
    if not compileOp then
-      return fileInfo, nil
+      return fileInfo, { config:getClangIncPathOp() }
    end
 
    -- コンパイルオプション文字列を、オプション配列に変換
@@ -2302,6 +2303,7 @@ function DBCtrl:getFileOpt( filePath, target )
    for option in string.gmatch( compileOp, "([^%s]+)" ) do
       table.insert( optionList, option )
    end
+   table.insert( optionList, config:getClangIncPathOp() )
 
    return fileInfo, optionList, targetInfo.updateTime
 end

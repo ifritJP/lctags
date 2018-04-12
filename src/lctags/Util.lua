@@ -253,7 +253,32 @@ function Util:getTokenKindSpelling( kind )
    return "None"
 end
 
+function Util:getFileList( path, mode, checkFunc )
+   local extra = ""
+   if mode == "file" then
+      extra = "-type f"
+   elseif mode == "dir" then
+      extra = "-type d"
+   end
+      
 
+   local fileList = {}
+   local pipe = io.popen( string.format( "find %s %s", path, extra ) )
+   while true do
+      local fullPath = pipe:read( '*l' )
+      if not fullPath then
+	 break
+      end
+      if (not checkFunc) or (checkFunc and checkFunc( fullPath )) then
+	 table.insert( fileList, fullPath )
+      end
+   end
+   return fileList
+end
+
+function Util:getSameDirFile( src, basename )
+   return Option:getSameDirFile( src, basename )
+end
 
 return Util
 

@@ -54,10 +54,15 @@ function config:getDefaultOptionList( compiler )
 end
 
 function config:getClangIncPath()
+   if self.clangIncPath then
+      return self.clangIncPath
+   end
+   
    if self.conf and self.conf.getClangIncPath then
          local path = self.conf:getClangIncPath()
 	 if path and path ~= "" then
-	    return string.gsub( path, "/$", "" )
+	    self.clangIncPath = string.gsub( path, "/$", "" )
+	    return self.clangIncPath
 	 end
    end
 
@@ -66,9 +71,23 @@ function config:getClangIncPath()
       clangVer, "^clang version (%d+)%.(%d+)%.(%d+)[^%d].*", "%1.%2.%3" )
    clangVer2 = string.gsub( clangVer3, "^(%d+)%.(%d+)[^%d].*", "%1.%2" )
 
-   return string.format( "/usr/lib/llvm-%s/lib/clang/%s/include",
-			 clangVer2, clangVer3 )
+
+   self.clangIncPath = string.format( "/usr/lib/llvm-%s/lib/clang/%s/include",
+				      clangVer2, clangVer3 )
+   return self.clangIncPath
 end
 
+
+function config:getClangIncPathOp()
+   if not self.clangIncPathOp then
+      local path = self:getClangIncPath()
+      if not path then
+	 self.clangIncPathOp = ""
+      else
+	 self.clangIncPathOp = string.format( "-I%s", path )
+      end
+   end
+   return self.clangIncPathOp
+end
 
 return config

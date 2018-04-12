@@ -3,6 +3,7 @@ local DBCtrl = require( 'lctags.DBCtrl' )
 local log = require( 'lctags.LogCtrl' )
 local Option = require( 'lctags.Option' )
 local Analyzer = require( 'lctags.Analyzer' )
+local Util = require( 'lctags.Util' )
 
 local Make = {}
 
@@ -508,6 +509,55 @@ other: $(SRCS)
    end
    --os.remove( tmpName )
   
+end
+
+
+function Make:lazyUpdateFor( dbPath, target, jobs, optList )
+   local db = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
+   local root = db:convFullpath( "." )
+
+   suffixTable = {
+      c = "c",
+      [ "c++" ] = "cpp",
+      [ "cc" ] = "cpp",
+      [ "cxx" ] = "cpp",
+      [ "cpp" ] = "cpp"
+   }
+
+   local compileOp = ""
+
+   for index, opt in ipairs( optList ) do
+      compileOp = string.format( "%s %s", compileOp, opt )
+   end
+
+   -- directory の登録。 -Idir
+   local dirList = Util:getFileList( root, "dir" )
+   for index, path in ipairs( dirList ) do
+      if string.find( path, "%s" ) then
+	 print( "skip -- ", path )
+      else
+	 compileOp = string.format( "%s -I%s", compileOp, path )
+      end
+   end
+
+   local time = Helper.getCurrentTime()
+   
+   local fileList = Util:getFileList( root, "file" )
+   for index, fullPath in ipairs( fileList ) do
+      local suffix = string.gsub( fullPath, ".*%.([a-zA-Z%+]+)$", "%1" )
+      if suffix then
+	 local lang = suffixTable[ suffix:lower() ]
+	 if lang then
+	    local fileInfo = db:getFileInfo( nil, fullPath )
+	    if not fileInfo then
+	       db:addFile( fullPath, time, 0, compileOp, root, true, target, 0 )
+	    end
+	 end
+      end
+   end
+   db:commit()
+
+   Make:updateFor( dbPath, target, jobs, root )
 end
 
 return Make

@@ -144,11 +144,64 @@ if lctagOptMap.mode == "status" then
 end
 
 
+if lctagOptMap.mode == "copyConf" then
+   if not lctagOptMap.confPath then
+      lctagOptMap.confPath = Option:getConfPathFromDbPath( lctagOptMap.dbPath )
+      
+      local confFile = io.open( lctagOptMap.confPath, "w" )
+      local baseFile = io.open( Option:getSameDirFile( arg[0], "_lctags.conf" ) )
+      confFile:write( baseFile:read( '*a' ) )
+      confFile:close()
+      baseFile:close()
+   end
+   print( "please edit config -- 'lctags.conf'." )
+   finish( 0 )
+end
+
 if lctagOptMap.mode == "init" then
    DBCtrl:init(
       lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
       lctagOptMap.individualTypeFlag, lctagOptMap.individualStructFlag,
       lctagOptMap.individualMacroFlag )
+
+   local analyzer = Analyzer:new(
+      lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
+
+   local code = [[
+#include <stdio.h>
+main(){
+  return 0;
+}
+]]
+
+   local path = lctagOptMap.conf:getClangIncPath()
+   if path then
+      clangIncOp = string.format( "-I%s", path )
+   end
+   local unit, compileOp, stdMode =
+      analyzer:createUnitDirect( analyzer, "test.c", { clangIncOp }, code )
+   local diagList = analyzer:getDiagList( unit )
+
+   for index, diag in ipairs( diagList ) do
+      if diag.message:find( 'stddef.h' ) then
+	 if not lctagOptMap.confPath then
+	    lctagOptMap.confPath = Option:getConfPathFromDbPath( lctagOptMap.dbPath )
+	    
+	    local confFile = io.open( lctagOptMap.confPath, "w" )
+	    local baseFile = io.open( Option:getSameDirFile( arg[0], "_lctags.conf" ) )
+	    confFile:write( baseFile:read( '*a' ) )
+	    confFile:close()
+	    baseFile:close()
+	 end
+
+	 print( string.format(
+		   "please set clang inc-path at getClangIncPath() in %s, and retry init.",
+		   lctagOptMap.confPath ) )
+	 os.remove( lctagOptMap.dbPath )
+	 finish( 1 )
+      end
+   end
+   
    finish( 0 )
 end
 
@@ -284,6 +337,13 @@ if lctagOptMap.mode == "update" then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "lazyUpdate" then
+   Make:lazyUpdateFor(
+      lctagOptMap.dbPath, lctagOptMap.target, lctagOptMap.jobs, optList )
+   finish( 0 )
+end
+
+
 if lctagOptMap.mode == "chkFiles" then
    DBCtrl:checkRemovedFiles( lctagOptMap.dbPath )
    finish( 0 )
@@ -318,11 +378,12 @@ if lctagOptMap.mode == "addIncRef" then
    finish( 0 )
 end
 
---- これ以降は、 srcList[1] にはソースが指定されていることを前提にする
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
 local db = analyzer:openDBForReadOnly( os.getenv( "PWD" ) )
+
+--- これ以降は、 srcList[1] にはソースが指定されていることを前提にする
 
 local targetFileInfo
 local targetFullPath = srcList[ 1 ]

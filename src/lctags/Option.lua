@@ -20,6 +20,7 @@ usage:
    %s init projDir [-it] [-is] [-im]
    %s build compiler [--lctags-out-info] [--lctags-conf conf] [--lctags-target target] [--lctags-recSql file] [--lctags-prof] [--lctags-srv] [--lctags-indiv] [comp-op] [...] src
    %s update [-j jobs] pattrn
+   %s lazyUpdate [-j jobs]
    %s register [--lctags-conf conf] [--lctags-target target] <-i|file>
    %s depIncs [comp-op] src [--lctags-target target]
    %s addInc [comp-op] header [--lctags-target target]
@@ -58,6 +59,7 @@ usage:
    %s clang-ver
    %s kill
    %s cancel-kill
+   %s copyConf
 
   option:
      init: initialize DB file. "projDir" is a root directory of your project.
@@ -104,6 +106,18 @@ usage:
    os.exit( 1 )
 end
 
+function Option:getSameDirFile( src, basename )
+   local dir =
+      string.find( src, "/" ) and
+      string.gsub( src, "(.*/).*", "%1" ) or
+      (os.getenv( "PWD" ) .. "/")
+   return dir .. basename
+end
+
+function Option:getConfPathFromDbPath( dbPath )
+   return Option:getSameDirFile( dbPath, "lctags.conf" )
+end
+
 function Option:analyzeOption( argList )
    local srcList = {}
    local optList = {}
@@ -113,22 +127,26 @@ function Option:analyzeOption( argList )
 
    lctagOptMap.cc = "gcc"
 
+   local conf
+
    for index, arg in ipairs( argList ) do
       if skipArgNum > 0 then
 	 skipArgNum = skipArgNum - 1
       elseif string.find( arg, "--lctags-conf", 1, true ) then
 	 skipArgNum = 1
-	 lctagOptMap.conf = config:loadConfig( argList[ index + 1 ], true )
+	 conf = config:loadConfig( argList[ index + 1 ], true )
+	 if conf then
+	    lctagOptMap.confPath = confPath
+	 end
       elseif string.find( arg, "--lctags-db", 1, true ) then
 	 skipArgNum = 1
 	 lctagOptMap.dbPath = argList[ index + 1 ]
-	 local confPath =
-	    string.find( lctagOptMap.dbPath, "/" ) and
-	    string.gsub( lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" ) or
-	    (os.getenv( "PWD" ) .. "/lctags.conf")
-
-	 if not lctagOptMap.conf then
-	    lctagOptMap.conf = config:loadConfig( confPath, false )
+	 if not conf then
+	    local confPath = Option:getConfPathFromDbPath( lctagOptMap.dbPath )
+	    conf = config:loadConfig( confPath, false )
+	    if conf then
+	       lctagOptMap.confPath = confPath
+	    end
 	 end
       end
    end
@@ -141,19 +159,18 @@ function Option:analyzeOption( argList )
 	 if dbFile then
 	    dbFile:close()
 	    lctagOptMap.dbPath = dbPath
-	    if not lctagOptMap.conf then
+	    if not conf then
 	       local confPath = string.gsub(
 		  lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
-	       lctagOptMap.conf = config:loadConfig( confPath, false )
+	       conf = config:loadConfig( confPath, false )
+	       if conf then
+		  lctagOptMap.confPath = confPath
+	       end
 	    end
 	    break
 	 end
 	 dir = string.gsub( dir, "/[^/]*$", "" )
       until dir == ""
-      if not lctagOptMap.dbPath then
-	 if lctagOptMap.mode == "init" then
-	 end
-      end
    end
 
    lctagOptMap.conf = config
@@ -170,8 +187,15 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    if not lctagOptMap.dbPath then
 	       lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
+	       if not conf then
+		  local confPath = string.gsub(
+		     lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
+		  conf = config:loadConfig( confPath, false )
+		  if conf then
+		     lctagOptMap.confPath = confPath
+		  end
+	       end
 	    end
-	    
 	    skipArgNum = 1
 	 elseif arg == "shrink" then
 	    lctagOptMap.mode = "shrink"
@@ -183,8 +207,12 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = "chg-proj"
 	    lctagOptMap.projDir = argList[ index + 1 ]
 	    skipArgNum = 1
+	 elseif arg == "copyConf" then
+	    lctagOptMap.mode = "copyConf"
 	 elseif arg == "update" then
 	    lctagOptMap.mode = "update"
+	 elseif arg == "lazyUpdate" then
+	    lctagOptMap.mode = "lazyUpdate"
 	 elseif arg == "updateForMake" then
 	    lctagOptMap.mode = "updateForMake"
 	 elseif arg == "ref-at-all" then

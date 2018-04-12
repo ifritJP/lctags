@@ -175,8 +175,11 @@ function obj.dot(
    os.remove( dotFile )
 
    if browseFlag then
+      -- ブラウズ中に DB の書き込みが出来ないので、ここで close する。
+      -- イマイチ。。。
+      db:close()
       os.execute( "firefox " .. outputFile )
-       os.remove( outputFile )
+      os.remove( outputFile )
    end
 end
 
