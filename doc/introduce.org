@@ -169,7 +169,10 @@ https://qiita.com/dwarfJP/items/418541e8de1e040ed78b
 [[https://qiita.com/dwarfJP/items/29b4b1a4490c1ba42b9a]]  
 
 - C/C++ の変数サイズ確認 by lctags on emacs
-https://qiita.com/dwarfJP/items/2ce744f3e534a943c98d  
+https://qiita.com/dwarfJP/items/2ce744f3e534a943c98d
+
+- lctags のプロジェクト簡易登録
+https://qiita.com/dwarfJP/items/965cfbf31a49998df95d  
 
 
 lctags は libclanglua を利用して libclang を操作します。

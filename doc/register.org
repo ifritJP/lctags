@@ -1,10 +1,7 @@
 #+AUTHOR: ifritJP
 #+STARTUP: nofold
+#+TITLE: lctags のプロジェクト簡易登録
 
-* lctags のプロジェクト簡易登録
-
-** lctags のプロジェクト登録のハードルを下げたい
-  
 lctags を利用するには、
 解析対象のソースファイル毎にコンパイルオプションを登録する必要があります。
 
@@ -22,7 +19,7 @@ libclang を利用することで正確な構文解析を可能としていま�
   lctags register コマンドを実行する
 
 cmake を利用しているプロジェクトでは、
-CMAKE_EXPORT_COMPILE_COMMANDS:BOOL を ON にすることで
+~CMAKE_EXPORT_COMPILE_COMMANDS:BOOL~ を ON にすることで
 JSON ファイルを生成できます。
 また、GNU make の場合は https://github.com/rizsotto/Bear を利用することで、
 JSON ファイルを生成できます。
@@ -36,9 +33,9 @@ GNU global と比べるとまだ手軽さで劣ります。
 
 そのような場合に、 lctags をもっと手軽に使いたいです。
 
-そこで、 GNU global レベルの簡単さで、lctags の登録が行なえる方法について説明します。
+ここでは GNU global レベルの簡単さで、lctags の登録が行なえる方法について説明します。
 
-** 登録方法
+* 登録方法
 
 次のコマンドを実行するだけで、 lctags に登録が行なえます。
 
@@ -61,7 +58,7 @@ $ lctags lazyUpdate -j 10
 - 登録された全てのファイルを解析する
 - このとき差分のあるファイルだけ更新する
 
-** 追加設定
+* 追加設定
 
 このコマンドで登録するコンパイルオプションは、
 プロジェクトディレクトリ以下の全ディレクトリを INCLUDE PATH とします。
@@ -97,7 +94,7 @@ end
 
 これにより、全てのファイルのコンパイルオプションが追加されます。
 
-** 適応条件
+* 適応条件
    
 lctags lazyUpdate コマンドを適応して正しく解析できるプロジェクトには
 下記の条件があります。
