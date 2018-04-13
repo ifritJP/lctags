@@ -1,1 +1,10 @@
 src.tar.gz
+\#*
+test-result
+doc/*.html
+src/a.out
+src/db.dump
+src/dump
+src/dump.c
+src/dump.update
+src/lctags/Helper

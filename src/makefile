@@ -195,8 +195,8 @@ endif
 	LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(NDIR)@NDIR@g" | \
-		grep -v -e '<hash>' -e 'Leaving directory' -e 'Entering directory' | \
-		sed "s@$(LUA_COMMAND)@lua@g" | \
+		grep -v -e 'Leaving directory' -e 'Entering directory' | \
+		sed "s@$(LUA_COMMAND)@lua@g" | sed 's@<hash>[0-9a-f]*</hash>@@g' | \
 		tee -a test-result
 	$(MAKE) test-stack
 	diff -c test-result.expect test-result && echo OK

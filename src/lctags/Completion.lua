@@ -9,12 +9,8 @@ local function getTokenKindSpelling( kind )
    return Util:getTokenKindSpelling( kind )
 end
 
-local function convertXmlTxt( txt )
-   return Util:convertXmlTxt( txt )
-end
-
 local function createCandidate(
-      canonical, simple, expand, kind, typeName, result, hash,
+      writer, canonical, simple, expand, kind, typeName, result, hash,
       filePath, startLine, startColmun, endLine, endColmun, value )
 
    if kind == clang.core.CXCursor_FunctionDecl or
@@ -42,31 +38,26 @@ local function createCandidate(
    elseif kind == clang.core.CXCursor_Namespace then
       kind = 'n'
    end
-      
-   return string.format( [[
-<candidate>
-<canonical>%s</canonical>
-<simple>%s</simple>
-<expand>%s</expand>
-<kind>%s</kind>
-<type>%s</type>
-<result>%s</result>
-<hash>%s</hash>
-<val>%s</val>
-<file>%s</file>
-<startPos>
-<line>%d</line>
-<column>%d</column>
-</startPos>
-<endPos>
-<line>%d</line>
-<column>%d</column>
-</endPos>
-</candidate>]],
-      convertXmlTxt( canonical ), convertXmlTxt( simple ),
-      convertXmlTxt( expand ), kind, convertXmlTxt( typeName ), result, hash,
-      value and string.format( "%d", value ) or "", filePath or "",
-      startLine or 0, startColmun or 0, endLine or 0, endColmun or 0 )
+
+   writer:startParent( "candidate" )
+   writer:write( "canonical", canonical )
+   writer:write( "simple", simple )
+   writer:write( "expand", expand )
+   writer:write( "kind", kind )
+   writer:write( "type", typeName )
+   writer:write( "result", result )
+   writer:write( "hash", hash )
+   writer:write( "val", value and string.format( "%d", value ) or "" )
+   writer:write( "file", filePath or "" )
+   writer:startParent( "startPos" )
+   writer:write( "line", startLine or 0 )
+   writer:write( "column", startColmun or 0 )
+   writer:endElement()
+   writer:startParent( "endPos" )
+   writer:write( "line", endLine or 0 )
+   writer:write( "column", endColmun or 0 )
+   writer:endElement()
+   writer:endElement()
 end
 
 -- startIndex 以降から lastIndex までで endToken を検索する。
@@ -637,12 +628,11 @@ function Completion:createSourceForAnalyzing(
 end
 
 
-function Completion:completeSymbol( db, path, cursor, compMode, prefix, frontSyntax )
-   print( string.format(
-	     [=[
-<completion>
-<prefix>%s</prefix>
-]=], prefix ) )
+function Completion:completeSymbol(
+      writer, db, path, cursor, compMode, prefix, frontSyntax )
+
+   writer:startParent( "completion" )
+   writer:write( "prefix", prefix )
 
    self:completeSymbolFunc(
       db, path, cursor, compMode, prefix, frontSyntax,
@@ -650,14 +640,14 @@ function Completion:completeSymbol( db, path, cursor, compMode, prefix, frontSyn
 	 local fileInfo = db:getFileInfo( item.fileId )
 	 local simpleName = string.gsub( nsInfo.name, "::%d+$", "" )
 	 simpleName = string.gsub( simpleName, ".*::([%w%-%_])", "%1" )
-	 print( createCandidate(
-		   nsInfo.name, simpleName, "", item.type,
-		   "", "", "", db:getSystemPath( fileInfo.path ),
-		   item.line, item.column, item.endLine, item.endColmun ) )
+	 createCandidate(
+	    writer, nsInfo.name, simpleName, "", item.type,
+	    "", "", "", db:getSystemPath( fileInfo.path ),
+	    item.line, item.column, item.endLine, item.endColmun )
       end
    )
-			    
-   print( '</completion>' )
+
+   writer:endElement()
 end
 
 function Completion:getIncludeFileIdSet( path, analyzer, db, target, fileContents )
@@ -888,7 +878,8 @@ local function calcDigest( txt )
    return digest:fix()
 end
 
-local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
+local function outputCandidate(
+      writer, db, prefix, aCursor, hash2typeMap, anonymousDeclList )
    local name = aCursor:getCursorSpelling()
    local childKind = aCursor:getCursorKind()
    log( 2, "outputCandidate", aCursor:getCursorSpelling(),
@@ -897,7 +888,7 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
       local superDecl = aCursor:getCursorReferenced()
       log( 2, "super", superDecl:getCursorSpelling() )
       local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
-	 outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
+	 outputCandidate( writer, db, prefix, aCursor, hash2typeMap, anonymousDeclList )
       end
       clang.visitChildrenFast(
 	 superDecl, visitFunc, anonymousDeclList, nil, 1 )
@@ -1026,14 +1017,14 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
 	 end
 
 	 
-	 print( createCandidate(
-		   name, name, expand, childKind, typeName,
-		   resultType:getTypeSpelling(), digest,
-		   fileInfo and db:getSystemPath( fileInfo.path ) or "",
-		   startInfo and startInfo[ 2 ],
-		   startInfo and startInfo[ 3 ],
-		   endInfo and endInfo[ 2 ],
-		   endInfo and endInfo[ 3 ] ) )
+	 createCandidate(
+	    writer, name, name, expand, childKind, typeName,
+	    resultType:getTypeSpelling(), digest,
+	    fileInfo and db:getSystemPath( fileInfo.path ) or "",
+	    startInfo and startInfo[ 2 ],
+	    startInfo and startInfo[ 3 ],
+	    endInfo and endInfo[ 2 ],
+	    endInfo and endInfo[ 3 ] )
       end
    elseif childKind == clang.core.CXCursor_StructDecl or
       childKind == clang.core.CXCursor_UnionDecl
@@ -1044,10 +1035,10 @@ local function outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDecl
    end
 end
 
-local function outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
+local function outputMemberCandidate( writer, db, prefix, typeCursor, hash2typeMap )
    log( 2, "outputMemberCandidate" )
    local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
-      outputCandidate( db, prefix, aCursor, hash2typeMap, anonymousDeclList )
+      outputCandidate( writer, db, prefix, aCursor, hash2typeMap, anonymousDeclList )
    end
 
 
@@ -1067,7 +1058,7 @@ end
 
 -- member アクセス
 function Completion:completeMember(
-      db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+      writer, db, path, declCursor, cursor, compMode, prefix, frontSyntax )
    local kind = cursor:getCursorKind()
    local declKind = declCursor:getCursorKind()
 
@@ -1138,17 +1129,14 @@ function Completion:completeMember(
 
 
    local hash2typeMap = {}
-   
-   print( string.format(
-	     [=[
-<completion>
-<prefix>%s</prefix>
-<frontExpr>%s</frontExpr>
-<compMode>%s</compMode>
-]=], convertXmlTxt( prefix ), convertXmlTxt( frontExprTxt ), compMode ) )
 
+   writer:startParent( "completion" )
+   writer:write( "prefix", prefix )
+   writer:write( "frontExpr", frontExprTxt )
+   writer:write( "compMode", compMode )
 
-   outputMemberCandidate( db, prefix, typeCursor, hash2typeMap )
+   outputMemberCandidate(
+      writer, db, prefix, typeCursor, hash2typeMap )
    
 
    local knownTypeHash = {}
@@ -1158,13 +1146,12 @@ function Completion:completeMember(
       for hash, cxtype in pairs( hash2typeMap ) do
 	 knownTypeHash[ hash ] = cxtype
 	 hasType = true
-	 print( string.format( [[
-<typeInfo>
-<hash>%s</hash>
-]], hash ) )
+
+	 writer:startParent( "typeInfo" )
+	 writer:write( "hash", hash )
 	 outputMemberCandidate(
-	    db, "", clang.getDeclCursorFromType( cxtype ), newHash2TypeMap )
-	 print( "</typeInfo>" )
+	    writer, db, "", clang.getDeclCursorFromType( cxtype ), newHash2TypeMap )
+	 writer:endElement()
       end
       if not hasType then
 	 break
@@ -1178,7 +1165,7 @@ function Completion:completeMember(
       end
    end
    
-   print( '</completion>' )
+   writer:endElement()
 end   
 
 function Completion:at( analyzer, path, line, column, target, fileContents )
@@ -1253,7 +1240,7 @@ function Completion:analyzeAt(
 
    self:outputResult(
       clang.core.CXDiagnostic_Error,
-      function( diagList )
+      function( diagList, writer )
 	 if targetLine then
 	    newAnalyzer:queryAtFunc(
 	       path, targetLine, targetColmun, target, false, fileTxt, diagList,
@@ -1266,29 +1253,30 @@ function Completion:analyzeAt(
 			kind == clang.core.CXCursor_CompoundStmt
 		     then
 			self:completeSymbol(
-			   db, path, cursor, compMode, prefix, frontSyntax )
+			   writer, db, path, cursor, compMode, prefix, frontSyntax )
 		     elseif compMode == "binOP" then
-			self:expandCursor( db, path, cursor, frontSyntax )
+			self:expandCursor( writer, db, path, cursor, frontSyntax )
 		     elseif compMode == "return" then
 			local parentCursor = cursor:getCursorSemanticParent()
 			local resutType = parentCursor:getCursorResultType()
 			log( 2, "parentCursor",
 			     clang.getCursorKindSpelling( parentCursor:getCursorKind() ),
 			     resutType:getTypeSpelling() )
-			self:expandCursor( db, path, resutType:getTypeDeclaration(),
-					   frontSyntax )
+			self:expandCursor(
+			   writer, db, path, resutType:getTypeDeclaration(), frontSyntax )
 		     else
 			self:completeMember(
-			   db, path, declCursor, cursor, compMode, prefix, frontSyntax )
+			   writer, db, path, declCursor, cursor, compMode,
+			   prefix, frontSyntax )
 		     end
 		  else
-		     self:expandCursor( db, path, cursor, frontSyntax )
+		     self:expandCursor( writer, db, path, cursor, frontSyntax )
 		  end
 	       end
 	    )
 	 else
 	    -- targetLine がない時は、解析する対象がない単なるシンボル補完
-	    self:completeSymbol( newAnalyzer:openDBForReadOnly(),
+	    self:completeSymbol( writer, newAnalyzer:openDBForReadOnly(),
 				 path, nil, "symbol", prefix, frontSyntax )
 	 end
       end
@@ -1296,7 +1284,7 @@ function Completion:analyzeAt(
 end
 
 
-function Completion:expandCursor( db, path, cursor, frontSyntax )
+function Completion:expandCursor( writer, db, path, cursor, frontSyntax )
    local kind = cursor:getCursorKind()
    local orgCursor = cursor
 
@@ -1340,7 +1328,7 @@ function Completion:expandCursor( db, path, cursor, frontSyntax )
       kind == clang.core.CXCursor_ClassDecl
    then
       self:completeMember(
-	 db, path, cursor, orgCursor, "expand", "", frontSyntax )
+	 writer, db, path, cursor, orgCursor, "expand", "", frontSyntax )
    end
    
    if kind == clang.core.CXCursor_EnumConstantDecl or
@@ -1361,12 +1349,9 @@ function Completion:expandCursor( db, path, cursor, frontSyntax )
 	    return false
 	 end
       )
-      
-      print( string.format(
-		[=[
-<completion>
-<prefix>%s</prefix>
-]=], "" ) )
+
+      writer:startParent( "completion" )
+      writer:write( "prefix", "" )
       clang.visitChildrenFast(
       	 enumCursor,
       	 function( aCursor, enumCursor, anonymousDeclList, appendInfo )
@@ -1377,16 +1362,16 @@ function Completion:expandCursor( db, path, cursor, frontSyntax )
 	    local canonical = name
 	    local memberKind = aCursor:getCursorKind()
 
-      	    print( createCandidate(
-      		      canonical, name, "", memberKind, fullnameBase, "", "",
-      		      db:getSystemPath( fileInfo.path ),
-      		      startInfo and startInfo[ 2 ], startInfo and startInfo[ 3 ],
-      		      endInfo and endInfo[ 2 ], endInfo and endInfo[ 3 ],
-		      aCursor:getEnumConstantDeclUnsignedValue() ) )
+      	    createCandidate(
+	       writer, canonical, name, "", memberKind, fullnameBase, "", "",
+	       db:getSystemPath( fileInfo.path ),
+	       startInfo and startInfo[ 2 ], startInfo and startInfo[ 3 ],
+	       endInfo and endInfo[ 2 ], endInfo and endInfo[ 3 ],
+	       aCursor:getEnumConstantDeclUnsignedValue() )
       	 end, nil, nil, 1 )
-      print( '</completion>' )
+      writer:endElement()
    else
-      outputCandidate( db, "", cursor, {}, {} )
+      outputCandidate( writer, db, "", cursor, {}, {} )
    end
 end
 
@@ -1434,8 +1419,8 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
    
    self:outputResult(
       clang.core.CXDiagnostic_Error,
-      function( diagList, stream )
-	 stream:write( '<functionList>' )
+      function( diagList, writer )
+	 writer:startParent( 'functionList' )
 
 	 db:mapFuncDeclPattern(
 	    searchPattern,
@@ -1455,36 +1440,31 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
 		  then
 		     -- ヘッダに定義されていない別ファイルの関数は除外
 		  else
-		     stream:write( "<function>" )
+		     writer:startParent( "function" )
 		     local name = db:getNamespace( item.nsId ).name
 		     name = string.gsub( name, "::[%d]+$", "" )
 		     if not string.find( name, "::", 2, true ) then
 			name = string.gsub( name, "::", "" )
 		     end
-		     stream:write( string.format(
-				      "<name>%s</name>\n",
-				      Util:convertXmlTxt( name ) ) )
+		     writer:write( "name", Util:convertXmlTxt( name ) )
 		     if fileInfo.incFlag ~= 0 then
-			stream:write(
-			   string.format(
-			      "<include>%s</include>\n",
-			      Util:convertXmlTxt( db:getSystemPath( fileInfo.path ) ) ) )
-			stream:write(
-			   string.format(
-			      "<included>%s</included>\n",
-			      currentIncSet[ fileInfo.id ] and "true" or "false" ) )
+			writer:write(
+			   "include",
+			   Util:convertXmlTxt( db:getSystemPath( fileInfo.path ) ) )
+			writer:write(
+			   "included",
+			   currentIncSet[ fileInfo.id ] and "true" or "false" )
 		     end
-		     stream:write(
-			string.format(
-			   "<declaration>%s</declaration>\n",
-			   Util:convertXmlTxt( db:getSystemPath( fileInfo.path ) ) ) )
-		     stream:write( "</function>\n" )
+		     writer:write(
+			"declaration",
+			Util:convertXmlTxt( db:getSystemPath( fileInfo.path ) ) )
+		     writer:endElement()
 		  end
 	       end
 	       return true
 	    end
 	 )
-	 stream:write( '</functionList>' )
+	 writer:endElement()
       end
    )
 end

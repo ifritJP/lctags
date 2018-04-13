@@ -3,7 +3,6 @@ local gcc = require( 'lctags.gcc' )
 local config = require( 'lctags.config' )
 local clang = require( 'libclanglua.if' )
 
-
 local Option = {}
 
 Option.orgDir = os.getenv( "PWD" )
@@ -34,6 +33,7 @@ usage:
    %s ref-at-all [--lctags-target target] [-i] file line column 
    %s def-at[a] [--lctags-target target] [-i] file line column 
    %s call-at[a] [--lctags-target target] [-i] file line column
+   %s callee-at[a] [--lctags-target target] [-i] file line column
    %s ns-at [--lctags-target target] [-i] file line column
    %s comp-at [--lctags-target target] [-i] file line column
    %s inq-at [--lctags-target target] [-i] file line column
@@ -42,7 +42,7 @@ usage:
    %s -xP[a]  [--use-global] file
    %s -c  [--use-global] symbol
    %s dcall
-   %s grep-cursors [--lctags-target target] [-i] file kind symbol 
+   %s grep-cursors [--lctags-target target] [-i] file kind symbol
 
  - graph
    %s graph <incSrc|inc|caller|callee|symbol> [-d depth] [-b|-o file] [-f type] [name]
@@ -225,6 +225,8 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.abs = string.find( arg, "a$" )
 	 elseif string.find( arg, "call-at", 1, true ) == 1 then
 	    lctagOptMap.mode = "call-at"
+	 elseif string.find( arg, "callee-at", 1, true ) == 1 then
+	    lctagOptMap.mode = "callee-at"
 	    lctagOptMap.abs = string.find( arg, "a$" )
 	 elseif arg == "ns-at" then
 	    lctagOptMap.mode = "ns-at"
@@ -315,6 +317,10 @@ function Option:analyzeOption( argList )
 	    lctagOptMap.mode = arg
 	 elseif arg == "inq-at" then
 	    lctagOptMap.mode = arg
+	 elseif arg == "inq" then
+	    lctagOptMap.mode = arg
+	    lctagOptMap.query = argList[ index + 1 ]
+	    skipArgNum = 1
 	 elseif arg == "expand" then
 	    lctagOptMap.mode = arg
 	 elseif arg == "diag" then
@@ -383,6 +389,9 @@ function Option:analyzeOption( argList )
 		  self.lockLog = true
 	       elseif arg == "--lctags-srv" then
 		  self.serviceFlag = true
+	       elseif arg == "--lctags-form" then
+		  Option.outputForm = argList[ index + 1 ]
+		  skipArgNum = 1
 	       elseif arg == "--lctags-indiv" then
 		  self.indivisualWriteFlag = true
 	       elseif arg == "--lctags-uptime" then
@@ -565,5 +574,8 @@ function Option:getOrgDir()
    return self.orgDir
 end
 
+function Option:getOutputForm()
+   return self.outputForm
+end
 
 return Option

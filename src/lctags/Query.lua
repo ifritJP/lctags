@@ -20,7 +20,7 @@ local function getPattern( pattern, symbol )
    return pattern, symbol:gsub( "_", "$_" )
 end
 
-function Query:execWithDb( db, query, target, cursorKind, limit )
+function Query:execWithDb( db, query, target, cursorKind, limit, form )
    local absFlag = query:find( "a" )
    local count = -1
    local isLimit = function()
@@ -33,6 +33,20 @@ function Query:execWithDb( db, query, target, cursorKind, limit )
    if not limit then
       isLimit = function()
 	 return false;
+      end
+   end
+
+   local output = function( db, query, target, name, item )
+      local printLine = true
+      if name == "path" and item.line == 1 then
+	 printLine = false
+      end
+      Util:printLocate( db, name, item.fileId, item.line, absFlag, printLine )
+   end
+
+   if form == "json" then
+      output = function( db, query, target, name, item )
+	 print( query, target, name )
       end
    end
 
@@ -65,13 +79,26 @@ function Query:execWithDb( db, query, target, cursorKind, limit )
       db:dumpTokenDigest( 1, target )
    elseif query == "dumpPrepro" then
       db:dumpPreproDigest( 1, target )
+   elseif query == "callee" then
+      local nsInfo = db:getNamespace( nil, target )
+      if not nsInfo then
+	 return false
+      end
+      db:mapCall(
+	 "belongNsId = " .. tostring( nsInfo.id ),
+	 function( item )
+	    if isLimit() then return false; end
+	    output( db, query, target, target, item )
+	    return true
+	 end
+      )
    elseif query:find( "P" ) then
       db:mapFile(
 	 target and string.format( "path like '%%%s%%' escape '$'",
 				   target:gsub( "_", "$_" ) ),
 	 function( item )
 	    if isLimit() then return false; end
-	    Util:printLocate( db, "path", item.id, 1, absFlag, false )
+	    output( db, query, target, "path", { fileId = item.id, line = 1 } )
 	    return true
 	 end
       )
@@ -120,7 +147,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit )
 	 target,
 	 function( item )
 	    if isLimit() then return false; end
-	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    output( db, query, target, target, item )
 	    return true
 	 end
       )
@@ -133,7 +160,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit )
 	 target,
 	 function( item )
 	    if isLimit() then return false; end
-	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    output( db, query, target, target, item )
 	    return true
 	 end
       )
@@ -149,7 +176,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit )
 	 cursorKind and { cursorKind },
 	 function( item )
 	    if isLimit() then return false; end
-	    Util:printLocate( db, item.name, item.fileId, item.line, absFlag, true )
+	    output( db, query, target, item.name, item )
 	    return true
 	 end
       )
@@ -166,7 +193,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit )
 	 "nsId = " .. tostring( nsInfo.id ),
 	 function( item )
 	    if isLimit() then return false; end
-	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    output( db, query, target, target, item )
 	    return true
 	 end
       )
@@ -178,7 +205,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit )
 	 target,
 	 function( item )
 	    if isLimit() then return false; end
-	    Util:printLocate( db, target, item.fileId, item.line, absFlag, true )
+	    output( db, query, target, target, item )
 	    return true
 	 end
       )
@@ -441,6 +468,31 @@ function Query:outputIncSrcHeader( db, file, stream )
       end
    )
 end
+
+function Query:queryFor( db, nsInfo, mode, absFlag, form )
+   mode = string.gsub( mode, "-.*", "" )
+   if mode == "ref" then
+      Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name,
+			nil, nil, form )
+   elseif mode == "def" then
+      Query:execWithDb( db, "t" .. (absFlag and "a" or ""), nsInfo.name,
+			nil, nil, form )
+   elseif mode == "call" then
+      Query:execWithDb( db, "C" .. (absFlag and "a" or ""), nsInfo.name,
+			nil, nil, form )
+   elseif mode == "callee" then
+      Query:execWithDb( db, "callee" .. (absFlag and "a" or ""), nsInfo.name,
+			nil, nil, form )
+   elseif mode == "ns" then
+      print( nsInfo.id, nsInfo.name )
+   elseif mode == "sym" then
+      print( nsInfo.id, nsInfo.name )
+   else
+      log( 1, "illegal mode", mode )
+      os.exit( 1 )
+   end
+end
+
 
 
 return Query

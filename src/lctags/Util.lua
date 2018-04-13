@@ -2,6 +2,7 @@ local Helper = require( 'lctags.Helper' )
 local Option = require( 'lctags.Option' )
 local log = require( 'lctags.LogCtrl' )
 local clang = require( 'libclanglua.if' )
+local Writer = require( 'lctags.Writer' )
 
 local Util = {}
 
@@ -175,27 +176,54 @@ function Util:convertXmlTxt( txt )
    return txt
 end
 
-function Util:outputResult( diagLevel, func, diagList )
+function Util:outputElementStart( name, form )
+   if not form then
+      stream:write( string.format( '<%s>', name ) )
+   else
+      stream:write( string.format( '%s: {', name ) )
+   end
+end
+
+function Util:outputElementEnd( name, form )
+   if not form then
+      stream:write( string.format( '</%s>', name ) )
+   else
+      stream:write( string.format( '}', name ) )
+   end
+end
+
+function Util:outputResult( diagLevel, func, diagList, form )
    local stream = io.stdout
 
-   stream:write( '<lctags_result>' )
+   local writer
+
+   if not form then
+      form = Option:getOutputForm()
+   end
+   if form == "json" then
+      writer = Writer.JSON:open( stream )
+   else
+      writer = Writer.XML:open( stream )
+   end
+
+   writer:startParent( 'lctags_result' )
 
    if not diagList then
       diagList = {}
    end
 
    if func then
-      func( diagList, stream )
+      func( diagList, writer )
    end
 
-   stream:write( '<diagnostics>' )
+   writer:startParent( 'diagnostics' )
    for index, diag in ipairs( diagList ) do
       if diag.level >= diagLevel then
-	 stream:write( '<message>' .. self:convertXmlTxt( diag.message ) .. '</message>' )
+	 writer:write( 'message', diag.message )
       end
    end
-   stream:write( '</diagnostics>' )
-   stream:write( '</lctags_result>\n' )
+   writer:endElement()
+   writer:endElement()
 end
 
 

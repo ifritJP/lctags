@@ -2070,7 +2070,7 @@ function DBCtrl:SymbolDefInfoListForCursor( cursor, func )
 end
 
 
-function DBCtrl:mapCallForCursor( cursor, func )
+function DBCtrl:mapCallForCursor( cursor, callerFlag, func )
    local kind = cursor:getCursorKind()
    if kind == clang.core.CXCursor_ParmDecl or
       kind == clang.core.CXCursor_VarDecl or
@@ -2095,17 +2095,15 @@ function DBCtrl:mapCallForCursor( cursor, func )
    for index, symbolDecl in ipairs( symbolDeclInfoList ) do
       self:mapRowList(
 	 "funcCall",
-	 "nsId = " .. tostring( symbolDecl.nsId ), nil, nil, func )
+	 (callerFlag and "nsId = " or "belongNsId = ") .. tostring( symbolDecl.nsId ),
+	 nil, nil, func )
    end
 end
-
 
 function DBCtrl:mapCall( condition, func )
    self:mapRowList(
       "funcCall", condition, nil, nil, func )
 end
-
-
 
 function DBCtrl:getSystemPath( path, baseDir )
    local cache = self.convPathCache[ path ]
@@ -2293,7 +2291,7 @@ function DBCtrl:getFileOpt( filePath, target )
       "targetInfo",
       string.format( "fileId = %d AND target = '%s'", fileInfo.id, target ) )
    compileOp = targetInfo and targetInfo.compOp
-   
+
    if not compileOp then
       return fileInfo, { config:getClangIncPathOp() }
    end

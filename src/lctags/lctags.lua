@@ -378,6 +378,20 @@ if lctagOptMap.mode == "addIncRef" then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "inq" then
+   local db = DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) )
+   local nsInfo
+
+   if lctagOptMap.query == "sym" then
+      nsInfo = db:getSimpleName( nil, srcList[ 1 ] )
+   else
+      nsInfo = db:getSimpleName( srcList[ 1 ] )
+   end
+   Query:queryFor( db, nsInfo, lctagOptMap.query, absFlag, "json" )
+   db:close()
+   finish( 0 )
+end
+
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
@@ -525,7 +539,8 @@ if lctagOptMap.mode == "updateForMake" then
 end
 
 if lctagOptMap.mode == "ref-at" or lctagOptMap.mode == "def-at" or
-   lctagOptMap.mode == "call-at" or lctagOptMap.mode == "ns-at"
+   lctagOptMap.mode == "call-at" or lctagOptMap.mode == "ns-at" or
+   lctagOptMap.mode == "callee-at"
 then
    local filePath = targetFullPath
    local fileContents
@@ -538,6 +553,15 @@ then
 		     lctagOptMap.target, fileContents )
    finish( 0 )
 end
+
+if lctagOptMap.mode == "call-for" then
+   local db = analyzer:openDBForReadOnly()
+
+   local nsInfo = db:getNamespace( srcList[1] )
+   Query:queryFor( db, nsInfo, lctagOptMap.mode, lctagOptMap.abs, "json" )
+   finish( 0 )
+end
+
 
 if lctagOptMap.mode == "ref-at-all" then
    local filePath = targetFullPath

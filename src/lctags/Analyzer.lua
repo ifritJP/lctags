@@ -8,7 +8,7 @@ local Query = require( 'lctags.Query' )
 local Util = require( 'lctags.Util' )
 local OutputCtrl = require( 'lctags.OutputCtrl' )
 local Option = require( 'lctags.Option' )
-
+local config = require( 'lctags.config' )
 
 local function dumpCursorInfo( cursor, depth, prefix, cursorOffset )
    Util:dumpCursorInfo( cursor, depth, prefix, cursorOffset )
@@ -1779,7 +1779,7 @@ function Analyzer:queryAtFunc(
       optionList, target, fileContents, func, diagList )
 end
 
-function Analyzer:outputLocation( stream, cursor, rangeSet )
+function Analyzer:outputLocation( writer, cursor, rangeSet )
    local range = cursor:getCursorExtent()
    if clang.isDeclKind( cursor:getCursorKind() ) then
       local unit = cursor:getTranslationUnit()
@@ -1815,19 +1815,15 @@ function Analyzer:outputLocation( stream, cursor, rangeSet )
    end
    rangeSet[ key ] = true
    
-   stream:write( "<location>" )
-   stream:write(
-      string.format( "<symbol>%s</symbol>", cursor:getCursorSpelling() ) )
-   stream:write(
-      string.format( "<kind>%s</kind>",
-		     clang.getCursorKindSpelling( cursor:getCursorKind() ) ) )
-   stream:write(
-      string.format( "<file>%s</file>", self:convFullpath( file:getFileName() ) ) )
-   stream:write( string.format( "<line>%d</line>", line ) )
-   stream:write( string.format( "<column>%d</column>", column ) )
-   stream:write( string.format( "<endLine>%d</endLine>", endLine ) )
-   stream:write( string.format( "<endColumn>%d</endColumn>", endColumn ) )
-   stream:write( "</location>\n" )
+   writer:startParent( "location" )
+   writer:write( "symbol", cursor:getCursorSpelling() )
+   writer:write( "kind", clang.getCursorKindSpelling( cursor:getCursorKind() ) )
+   writer:write( "file", self:convFullpath( file:getFileName() ) )
+   writer:write( "line", line )
+   writer:write( "column", column )
+   writer:write( "endLine", endLine )
+   writer:write( "endColumn", endColumn )
+   writer:endElement()
 
    
 end
@@ -1965,18 +1961,17 @@ function Analyzer:refAt(
 
    Util:outputResult(
       clang.core.CXDiagnostic_Error,
-      function()
-	 stream:write( "<ref>\n" )
+      function( diagList, writer )
+	 writer:startParent( "ref" )
 	 local rangeSet = {}
 	 for infdex, locationSet in ipairs( locationSetList ) do
-	    stream:write( "<locationSet>" )
+	    writer:startParent( "locationSet" )
 	    for index2, cursor in ipairs( locationSet ) do
-	       self:outputLocation( stream, cursor, rangeSet )
+	       self:outputLocation( writer, cursor, rangeSet )
 	    end
-	    stream:write( "</locationSet>" )
+	    writer:endElement()
 	 end
-	 
-	 stream:write( "</ref>" )
+	 writer:endElement()
       end,
       diagList)
 
@@ -1987,24 +1982,15 @@ end
 
 function Analyzer:queryAt(
       mode, filePath, line, column, absFlag, target, fileContents, diagList )
+   
    self:queryAtFunc(
-      filePath, line, column, target, mode == "call-at", fileContents, diagList, 
+      filePath, line, column, target,
+      mode == "call-at" or mode == "callee-at", fileContents, diagList, 
       function( db, targetFileId, nsInfo, declCursor, cursor )
 	 log( 2, "queryAt", nsInfo and nsInfo.name )
 
 	 if nsInfo then
-	    if mode == "ref-at" then
-	       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name )
-	    elseif mode == "def-at" then
-	       Query:execWithDb( db, "t" .. (absFlag and "a" or ""), nsInfo.name )
-	    elseif mode == "call-at" then
-	       Query:execWithDb( db, "C" .. (absFlag and "a" or ""), nsInfo.name )
-	    elseif mode == "ns-at" then
-	       print( nsInfo.id, nsInfo.name )
-	    else
-	       log( 1, "illegal mode", mode )
-	       os.exit( 1 )
-	    end
+	    Query:queryFor( db, nsInfo, mode, absFlag )
 	 else
 	    local kind = declCursor:getCursorKind()
 	    if mode == "ref-at" then
@@ -2038,9 +2024,9 @@ function Analyzer:queryAt(
 		     end	 
 		  )
 	       end
-	    elseif mode == "call-at" then
+	    elseif mode == "call-at" or mode == "callee-at" then
 	       db:mapCallForCursor(
-		  declCursor,
+		  declCursor, mode == "call-at",
 		  function( item )
 		     local nsInfo = db:getNamespace( item.nsId )
 		     Util:printLocate(
@@ -2400,7 +2386,7 @@ function Analyzer:expandMacro( filePath, target, conf )
 	 db:getSystemPath( workFileInfo.path ), target )
    end
    
-   local clangIncPath = conf:getClangIncPath()
+   local clangIncPath = config:getClangIncPath()
    local compileOp = "gcc -c -E "
    for index, option in ipairs( optionList ) do
       if option:find( "-std=", 1, true ) ~= 1 and
@@ -2450,6 +2436,5 @@ function Analyzer:expandMacro( filePath, target, conf )
 
    db:close()
 end
-
 
 return Analyzer
