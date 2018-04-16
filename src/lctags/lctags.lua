@@ -387,7 +387,7 @@ if lctagOptMap.mode == "inq" then
    else
       nsInfo = db:getSimpleName( srcList[ 1 ] )
    end
-   Query:queryFor( db, nsInfo, lctagOptMap.query, absFlag, "json" )
+   Query:queryFor( db, nsInfo, lctagOptMap.query, absFlag, Option:getOutputForm() )
    db:close()
    finish( 0 )
 end

@@ -53,19 +53,25 @@ end
 
 function Util:printLocate(
       db, symbol, fileId, line, absFlag, printLine, fileContents )
-   local fileInfo = db:getFileInfo( fileId )
-   if fileInfo then
-      if fileInfo.path == "" then
-	 log( 2, "skip system file" )
-	 return
-      end
+   local path
+   if type( fileId ) == "string" then
+      path = fileId
    else
+      local fileInfo = db:getFileInfo( fileId )
+      if fileInfo then
+	 if fileInfo.path == "" then
+	    log( 2, "skip system file" )
+	    return
+	 end
+      else
 	 log( 2, "unknown fileId", fileId )
 	 return
+      end
+      path = fileInfo.path
    end
    
    local baseDir = absFlag and "" or os.getenv( "PWD" )
-   local path = db:getSystemPath( fileInfo.path, baseDir )
+   path = db:getSystemPath( path, baseDir )
    self:printLocateDirect( io.stdout, symbol, path, line, printLine, fileContents )
 end
 
@@ -216,7 +222,7 @@ function Util:outputResult( diagLevel, func, diagList, form )
       func( diagList, writer )
    end
 
-   writer:startParent( 'diagnostics' )
+   writer:startParent( 'diagnostics', true )
    for index, diag in ipairs( diagList ) do
       if diag.level >= diagLevel then
 	 writer:write( 'message', diag.message )
@@ -224,6 +230,8 @@ function Util:outputResult( diagLevel, func, diagList, form )
    end
    writer:endElement()
    writer:endElement()
+
+   writer:fin()
 end
 
 

@@ -6,6 +6,7 @@
 
 local log = require( 'lctags.LogCtrl' )
 local Util = require( 'lctags.Util' )
+local Writer = require( 'lctags.Writer' )
 
 local Query = {}
 
@@ -38,15 +39,38 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 
    local output = function( db, query, target, name, item )
       local printLine = true
+      local id = item.fileId
       if name == "path" and item.line == 1 then
 	 printLine = false
+	 if query == "dumpDir" then
+	    id = item.path
+	 end
       end
       Util:printLocate( db, name, item.fileId, item.line, absFlag, printLine )
    end
 
-   if form == "json" then
+   if form then
+      if form == "json" then
+	 writer = Writer.JSON:open( io.stdout )
+      else
+	 writer = Writer.XML:open( io.stdout )
+      end
+      writer:startParent( "lctags_result" )
+      writer:startParent( query, true )
       output = function( db, query, target, name, item )
-	 print( query, target, name )
+	 local outputInfo = nil
+	 if query == "dumpDir" then
+	    outputInfo = function( item )
+	       writer:write( "path", item.path )
+	    end
+	 end
+	 if outputInfo then
+	    outputInfo( item )
+	 else
+	    for key, val in pairs( item ) do
+	       writer:write( key, val )
+	    end
+	 end
       end
    end
 
@@ -99,6 +123,20 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	 function( item )
 	    if isLimit() then return false; end
 	    output( db, query, target, "path", { fileId = item.id, line = 1 } )
+	    return true
+	 end
+      )
+   elseif query == "dumpDir" then
+      local dirSet = {}
+      db:mapFile(
+	 nil,
+	 function( item )
+	    local path = string.gsub( item.path, "/[^/]+$", "" )
+	    if not dirSet[ path ] then
+	       dirSet[ path ] = true
+	       output( db, query, target, "path",
+		       { path = path, fileId = item.id, line = 1 } )
+	    end
 	    return true
 	 end
       )
@@ -209,6 +247,11 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	    return true
 	 end
       )
+   end
+
+   if form == "json" then
+      writer:endElement()
+      writer:endElement()
    end
 end
 
@@ -487,6 +530,8 @@ function Query:queryFor( db, nsInfo, mode, absFlag, form )
       print( nsInfo.id, nsInfo.name )
    elseif mode == "sym" then
       print( nsInfo.id, nsInfo.name )
+   elseif mode == "dumpDir" then
+      Query:execWithDb( db, mode .. (absFlag and "a" or ""), "", nil, nil, form )
    else
       log( 1, "illegal mode", mode )
       os.exit( 1 )

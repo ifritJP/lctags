@@ -1,0 +1,640 @@
+lua lctags/lctags.lua --lctags-form json dump all >> dump
+lua lctags/lctags.lua --lctags-form json -x sub
+sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+sub                 8 ./test/comp.cpp    static int sub() {
+sub                 8 ./test/comp-2.cpp   static int sub() {
+sub                 7 ./test/comp2.cpp   static int sub()
+sub                 7 ./test/comp3.cpp   static int sub()
+sub                 7 ./test/comp4.cpp   static int sub()
+sub                 7 ./test/comp5.cpp   static int sub()
+sub                46 ./test/comp6.cpp     int sub()
+sub                46 ./test/comp7.cpp     int sub()
+sub                46 ./test/comp8.cpp     int sub()
+sub                46 ./test/comp9.cpp     int sub()
+sub                46 ./test/comp10.cpp     int sub()
+sub                 9 ./test/comp16.cpp void sub( DATA * pData )
+sub                 5 ./test/comp17.cpp void sub( DATA * pData )
+sub                 4 ./test/comp19.cpp void sub( int val )
+sub                 3 ./test/stdinc.cpp static void sub( void )
+sub                 4 ./test/stack.cpp static void sub();
+sub                52 ./test/stack.cpp static void sub()
+sub                 6 ./test/enum.cpp  static void sub( eval_t val )
+sub                 6 ./test/enum2.cpp static void sub( eval_t val )
+sub                 5 ./test/enum3.cpp static eval_t sub( void )
+sub                21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+sub                 3 ./test/inctest.cpp void sub( void )
+lua lctags/lctags.lua --lctags-form json -x ccccc
+ccccc               6 ./test/field.h   
+ccccc               6 ./test/field.h   
+ccccc               6 ./test/field.h   
+lua lctags/lctags.lua --lctags-form json -xr enum_val1
+enum_val1          18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
+enum_val1         195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
+enum_val1         237 ./test/hoge.cpp              return enum_val1;
+enum_val1         316 ./test/hoge.cpp  static int s_vals[] = { enum_val1, enum_val2 };
+enum_val1         326 ./test/hoge.cpp        int val2[] = { enum_val1 };
+enum_val1          12 ./test/sample.c      case enum_val1:
+enum_val1          23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
+enum_val1          28 ./test/highlight.cpp     pVal3[0]->val = enum_val1;
+lua lctags/lctags.lua --lctags-form json -c sub
+sub2
+sub
+sub_t
+sub2_t
+Sub
+substr
+lua lctags/lctags.lua --lctags-form json -c sub$
+FPE_FLTSUB
+__tgmath_real_type_sub
+sub
+pSub
+Sub
+func10__sub
+lua lctags/lctags.lua --lctags-form json -c %sub
+FP_SUBNORMAL
+FPE_FLTSUB
+getsubopt
+__tgmath_real_type_sub
+sub2
+sub
+sub_t
+sub2_t
+pSub
+pSub2
+Sub
+__glibcxx_requires_subscript
+substr
+func10__sub
+lua lctags/lctags.lua --lctags-form json -xT sub
+::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+::ns1::ns31::sub2  259 ./test/hoge.cpp          void sub2() {
+::ns1::sub2       264 ./test/hoge.cpp    struct yyyy sub2() {
+::Test1::sub        8 ./test/comp.cpp    static int sub() {
+::Test1::sub        8 ./test/comp-2.cpp   static int sub() {
+::Test1::sub        7 ./test/comp2.cpp   static int sub()
+::Test1::sub        7 ./test/comp3.cpp   static int sub()
+::Test1::sub        7 ./test/comp4.cpp   static int sub()
+::Test1::sub        7 ./test/comp5.cpp   static int sub()
+::ns1::ns2::sub    46 ./test/comp6.cpp     int sub()
+::ns71::ns72::sub   46 ./test/comp7.cpp     int sub()
+::ns81::ns82::sub   46 ./test/comp8.cpp     int sub()
+::ns91::ns92::sub   46 ./test/comp9.cpp     int sub()
+::ns101::ns102::sub   46 ./test/comp10.cpp     int sub()
+::sub               9 ./test/comp16.cpp void sub( DATA * pData )
+::sub               5 ./test/comp17.cpp void sub( DATA * pData )
+::sub_t             1 ./test/comp18.cpp typedef void sub_t(void);
+::sub2_t            2 ./test/comp18.cpp typedef void (sub2_t)(void);
+::sub               4 ./test/comp19.cpp void sub( int val )
+::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
+::Sub              11 ./test/class3.cpp template <typename T>
+::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
+::sub::188          3 ./test/stdinc.cpp static void sub( void )
+::sub::189          4 ./test/stack.cpp static void sub();
+::sub::189         52 ./test/stack.cpp static void sub()
+::sub::195          6 ./test/enum.cpp  static void sub( eval_t val )
+::sub::196          6 ./test/enum2.cpp static void sub( eval_t val )
+::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
+::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+::sub               3 ./test/inctest.cpp void sub( void )
+lua lctags/lctags.lua --lctags-form json -xT sub$
+::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
+::@enum::<enum_anonymous>::FPE_FLTSUB  222 /usr/include/x86_64-linux-gnu/bits/siginfo.h   FPE_FLTSUB			/* Subscript out of range.  */
+::__tgmath_real_type_sub   60 /usr/include/tgmath.h # define __tgmath_real_type_sub(T, E) \
+::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+::Test1::sub        8 ./test/comp.cpp    static int sub() {
+::Test1::sub        8 ./test/comp-2.cpp   static int sub() {
+::Test1::sub        7 ./test/comp2.cpp   static int sub()
+::Test1::sub        7 ./test/comp3.cpp   static int sub()
+::Test1::sub        7 ./test/comp4.cpp   static int sub()
+::Test1::sub        7 ./test/comp5.cpp   static int sub()
+::ns1::ns2::sub    46 ./test/comp6.cpp     int sub()
+::ns71::ns72::sub   46 ./test/comp7.cpp     int sub()
+::ns81::ns82::sub   46 ./test/comp8.cpp     int sub()
+::ns91::ns92::sub   46 ./test/comp9.cpp     int sub()
+::ns101::ns102::sub   46 ./test/comp10.cpp     int sub()
+::sub               9 ./test/comp16.cpp void sub( DATA * pData )
+::sub               5 ./test/comp17.cpp void sub( DATA * pData )
+::@struct::<struct_TEST>::pSub    4 ./test/comp18.cpp     sub_t * pSub;
+::sub               4 ./test/comp19.cpp void sub( int val )
+::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
+::Sub              11 ./test/class3.cpp template <typename T>
+::sub::188          3 ./test/stdinc.cpp static void sub( void )
+::sub::189          4 ./test/stack.cpp static void sub();
+::sub::189         52 ./test/stack.cpp static void sub()
+::func10__sub::193  193 ./test/split.cpp static void func10__sub( type_t* ptype )
+::sub::195          6 ./test/enum.cpp  static void sub( eval_t val )
+::sub::196          6 ./test/enum2.cpp static void sub( eval_t val )
+::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
+::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+::sub               3 ./test/inctest.cpp void sub( void )
+lua lctags/lctags.lua --lctags-form json -xT %sub
+::FP_SUBNORMAL    221 /usr/include/math.h # define FP_SUBNORMAL 3
+::@enum::<enum_anonymous>::FP_SUBNORMAL  220 /usr/include/math.h     FP_SUBNORMAL =
+::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
+::@enum::<enum_anonymous>::FPE_FLTSUB  222 /usr/include/x86_64-linux-gnu/bits/siginfo.h   FPE_FLTSUB			/* Subscript out of range.  */
+::getsubopt       898 /usr/include/stdlib.h extern int getsubopt (char **__restrict __optionp,
+::__tgmath_real_type_sub   60 /usr/include/tgmath.h # define __tgmath_real_type_sub(T, E) \
+::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
+::ns1::ns31::sub2  259 ./test/hoge.cpp          void sub2() {
+::ns1::sub2       264 ./test/hoge.cpp    struct yyyy sub2() {
+::Test1::sub        8 ./test/comp.cpp    static int sub() {
+::Test1::sub        8 ./test/comp-2.cpp   static int sub() {
+::Test1::sub        7 ./test/comp2.cpp   static int sub()
+::Test1::sub        7 ./test/comp3.cpp   static int sub()
+::Test1::sub        7 ./test/comp4.cpp   static int sub()
+::Test1::sub        7 ./test/comp5.cpp   static int sub()
+::ns1::ns2::sub    46 ./test/comp6.cpp     int sub()
+::ns71::ns72::sub   46 ./test/comp7.cpp     int sub()
+::ns81::ns82::sub   46 ./test/comp8.cpp     int sub()
+::ns91::ns92::sub   46 ./test/comp9.cpp     int sub()
+::ns101::ns102::sub   46 ./test/comp10.cpp     int sub()
+::sub               9 ./test/comp16.cpp void sub( DATA * pData )
+::sub               5 ./test/comp17.cpp void sub( DATA * pData )
+::sub_t             1 ./test/comp18.cpp typedef void sub_t(void);
+::sub2_t            2 ./test/comp18.cpp typedef void (sub2_t)(void);
+::@struct::<struct_TEST>::pSub    4 ./test/comp18.cpp     sub_t * pSub;
+::@struct::<struct_TEST>::pSub2    5 ./test/comp18.cpp     sub2_t * pSub2;
+::sub               4 ./test/comp19.cpp void sub( int val )
+::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
+::Sub              11 ./test/class3.cpp template <typename T>
+::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
+::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
+::sub::188          3 ./test/stdinc.cpp static void sub( void )
+::sub::189          4 ./test/stack.cpp static void sub();
+::sub::189         52 ./test/stack.cpp static void sub()
+::func10__sub::193  193 ./test/split.cpp static void func10__sub( type_t* ptype )
+::sub::195          6 ./test/enum.cpp  static void sub( eval_t val )
+::sub::196          6 ./test/enum2.cpp static void sub( eval_t val )
+::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
+::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
+::sub               3 ./test/inctest.cpp void sub( void )
+lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 14 15
+::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
+::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
+::int_t           124 ./test/hoge.cpp  void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] );
+::int_t           127 ./test/hoge.cpp  void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] )
+::int_t           129 ./test/hoge.cpp      int_t array2Int[ ARRAY_LENGTH ][ ARRAY_LENGTH ];
+lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 44 8
+::@struct::yyyy::kkkk  266 ./test/hoge.cpp      aYYYYY.kkkk = 0;
+lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 236 23
+::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
+lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 237 23 | sort
+::@enum::<enum_enum_t>::enum_val1   12 ./test/sample.c      case enum_val1:
+::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
+::@enum::<enum_enum_t>::enum_val1   23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
+::@enum::<enum_enum_t>::enum_val1   28 ./test/highlight.cpp     pVal3[0]->val = enum_val1;
+::@enum::<enum_enum_t>::enum_val1  195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
+::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
+::@enum::<enum_enum_t>::enum_val1  316 ./test/hoge.cpp  static int s_vals[] = { enum_val1, enum_val2 };
+::@enum::<enum_enum_t>::enum_val1  326 ./test/hoge.cpp        int val2[] = { enum_val1 };
+lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 253 18
+::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
+::printf           31 ./test/split.cpp   printf( "val = %d, s_vals[0]=%d, aaa[0] = %d, val4 = %d, abcddd[0][0] = %d\n",
+::printf           99 ./test/split.cpp             printf( "funcRet__ = %d, typ.val = %d, typArray[0].val = %d\n",
+lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 204 18
+::ns1::g_global   153 ./test/hoge.cpp      int g_global = 0;
+lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 168 15
+::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
+lua lctags/lctags.lua --lctags-form json call-at test/hoge.cpp 267 15
+::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
+::Callback_t      196 ./test/hoge.cpp              callback( NULL );
+::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
+::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
+lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 230 18
+::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
+lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 231 20
+::Callback_t      218 ./test/hoge.cpp          int func3( Callback_t * pCallback ) {
+lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 284 3
+lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 299 12
+::rootval         299 ./test/hoge.cpp    int rootval;
+lua lctags/lctags.lua --lctags-form json expand test/hoge.cpp 316 29
+{"lctags_result": {"completion": {"prefix": "","candidateList": [{"candidate": {"canonical": "enum_val1","simple": "enum_val1","expand": "","kind": "E","type": "::@enum::<enum_enum_t>","result": "",,"val": "0","file": "NDIR/test/hoge.cpp","startPos": {"line": "16","column": "16"},"endPos": {"line": "16","column": "25"}}},{"candidate": {"canonical": "enum_val2","simple": "enum_val2","expand": "","kind": "E","type": "::@enum::<enum_enum_t>","result": "",,"val": "1","file": "NDIR/test/hoge.cpp","startPos": {"line": "17","column": "9"},"endPos": {"line": "17","column": "18"}}},{"candidate": {"canonical": "enum_val3","simple": "enum_val3","expand": "","kind": "E","type": "::@enum::<enum_enum_t>","result": "",,"val": "1000","file": "NDIR/test/hoge.cpp","startPos": {"line": "18","column": "9"},"endPos": {"line": "18","column": "37"}}}]},"diagnostics": [{"message": "NDIR/test/hoge.cpp:316: error: expected ';' after top level declarator"}]}}
+rm -f graph.sample/*
+mkdir -f graph.sample
+makefile:306: recipe for target 'test-query' failed
+lua lctags/lctags.lua --lctags-form json graph caller ::Callback_t -o graph.sample/caller.svg
+lua lctags/lctags.lua --lctags-form json graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
+lua lctags/lctags.lua --lctags-form json graph inc test/hoge.cpp -o graph.sample/inc.png -f png
+lua lctags/lctags.lua --lctags-form json graph incSrc 5 -o graph.sample/incSrc.svg
+lua lctags/lctags.lua --lctags-form json graph symbol ::ns1::g_global -o graph.sample/symbol.svg
+lua lctags/lctags.lua --lctags-form json graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
+lua lctags/lctags.lua --lctags-form json graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
+lua lctags/lctags.lua --lctags-form json graph-at symbol test/hoge.cpp 107 18 -o graph.sample/at-symbol.svg
+lua lctags/lctags.lua --lctags-form json list inc test/hoge.cpp -d 2
+path                1 NDIR/test/field.h 
+path                1 NDIR/test/hoge.cpp 
+path                1 NDIR/test/hoge.h 
+path                1 /usr/include/stdio.h 
+path                1 /usr/include/time.h 
+lua lctags/lctags.lua --lctags-form json inq-at test/hoge.cpp 237 24
+{"lctags_result": {"completion": {"prefix": "","candidateList": [{"candidate": {"canonical": "enum_val1","simple": "enum_val1","expand": "","kind": "E","type": "::@enum::<enum_enum_t>","result": "",,"val": "0","file": "NDIR/test/hoge.cpp","startPos": {"line": "16","column": "16"},"endPos": {"line": "16","column": "25"}}},{"candidate": {"canonical": "enum_val2","simple": "enum_val2","expand": "","kind": "E","type": "::@enum::<enum_enum_t>","result": "",,"val": "1","file": "NDIR/test/hoge.cpp","startPos": {"line": "17","column": "9"},"endPos": {"line": "17","column": "18"}}},{"candidate": {"canonical": "enum_val3","simple": "enum_val3","expand": "","kind": "E","type": "::@enum::<enum_enum_t>","result": "",,"val": "1000","file": "NDIR/test/hoge.cpp","startPos": {"line": "18","column": "9"},"endPos": {"line": "18","column": "37"}}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 212 19
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "pClass->","compMode": "member","candidateList": [{"candidate": {"canonical": "pCallback( TEST * pTest )","simple": "pCallback( TEST * pTest )","expand": "->","kind": "f","type": "Callback_t *","result": "ZZZZ",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "165","column": "9"},"endPos": {"line": "165","column": "31"}}},{"candidate": {"canonical": "z1","simple": "z1","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "167","column": "11"},"endPos": {"line": "167","column": "17"}}},{"candidate": {"canonical": "z2","simple": "z2","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "168","column": "11"},"endPos": {"line": "168","column": "17"}}},{"candidate": {"canonical": "z3","simple": "z3","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "171","column": "11"},"endPos": {"line": "171","column": "17"}}},{"candidate": {"canonical": "z4","simple": "z4","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "172","column": "11"},"endPos": {"line": "172","column": "17"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": []}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 236 15
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "val.","compMode": "member","candidateList": [{"candidate": {"canonical": "pCallback( TEST * pTest )","simple": "pCallback( TEST * pTest )","expand": "->","kind": "f","type": "Callback_t *","result": "ZZZZ",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "157","column": "9"},"endPos": {"line": "157","column": "31"}}},{"candidate": {"canonical": "abcd","simple": "abcd","expand": ".","kind": "m","type": "struct (anonymous struct at NDIR/test/hoge.cpp:158:9)","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "158","column": "9"},"endPos": {"line": "160","column": "15"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": [{"candidate": {"canonical": "efgh","simple": "efgh","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "159","column": "11"},"endPos": {"line": "159","column": "19"}}}]}},{"typeInfo": {,"candidateList": []}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 235 18
+{"lctags_result": {"completion": {"prefix": "","candidateList": [{"candidate": {"canonical": "::ns1::g_global","simple": "g_global","expand": "","kind": "v","type": "","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "153","column": "5"},"endPos": {"line": "153","column": "0"}}},{"candidate": {"canonical": "::ns1::ns2","simple": "ns2","expand": "","kind": "n","type": "","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "163","column": "5"},"endPos": {"line": "247","column": "0"}}},{"candidate": {"canonical": "::ns1::ns31","simple": "ns31","expand": "","kind": "n","type": "","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "249","column": "5"},"endPos": {"line": "262","column": "0"}}},{"candidate": {"canonical": "::ns1::struct_func_t","simple": "struct_func_t","expand": "","kind": "t","type": "","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "156","column": "5"},"endPos": {"line": "161","column": "0"}}},{"candidate": {"canonical": "::ns1::sub2","simple": "sub2","expand": "","kind": "f","type": "","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "264","column": "3"},"endPos": {"line": "269","column": "0"}}},{"candidate": {"canonical": "::ns1::s_static::84","simple": "s_static","expand": "","kind": "v","type": "","result": "",,"val": "","file": "NDIR/test/hoge.cpp","startPos": {"line": "154","column": "5"},"endPos": {"line": "154","column": "0"}}}]},"diagnostics": [{"message": "NDIR/test/hoge.cpp:235: error: unexpected namespace name 'ns1': expected expression"}]}}
+lua lctags/lctags.lua --lctags-form json dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
+makefile:306: recipe for target 'test-query' failed
+lua lctags/lctags.lua --lctags-form json comp-at test/comp.cpp 26 17
+{"lctags_result": {"completion": {"prefix": "me","frontExpr": "pTest1->","compMode": "member","candidateList": [{"candidate": {"canonical": "member","simple": "member","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/comp.cpp","startPos": {"line": "5","column": "3"},"endPos": {"line": "5","column": "13"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp-2.cpp 25 16
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "pTest1->pTest->","compMode": "member","candidateList": [{"candidate": {"canonical": "pTest","simple": "pTest","expand": "->","kind": "m","type": "Test1 *","result": "",,"val": "","file": "NDIR/test/comp-2.cpp","startPos": {"line": "17","column": "3"},"endPos": {"line": "17","column": "16"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": [{"candidate": {"canonical": "member","simple": "member","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/comp-2.cpp","startPos": {"line": "5","column": "3"},"endPos": {"line": "5","column": "13"}}},{"candidate": {"canonical": "pTest","simple": "pTest","expand": "->","kind": "m","type": "Test2 *","result": "",,"val": "","file": "NDIR/test/comp-2.cpp","startPos": {"line": "7","column": "3"},"endPos": {"line": "7","column": "16"}}},{"candidate": {"canonical": "sub()","simple": "sub()","expand": "","kind": "f","type": "int ()","result": "int",,"val": "","file": "NDIR/test/comp-2.cpp","startPos": {"line": "8","column": "3"},"endPos": {"line": "10","column": "4"}}},{"candidate": {"canonical": "func()","simple": "func()","expand": "","kind": "f","type": "int ()","result": "int",,"val": "","file": "NDIR/test/comp-2.cpp","startPos": {"line": "11","column": "3"},"endPos": {"line": "13","column": "4"}}}]}},{"typeInfo": {,"candidateList": [{"candidate": {"canonical": "pTest","simple": "pTest","expand": "->","kind": "m","type": "Test1 *","result": "",,"val": "","file": "NDIR/test/comp-2.cpp","startPos": {"line": "17","column": "3"},"endPos": {"line": "17","column": "16"}}}]}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp2.cpp 31 10
+{"lctags_result": {"completion": {"prefix": "f","frontExpr": "hoge()->","compMode": "member","candidateList": [{"candidate": {"canonical": "func()","simple": "func()","expand": "","kind": "f","type": "int ()","result": "int",,"val": "","file": "NDIR/test/comp2.cpp","startPos": {"line": "11","column": "3"},"endPos": {"line": "13","column": "4"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp3.cpp 31 25
+{"lctags_result": {"completion": {"prefix": "s","frontExpr": "hoge(1,2)->","compMode": "member","candidateList": [{"candidate": {"canonical": "sub()","simple": "sub()","expand": "","kind": "f","type": "int ()","result": "int",,"val": "","file": "NDIR/test/comp3.cpp","startPos": {"line": "7","column": "3"},"endPos": {"line": "10","column": "4"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp4.cpp 31 17
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "((Test1*)NULL)->","compMode": "member","candidateList": [{"candidate": {"canonical": "member","simple": "member","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/comp4.cpp","startPos": {"line": "5","column": "3"},"endPos": {"line": "5","column": "13"}}},{"candidate": {"canonical": "sub()","simple": "sub()","expand": "","kind": "f","type": "int ()","result": "int",,"val": "","file": "NDIR/test/comp4.cpp","startPos": {"line": "7","column": "3"},"endPos": {"line": "10","column": "4"}}},{"candidate": {"canonical": "func()","simple": "func()","expand": "","kind": "f","type": "int ()","result": "int",,"val": "","file": "NDIR/test/comp4.cpp","startPos": {"line": "11","column": "3"},"endPos": {"line": "13","column": "4"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp5.cpp 31 18
+{"lctags_result": {"completion": {"prefix": "f","frontExpr": "((Test1*)NULL)->","compMode": "member","candidateList": [{"candidate": {"canonical": "func()","simple": "func()","expand": "","kind": "f","type": "int ()","result": "int",,"val": "","file": "NDIR/test/comp5.cpp","startPos": {"line": "11","column": "3"},"endPos": {"line": "13","column": "4"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp6.cpp 48 6
+{"lctags_result": {"completion": {"prefix": "TE","candidateList": [{"candidate": {"canonical": "::TEST601","simple": "TEST601","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "9","column": "1"},"endPos": {"line": "9","column": "0"}}},{"candidate": {"canonical": "::TEST602","simple": "TEST602","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "10","column": "1"},"endPos": {"line": "10","column": "0"}}},{"candidate": {"canonical": "::TEST603","simple": "TEST603","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "11","column": "1"},"endPos": {"line": "11","column": "0"}}},{"candidate": {"canonical": "::ns1::TEST63","simple": "TEST63","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "22","column": "3"},"endPos": {"line": "22","column": "0"}}},{"candidate": {"canonical": "::ns1::TEST62","simple": "TEST62","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "21","column": "3"},"endPos": {"line": "21","column": "0"}}},{"candidate": {"canonical": "::ns1::TEST61","simple": "TEST61","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "20","column": "3"},"endPos": {"line": "20","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST60>::TEST60_1","simple": "TEST60_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "4","column": "3"},"endPos": {"line": "4","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST60>::TEST60_2","simple": "TEST60_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "5","column": "3"},"endPos": {"line": "5","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST60>::TEST60_3","simple": "TEST60_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "6","column": "3"},"endPos": {"line": "6","column": "0"}}},{"candidate": {"canonical": "::ns1::ns2::TEST613","simple": "TEST613","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "33","column": "5"},"endPos": {"line": "33","column": "0"}}},{"candidate": {"canonical": "::ns1::ns2::TEST612","simple": "TEST612","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "32","column": "5"},"endPos": {"line": "32","column": "0"}}},{"candidate": {"canonical": "::ns1::ns2::TEST611","simple": "TEST611","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "31","column": "5"},"endPos": {"line": "31","column": "0"}}},{"candidate": {"canonical": "::ns1::@enum::<enum_enum_TEST6>::TEST6_1","simple": "TEST6_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "15","column": "5"},"endPos": {"line": "15","column": "0"}}},{"candidate": {"canonical": "::ns1::@enum::<enum_enum_TEST6>::TEST6_2","simple": "TEST6_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "16","column": "5"},"endPos": {"line": "16","column": "0"}}},{"candidate": {"canonical": "::ns1::@enum::<enum_enum_TEST6>::TEST6_3","simple": "TEST6_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "17","column": "5"},"endPos": {"line": "17","column": "0"}}},{"candidate": {"canonical": "::ns1::ns2::@enum::<enum_enum_TEST62>::TEST62_1","simple": "TEST62_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "26","column": "7"},"endPos": {"line": "26","column": "0"}}},{"candidate": {"canonical": "::ns1::ns2::@enum::<enum_enum_TEST62>::TEST62_2","simple": "TEST62_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "27","column": "7"},"endPos": {"line": "27","column": "0"}}},{"candidate": {"canonical": "::ns1::ns2::@enum::<enum_enum_TEST62>::TEST62_3","simple": "TEST62_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp6.cpp","startPos": {"line": "28","column": "7"},"endPos": {"line": "28","column": "0"}}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp7.cpp 48 17
+{"lctags_result": {"completion": {"prefix": "","candidateList": [{"candidate": {"canonical": "::ns71::ns72::ns73","simple": "ns73","expand": "","kind": "n","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "35","column": "5"},"endPos": {"line": "45","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::sub","simple": "sub","expand": "","kind": "f","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "46","column": "5"},"endPos": {"line": "49","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::TEST713","simple": "TEST713","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "33","column": "5"},"endPos": {"line": "33","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::TEST712","simple": "TEST712","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "32","column": "5"},"endPos": {"line": "32","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::TEST711","simple": "TEST711","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "31","column": "5"},"endPos": {"line": "31","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::enum_TEST72","simple": "enum_TEST72","expand": "","kind": "t","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "25","column": "5"},"endPos": {"line": "29","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::@enum::<enum_enum_TEST72>::TEST72_1","simple": "TEST72_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "26","column": "7"},"endPos": {"line": "26","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::@enum::<enum_enum_TEST72>::TEST72_2","simple": "TEST72_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "27","column": "7"},"endPos": {"line": "27","column": "0"}}},{"candidate": {"canonical": "::ns71::ns72::@enum::<enum_enum_TEST72>::TEST72_3","simple": "TEST72_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp7.cpp","startPos": {"line": "28","column": "7"},"endPos": {"line": "28","column": "0"}}}]},"diagnostics": [{"message": "NDIR/test/comp7.cpp:48: error: unexpected namespace name 'ns72': expected expression"}]}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp8.cpp 48 13
+{"lctags_result": {"completion": {"prefix": "TE","candidateList": [{"candidate": {"canonical": "::ns81::TEST83","simple": "TEST83","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp8.cpp","startPos": {"line": "22","column": "3"},"endPos": {"line": "22","column": "0"}}},{"candidate": {"canonical": "::ns81::TEST82","simple": "TEST82","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp8.cpp","startPos": {"line": "21","column": "3"},"endPos": {"line": "21","column": "0"}}},{"candidate": {"canonical": "::ns81::TEST81","simple": "TEST81","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp8.cpp","startPos": {"line": "20","column": "3"},"endPos": {"line": "20","column": "0"}}},{"candidate": {"canonical": "::ns81::@enum::<enum_enum_TEST8>::TEST8_1","simple": "TEST8_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp8.cpp","startPos": {"line": "15","column": "5"},"endPos": {"line": "15","column": "0"}}},{"candidate": {"canonical": "::ns81::@enum::<enum_enum_TEST8>::TEST8_2","simple": "TEST8_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp8.cpp","startPos": {"line": "16","column": "5"},"endPos": {"line": "16","column": "0"}}},{"candidate": {"canonical": "::ns81::@enum::<enum_enum_TEST8>::TEST8_3","simple": "TEST8_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp8.cpp","startPos": {"line": "17","column": "5"},"endPos": {"line": "17","column": "0"}}}]},"diagnostics": [{"message": "NDIR/test/comp8.cpp:48: error: unexpected namespace name 'ns81': expected expression"}]}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp9.cpp 48 8
+{"lctags_result": {"completion": {"prefix": "T","candidateList": [{"candidate": {"canonical": "::TEST901","simple": "TEST901","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp9.cpp","startPos": {"line": "9","column": "1"},"endPos": {"line": "9","column": "0"}}},{"candidate": {"canonical": "::TEST902","simple": "TEST902","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp9.cpp","startPos": {"line": "10","column": "1"},"endPos": {"line": "10","column": "0"}}},{"candidate": {"canonical": "::TEST903","simple": "TEST903","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp9.cpp","startPos": {"line": "11","column": "1"},"endPos": {"line": "11","column": "0"}}},{"candidate": {"canonical": "::TMP_MAX","simple": "TMP_MAX","expand": "","kind": "M","type": "","result": "",,"val": "","file": "/usr/include/x86_64-linux-gnu/bits/stdio_lim.h","startPos": {"line": "24","column": "10"},"endPos": {"line": "24","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST90>::TEST90_1","simple": "TEST90_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp9.cpp","startPos": {"line": "4","column": "3"},"endPos": {"line": "4","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST90>::TEST90_2","simple": "TEST90_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp9.cpp","startPos": {"line": "5","column": "3"},"endPos": {"line": "5","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST90>::TEST90_3","simple": "TEST90_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp9.cpp","startPos": {"line": "6","column": "3"},"endPos": {"line": "6","column": "0"}}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp10.cpp 48 6
+{"lctags_result": {"completion": {"prefix": "T","candidateList": [{"candidate": {"canonical": "::TMP_MAX","simple": "TMP_MAX","expand": "","kind": "M","type": "","result": "",,"val": "","file": "/usr/include/x86_64-linux-gnu/bits/stdio_lim.h","startPos": {"line": "24","column": "10"},"endPos": {"line": "24","column": "0"}}},{"candidate": {"canonical": "::TEST1001","simple": "TEST1001","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "9","column": "1"},"endPos": {"line": "9","column": "0"}}},{"candidate": {"canonical": "::TEST1002","simple": "TEST1002","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "10","column": "1"},"endPos": {"line": "10","column": "0"}}},{"candidate": {"canonical": "::TEST1003","simple": "TEST1003","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "11","column": "1"},"endPos": {"line": "11","column": "0"}}},{"candidate": {"canonical": "::ns101::TEST103","simple": "TEST103","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "22","column": "3"},"endPos": {"line": "22","column": "0"}}},{"candidate": {"canonical": "::ns101::TEST102","simple": "TEST102","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "21","column": "3"},"endPos": {"line": "21","column": "0"}}},{"candidate": {"canonical": "::ns101::TEST101","simple": "TEST101","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "20","column": "3"},"endPos": {"line": "20","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST100>::TEST100_1","simple": "TEST100_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "4","column": "3"},"endPos": {"line": "4","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST100>::TEST100_2","simple": "TEST100_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "5","column": "3"},"endPos": {"line": "5","column": "0"}}},{"candidate": {"canonical": "::@enum::<enum_enum_TEST100>::TEST100_3","simple": "TEST100_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "6","column": "3"},"endPos": {"line": "6","column": "0"}}},{"candidate": {"canonical": "::ns101::ns102::TEST1013","simple": "TEST1013","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "33","column": "5"},"endPos": {"line": "33","column": "0"}}},{"candidate": {"canonical": "::ns101::ns102::TEST1012","simple": "TEST1012","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "32","column": "5"},"endPos": {"line": "32","column": "0"}}},{"candidate": {"canonical": "::ns101::ns102::TEST1011","simple": "TEST1011","expand": "","kind": "c","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "31","column": "5"},"endPos": {"line": "31","column": "0"}}},{"candidate": {"canonical": "::ns101::@enum::<enum_enum_TEST10>::TEST10_1","simple": "TEST10_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "15","column": "5"},"endPos": {"line": "15","column": "0"}}},{"candidate": {"canonical": "::ns101::@enum::<enum_enum_TEST10>::TEST10_2","simple": "TEST10_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "16","column": "5"},"endPos": {"line": "16","column": "0"}}},{"candidate": {"canonical": "::ns101::@enum::<enum_enum_TEST10>::TEST10_3","simple": "TEST10_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "17","column": "5"},"endPos": {"line": "17","column": "0"}}},{"candidate": {"canonical": "::ns101::ns102::@enum::<enum_enum_TEST102>::TEST102_1","simple": "TEST102_1","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "26","column": "7"},"endPos": {"line": "26","column": "0"}}},{"candidate": {"canonical": "::ns101::ns102::@enum::<enum_enum_TEST102>::TEST102_2","simple": "TEST102_2","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "27","column": "7"},"endPos": {"line": "27","column": "0"}}},{"candidate": {"canonical": "::ns101::ns102::@enum::<enum_enum_TEST102>::TEST102_3","simple": "TEST102_3","expand": "","kind": "E","type": "","result": "",,"val": "","file": "NDIR/test/comp10.cpp","startPos": {"line": "28","column": "7"},"endPos": {"line": "28","column": "0"}}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp11.cpp 10 2
+{"lctags_result": {"completion": {"prefix": "f","candidateList": [{"candidate": {"canonical": "::func123","simple": "func123","expand": "","kind": "f","type": "","result": "",,"val": "","file": "NDIR/test/comp11.cpp","startPos": {"line": "6","column": "1"},"endPos": {"line": "6","column": "0"}}},{"candidate": {"canonical": "::func::101","simple": "func","expand": "","kind": "f","type": "","result": "",,"val": "","file": "NDIR/test/comp11.cpp","startPos": {"line": "8","column": "1"},"endPos": {"line": "11","column": "0"}}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp12.cpp 11 5
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "aaa.","compMode": "member","candidateList": [{"candidate": {"canonical": "val1","simple": "val1","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/comp12.cpp","startPos": {"line": "2","column": "3"},"endPos": {"line": "2","column": "11"}}},{"candidate": {"canonical": "val2","simple": "val2","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/comp12.cpp","startPos": {"line": "3","column": "3"},"endPos": {"line": "3","column": "11"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp13.cpp 3 8
+{"lctags_result": {"completion": {"prefix": "m_val","candidateList": [{"candidate": {"canonical": "::CCCC::m_val","simple": "m_val","expand": "","kind": "m","type": "","result": "",,"val": "","file": "NDIR/test/comp13.cpp","startPos": {"line": "7","column": "3"},"endPos": {"line": "7","column": "0"}}}]},"diagnostics": [{"message": "NDIR/test/comp13.cpp:2: error: expected ';' after class"}]}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp14.cpp 4 12
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "func()->","compMode": "member","candidateList": [{"candidate": {"canonical": "func()","simple": "func()","expand": "","kind": "f","type": "CCCC *()","result": "CCCC *",,"val": "","file": "NDIR/test/comp14.cpp","startPos": {"line": "2","column": "3"},"endPos": {"line": "5","column": "4"}}},{"candidate": {"canonical": "m_val","simple": "m_val","expand": "->","kind": "m","type": "CCCC *","result": "",,"val": "","file": "NDIR/test/comp14.cpp","startPos": {"line": "7","column": "3"},"endPos": {"line": "7","column": "15"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": [{"candidate": {"canonical": "func()","simple": "func()","expand": "","kind": "f","type": "CCCC *()","result": "CCCC *",,"val": "","file": "NDIR/test/comp14.cpp","startPos": {"line": "2","column": "3"},"endPos": {"line": "5","column": "4"}}},{"candidate": {"canonical": "m_val","simple": "m_val","expand": "->","kind": "m","type": "CCCC *","result": "",,"val": "","file": "NDIR/test/comp14.cpp","startPos": {"line": "7","column": "3"},"endPos": {"line": "7","column": "15"}}}]}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp16.cpp 11 9
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "pData->","compMode": "member","candidateList": [{"candidate": {"canonical": "pFunc( int val )","simple": "pFunc( int val )","expand": "->","kind": "f","type": "func *","result": "void",,"val": "","file": "NDIR/test/comp16.cpp","startPos": {"line": "6","column": "3"},"endPos": {"line": "6","column": "15"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": []}}]},"diagnostics": []}}
+cat test/comp17-2.cpp | lua lctags/lctags.lua --lctags-form json comp-at test/comp17.cpp 7 11 -i
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "pData->","compMode": "member","candidateList": [{"candidate": {"canonical": "val","simple": "val","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/comp17.cpp","startPos": {"line": "2","column": "5"},"endPos": {"line": "2","column": "12"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp18.cpp 9 9
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "pTest->","compMode": "member","candidateList": [{"candidate": {"canonical": "pSub()","simple": "pSub()","expand": "->","kind": "f","type": "sub_t *","result": "void",,"val": "","file": "NDIR/test/comp18.cpp","startPos": {"line": "4","column": "5"},"endPos": {"line": "4","column": "17"}}},{"candidate": {"canonical": "pSub2()","simple": "pSub2()","expand": "->","kind": "f","type": "sub2_t *","result": "void",,"val": "","file": "NDIR/test/comp18.cpp","startPos": {"line": "5","column": "5"},"endPos": {"line": "5","column": "19"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": []}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/comp19.cpp 9 21
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "pTest->","compMode": "member","candidateList": [{"candidate": {"canonical": "val","simple": "val","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/comp19.cpp","startPos": {"line": "2","column": "5"},"endPos": {"line": "2","column": "12"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/class2.cpp 13 10
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "this->","compMode": "member","candidateList": [{"candidate": {"canonical": "val1","simple": "val1","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/class2.cpp","startPos": {"line": "2","column": "3"},"endPos": {"line": "2","column": "11"}}},{"candidate": {"canonical": "val2","simple": "val2","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/class2.cpp","startPos": {"line": "6","column": "3"},"endPos": {"line": "6","column": "11"}}},{"candidate": {"canonical": "val3","simple": "val3","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/class2.cpp","startPos": {"line": "11","column": "3"},"endPos": {"line": "11","column": "11"}}},{"candidate": {"canonical": "func()","simple": "func()","expand": "","kind": "f","type": "void ()","result": "void",,"val": "","file": "NDIR/test/class2.cpp","startPos": {"line": "12","column": "3"},"endPos": {"line": "14","column": "4"}}}],"typeInfoList": []},"diagnostics": [{"message": "NDIR/test/class2.cpp:15: error: expected ';' after class"}]}}
+lua lctags/lctags.lua --lctags-form json comp-at test/class3.cpp 16 10
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "this->","compMode": "member","candidateList": [{"candidate": {"canonical": "val1","simple": "val1","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/class3.cpp","startPos": {"line": "3","column": "3"},"endPos": {"line": "3","column": "11"}}},{"candidate": {"canonical": "val2","simple": "val2","expand": "","kind": "m","type": "T","result": "",,"val": "","file": "NDIR/test/class3.cpp","startPos": {"line": "8","column": "3"},"endPos": {"line": "8","column": "9"}}},{"candidate": {"canonical": "val3","simple": "val3","expand": "","kind": "m","type": "T","result": "",,"val": "","file": "NDIR/test/class3.cpp","startPos": {"line": "14","column": "3"},"endPos": {"line": "14","column": "9"}}},{"candidate": {"canonical": "func(T)","simple": "func(T)","expand": "","kind": "f","type": "Super2<T> (T)","result": "Super2<T>",,"val": "","file": "NDIR/test/class3.cpp","startPos": {"line": "15","column": "3"},"endPos": {"line": "17","column": "4"}}}],"typeInfoList": []},"diagnostics": [{"message": "NDIR/test/class3.cpp:18: error: expected ';' after class"}]}}
+lua lctags/lctags.lua --lctags-form json comp-at test/class4.cpp 11 7
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "val.","compMode": "member","candidateList": [{"candidate": {"canonical": "eeee","simple": "eeee","expand": "","kind": "m","type": "int","result": "",,"val": "","file": "NDIR/test/class4.cpp","startPos": {"line": "4","column": "3"},"endPos": {"line": "4","column": "11"}}}],"typeInfoList": []},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/class5.cpp 24 6
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "tmp.","compMode": "member","candidateList": [{"candidate": {"canonical": "s_val","simple": "s_val","expand": ".","kind": "m","type": "const tmp_t","result": "",,"val": "","file": "NDIR/test/class5.cpp","startPos": {"line": "5","column": "3"},"endPos": {"line": "5","column": "20"}}},{"candidate": {"canonical": "aaaaaa(const T1 &)","simple": "aaaaaa(const T1 &)","expand": "","kind": "f","type": "T2 (const T1 &) const","result": "T2",,"val": "","file": "NDIR/test/class5.cpp","startPos": {"line": "10","column": "3"},"endPos": {"line": "13","column": "4"}}},{"candidate": {"canonical": "bbbbbb(const T1 &)","simple": "bbbbbb(const T1 &)","expand": "","kind": "f","type": "T2 (const T1 &) const","result": "T2",,"val": "","file": "NDIR/test/class5.cpp","startPos": {"line": "15","column": "3"},"endPos": {"line": "18","column": "4"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": []}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json testOpe test/operator.cpp
+lctags:	1	=
+lctags:	1	||
+lctags:	1	|
+lctags:	1	^
+lctags:	1	-
+lctags:	1	+
+lctags:	1	/
+lctags:	1	*
+lctags:	1	&
+lctags:	1	&&
+lctags:	1	+=
+lctags:	1	-=
+lctags:	1	*=
+lctags:	1	/=
+lctags:	1	^=
+lctags:	1	|=
+lctags:	1	&=
+lctags:	1	++	tail
+lctags:	1	--	tail
+lctags:	1	++	front
+lctags:	1	--	front
+lctags:	1	*	front
+lctags:	1	&	front
+lua lctags/lctags.lua --lctags-form json split-at test/hoge.cpp 337 8
+lua lctags/lctags.lua --lctags-form json split-at test/hoge.cpp 337 8 -ignore-sym-list val1
+lua lctags/lctags.lua --lctags-form json dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+lctags:	1	-- table target -- 
+lctags:	1	fileId	hasPch	upTime	target	path	compOp
+	 -Iclang -I./test -std=c++11 -Iclang
+lua lctags/lctags.lua --lctags-form json chg-proj . test@./test > /dev/null
+lua lctags/lctags.lua --lctags-form json dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+lctags:	1	-- table target -- 
+lctags:	1	fileId	hasPch	upTime	target	path	compOp
+	 -Iclang -I./test -std=c++11 -Iclang
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 62 13
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args></args><call>{
+    int funcRet__ = 0;
+if ( func4__sub( &amp;funcRet__ ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func4__sub( int* pFuncRet__ )
+{
+    return *pFuncRet__= 1, 1;
+  }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 65 18
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+    int funcRet__ = 0;
+if ( func4__sub( &amp;funcRet__, val ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func4__sub( int* pFuncRet__, int val )
+{
+    return *pFuncRet__= val, 1;
+  }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 68 18
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+    int funcRet__ = 0;
+if ( func4__sub( &amp;funcRet__, val ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func4__sub( int* pFuncRet__, int val )
+{
+    return *pFuncRet__= val + 2, 1;
+  }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 71 18
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+    int funcRet__ = 0;
+if ( func4__sub( &amp;funcRet__, val ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func4__sub( int* pFuncRet__, int val )
+{
+    return *pFuncRet__= SYM, 1;
+  }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 74 18
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args></args><call>{
+    int funcRet__ = 0;
+if ( func4__sub( &amp;funcRet__ ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func4__sub( int* pFuncRet__ )
+{
+    RET   *pFuncRet__= 1, 1   ;
+  }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 77 18 && echo NG === split 77
+makefile:306: recipe for target 'test-query' failed
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 91 20
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>false</addressAccess><name>typArray</name><argSymbol>typArray</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+    int funcRet__ = 0;
+if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func5__sub( int* pFuncRet__, type_t* pTyp, type_t typArray[1] )
+{
+        pTyp-&gt;val = 1;
+        typArray[0].val = 2;
+        return *pFuncRet__= 0, 1;
+    }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 118 20
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+    int funcRet__ = 0;
+if ( func6__sub( &amp;funcRet__, &amp;typ, &amp;val ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func6__sub( int* pFuncRet__, type_t* pTyp, int* pVal )
+{
+        (*pVal) = 1;
+        pTyp // hoge
+	  /** */   -&gt;
+            val = (*pVal);
+        pTyp-&gt;val = (*pVal);
+        return *pFuncRet__= 0, 1;
+    }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 129 0
+<lctags_result><refactoring_split>
+<directRet>false</directRet>
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+    int funcRet__ = 0;
+if ( func7__sub( &amp;funcRet__, val ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func7__sub( int* pFuncRet__, int val )
+{
+    int index; 
+    for ( index = 0; index &lt; 10; index++ ) {
+        if ( val == 10 ) {
+            continue;
+        }
+        if ( val == 20 ) {
+            break;
+        }
+        if ( val == 30 ) {
+            return *pFuncRet__= 0, 1;
+        }
+    }
+    while ( index &lt; 10 ) {
+        index++;
+        if ( val == 10 ) {
+            continue;
+        }
+        if ( val == 20 ) {
+            break;
+        }
+    }
+    do {
+        index++;
+        if ( val == 10 ) {
+            continue;
+        }
+    } while ( index &lt; 10 );
+    for ( index = 0; index &lt; 10; index++ ) {
+        if ( val == 20 ) {
+            break;
+        }
+    }
+    return *pFuncRet__= 1, 1;
+}
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 131 43
+<lctags_result><refactoring_split>
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+int funcRet__ = 0;
+int result__ = func7__sub( &amp;funcRet__, val );
+ if ( result__ == 1 ) { return funcRet__; }
+ else if ( result__ == 2 ) { break; }
+ else if ( result__ == 3 ) { continue; }
+}
+</call><sub_routine>static int func7__sub( int* pFuncRet__, int val )
+{
+        if ( val == 10 ) {
+            return 3;
+        }
+        if ( val == 20 ) {
+            return 2;
+        }
+        if ( val == 30 ) {
+            return *pFuncRet__= 0, 1;
+        }
+        return 0;
+}
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 142 25
+<lctags_result><refactoring_split>
+<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+int result__ = func7__sub( &amp;index, val );
+ if ( result__ == 2 ) { break; }
+ else if ( result__ == 3 ) { continue; }
+}
+</call><sub_routine>static int func7__sub( int* pIndex, int val )
+{
+        (*pIndex)++;
+        if ( val == 10 ) {
+            return 3;
+        }
+        if ( val == 20 ) {
+            return 2;
+        }
+    }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 151 7
+<lctags_result><refactoring_split>
+<args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>if ( func7__sub( &amp;index, val ) ) {
+  continue;
+}
+</call><sub_routine>static int func7__sub( int* pIndex, int val )
+{
+        (*pIndex)++;
+        if ( val == 10 ) {
+            return 3;
+        }
+    }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 157 43
+<lctags_result><refactoring_split>
+<args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
+</args><call>if ( func7__sub( val ) ) {
+  break;
+}
+</call><sub_routine>static int func7__sub( int val )
+{
+        if ( val == 20 ) {
+            return 2;
+        }
+    }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 166 0
+<lctags_result><refactoring_split>
+<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal_</argSymbol><directRet>false</directRet></arg>
+</args><call>{
+    if ( func8__sub( &amp;val ) ) {
+       return funcRet__;
+    }
+}</call><sub_routine>static int func8__sub( int* pVal_ )
+{
+    if ( (*pVal_) == 1 ) {
+        return 1;
+    }
+    int * pVal = pVal_;
+    return 0;
+}
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 183 4
+<lctags_result><refactoring_split>
+<args><arg><addressAccess>false</addressAccess><name>pType_</name><argSymbol>pType_</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>true</addressAccess><name>type</name><argSymbol>pType__</argSymbol><directRet>false</directRet></arg>
+</args><call>func10__sub( pType_, &amp;type );</call><sub_routine>static void func10__sub( type_t * pType_, type_t* pType__ )
+{
+        type_t * pType = pType__;
+        int * pVal1 = &amp;pType__-&gt;val;
+        int * pVal2 = &amp;((*pType__)).val;
+        int * pVal3 = &amp;(pType__-&gt;val);
+        int * pVal4 = &amp;(pType__)-&gt;val;
+        type_t * pType2 = pType_;
+    }
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 211 1 --lctags-directRet
+<lctags_result><refactoring_split>
+<directRet>true</directRet>
+<args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol><directRet>false</directRet></arg>
+</args><call>func12__sub( &amp;val );</call><sub_routine>static char func12__sub( char* pVal )
+{
+  if ( (*pVal) ) {
+    (*pVal)++;
+    return (*pVal);
+  }
+  return -(*pVal);
+}
+</sub_routine></refactoring_split></lctags_result>
+lua lctags/lctags.lua --lctags-form json expand test/enum.cpp 9 15
+{"lctags_result": {"completion": {"prefix": "","candidateList": [{"candidate": {"canonical": "eval_val1","simple": "eval_val1","expand": "","kind": "E","type": "::@enum::<enum_eval_t>","result": "",,"val": "0","file": "NDIR/test/enum.cpp","startPos": {"line": "2","column": "5"},"endPos": {"line": "2","column": "14"}}},{"candidate": {"canonical": "eval_val2","simple": "eval_val2","expand": "","kind": "E","type": "::@enum::<enum_eval_t>","result": "",,"val": "1","file": "NDIR/test/enum.cpp","startPos": {"line": "3","column": "5"},"endPos": {"line": "3","column": "14"}}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/enum.cpp 11 9
+{"lctags_result": {"completion": {"prefix": "","frontExpr": "","compMode": "case","candidateList": [{"candidate": {"canonical": "eval_val1","simple": "eval_val1","expand": ".","kind": "E","type": "eval_t","result": "",,"val": "","file": "NDIR/test/enum.cpp","startPos": {"line": "2","column": "5"},"endPos": {"line": "2","column": "14"}}},{"candidate": {"canonical": "eval_val2","simple": "eval_val2","expand": ".","kind": "E","type": "eval_t","result": "",,"val": "","file": "NDIR/test/enum.cpp","startPos": {"line": "3","column": "5"},"endPos": {"line": "3","column": "14"}}}],"typeInfoList": [{"typeInfo": {,"candidateList": [{"candidate": {"canonical": "eval_val1","simple": "eval_val1","expand": ".","kind": "E","type": "eval_t","result": "",,"val": "","file": "NDIR/test/enum.cpp","startPos": {"line": "2","column": "5"},"endPos": {"line": "2","column": "14"}}},{"candidate": {"canonical": "eval_val2","simple": "eval_val2","expand": ".","kind": "E","type": "eval_t","result": "",,"val": "","file": "NDIR/test/enum.cpp","startPos": {"line": "3","column": "5"},"endPos": {"line": "3","column": "14"}}}]}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/enum2.cpp 8 19
+{"lctags_result": {"completion": {"prefix": "","candidateList": [{"candidate": {"canonical": "eval_val1","simple": "eval_val1","expand": "","kind": "E","type": "::@enum::<enum_eval_t>","result": "",,"val": "0","file": "NDIR/test/enum2.cpp","startPos": {"line": "2","column": "5"},"endPos": {"line": "2","column": "14"}}},{"candidate": {"canonical": "eval_val2","simple": "eval_val2","expand": "","kind": "E","type": "::@enum::<enum_eval_t>","result": "",,"val": "1","file": "NDIR/test/enum2.cpp","startPos": {"line": "3","column": "5"},"endPos": {"line": "3","column": "14"}}}]},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json comp-at test/enum3.cpp 7 11
+{"lctags_result": {"completion": {"prefix": "","candidateList": [{"candidate": {"canonical": "eval_val1","simple": "eval_val1","expand": "","kind": "E","type": "::@enum::<enum_eval_t>","result": "",,"val": "0","file": "NDIR/test/enum3.cpp","startPos": {"line": "2","column": "5"},"endPos": {"line": "2","column": "14"}}},{"candidate": {"canonical": "eval_val2","simple": "eval_val2","expand": "","kind": "E","type": "::@enum::<enum_eval_t>","result": "",,"val": "1","file": "NDIR/test/enum3.cpp","startPos": {"line": "3","column": "5"},"endPos": {"line": "3","column": "14"}}}]},"diagnostics": [{"message": "NDIR/test/enum3.cpp:7: error: non-void function 'sub' should return a value"}]}}
+lua lctags/lctags.lua --lctags-form json def-at test/inc1.cpp 2 1
+NDIR/test/inc1.cpp    1 NDIR/test/inc2.h 
+lua lctags/lctags.lua --lctags-form json def-at test/inc2.h 7 1
+NDIR/test/inc2.h    1 NDIR/test/inc3.h 
+lua lctags/lctags.lua --lctags-form json expand-macro test/stdinc.cpp
+#include </usr/include/stdio.h>
+
+
+static void sub( void )
+{
+    void * pVal = 
+                 __null
+                     ;
+}
+lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 7
+{"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "pVal","kind": "ParmDecl","file": "NDIR/test/highlight.cpp","line": "21","column": "19","endLine": "21","endColumn": "23"}},{"location": {"symbol": "pVal","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "23","column": "22","endLine": "23","endColumn": "26"}},{"location": {"symbol": "pVal","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "25","column": "5","endLine": "25","endColumn": "9"}}],"locationSet": [{"location": {"symbol": "pVal2","kind": "ParmDecl","file": "NDIR/test/highlight.cpp","line": "21","column": "34","endLine": "21","endColumn": "39"}},{"location": {"symbol": "pVal2","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "24","column": "5","endLine": "24","endColumn": "10"}},{"location": {"symbol": "pVal2","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "26","column": "5","endLine": "26","endColumn": "10"}}],"locationSet": [{"location": {"symbol": "pVal3","kind": "ParmDecl","file": "NDIR/test/highlight.cpp","line": "21","column": "49","endLine": "21","endColumn": "54"}},{"location": {"symbol": "pVal3","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "28","column": "5","endLine": "28","endColumn": "10"}}],"locationSet": [{"location": {"symbol": "VAL2_t","kind": "ParmDecl","file": "NDIR/test/highlight.cpp","line": "21","column": "72","endLine": "21","endColumn": "78"}},{"location": {"symbol": "VAL2_t","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "29","column": "5","endLine": "29","endColumn": "11"}}]],"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 18
+{"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "pVal","kind": "ParmDecl","file": "NDIR/test/highlight.cpp","line": "21","column": "19","endLine": "21","endColumn": "23"}},{"location": {"symbol": "pVal","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "23","column": "22","endLine": "23","endColumn": "26"}},{"location": {"symbol": "pVal","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "25","column": "5","endLine": "25","endColumn": "9"}}]],"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 24 12
+{"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "val","kind": "FieldDecl","file": "NDIR/test/highlight.cpp","line": "7","column": "9","endLine": "7","endColumn": "12"}},{"location": {"symbol": "val","kind": "MemberRefExpr","file": "NDIR/test/highlight.cpp","line": "24","column": "5","endLine": "24","endColumn": "15"}},{"location": {"symbol": "val","kind": "MemberRefExpr","file": "NDIR/test/highlight.cpp","line": "27","column": "5","endLine": "27","endColumn": "16"}},{"location": {"symbol": "val","kind": "MemberRefExpr","file": "NDIR/test/highlight.cpp","line": "29","column": "5","endLine": "29","endColumn": "15"}}]],"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 25 10
+{"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "val2","kind": "FieldDecl","file": "NDIR/test/highlight.cpp","line": "3","column": "9","endLine": "3","endColumn": "13"}},{"location": {"symbol": "val2","kind": "MemberRefExpr","file": "NDIR/test/highlight.cpp","line": "25","column": "5","endLine": "25","endColumn": "15"}}]],"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 13
+{"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "val","kind": "FieldDecl","file": "NDIR/test/highlight.cpp","line": "7","column": "9","endLine": "7","endColumn": "12"}},{"location": {"symbol": "val","kind": "MemberRefExpr","file": "NDIR/test/highlight.cpp","line": "24","column": "5","endLine": "24","endColumn": "15"}},{"location": {"symbol": "val","kind": "MemberRefExpr","file": "NDIR/test/highlight.cpp","line": "27","column": "5","endLine": "27","endColumn": "16"}},{"location": {"symbol": "val","kind": "MemberRefExpr","file": "NDIR/test/highlight.cpp","line": "29","column": "5","endLine": "29","endColumn": "15"}}]],"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 26 19
+{"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "M_VAL","kind": "macro definition","file": "NDIR/test/highlight.cpp","line": "17","column": "9","endLine": "17","endColumn": "24"}},{"location": {"symbol": "M_VAL","kind": "macro expansion","file": "NDIR/test/highlight.cpp","line": "26","column": "19","endLine": "26","endColumn": "24"}}]],"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 19
+{"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "enum_val2","kind": "EnumConstantDecl","file": "NDIR/test/highlight.cpp","line": "13","column": "5","endLine": "13","endColumn": "14"}},{"location": {"symbol": "enum_val2","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "24","column": "18","endLine": "24","endColumn": "27"}},{"location": {"symbol": "enum_val2","kind": "DeclRefExpr","file": "NDIR/test/highlight.cpp","line": "27","column": "19","endLine": "27","endColumn": "28"}}]],"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json expand-macro test/inc/inctest1.h
+=======
+#include <NDIR/test/hoge.h>
+
+typedef struct { int aaa; } struct_1CC; typedef struct { int aaa; } struct_2CC;;
+lua lctags/lctags.lua --lctags-form json call-func test/simple.cpp printf
+{"lctags_result": {"functionList": [{"function": {"name": "_IO_vfprintf","include": "/usr/include/libio.h","included": "false","declaration": "/usr/include/libio.h"}},{"function": {"name": "fprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "printf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "sprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "vfprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "vprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "vsprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "snprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "vsnprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "vdprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "dprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "fwprintf","include": "/usr/include/wchar.h","included": "false","declaration": "/usr/include/wchar.h"}},{"function": {"name": "wprintf","include": "/usr/include/wchar.h","included": "false","declaration": "/usr/include/wchar.h"}},{"function": {"name": "swprintf","include": "/usr/include/wchar.h","included": "false","declaration": "/usr/include/wchar.h"}},{"function": {"name": "vfwprintf","include": "/usr/include/wchar.h","included": "false","declaration": "/usr/include/wchar.h"}},{"function": {"name": "vwprintf","include": "/usr/include/wchar.h","included": "false","declaration": "/usr/include/wchar.h"}},{"function": {"name": "vswprintf","include": "/usr/include/wchar.h","included": "false","declaration": "/usr/include/wchar.h"}},{"function": {"name": "vasprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "__asprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "asprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "obstack_printf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}},{"function": {"name": "obstack_vprintf","include": "/usr/include/stdio.h","included": "false","declaration": "/usr/include/stdio.h"}}],"diagnostics": []}}
+sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua --lctags-form json inq-at test/simple.cpp 4 4 -i 
+{"lctags_result": {"candidate": {"canonical": "printf( const char * __restrict __format, ... )","simple": "printf( const char * __restrict __format, ... )","expand": "","kind": "f","type": "int (const char *__restrict, ...)","result": "int",,"val": "","file": "/usr/include/stdio.h","startPos": {"line": "362","column": "1"},"endPos": {"line": "362","column": "57"}},"diagnostics": []}}
+lua lctags/lctags.lua --lctags-form json addIncRef test/incFuncTest.c /usr/include/string.h
+sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua --lctags-form json comp-at test/incFuncTest.c 3 8 -i
+{"lctags_result": {"completion": {"prefix": "strl","candidateList": [{"candidate": {"canonical": "::strlen","simple": "strlen","expand": "","kind": "f","type": "","result": "",,"val": "","file": "/usr/include/string.h","startPos": {"line": "394","column": "1"},"endPos": {"line": "395","column": "0"}}}]},"diagnostics": [{"message": "error: invalid argument '-std=c++11' not allowed with 'C/ObjC'"}]}}
+make test-chg-proj
+lua lctags/lctags.lua --lctags-form json set-projDir . test@test2 > /dev/null
+lua lctags/lctags.lua --lctags-form json dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
+makefile:417: recipe for target 'test-chg-proj' failed
+lua lctags/lctags.lua --lctags-form json set-projDir . test2@test > /dev/null

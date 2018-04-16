@@ -21,21 +21,29 @@ end
 function XML:open( stream )
    self.stream = stream
    self.elementList = {}
+   self.depth = 0
    return self
 end
 
-function XML:startParent( name )
+function XML:startParent( name, arrayFlag )
    self:startElement( name )
 end
 
 function XML:startElement( name )
    table.insert( self.elementList, name )
    self.stream:write( string.format( '<%s>', name ) )
+   self.depth = self.depth + 1
 end
 
 function XML:endElement()
    local name = table.remove( self.elementList )
    self.stream:write( string.format( '</%s>', name ) )
+   self.depth = self.depth - 1
+   if self.depth == 0 then
+      self.stream:write( '\n' )
+   elseif self.depth < 0 then
+      error( "illegal depth" )
+   end
 end
 
 function XML:writeValue( val )
@@ -48,6 +56,8 @@ function XML:write( name, val )
    self:endElement( name )
 end
 
+function XML:fin()
+end
 
 
 local JSON = {}
@@ -69,37 +79,87 @@ end
 
 function JSON:open( stream )
    self.stream = stream
-   self.layerState = {}
-   self.layerName = {}
+   self.layerQueue = {}
    self:startLayer()
 
 
    return self
 end
 
-function JSON:startLayer()
-   self.stream:write( "{" )   
-   table.insert( self.layerState, 'none' ) -- none, named, valued, termed
-   table.insert( self.layerName, self.prevName )
+function JSON:getLayerInfo()
+   if #self.layerQueue == 0 then
+      return nil
+   end
+   return self.layerQueue[ #self.layerQueue ]
+end
+
+function JSON:startLayer( arrayFlag, madeByArrayFlag )
+   local info = {}
+   info.state = 'none' -- none, named, valued, termed
+   info.arrayFlag = arrayFlag
+   info.name = self.prevName
+   info.madeByArrayFlag = madeByArrayFlag
+   info.elementNameSet = {}
+
+   table.insert( self.layerQueue, info )
+
+   self.stream:write( arrayFlag and "[" or "{" )
 end
 
 function JSON:endLayer()
-   if #self.layerState > 0 then
-      self.stream:write( string.format( '}' ) )
-      table.remove( self.layerState )
-      table.remove( self.layerName )
+   if #self.layerQueue == 0 then
+      error( "illegal depth" )
+   end
+
+   while #self.layerQueue > 0 do
+      local info = self:getLayerInfo()
+      if info.arrayFlag then
+	 self.stream:write( string.format( ']' ) )
+      else
+	 self.stream:write( string.format( '}' ) )
+      end
+      table.remove( self.layerQueue )
+      local parentInfo = self:getLayerInfo()
+      if parentInfo and parentInfo.madeByArrayFlag then
+	 ;
+      else
+	 break
+      end
+   end
+   if #self.layerQueue == 0 then
+      self.stream:write( '\n' )
    end
 end
 
 function JSON:equalLayerState( state )
-   return self.layerState[ #self.layerState ] == state
+   return self.layerQueue[ #self.layerQueue ].state == state
 end
+
+function JSON:isArrayLayer( state )
+   return self.layerQueue[ #self.layerQueue ].arrayFlag
+end
+
 
 function JSON:setLayerState( state )
-   self.layerState[ #self.layerState ] = state
+   self.layerQueue[ #self.layerQueue ].state = state
 end
 
-function JSON:startParent( name )
+function JSON:getLayerName()
+   return self.layerQueue[ #self.layerQueue ].name
+end
+
+function JSON:addElementName( name )
+   local info = self:getLayerInfo()
+   local nameSet = info.elementNameSet
+   if not info.arrayFlag and nameSet[ name ] then
+      error( "exist same name: " .. name )
+   end
+   nameSet[ name ] = true
+end
+
+function JSON:startParent( name, arrayFlag )
+   self:addElementName( name )
+   
    if self:equalLayerState( 'termed' ) or self:equalLayerState( 'named' ) or
       self:equalLayerState( 'valued' )
    then
@@ -107,13 +167,23 @@ function JSON:startParent( name )
    elseif self:equalLayerState( 'none' ) then
       ;
    end
+
+   local parentInfo = self:getLayerInfo()
+   if not arrayFlag and parentInfo and parentInfo.arrayFlag then
+      self:startLayer( false, true )
+   end
+   
    self.stream:write( string.format( '"%s": ', name ) )
-   self:startLayer()
+   self:startLayer( arrayFlag )
    self.prevName = name
 end
 
-
 function JSON:startElement( name )
+   self:addElementName( name )
+   
+   if self:isArrayLayer( state ) then
+      self:startLayer( false, true )
+   end
    if self:equalLayerState( 'termed' ) then
       self.stream:write( "," )
    elseif self:equalLayerState( 'named' ) then
@@ -130,9 +200,11 @@ function JSON:endElement()
    if self:equalLayerState( 'none' ) or self:equalLayerState( 'termed' ) then
       self:endLayer()
    elseif self:equalLayerState( 'valued' ) then
-      ;
+      if self:getLayerInfo().madeByArrayFlag then
+	 self:endLayer()
+      end
    else
-      error( 'illegal layer state ' .. self.layerName[ #self.layerName ] )
+      error( 'illegal layer state ' .. self:getLayerName() )
    end
    self:setLayerState( 'termed' )
 end
@@ -146,6 +218,14 @@ function JSON:write( name, val )
    self:startElement( name )
    self:writeValue( val )
    self:endElement()
+end
+
+function JSON:fin()
+   if self:equalLayerState( 'none' ) or self:equalLayerState( 'termed' ) then
+      self:endLayer()
+   else
+      error( 'illegal' )
+   end
 end
 
 return Writer

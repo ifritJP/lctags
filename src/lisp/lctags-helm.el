@@ -54,7 +54,7 @@
   (if (eq (lctags-execute-op src-buf lctags-buf input nil lctags-opts) 0)
       (progn
 	(setq lctags-candidate-info (lctags-xml-get lctags-buf 'completion))
-	(if (lctags-xml-get-child lctags-candidate-info 'candidate)
+	(if (lctags-xml-get-child lctags-candidate-info 'candidateList)
 	    (setq lctags-diag-info nil)
 	  (setq lctags-diag-info (lctags-xml-get-diag lctags-buf))))
     (setq lctags-candidate-info nil)
@@ -255,7 +255,7 @@
   (mapcar (lambda (X)
 	    (when (and (listp X) (eq (car X) symbol) )
 	      (funcall func X all-info)))
-	  info
+	  (assoc 'candidateList info)
 	  ))
 
 
@@ -265,7 +265,8 @@
 		      (when (and (listp X) (eq (car X) 'typeInfo) )
 			(if (equal (lctags-xml-get-val X 'hash) hash)
 			    X)))
-		    info
+		    (assoc 'typeInfoList info)
+;;		    info
 		    )))
 
 (defun lctags-candidate-get-prefix (&optional candidate-info)
@@ -336,7 +337,8 @@
 	 expandable)
     (when (< (length candidates-info) 300)
       (setq type-info (lctags-candidate-get-typeInfo candidates-info hash)))
-    (setq expandable (lctags-xml-get-child (car type-info) 'candidate))
+    (setq expandable (lctags-xml-get-child (car type-info) 'candidateList))
+    (setq expandable (lctags-xml-get-child expandable 'candidate))
     (cons (format
 	   "(%s) %s%s %s %s"
 	   (lctags-candidate-item-get-kind info)

@@ -634,6 +634,8 @@ function Completion:completeSymbol(
    writer:startParent( "completion" )
    writer:write( "prefix", prefix )
 
+   writer:startParent( "candidateList", true )
+   
    self:completeSymbolFunc(
       db, path, cursor, compMode, prefix, frontSyntax,
       function( item, nsInfo )
@@ -647,6 +649,7 @@ function Completion:completeSymbol(
       end
    )
 
+   writer:endElement()
    writer:endElement()
 end
 
@@ -1037,6 +1040,9 @@ end
 
 local function outputMemberCandidate( writer, db, prefix, typeCursor, hash2typeMap )
    log( 2, "outputMemberCandidate" )
+
+   writer:startParent( "candidateList", true )
+   
    local function visitFunc( aCursor, parent, anonymousDeclList, appendInfo )
       outputCandidate( writer, db, prefix, aCursor, hash2typeMap, anonymousDeclList )
    end
@@ -1054,6 +1060,8 @@ local function outputMemberCandidate( writer, db, prefix, typeCursor, hash2typeM
       end
       anonymousDeclList = newList
    until #newList == 0
+
+   writer:endElement()
 end   
 
 -- member アクセス
@@ -1135,11 +1143,13 @@ function Completion:completeMember(
    writer:write( "frontExpr", frontExprTxt )
    writer:write( "compMode", compMode )
 
+
    outputMemberCandidate(
       writer, db, prefix, typeCursor, hash2typeMap )
    
 
    local knownTypeHash = {}
+   writer:startParent( "typeInfoList", true )
    while true do
       local newHash2TypeMap = {}
       local hasType = false
@@ -1164,6 +1174,7 @@ function Completion:completeMember(
 	 end
       end
    end
+   writer:endElement()
    
    writer:endElement()
 end   
@@ -1352,6 +1363,8 @@ function Completion:expandCursor( writer, db, path, cursor, frontSyntax )
 
       writer:startParent( "completion" )
       writer:write( "prefix", "" )
+
+      writer:startParent( "candidateList", true )
       clang.visitChildrenFast(
       	 enumCursor,
       	 function( aCursor, enumCursor, anonymousDeclList, appendInfo )
@@ -1369,6 +1382,7 @@ function Completion:expandCursor( writer, db, path, cursor, frontSyntax )
 	       endInfo and endInfo[ 2 ], endInfo and endInfo[ 3 ],
 	       aCursor:getEnumConstantDeclUnsignedValue() )
       	 end, nil, nil, 1 )
+      writer:endElement()
       writer:endElement()
    else
       outputCandidate( writer, db, "", cursor, {}, {} )
@@ -1420,7 +1434,7 @@ function Completion:callFunc( analyzer, db, currentFile, pattern, target, fileCo
    self:outputResult(
       clang.core.CXDiagnostic_Error,
       function( diagList, writer )
-	 writer:startParent( 'functionList' )
+	 writer:startParent( 'functionList', true )
 
 	 db:mapFuncDeclPattern(
 	    searchPattern,

@@ -191,15 +191,21 @@ endif
 	sync
 	rm -rf .lctags/pch
 	$(MAKE) test-dbbuild
-	-rm test-result
 	LANG= $(MAKE) test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(NDIR)@NDIR@g" | \
 		grep -v -e 'Leaving directory' -e 'Entering directory' | \
 		sed "s@$(LUA_COMMAND)@lua@g" | sed 's@<hash>[0-9a-f]*</hash>@@g' | \
-		tee -a test-result
+		tee test-result
+	LANG= $(MAKE) LCTAGS_LUA="$(LCTAGS_LUA) --lctags-form json" test-query | \
+		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
+		sed "s@$(NDIR)@NDIR@g" | \
+		grep -v -e 'Leaving directory' -e 'Entering directory' | \
+		sed "s@$(LUA_COMMAND)@lua@g" | sed 's@"hash": "[0-9a-f]*"@@g' | \
+		tee test-result2
 	$(MAKE) test-stack
-	diff -c test-result.expect test-result && echo OK
+	- diff -c test-result.expect test-result && echo OK
+	- diff -c test-result2.expect test-result2 && echo OK
 ifdef TEST_DB_DUMP
 	rm -f db.dump
 	$(call dumpDB, lctags.sqlite3, db.dump, test/*.cpp, test/*.h)

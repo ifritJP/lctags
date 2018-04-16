@@ -118,6 +118,74 @@ function Option:getConfPathFromDbPath( dbPath )
    return Option:getSameDirFile( dbPath, "lctags.conf" )
 end
 
+function Option:analyzeLctagsOption( arg, argList, index, lctagOptMap )
+   local skipArgNum = 0
+   local noMatchFlag = false
+   if arg == "--lctags-log" then
+      skipArgNum = 1
+      log( 0, tonumber( argList[ index + 1 ] ) )
+   elseif arg == "--lctags-db" then
+      skipArgNum = 1
+   elseif arg == "--lctags-conf" then
+      skipArgNum = 1
+   elseif arg == "--lctags-only-reg" then
+      lctagOptMap.onlyReg = true
+   elseif arg == "--lctags-target" then
+      skipArgNum = 1
+      lctagOptMap.target = argList[ index + 1 ]
+   elseif arg == "--lctags-digestRec" then
+      lctagOptMap.recordDigestSrcFlag = true
+   elseif arg == "--lctags-recSql" then
+      self.recordSql = true
+   elseif arg == "--use-global" then
+      lctagOptMap.useGlobalFlag = true
+   elseif arg == "--lctags-quiet" then
+      lctagOptMap.quiet = true
+   elseif arg == "--lctags-prof" then
+      self.profile = true
+   elseif arg == "--lctags-lockLog" then
+      self.lockLog = true
+   elseif arg == "--lctags-srv" then
+      self.serviceFlag = true
+   elseif arg == "--lctags-form" then
+      Option.outputForm = argList[ index + 1 ]
+      skipArgNum = 1
+   elseif arg == "--lctags-indiv" then
+      self.indivisualWriteFlag = true
+   elseif arg == "--lctags-uptime" then
+      skipArgNum = 1
+      self.updateTime = tonumber( argList[ index + 1 ] )
+   elseif arg == "--lctags-directRet" then
+      lctagOptMap.directRet = true
+   elseif arg == "--lctags-cursorKind" then
+      local kindId = argList[ index + 1 ]
+      local cursorKind = clang.CXCursorKind[ kindId ]
+      if not cursorKind then
+	 error( "kindId is unknown: " .. kindId )
+      end
+      lctagOptMap.cursorKind = cursorKind.val
+   elseif arg == "--lctags-candidateLimit" then
+      skipArgNum = 1
+      lctagOptMap.candidateLimit = tonumber( argList[ index + 1 ] )
+   elseif arg == "--lctags-subRet" then
+      skipArgNum = 1
+      local subRetType = {}
+      for val in string.gmatch( argList[ index + 1 ], "[^/]+" ) do
+	 table.insert( subRetType, val )
+      end
+      lctagOptMap.subRetTypeInfo = {}
+      lctagOptMap.subRetTypeInfo.type = subRetType[ 1 ]
+      lctagOptMap.subRetTypeInfo.non = subRetType[ 2 ]
+      lctagOptMap.subRetTypeInfo.ret = subRetType[ 3 ]
+      lctagOptMap.subRetTypeInfo.brk = subRetType[ 4 ]
+      lctagOptMap.subRetTypeInfo.cnt = subRetType[ 5 ]
+   else
+      noMatchFlag = true
+   end
+
+   return noMatchFlag, skipArgNum
+end
+
 function Option:analyzeOption( argList )
    local srcList = {}
    local optList = {}
@@ -177,251 +245,202 @@ function Option:analyzeOption( argList )
 
    skipArgNum = 0
    for index, arg in ipairs( argList ) do
-      if index == 1 then
-	 if arg == "build" then
-	    lctagOptMap.mode = "build"
-	    lctagOptMap.cc = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "init" then
-	    lctagOptMap.mode = "init"
-	    lctagOptMap.projDir = argList[ index + 1 ]
-	    if not lctagOptMap.dbPath then
-	       lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
-	       if not conf then
-		  local confPath = string.gsub(
-		     lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
-		  conf = config:loadConfig( confPath, false )
-		  if conf then
-		     lctagOptMap.confPath = confPath
+      if skipArgNum > 0 then
+	 skipArgNum = skipArgNum - 1
+      else
+	 if not lctagOptMap.mode then
+	    if arg == "build" then
+	       lctagOptMap.mode = "build"
+	       lctagOptMap.cc = argList[ index + 1 ]
+	       skipArgNum = 1
+	    elseif arg == "init" then
+	       lctagOptMap.mode = "init"
+	       lctagOptMap.projDir = argList[ index + 1 ]
+	       if not lctagOptMap.dbPath then
+		  lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
+		  if not conf then
+		     local confPath = string.gsub(
+			lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
+		     conf = config:loadConfig( confPath, false )
+		     if conf then
+			lctagOptMap.confPath = confPath
+		     end
 		  end
 	       end
-	    end
-	    skipArgNum = 1
-	 elseif arg == "shrink" then
-	    lctagOptMap.mode = "shrink"
-	 elseif arg == "shrinkFull" then
-	    lctagOptMap.mode = "shrinkFull"
-	 elseif arg == "forceUpdate" then
-	    lctagOptMap.mode = "forceUpdate"
-	 elseif arg == "chg-proj" then
-	    lctagOptMap.mode = "chg-proj"
-	    lctagOptMap.projDir = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "copyConf" then
-	    lctagOptMap.mode = "copyConf"
-	 elseif arg == "update" then
-	    lctagOptMap.mode = "update"
-	 elseif arg == "lazyUpdate" then
-	    lctagOptMap.mode = "lazyUpdate"
-	 elseif arg == "updateForMake" then
-	    lctagOptMap.mode = "updateForMake"
-	 elseif arg == "ref-at-all" then
-	    lctagOptMap.mode = arg
-	 elseif string.find( arg, "ref-at", 1, true ) == 1 then
-	    lctagOptMap.mode = "ref-at"
-	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "def-at", 1, true ) == 1 then
-	    lctagOptMap.mode = "def-at"
-	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif string.find( arg, "call-at", 1, true ) == 1 then
-	    lctagOptMap.mode = "call-at"
-	 elseif string.find( arg, "callee-at", 1, true ) == 1 then
-	    lctagOptMap.mode = "callee-at"
-	    lctagOptMap.abs = string.find( arg, "a$" )
-	 elseif arg == "ns-at" then
-	    lctagOptMap.mode = "ns-at"
-	 elseif arg == "graph" then
-	    lctagOptMap.mode = "graph"
-	    lctagOptMap.graph = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "graph-at" then
-	    lctagOptMap.mode = "graph-at"
-	    lctagOptMap.graph = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "dump" then
-	    lctagOptMap.mode = "query"
-	    lctagOptMap.query = "dump"
-	    if argList[ index + 1 ] == "target" then
-	       lctagOptMap.query = "dumpTarget"
-	    elseif argList[ index + 1 ] == "targetList" then
-	       lctagOptMap.query = "dumpTargetList"
-	    elseif argList[ index + 1 ] == "file" then
-	       lctagOptMap.query = "dumpFile"
-	    elseif argList[ index + 1 ] == "all" then
-	       lctagOptMap.query = "dumpAll"
-	    elseif argList[ index + 1 ] == "ref" then
-	       lctagOptMap.query = "dumpRef"
-	    elseif argList[ index + 1 ] == "def" then
-	       lctagOptMap.query = "dumpDef"
-	    elseif argList[ index + 1 ] == "call" then
-	       lctagOptMap.query = "dumpCall"
-	    elseif argList[ index + 1 ] == "inc" then
-	       lctagOptMap.query = "dumpInc"
-	    elseif argList[ index + 1 ] == "incSrc" then
-	       lctagOptMap.query = "dumpIncSrc"
-	    elseif argList[ index + 1 ] == "digest" then
-	       lctagOptMap.query = "dumpDigest"
-	    elseif argList[ index + 1 ] == "prepro" then
-	       lctagOptMap.query = "dumpPrepro"
-	    elseif argList[ index + 1 ] == "belong" then
-	       lctagOptMap.query = "dumpBelong"
-	    elseif argList[ index + 1 ] == "ver" then
-	       lctagOptMap.query = "dumpVersion"
-	    elseif argList[ index + 1 ] == "projDir" then
-	       lctagOptMap.query = "dumpProjDir"
+	       skipArgNum = 1
+	    elseif arg == "shrink" then
+	       lctagOptMap.mode = "shrink"
+	    elseif arg == "shrinkFull" then
+	       lctagOptMap.mode = "shrinkFull"
+	    elseif arg == "forceUpdate" then
+	       lctagOptMap.mode = "forceUpdate"
+	    elseif arg == "chg-proj" then
+	       lctagOptMap.mode = "chg-proj"
+	       lctagOptMap.projDir = argList[ index + 1 ]
+	       skipArgNum = 1
+	    elseif arg == "copyConf" then
+	       lctagOptMap.mode = "copyConf"
+	    elseif arg == "update" then
+	       lctagOptMap.mode = "update"
+	    elseif arg == "lazyUpdate" then
+	       lctagOptMap.mode = "lazyUpdate"
+	    elseif arg == "updateForMake" then
+	       lctagOptMap.mode = "updateForMake"
+	    elseif arg == "ref-at-all" then
+	       lctagOptMap.mode = arg
+	    elseif string.find( arg, "ref-at", 1, true ) == 1 then
+	       lctagOptMap.mode = "ref-at"
+	       lctagOptMap.abs = string.find( arg, "a$" )
+	    elseif string.find( arg, "def-at", 1, true ) == 1 then
+	       lctagOptMap.mode = "def-at"
+	       lctagOptMap.abs = string.find( arg, "a$" )
+	    elseif string.find( arg, "call-at", 1, true ) == 1 then
+	       lctagOptMap.mode = "call-at"
+	    elseif string.find( arg, "callee-at", 1, true ) == 1 then
+	       lctagOptMap.mode = "callee-at"
+	       lctagOptMap.abs = string.find( arg, "a$" )
+	    elseif arg == "ns-at" then
+	       lctagOptMap.mode = "ns-at"
+	    elseif arg == "graph" then
+	       lctagOptMap.mode = "graph"
+	       lctagOptMap.graph = argList[ index + 1 ]
+	       skipArgNum = 1
+	    elseif arg == "graph-at" then
+	       lctagOptMap.mode = "graph-at"
+	       lctagOptMap.graph = argList[ index + 1 ]
+	       skipArgNum = 1
+	    elseif arg == "dump" then
+	       lctagOptMap.mode = "query"
+	       lctagOptMap.query = "dump"
+	       if argList[ index + 1 ] == "target" then
+		  lctagOptMap.query = "dumpTarget"
+	       elseif argList[ index + 1 ] == "targetList" then
+		  lctagOptMap.query = "dumpTargetList"
+	       elseif argList[ index + 1 ] == "file" then
+		  lctagOptMap.query = "dumpFile"
+	       elseif argList[ index + 1 ] == "all" then
+		  lctagOptMap.query = "dumpAll"
+	       elseif argList[ index + 1 ] == "ref" then
+		  lctagOptMap.query = "dumpRef"
+	       elseif argList[ index + 1 ] == "def" then
+		  lctagOptMap.query = "dumpDef"
+	       elseif argList[ index + 1 ] == "call" then
+		  lctagOptMap.query = "dumpCall"
+	       elseif argList[ index + 1 ] == "inc" then
+		  lctagOptMap.query = "dumpInc"
+	       elseif argList[ index + 1 ] == "incSrc" then
+		  lctagOptMap.query = "dumpIncSrc"
+	       elseif argList[ index + 1 ] == "digest" then
+		  lctagOptMap.query = "dumpDigest"
+	       elseif argList[ index + 1 ] == "prepro" then
+		  lctagOptMap.query = "dumpPrepro"
+	       elseif argList[ index + 1 ] == "belong" then
+		  lctagOptMap.query = "dumpBelong"
+	       elseif argList[ index + 1 ] == "ver" then
+		  lctagOptMap.query = "dumpVersion"
+	       elseif argList[ index + 1 ] == "projDir" then
+		  lctagOptMap.query = "dumpProjDir"
+	       elseif argList[ index + 1 ] == "dir" then
+		  lctagOptMap.query = "dumpDir"
+	       else
+		  self:printUsage( "unknown dump option" )
+	       end
+	       skipArgNum = 1
+	    elseif string.find( arg, "-x", 1, true ) == 1 then
+	       lctagOptMap.mode = "query"
+	       lctagOptMap.query = arg
+	       lctagOptMap.compatibleGlobal = true
+	    elseif string.find( arg, "-c", 1, true ) == 1 then
+	       lctagOptMap.mode = "query"
+	       lctagOptMap.query = arg
+	       lctagOptMap.compatibleGlobal = true
+	    elseif arg == "list" then
+	       lctagOptMap.mode = "list"
+	       lctagOptMap.query = argList[ index + 1 ]
+	       if lctagOptMap.query == "inc" then
+		  lctagOptMap.depth = 100
+	       end
+	       skipArgNum = 1
+	    elseif arg == "set-projDir" then
+	       lctagOptMap.mode = arg
+	       lctagOptMap.projDir = argList[ index + 1 ]
+	       skipArgNum = 1
+	    elseif arg == "cursors" then
+	       lctagOptMap.mode = arg
+	       self.cursors = true
+	    elseif arg == "grep-cursor" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "expand-macro" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "cursor-at" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "scan" then
+	       lctagOptMap.mode = arg
+	       lctagOptMap.scan = argList[ index + 1 ]
+	       skipArgNum = 1
+	    elseif arg == "addInc" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "addIncRef" then -- これは emacs 用
+	       lctagOptMap.mode = arg
+	    elseif arg == "addStdInc" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "split-at" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "comp-at" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "inq-at" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "inq" then
+	       lctagOptMap.mode = arg
+	       lctagOptMap.query = argList[ index + 1 ]
+	       skipArgNum = 1
+	    elseif arg == "expand" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "diag" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "chkFiles" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "rm" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "register" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "depIncs" then
+	       lctagOptMap.mode = arg
+	       lctagOptMap.cc = "gcc"
+	    elseif arg == "server" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "statusServer" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "status" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "dcall" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "stack" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "clang-ver" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "testOpe" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "testInc" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "kill" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "cancel-kill" then
+	       lctagOptMap.mode = arg
+	    elseif arg == "call-func" then
+	       lctagOptMap.mode = arg
 	    else
-	       self:printUsage( "unknown dump option" )
+	       local noMatchFlag
+	       noMatchFlag, skipArgNum =
+		  self:analyzeLctagsOption( arg, argList, index, lctagOptMap )
 	    end
-	    skipArgNum = 1
-	 elseif string.find( arg, "-x", 1, true ) == 1 then
-	    lctagOptMap.mode = "query"
-	    lctagOptMap.query = arg
-	    lctagOptMap.compatibleGlobal = true
-	 elseif string.find( arg, "-c", 1, true ) == 1 then
-	    lctagOptMap.mode = "query"
-	    lctagOptMap.query = arg
-	    lctagOptMap.compatibleGlobal = true
-	 elseif arg == "list" then
-	    lctagOptMap.mode = "list"
-	    lctagOptMap.query = argList[ index + 1 ]
-	    if lctagOptMap.query == "inc" then
-	       lctagOptMap.depth = 100
-	    end
-	    skipArgNum = 1
-	 elseif arg == "set-projDir" then
-	    lctagOptMap.mode = arg
-	    lctagOptMap.projDir = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "cursors" then
-	    lctagOptMap.mode = arg
-	    self.cursors = true
-	 elseif arg == "grep-cursor" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "expand-macro" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "cursor-at" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "scan" then
-	    lctagOptMap.mode = arg
-	    lctagOptMap.scan = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "addInc" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "addIncRef" then -- これは emacs 用
-	    lctagOptMap.mode = arg
-	 elseif arg == "addStdInc" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "split-at" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "comp-at" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "inq-at" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "inq" then
-	    lctagOptMap.mode = arg
-	    lctagOptMap.query = argList[ index + 1 ]
-	    skipArgNum = 1
-	 elseif arg == "expand" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "diag" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "chkFiles" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "rm" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "register" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "depIncs" then
-	    lctagOptMap.mode = arg
-	    lctagOptMap.cc = "gcc"
-	 elseif arg == "server" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "statusServer" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "status" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "dcall" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "stack" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "clang-ver" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "testOpe" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "testInc" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "kill" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "cancel-kill" then
-	    lctagOptMap.mode = arg
-	 elseif arg == "call-func" then
-	    lctagOptMap.mode = arg
-	 end
-      else
-	 if skipArgNum > 0 then
-	    skipArgNum = skipArgNum - 1
 	 else
 	    local processMode = "skip"
 	    if string.find( arg, "^-" ) then
-	       if arg == "--lctags-log" then
-		  skipArgNum = 1
-		  log( 0, tonumber( argList[ index + 1 ] ) )
-	       elseif arg == "--lctags-db" then
-		  skipArgNum = 1
-	       elseif arg == "--lctags-conf" then
-		  skipArgNum = 1
-	       elseif arg == "--lctags-only-reg" then
-		  lctagOptMap.onlyReg = true
-	       elseif arg == "--lctags-target" then
-		  skipArgNum = 1
-		  lctagOptMap.target = argList[ index + 1 ]
-	       elseif arg == "--lctags-digestRec" then
-		  lctagOptMap.recordDigestSrcFlag = true
-	       elseif arg == "--lctags-recSql" then
-		  self.recordSql = true
-	       elseif arg == "--use-global" then
-		  lctagOptMap.useGlobalFlag = true
-	       elseif arg == "--lctags-quiet" then
-		  lctagOptMap.quiet = true
-	       elseif arg == "--lctags-prof" then
-		  self.profile = true
-	       elseif arg == "--lctags-lockLog" then
-		  self.lockLog = true
-	       elseif arg == "--lctags-srv" then
-		  self.serviceFlag = true
-	       elseif arg == "--lctags-form" then
-		  Option.outputForm = argList[ index + 1 ]
-		  skipArgNum = 1
-	       elseif arg == "--lctags-indiv" then
-		  self.indivisualWriteFlag = true
-	       elseif arg == "--lctags-uptime" then
-		  skipArgNum = 1
-		  self.updateTime = tonumber( argList[ index + 1 ] )
-	       elseif arg == "--lctags-directRet" then
-		  lctagOptMap.directRet = true
-	       elseif arg == "--lctags-cursorKind" then
-		  local kindId = argList[ index + 1 ]
-		  local cursorKind = clang.CXCursorKind[ kindId ]
-		  if not cursorKind then
-		     error( "kindId is unknown: " .. kindId )
-		  end
-		  lctagOptMap.cursorKind = cursorKind.val
-	       elseif arg == "--lctags-candidateLimit" then
-		  skipArgNum = 1
-		  lctagOptMap.candidateLimit = tonumber( argList[ index + 1 ] )
-	       elseif arg == "--lctags-subRet" then
-		  skipArgNum = 1
-		  local subRetType = {}
-		  for val in string.gmatch( argList[ index + 1 ], "[^/]+" ) do
-		     table.insert( subRetType, val )
-		  end
-		  lctagOptMap.subRetTypeInfo = {}
-		  lctagOptMap.subRetTypeInfo.type = subRetType[ 1 ]
-		  lctagOptMap.subRetTypeInfo.non = subRetType[ 2 ]
-		  lctagOptMap.subRetTypeInfo.ret = subRetType[ 3 ]
-		  lctagOptMap.subRetTypeInfo.brk = subRetType[ 4 ]
-		  lctagOptMap.subRetTypeInfo.cnt = subRetType[ 5 ]
-	       else
+	       local noMatchFlag
+	       noMatchFlag, skipArgNum =
+		  self:analyzeLctagsOption( arg, argList, index, lctagOptMap )
+	       if noMatchFlag then
 		  if lctagOptMap.mode == "build" or lctagOptMap.mode == "depIncs" or
 		     lctagOptMap.mode == "addStdInc" or lctagOptMap.mode == "cursors"
 		  then

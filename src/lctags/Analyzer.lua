@@ -1962,10 +1962,10 @@ function Analyzer:refAt(
    Util:outputResult(
       clang.core.CXDiagnostic_Error,
       function( diagList, writer )
-	 writer:startParent( "ref" )
+	 writer:startParent( "ref", true )
 	 local rangeSet = {}
 	 for infdex, locationSet in ipairs( locationSetList ) do
-	    writer:startParent( "locationSet" )
+	    writer:startParent( "locationSet", true )
 	    for index2, cursor in ipairs( locationSet ) do
 	       self:outputLocation( writer, cursor, rangeSet )
 	    end
