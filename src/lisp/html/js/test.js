@@ -55,3 +55,114 @@ window.onload = function() {
     });
 }
 
+function dumpDir() {
+    $.ajax({
+	url: '/lctags/inq?command=dumpDir',
+	type: 'GET',
+	timeout: 5000,
+    }).done(function(data) {
+	var dirListObj = data.lctags_result.dumpDir;
+	var dirList = [];
+	for (val in dirListObj) {
+	    dirList.push( dirListObj[ val ].path );
+	}
+	dirList = dirList.sort();
+
+	var parentObj = $('#hoge' ).get( 0 );
+	for (val in dirList) {
+	    var obj = document.createElement( "button" );
+	    obj.type = "button";
+	    var path = dirList[ val ];
+	    obj.innerHTML = path;
+	    var fileListObj = document.createElement( "div" );
+	    obj.onclick = function( path, obj ) {
+		return function() {
+		    if ( !obj.dataset[ 'opened' ] ) {
+			obj.dataset[ 'opened' ] = true;
+			matchFile( path, obj );
+		    }
+		};
+	    }( path, fileListObj );
+	    
+	    parentObj.appendChild( obj );
+	    parentObj.appendChild( fileListObj );
+	    //parentObj.appendChild( document.createElement( "br" ) );
+	}
+    }).fail(function() {
+    });
+}
+
+function matchFile( dirPath, parentObj ) {
+    $.ajax({
+	url: '/lctags/inq?command=matchFile&pattern=' + dirPath,
+	type: 'GET',
+	timeout: 5000,
+    }).done(function(data) {
+	var fileListObj = data.lctags_result.matchFile;
+	var fileList = [];
+	for (val in fileListObj) {
+	    fileList.push( fileListObj[ val ].info );
+	}
+	for (val in fileList) {
+	    var obj = document.createElement( "button" );
+	    obj.type = "button";
+	    var info = fileList[ val ];
+	    var path = info.path.replace( dirPath + "/", "" );
+	    obj.innerHTML = info.fileId + ":" + path;
+	    obj.onclick = function( info ) {
+		return function() {
+		    window.open(
+			"/lctags/gen/file.html?id=" + info.fileId, "newrtab" );
+		};
+	    }(info);
+	    parentObj.appendChild( obj );
+	    parentObj.appendChild( document.createElement( "br" ) );
+	}
+    }).fail(function() {
+    });
+}
+
+function getFileInfo( fileId ) {
+    $.ajax({
+	url: '/lctags/inq?command=defAtFileId&fileId=' + fileId,
+	type: 'GET',
+	timeout: 5000,
+    }).done(function(data) {
+	var defListObj = data.lctags_result.defAtFileId;
+	var defList = [];
+	var idMap = new Map();
+	for (val in defListObj) {
+	    var info = defListObj[ val ].info
+	    if ( idMap.has( info.nsId ) ) {
+		continue;
+	    }
+	    defList.push( info );
+	    idMap.set( info.nsId );
+	}
+	var parentObj = $('#file-cont' ).get( 0 );
+	for (val in defList) {
+	    var info = defList[ val ];
+
+	    if ( !( info.type == "FunctionDecl" || info.type == "CXXMethod" ||
+		    info.type == "Constructor" || info.type == "Destructor" ) ) {
+		continue;
+	    }
+
+	    var obj = document.createElement( "button" );
+	    obj.type = "button";
+	    
+	    
+	    obj.innerHTML = info.name;
+	    obj.onclick = function( info ) {
+		return function() {
+		    window.open(
+			"/lctags/gen/file.html?id=" + info.fileId, "newrtab" );
+		};
+	    }(info);
+	    
+	    parentObj.appendChild( obj );
+	    parentObj.appendChild( document.createElement( "br" ) );
+	}
+    }).fail(function() {
+    });
+}

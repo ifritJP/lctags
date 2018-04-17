@@ -261,11 +261,11 @@ if lctagOptMap.mode == "query" then
    if #srcList > 0 then
       for index, pattern in ipairs( srcList ) do
 	 Query:execWithDb( db, lctagOptMap.query, pattern, lctagOptMap.cursorKind,
-			   lctagOptMap.candidateLimit )
+			   lctagOptMap.candidateLimit, Option:getOutputForm() )
       end
    else
       Query:execWithDb( db, lctagOptMap.query, nil, lctagOptMap.cursorKind,
-			lctagOptMap.candidateLimit )
+			lctagOptMap.candidateLimit, Option:getOutputForm() )
    end
 
    db:close()
@@ -381,13 +381,18 @@ end
 if lctagOptMap.mode == "inq" then
    local db = DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) )
    local nsInfo
+   local target = ""
 
-   if lctagOptMap.query == "sym" then
+   if lctagOptMap.query == "matchFile" or
+      lctagOptMap.query == "defAtFileId" 
+   then
+      target = srcList[ 1 ]
+   elseif lctagOptMap.query == "sym" then
       nsInfo = db:getSimpleName( nil, srcList[ 1 ] )
    else
       nsInfo = db:getSimpleName( srcList[ 1 ] )
    end
-   Query:queryFor( db, nsInfo, lctagOptMap.query, absFlag, Option:getOutputForm() )
+   Query:queryFor( db, nsInfo, lctagOptMap.query, target, absFlag, Option:getOutputForm() )
    db:close()
    finish( 0 )
 end

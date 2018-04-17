@@ -7,6 +7,7 @@
 local log = require( 'lctags.LogCtrl' )
 local Util = require( 'lctags.Util' )
 local Writer = require( 'lctags.Writer' )
+local idMap = require( 'lctags.idMap' )
 
 local Query = {}
 
@@ -61,15 +62,32 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	 local outputInfo = nil
 	 if query == "dumpDir" then
 	    outputInfo = function( item )
-	       writer:write( "path", item.path )
+	       writer:write( "path", db:getSystemPath( item.path ) )
+	    end
+	 elseif query == "matchFile" then
+	    outputInfo = function( item )
+	       writer:startParent( "info" )
+	       writer:write( "fileId", item.id )
+	       writer:write( "path", db:getSystemPath( item.path ) )
+	       writer:endElement()
+	    end
+	 elseif query == "defAtFileId" then
+	    outputInfo = function( item )
+	       writer:startParent( "info" )
+	       writer:write( "nsId", item.nsId )
+	       writer:write( "name", db:getNamespace( item.nsId ).name )
+	       writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
+	       writer:endElement()
 	    end
 	 end
 	 if outputInfo then
 	    outputInfo( item )
 	 else
+	    writer:startParent( "info" )
 	    for key, val in pairs( item ) do
 	       writer:write( key, val )
 	    end
+	    writer:endElement()
 	 end
       end
    end
@@ -87,6 +105,23 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       db:dumpProjDir( 1 )
    elseif query == "dumpFile" then
       db:dumpFile( 1, target )
+   elseif query == "matchFile" then
+      local path = db:convPath( target )
+      if not string.find( path, "/$" ) then
+	 path = path .. "/"
+      end
+      db:mapRowList(
+	 "filePath",
+	 string.format( "path like '%%%s%%' escape '$'", path ),
+	 nil, nil,
+	 function( item )
+	    local basename = string.gsub( item.path, path, "" )
+	    if not string.find( basename, "/" ) then
+	       output( db, query, target, "file", item )
+	    end
+	    return true
+	 end
+      )
    elseif query == "dumpRef" then
       db:dumpSymbolRef( 1, target )
    elseif query == "dumpDef" then
@@ -116,16 +151,6 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	    return true
 	 end
       )
-   elseif query:find( "P" ) then
-      db:mapFile(
-	 target and string.format( "path like '%%%s%%' escape '$'",
-				   target:gsub( "_", "$_" ) ),
-	 function( item )
-	    if isLimit() then return false; end
-	    output( db, query, target, "path", { fileId = item.id, line = 1 } )
-	    return true
-	 end
-      )
    elseif query == "dumpDir" then
       local dirSet = {}
       db:mapFile(
@@ -137,6 +162,24 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	       output( db, query, target, "path",
 		       { path = path, fileId = item.id, line = 1 } )
 	    end
+	    return true
+	 end
+      )
+   elseif query == "defAtFileId" then
+      db:mapDeclAtFile(
+	 target,
+	 function( item )
+	    output( db, query, target, target, item )
+	    return true
+	 end
+      )
+   elseif query:find( "P" ) then
+      db:mapFile(
+	 target and string.format( "path like '%%%s%%' escape '$'",
+				   target:gsub( "_", "$_" ) ),
+	 function( item )
+	    if isLimit() then return false; end
+	    output( db, query, target, "path", { fileId = item.id, line = 1 } )
 	    return true
 	 end
       )
@@ -252,6 +295,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
    if form == "json" then
       writer:endElement()
       writer:endElement()
+      writer:fin()
    end
 end
 
@@ -512,7 +556,7 @@ function Query:outputIncSrcHeader( db, file, stream )
    )
 end
 
-function Query:queryFor( db, nsInfo, mode, absFlag, form )
+function Query:queryFor( db, nsInfo, mode, target, absFlag, form )
    mode = string.gsub( mode, "-.*", "" )
    if mode == "ref" then
       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name,
@@ -532,6 +576,10 @@ function Query:queryFor( db, nsInfo, mode, absFlag, form )
       print( nsInfo.id, nsInfo.name )
    elseif mode == "dumpDir" then
       Query:execWithDb( db, mode .. (absFlag and "a" or ""), "", nil, nil, form )
+   elseif mode == "matchFile" then
+      Query:execWithDb( db, mode .. (absFlag and "a" or ""), target, nil, nil, form )
+   elseif mode == "defAtFileId" then
+      Query:execWithDb( db, mode, target, nil, nil, form )
    else
       log( 1, "illegal mode", mode )
       os.exit( 1 )

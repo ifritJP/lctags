@@ -342,6 +342,10 @@ function Option:analyzeOption( argList )
 		  lctagOptMap.query = "dumpProjDir"
 	       elseif argList[ index + 1 ] == "dir" then
 		  lctagOptMap.query = "dumpDir"
+	       elseif argList[ index + 1 ] == "matchFile" then
+		  lctagOptMap.query = argList[ index + 1 ]
+	       elseif argList[ index + 1 ] == "defAtFileId" then
+		  lctagOptMap.query = argList[ index + 1 ]
 	       else
 		  self:printUsage( "unknown dump option" )
 	       end

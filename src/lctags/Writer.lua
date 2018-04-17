@@ -67,9 +67,6 @@ local function convertJsonTxt( txt )
    if txt == nil or txt == "" then
       return ""
    end
-   if type( txt ) == "number" then
-      return string.format( "%g", txt )
-   end
    txt = string.gsub( txt, '"', '\\"' )
    txt = string.gsub( txt, '\\', '\\\\' )
    txt = string.gsub( txt, '\n', '\\n' )
@@ -159,7 +156,7 @@ end
 
 function JSON:startParent( name, arrayFlag )
    self:addElementName( name )
-   
+
    if self:equalLayerState( 'termed' ) or self:equalLayerState( 'named' ) or
       self:equalLayerState( 'valued' )
    then
@@ -180,10 +177,7 @@ end
 
 function JSON:startElement( name )
    self:addElementName( name )
-   
-   if self:isArrayLayer( state ) then
-      self:startLayer( false, true )
-   end
+
    if self:equalLayerState( 'termed' ) then
       self.stream:write( "," )
    elseif self:equalLayerState( 'named' ) then
@@ -191,6 +185,10 @@ function JSON:startElement( name )
    elseif self:equalLayerState( 'none' ) then
       ;
    end
+   if self:isArrayLayer( state ) then
+      self:startLayer( false, true )
+   end
+   
    self.stream:write( string.format( '"%s": ', name ) )
    self:setLayerState( 'named' )
    self.prevName = name
@@ -210,7 +208,14 @@ function JSON:endElement()
 end
 
 function JSON:writeValue( val )
-   self.stream:write( string.format( '"%s"', convertJsonTxt( val ) ) )
+   local txt
+   if type( val ) == "number" then
+      txt = string.format( "%g", val )
+   else
+      txt = string.format( '"%s"', convertJsonTxt( val ) )
+   end
+   
+   self.stream:write( txt )
    self:setLayerState( 'valued' )
 end
 
