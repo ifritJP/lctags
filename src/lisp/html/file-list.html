@@ -2,17 +2,21 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<style>
+.dir_file {
+  margin-left: 25px;
+}
+</style>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script src="js/cytoscape.js"></script>
+<title>lctags file list</title>
 <script src="js/lctags.js"></script>
 <script>
 window.onload = function() {
-  lctags_getFileInfo( $fileId$ );
+  lctags_dumpDir();
 }
 </script>
-<title>lctags file info</title>
 </head>
 <body>
-  <div id="file-cont"></div> 
+<div id="file-list"></div>
 </body>
 </html>

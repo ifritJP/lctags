@@ -1,8 +1,3 @@
-(require 'lctags)
-
-(when (featurep 'simple-httpd)
-  (require 'lctags-servlet))
-
 (add-hook 'lctags-mode-hook
       '(lambda ()
          (local-set-key (kbd "M-t") 'lctags-def)
@@ -22,6 +17,9 @@
        (require 'lctags-anything))
       (t
        (error "please set helm or anything")))
+
+(when (featurep 'simple-httpd)
+  (require 'lctags-servlet))
 
 (add-hook 'c-mode-common-hook
           '(lambda()

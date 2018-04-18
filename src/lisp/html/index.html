@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script src="js/cytoscape.js"></script>
-<title>サンプル</title>
-<div id="hoge"></div>
-<script src="js/test.js"></script>
+<title>lctags</title>
+<script src="lctags/contents/js/lctags.js"></script>
 </head>
 <body>
-  <a href="#" onclick="dumpDir();">test</a> 
-  
+<form action="/lctags/start" method="get">
+  lctags db path: <input type="text" name="db" size="50"> <br>
+  <input type="submit">
+</form>
 </body>
 </html>

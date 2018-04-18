@@ -346,6 +346,10 @@ function Option:analyzeOption( argList )
 		  lctagOptMap.query = argList[ index + 1 ]
 	       elseif argList[ index + 1 ] == "defAtFileId" then
 		  lctagOptMap.query = argList[ index + 1 ]
+	       elseif argList[ index + 1 ] == "callee" then
+		  lctagOptMap.query = argList[ index + 1 ]
+	       elseif argList[ index + 1 ] == "caller" then
+		  lctagOptMap.query = argList[ index + 1 ]
 	       else
 		  self:printUsage( "unknown dump option" )
 	       end

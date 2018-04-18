@@ -249,13 +249,13 @@
 			 ))))
 
 (defun lctags-candidate-map-candidate (func info all-info)
-  (lctags-candidate-map func info all-info 'candidate))
+  (lctags-candidate-map func (assoc 'candidateList info) all-info 'candidate))
 
 (defun lctags-candidate-map (func info all-info symbol)
   (mapcar (lambda (X)
 	    (when (and (listp X) (eq (car X) symbol) )
 	      (funcall func X all-info)))
-	  (assoc 'candidateList info)
+	  info
 	  ))
 
 

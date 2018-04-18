@@ -79,6 +79,13 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	       writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
 	       writer:endElement()
 	    end
+	 elseif query == "callee" then
+	    outputInfo = function( item )
+	       writer:startParent( "info" )
+	       writer:write( "nsId", item.nsId )
+	       writer:write( "name", db:getNamespace( item.nsId ).name )
+	       writer:endElement()
+	    end
 	 end
 	 if outputInfo then
 	    outputInfo( item )
@@ -138,13 +145,18 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       db:dumpTokenDigest( 1, target )
    elseif query == "dumpPrepro" then
       db:dumpPreproDigest( 1, target )
-   elseif query == "callee" then
-      local nsInfo = db:getNamespace( nil, target )
+   elseif query == "callee" or query == "caller" then
+      local nsInfo
+      if type( target ) == "number" or string.find( target, "^%d" ) then
+	 nsInfo = db:getNamespace( tonumber( target ) )
+      else
+	 nsInfo = db:getNamespace( nil, target )
+      end
       if not nsInfo then
 	 return false
       end
       db:mapCall(
-	 "belongNsId = " .. tostring( nsInfo.id ),
+	 ( (query == "callee") and "belongNsId = " or "nsId = " ) .. tostring( nsInfo.id ),
 	 function( item )
 	    if isLimit() then return false; end
 	    output( db, query, target, target, item )
@@ -567,9 +579,6 @@ function Query:queryFor( db, nsInfo, mode, target, absFlag, form )
    elseif mode == "call" then
       Query:execWithDb( db, "C" .. (absFlag and "a" or ""), nsInfo.name,
 			nil, nil, form )
-   elseif mode == "callee" then
-      Query:execWithDb( db, "callee" .. (absFlag and "a" or ""), nsInfo.name,
-			nil, nil, form )
    elseif mode == "ns" then
       print( nsInfo.id, nsInfo.name )
    elseif mode == "sym" then
@@ -579,6 +588,8 @@ function Query:queryFor( db, nsInfo, mode, target, absFlag, form )
    elseif mode == "matchFile" then
       Query:execWithDb( db, mode .. (absFlag and "a" or ""), target, nil, nil, form )
    elseif mode == "defAtFileId" then
+      Query:execWithDb( db, mode, target, nil, nil, form )
+   elseif mode == "callee" then
       Query:execWithDb( db, mode, target, nil, nil, form )
    else
       log( 1, "illegal mode", mode )

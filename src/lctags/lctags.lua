@@ -384,7 +384,9 @@ if lctagOptMap.mode == "inq" then
    local target = ""
 
    if lctagOptMap.query == "matchFile" or
-      lctagOptMap.query == "defAtFileId" 
+      lctagOptMap.query == "defAtFileId" or
+      lctagOptMap.query == "callee" or
+      lctagOptMap.query == "caller"
    then
       target = srcList[ 1 ]
    elseif lctagOptMap.query == "sym" then
