@@ -323,7 +323,7 @@ end
 function DBCtrl:checkRemovedFiles( dbPath )
    log( 2, "checkRemovedFiles" )
    
-   local obj = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
+   local obj = DBCtrl:open( dbPath, false, Util:getcwd() )
    
    if not obj then
       return false
@@ -354,7 +354,7 @@ end
 function DBCtrl:shrinkDB( path, full )
    DBCtrl:checkRemovedFiles( path )
 
-   local obj = DBCtrl:open( path, false, os.getenv( "PWD" ) )
+   local obj = DBCtrl:open( path, false, Util:getcwd() )
    
    if not obj then
       return false
@@ -2794,7 +2794,7 @@ function DBCtrl:dump( level )
 end
 
 function DBCtrl:remove( dbPath, mode, target )
-   local obj = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
+   local obj = DBCtrl:open( dbPath, false, Util:getcwd() )
    
    if not obj then
       return false
@@ -2948,7 +2948,7 @@ function DBCtrl:addIncludeCacheSub(
 end
 
 function DBCtrl:registerFromJson( dbPath, target, json )
-   local db = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( dbPath, false, Util:getcwd() )
 
    json:readValue(
       function( val, keyList, objType )
@@ -2979,7 +2979,7 @@ end
 function DBCtrl:registerFromInfo( dbPath, target )
    log( 2, "registerFromInfo", dbPath, target )
    local db = DBCtrl:open(
-      dbPath, false, os.getenv( "PWD" ), "register" )
+      dbPath, false, Util:getcwd(), "register" )
 
    local dependRoot = db:getMiscPath( "depend", target )
 

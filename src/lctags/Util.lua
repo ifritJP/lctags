@@ -1,10 +1,16 @@
 local Helper = require( 'lctags.Helper' )
-local Option = require( 'lctags.Option' )
 local log = require( 'lctags.LogCtrl' )
 local clang = require( 'libclanglua.if' )
 local Writer = require( 'lctags.Writer' )
 
-local Util = {}
+local Util = { _cwd = os.getenv( "PWD" ) }
+
+
+local Option
+
+function Util:setOption( option )
+   Option = option
+end
 
 function Util:getToken( filePath, line, column, fileContents )
    local txt = self:getFileLineText( filePath, line, fileContents )
@@ -28,7 +34,8 @@ function Util:getFileLineText( filePath, line, fileContents )
    end
    local handle = io.open( filePath, "r" )
    if not handle then
-      return "<not found>"
+      log( -2 )
+      return "<not found>" .. filePath
    end
    local lineNo = 1
    if fileContents then
@@ -70,7 +77,7 @@ function Util:printLocate(
       path = fileInfo.path
    end
    
-   local baseDir = absFlag and "" or os.getenv( "PWD" )
+   local baseDir = absFlag and "" or Util:getcwd()
    path = db:getSystemPath( path, baseDir )
    self:printLocateDirect( io.stdout, symbol, path, line, printLine, fileContents )
 end
@@ -316,5 +323,14 @@ function Util:getSameDirFile( src, basename )
    return Option:getSameDirFile( src, basename )
 end
 
-return Util
+function Util:chdir( path )
+   if Helper.chdir( path ) == 0 then
+      self._cwd = path
+   end
+end
 
+function Util:getcwd()
+   return self._cwd
+end
+
+return Util

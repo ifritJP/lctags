@@ -138,7 +138,6 @@ function lctags_funcCallGraph( nsId, name ) {
         ]
     });
 
-
 // http://bl.ocks.org/tgk/6068367
 
     cy.on('tap', 'node',

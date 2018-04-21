@@ -342,7 +342,7 @@ end
 
 
 function Make:updateFor( dbPath, target, jobs, src )
-   local db = DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( dbPath, true, Util:getcwd() )
    local dbFullPath = db:convFullpath( dbPath )
    local targetFileInfo = db:getFileInfo( nil, src )
 
@@ -513,7 +513,7 @@ end
 
 
 function Make:lazyUpdateFor( dbPath, target, jobs, optList )
-   local db = DBCtrl:open( dbPath, false, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( dbPath, false, Util:getcwd() )
    local root = db:convFullpath( "." )
 
    suffixTable = {

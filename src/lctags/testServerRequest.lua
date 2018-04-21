@@ -17,7 +17,7 @@ local item = Server:requestInq(
    end
 )
 
-local db = DBCtrl:open( 'lctags.sqlite3', true, os.getenv( "PWD" ) )
+local db = DBCtrl:open( 'lctags.sqlite3', true, Util:getcwd() )
 
 local fileInfo = db:getFileInfo( 2 )
 print( "fileInfo 2", fileInfo )

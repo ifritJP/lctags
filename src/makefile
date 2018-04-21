@@ -196,12 +196,14 @@ endif
 		sed "s@$(NDIR)@NDIR@g" | \
 		grep -v -e 'Leaving directory' -e 'Entering directory' | \
 		sed "s@$(LUA_COMMAND)@lua@g" | sed 's@<hash>[0-9a-f]*</hash>@@g' | \
+		sed 's@><@>\n<@g' | \
 		tee test-result
 	LANG= $(MAKE) LCTAGS_LUA="$(LCTAGS_LUA) --lctags-form json" test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(NDIR)@NDIR@g" | \
 		grep -v -e 'Leaving directory' -e 'Entering directory' | \
 		sed "s@$(LUA_COMMAND)@lua@g" | sed 's@"hash": "[0-9a-f]*"@@g' | \
+		sed 's@,@,\n@g' | \
 		tee test-result2
 	$(MAKE) test-stack
 	- diff -c test-result.expect test-result && echo OK

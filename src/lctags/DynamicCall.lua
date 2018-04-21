@@ -850,7 +850,7 @@ function DynamicCall:analyzeCaller(
 end
 
 function DynamicCall:dumpInfo( dbPath, target )
-   local db = DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( dbPath, true, Util:getcwd() )
    dbPath = db:convFullpath( dbPath )
 
    local indirectList = {}
@@ -898,7 +898,7 @@ function DynamicCall:dumpInfo( dbPath, target )
    local analyzer = Analyzer:new( dbPath, false, false )
 
    for fileId, indirectList in pairs( fileId2IndirectListMap ) do
-      db = DBCtrl:open( dbPath, true, os.getenv( "PWD" ) )
+      db = DBCtrl:open( dbPath, true, Util:getcwd() )
       local fileInfo = db:getFileInfo( fileId )
       local path = db:getSystemPath( fileInfo.path )
       local unit, compileOp, newAnalyzer = analyzer:createUnit(

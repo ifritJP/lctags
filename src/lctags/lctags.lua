@@ -18,6 +18,7 @@ local Helper = require( 'lctags.Helper' )
 local StackCalc = require( 'lctags.StackCalc' )
 local Split = require( 'lctags.Split' )
 local Scan = require( 'lctags.Scan' )
+local Util = require( 'lctags.Util' )
 
 local startTime = Helper.getTime( true )
 
@@ -37,7 +38,7 @@ for index, opt in ipairs( list ) do
    table.insert( optList, opt )
 end
 
-local projDir = os.getenv( "PWD" )
+local projDir = Util:getcwd()
 if lctagOptMap.projDir then
    projDir = lctagOptMap.projDir
 end
@@ -52,20 +53,20 @@ if lctagOptMap.mode == "clang-ver" then
 end
 
 if not lctagOptMap.dbPath then
-   local dir = os.getenv( "PWD" )
+   local dir = Util:getcwd()
    repeat
       local dbPath = dir .. "/" .. "lctags.sqlite3"
       local dbFile = io.open( dbPath, "r" )
       if dbFile then
 	 dbFile:close()
-	 lctagOptMap.dbPath = DBCtrl:convFullpath( dbPath, os.getenv( "PWD" ) )
+	 lctagOptMap.dbPath = DBCtrl:convFullpath( dbPath, Util:getcwd() )
 	 break
       end
       dir = string.gsub( dir, "/[^/]*$", "" )
    until dir == ""
    if not lctagOptMap.dbPath then
       if lctagOptMap.mode == "init" then
-         lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
+         lctagOptMap.dbPath = Util:getcwd() .. "/" .. "lctags.sqlite3"
       elseif lctagOptMap.compatibleGlobal then
 	 ;
       else
@@ -88,7 +89,7 @@ if lctagOptMap.mode == "server" then
       Server:requestEnd()
    elseif srcList[ 1 ] == "start" then
       Server:new( lctagOptMap.dbPath,
-		  DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) ) )
+		  DBCtrl:open( lctagOptMap.dbPath, false, Util:getcwd() ) )
    else
       Option:printUsage( "stop or start" )
    end
@@ -160,7 +161,7 @@ end
 
 if lctagOptMap.mode == "init" then
    DBCtrl:init(
-      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
+      lctagOptMap.dbPath, Util:getcwd(), projDir,
       lctagOptMap.individualTypeFlag, lctagOptMap.individualStructFlag,
       lctagOptMap.individualMacroFlag )
 
@@ -236,14 +237,14 @@ if lctagOptMap.mode == "chg-proj" or lctagOptMap.mode == "set-projDir" then
    end
    
    DBCtrl:changeProjDir(
-      lctagOptMap.dbPath, os.getenv( "PWD" ), projDir,
+      lctagOptMap.dbPath, Util:getcwd(), projDir,
       lctagOptMap.mode == "set-projDir", chgDirMap )
    finish( 0 )
 end
 
 if lctagOptMap.mode == "query" then
    local db = lctagOptMap.dbPath and DBCtrl:open( lctagOptMap.dbPath,
-						  true, os.getenv( "PWD" ) )
+						  true, Util:getcwd() )
 
    if not db then
       if not lctagOptMap.useGlobalFlag then
@@ -273,7 +274,7 @@ if lctagOptMap.mode == "query" then
 end
 
 if lctagOptMap.mode == "list" then
-   local db = DBCtrl:open( lctagOptMap.dbPath, true, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( lctagOptMap.dbPath, true, Util:getcwd() )
    
    if lctagOptMap.query == "inc" or lctagOptMap.query == "incSrc" then
       Query:outputIncRelation(
@@ -288,7 +289,7 @@ if lctagOptMap.mode == "list" then
 end
 
 if lctagOptMap.mode == "graph" then
-   local db = DBCtrl:open( lctagOptMap.dbPath, true, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( lctagOptMap.dbPath, true, Util:getcwd() )
    
    if lctagOptMap.graph == "inc" or lctagOptMap.graph == "incSrc" then
       Query:outputIncRelation(
@@ -318,12 +319,12 @@ if not lctagOptMap.dbPath then
 end
 
 if lctagOptMap.mode == "kill" then
-   DBCtrl:setKill( lctagOptMap.dbPath, os.getenv( "PWD" ), true )
+   DBCtrl:setKill( lctagOptMap.dbPath, Util:getcwd(), true )
    finish( 0 )
 end
 
 if lctagOptMap.mode == "cancel-kill" then
-   DBCtrl:setKill( lctagOptMap.dbPath, os.getenv( "PWD" ), false )
+   DBCtrl:setKill( lctagOptMap.dbPath, Util:getcwd(), false )
    finish( 0 )
 end
 
@@ -372,14 +373,14 @@ if lctagOptMap.mode == "dcall" then
 end
 
 if lctagOptMap.mode == "addIncRef" then
-   local db = DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( lctagOptMap.dbPath, false, Util:getcwd() )
    db:addIncludeDirect( srcList[ 1 ], srcList[ 2 ] )
    db:close()
    finish( 0 )
 end
 
 if lctagOptMap.mode == "inq" then
-   local db = DBCtrl:open( lctagOptMap.dbPath, false, os.getenv( "PWD" ) )
+   local db = DBCtrl:open( lctagOptMap.dbPath, false, Util:getcwd() )
    local nsInfo
    local target = ""
 
@@ -402,7 +403,7 @@ end
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
-local db = analyzer:openDBForReadOnly( os.getenv( "PWD" ) )
+local db = analyzer:openDBForReadOnly( Util:getcwd() )
 
 --- これ以降は、 srcList[1] にはソースが指定されていることを前提にする
 
@@ -424,7 +425,7 @@ for index, opt in ipairs( optList ) do
    if string.find( opt, "-I", 1, true ) then
       local path = opt:sub( 3 )
       if not string.find( path, "|", 1, true ) then
-	 path = db:convRelativePath( path, os.getenv( "PWD" ) )
+	 path = db:convRelativePath( path, Util:getcwd() )
       end
       opt = "-I" .. path
    end
@@ -455,7 +456,7 @@ if lctagOptMap.mode == "build" then
    
    
    for index, info in ipairs( lctagOptMap.conf:getIgnorePattern() ) do
-      local fullpath = DBCtrl:convFullpath( src, os.getenv( "PWD" ) )
+      local fullpath = DBCtrl:convFullpath( src, Util:getcwd() )
       if info[ 1 ] == "simple" then
 	 if string.find( fullpath, info[ 2 ], 1, true ) then
 	    log( 1, "ignore:", fullpath )
@@ -521,7 +522,7 @@ if lctagOptMap.mode == "addInc" or lctagOptMap.mode == "addStdInc" then
    end
    
    for index, src in ipairs( srcList ) do
-      local newAnalyzer = analyzer:newAs( false, true, os.getenv( "PWD" ) )
+      local newAnalyzer = analyzer:newAs( false, true, Util:getcwd() )
       newAnalyzer:analyzeSource( src, optList, lctagOptMap.target, nil, false )
    end
    finish( 0 )

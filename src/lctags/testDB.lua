@@ -4,7 +4,7 @@ local Helper = require( 'lctags.Helper' )
 
 
 local path = "test.sqlite3"
-local currentDir = os.getenv( "PWD" )
+local currentDir = Util:getcwd()
 
 local dataCount = 100000
 

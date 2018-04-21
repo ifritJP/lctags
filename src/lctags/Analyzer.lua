@@ -492,7 +492,7 @@ local Analyzer = {}
 function Analyzer:newAs( recordDigestSrcFlag, displayDiagnostics, currentDir )
    if currentDir then
       log( 2, "chdir", currentDir )
-      Helper.chdir( currentDir )
+      Util:chdir( currentDir )
    end
    return Analyzer:new(
       self.dbPath, recordDigestSrcFlag, displayDiagnostics, currentDir )
@@ -501,7 +501,7 @@ end
 function Analyzer:new(
       dbPath, recordDigestSrcFlag, displayDiagnostics, currentDir )
    if not currentDir then
-      currentDir = os.getenv( "PWD" )
+      currentDir = Util:getcwd()
    end
    local obj = {
       clangIndex = clang.createIndex( 0, displayDiagnostics and 1 or 0 ),

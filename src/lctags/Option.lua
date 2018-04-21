@@ -2,10 +2,13 @@ local log = require( 'lctags.LogCtrl' )
 local gcc = require( 'lctags.gcc' )
 local config = require( 'lctags.config' )
 local clang = require( 'libclanglua.if' )
+local Util = require( 'lctags.Util' )
 
 local Option = {}
 
-Option.orgDir = os.getenv( "PWD" )
+Util:setOption( Option )
+
+Option.orgDir = Util:getcwd()
 
 
 
@@ -110,7 +113,7 @@ function Option:getSameDirFile( src, basename )
    local dir =
       string.find( src, "/" ) and
       string.gsub( src, "(.*/).*", "%1" ) or
-      (os.getenv( "PWD" ) .. "/")
+      (Util:getcwd() .. "/")
    return dir .. basename
 end
 
@@ -220,7 +223,7 @@ function Option:analyzeOption( argList )
    end
 
    if not lctagOptMap.dbPath then
-      local dir = os.getenv( "PWD" )
+      local dir = Util:getcwd()
       repeat
 	 local dbPath = dir .. "/" .. "lctags.sqlite3"
 	 local dbFile = io.open( dbPath, "r" )
@@ -257,7 +260,7 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.mode = "init"
 	       lctagOptMap.projDir = argList[ index + 1 ]
 	       if not lctagOptMap.dbPath then
-		  lctagOptMap.dbPath = os.getenv( "PWD" ) .. "/" .. "lctags.sqlite3"
+		  lctagOptMap.dbPath = Util:getcwd() .. "/" .. "lctags.sqlite3"
 		  if not conf then
 		     local confPath = string.gsub(
 			lctagOptMap.dbPath, "(.*/).*", "%1lctags.conf" )
