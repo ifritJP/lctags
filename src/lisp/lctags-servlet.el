@@ -43,7 +43,7 @@
 	(conf (cadr (assoc "conf" query)))
 	(key (hash-table-count lctags-servlet-cookie-hash)))
     (puthash key (list :db db :table target :conf conf) lctags-servlet-cookie-hash)
-    (httpd-send-header t "text/plain" 301
+    (httpd-send-header t "text/plain" 302
 		       :Set-Cookie (format "confId=%s; path=/lctags;" key)
 		       :Location "contents/file-list.html"
 		       )

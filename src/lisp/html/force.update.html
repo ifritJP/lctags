@@ -1,0 +1,204 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script>
+
+// https://bl.ocks.org/HarryStevens/bc938c8d45008d99faed47039fbe5d49
+
+var width = window.innerWidth;
+var height = window.innerHeight;
+
+// バインドするデータ
+var nodes = [];
+var links = [];
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width).attr("height", height)
+    .on("mousemove", mousemove )
+    .on("click", function() { addNode( d3.mouse(this) ); } );
+
+// 矢印の定義
+var defs = svg.append("defs");
+var marker = defs.append("marker")
+    .attr( "id", "arrow" )
+    .attr( "markerUnits", "userSpaceOnUse" )
+    .attr( "markerWidth", "12" )
+    .attr( "markerHeight", "12" )
+    .attr( "viewBox", "0 0 10 10" )
+    .attr( "refX", "17" )
+    .attr( "refY", "6" )
+    .attr( "orient", "auto" );
+marker.append("path")
+    .attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")
+    .style( "fill", "red" );
+
+var g = svg.append("g").attr(
+    "transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+var cursor = svg.append("circle")
+    .attr("r", 30)
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
+    .attr( "display", "none")
+    .style( "stroke", "red" )
+    .style( "pointer-events", "none" )
+    .style( "fill", "none" );
+
+
+// SVG の画像要素
+var node = g.selectAll(".node");
+var link = g.selectAll(".link");
+var label = g.selectAll(".label");
+
+var simulation = d3.forceSimulation( nodes )
+    .on("tick", ticked );
+
+// ドラッグ制御
+var drag = d3.drag()
+    .on("start", dragstarted)
+    .on("drag", dragged)
+    .on("end", dragended);
+
+// 初期状態として 1 つノードを追加
+addNode( [ 100, 100 ] );
+
+
+function addNode( point ) {
+    var node = { x: point[0] - width / 2,
+		 y: point[1] - height / 2,
+		 name: "hoge", size: 10 };
+
+    // add links to any nearby nodes
+    nodes.forEach(function(target) {
+        var x = target.x - node.x,
+            y = target.y - node.y;
+        if (Math.sqrt(x * x + y * y) < 40) {
+            links.push({source: node, target: target});
+        }
+    });
+    
+    nodes.push(node);
+
+    update( nodes );
+}
+
+
+function update(nodes) {
+
+    // transition
+    var t = d3.transition().duration(750);    
+
+    // node の更新  ======>
+
+    // 新しく nodes をバインド
+    node = node.data(nodes);
+    // バインドした情報に存在しない DOM を削除
+    node.exit().transition( t ).attr( "r", 1e-4 ).remove();
+
+    // 削除後の node に対する操作
+    node.transition( t )	
+	.style( "fill", "black" );
+
+    // 新しくバインドした nodes を元に DOM を生成
+    node = node.enter().append("circle")
+        .style("fill", "red")
+        .attr("r", function(d){ return d.size })
+        .call( drag ) // ドラッグ対象とする
+	.on("click", function( d ) {
+	    d3.event.stopPropagation();
+	    deleteNode( d );
+	} ) // 追加分の DOM を生成する
+        .merge(node); // 前の DOM とマージする
+    
+    // label の更新 ======>
+    label = label.data( nodes );
+    label.exit().remove();
+    
+    label = label.enter().append("text")
+        .attr("class", "label")
+        .attr( "fill", "black" )
+        .attr("dx", 18)
+        .attr("dy", ".35em")
+        .text( function(d) { return d.name } )
+        .merge(label);
+
+
+    // link の更新 ======>
+    link = link.data( links );
+    link.exit().remove();
+    
+    link = link.enter().append("line")
+        .style( "stroke", "black" )
+        .attr( "stroke-width", 2 )
+	.attr( "marker-end", "url(#arrow)" )
+        .merge(link);
+
+    // forceSimulation 開始
+    simulation.nodes( nodes )
+	.force("charge", d3.forceManyBody().strength(-300))
+	.force("forceX", d3.forceX().strength(.1))
+	.force("forceY", d3.forceY().strength(.1))
+	.force("center", d3.forceCenter())
+	.force("link", d3.forceLink( links ).distance( 100 ).strength(1.5).iterations(2) )
+	.alphaTarget(1);
+
+}
+
+function ticked() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node.attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+
+    label.attr("x", function(d) { return d.x; })
+        .attr("y", function(d) { return d.y; });
+}
+
+function deleteNode( node )
+{
+    // node を削除する
+
+    // node.index は forceSimulation によって追加される
+    nodes.splice( node.index, 1 );
+
+    // node に繋がっている link を削除
+    links = links.filter(function(l) {
+	return l.source.index != node.index && l.target.index != node.index;
+    });
+
+    // graph を更新
+    update( nodes );
+}
+
+function mousemove() {
+    cursor.attr( "display", "block");
+    cursor.attr("transform", "translate(" + d3.mouse(this) + ")");
+}
+
+function dragstarted(d) {
+    cursor.attr( "display", "none");
+    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+}
+
+function dragged(d) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+}
+
+function dragended(d) {
+    if (!d3.event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+}
+
+    </script>
+  </body>
+</html>

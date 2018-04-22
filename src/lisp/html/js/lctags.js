@@ -122,77 +122,53 @@ function lctags_getFileInfo( fileId ) {
 }
 
 function lctags_funcCallGraph( nsId, name ) {
-    var newName = 0;
-    var cy = cytoscape({
-        container: document.getElementById('call-graph'),
-        elements: [
-            { data: { id: nsId, name: name } }
-        ],
-        style: [
-            {
-                selector: 'node',
-                style: {
-                    'content': "data(name)"
-                }
-            }
-        ]
-    });
-
 // http://bl.ocks.org/tgk/6068367
 
-    cy.on('tap', 'node',
-          function() {
-              var nsId = this.data('id');
-              $.ajax({
-                  url: '/lctags/inq?command=callee&nsId=' + nsId,
-                  type: 'GET',
-                  timeout: 5000,
-              }).done(function(data) {
-                  var funcListObj = data.lctags_result.callee;
-                  for (val in funcListObj) {
-                      var info = funcListObj[ val ].info;
-                      cy.add( [ { group: "nodes",
-                                  data: { id: info.nsId, name: info.name } } ] );
-                      cy.add( [ { group: "edges",
-                                  data: { id: nsId + '-' + info.nsId,
-                                          source: nsId, target: info.nsId } } ] );
-                  }
-                  var layout = cy.elements().layout(
-                      //{ name: 'breadthfirst', directed: true, spacingFactor: 0.4 }
-                      //{ name: 'cose' }
-                      { name: 'concentric', minNodeSpacing: 20 }
-                  );
-                  layout.run();
-              }).fail(function() {
-              });
-          } );
-        
-        // var work = 'd' + newName;
-        // var curNode = this.data('id');
-        // cy.add( [ { group: "nodes", data: { id: work, name: work } } ] );
-        // cy.add( [ { group: "edges", data: { id: 'D' + newName,
-        //                                     source: curNode, target: work } } ] );
-        // newName = newName + 1;
+    var paramInfo = {
+        svgClick: function() {
+            ;
+        },
+        nodeClick: function( node ) {
+            d3.event.stopPropagation();
+            if ( node.opened ) {
+                obj.lctags_addNodeLink( [], [] );
+            }
+            else {
+                node.opened = true;
+                //obj.lctags_deleteNode( node );
 
+                var nsId = node.nsId;
+                $.ajax({
+                    url: '/lctags/inq?command=callee&nsId=' + nsId,
+                    type: 'GET',
+                    timeout: 5000,
+                }).done(function(data) {
+                    var funcListObj = data.lctags_result.callee;
 
-        // var layout = cy.elements().layout( { name: 'breadthfirst', directed: true } );
-        // // var layout = cy.elements().layout( { name: 'cose' } );
-        // // var layout = cy.elements().layout( { name: 'concentric' } );
-        // layout.run();
+                    var nodeInfoArray = [];
+                    var linkInfoArray = [];
+                    for (val in funcListObj) {
+                        var info = funcListObj[ val ].info;
 
-        // cy.add( [ { group: "edges",
-        //               data: { id: 'ac', source: 'a', target: 'c' } } ] );
-        // cy.add( [ { group: "nodes",
-        //          data: { id: 'd', name: 'D' } },
-        //        { group: "edges", data: { id: 'ad', source: 'a', target: 'd' } },
-        //        { group: "edges", data: { id: 'cd', source: 'c', target: 'd' } }
-        //      ] );
-        
-        // cy.fit();
-        
-        // try { // your browser may block popups
-        //     window.open( this.data('href') );
-        // } catch(e){ // fall back on url change
-        //     window.location.href = this.data('href');
-        // }
+                        if ( !obj.nodeMap.has( info.nsId ) ) {
+                            nodeInfoArray.push(
+                                { nsId: info.nsId,
+                                  name: info.name, pos: [ node.x, node.y ] } );
+                        }
+
+                        linkInfoArray.push(
+                            { src: nsId, dst: info.nsId } );
+                    }
+
+                    obj.lctags_addNodeLink( nodeInfoArray, linkInfoArray );
+                }).fail(function() {
+                });
+            }
+        }
+    };
+    
+    var obj = lctags_graph( paramInfo );
+
+    obj.lctags_addNodeLink(
+        [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ], null );
 }
