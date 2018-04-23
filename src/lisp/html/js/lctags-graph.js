@@ -38,11 +38,11 @@ function lctags_graph( paramInfo ) {
                  // svg の右クリックはモード切り替え
                  if ( obj.dragMode === obj.dragMove ) {
                      obj.dragMode = obj.dragSelect;
-                     svg.style( "cursor", "crosshair" )
+                     svg.style( "cursor", "crosshair" );
                  }
                  else {
                      obj.dragMode = obj.dragMove;
-                     svg.style( "cursor", "default" )
+                     svg.style( "cursor", "default" );
                  }
                  svg.call( obj.dragMode );
              } )
@@ -161,7 +161,7 @@ function lctags_graph( paramInfo ) {
                 
                 return true;
             });
-        }
+        };
 
         if ( node.selected ) {
             var list = [];
@@ -178,7 +178,7 @@ function lctags_graph( paramInfo ) {
         }
         // graph を更新
         lctags_update( obj, true );
-    }
+    };
         
     function lctags_update( obj, startForceFlag ) {
 
@@ -231,7 +231,7 @@ function lctags_graph( paramInfo ) {
                         if ( node.selected ) {
                             return "red";
                         }
-                        return "transparent";
+                        return "none";
                     } );
         
         // label の更新 ======>
@@ -263,8 +263,8 @@ function lctags_graph( paramInfo ) {
             .attr("dx", 18)
             .attr("dy", ".35em")
             .style( "pointer-events", "none" )
-            .text( function(d) { return d.name } )
-            .merge(label)
+            .text( function(d) { return d.name; } )
+            .merge(label);
 
         // link の更新 ======>
         link = link.data( obj.links );
@@ -360,8 +360,8 @@ function lctags_graph( paramInfo ) {
             .attr( "y", obj.dragY )
             .attr( "width", 5 )
             .attr( "height", 5 )
-            .style( "fill", "transparent" )
-            .style( "stroke", "black" )
+            .style( "fill", "none" )
+            .style( "stroke", "black" );
 
 
         obj.nodes.forEach( function( node ) {node.selected = false; } );
@@ -395,7 +395,7 @@ function lctags_graph( paramInfo ) {
             .attr( "x", x1 )
             .attr( "y", y1 )
             .attr( "width", width )
-            .attr( "height", height )
+            .attr( "height", height );
 
         obj.nodes.forEach(
             function( node ) {
