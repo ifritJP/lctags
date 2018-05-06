@@ -163,6 +163,16 @@
     (insert simple ))
   )
 
+(defun lctags-json-get (buf symbol)
+  (with-current-buffer buf
+    (let (info)
+      (setq info (json-read-from-string (buffer-string)))
+      (assoc symbol (assoc 'lctags_result info)))))
+
+(defun lctags-json-val (json symbol)
+  (cdr (assoc symbol json)))
+
+
 (defun lctags-xml-get (buf symbol)
   (with-current-buffer buf
     (let (info)

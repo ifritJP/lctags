@@ -90,4 +90,12 @@ function config:getClangIncPathOp()
    return self.clangIncPathOp
 end
 
+function config:getIndirectFuncList( symbol )
+   if self.conf and self.conf.getIndirectFuncList then
+      return self.conf:getIndirectFuncList( symbol )
+   end
+   return {}
+end
+
+
 return config

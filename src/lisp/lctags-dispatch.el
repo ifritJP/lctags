@@ -16,7 +16,8 @@
 	    ))
     (:name "graph" :bind "g"
 	   :submenu
-	   ((:name "caller" :bind "r" :action lctags-graph-caller-at)
+	   ((:name "setCookie" :bind "c" :action lctags-servlet-set-cookie)
+	    (:name "caller" :bind "r" :action lctags-graph-caller-at)
 	    (:name "callee" :bind "e" :action lctags-graph-callee-at)
 	    (:name "symbol" :bind "s" :action lctags-graph-symbol-at)
 	    (:name "inc" :bind "i" :action lctags-graph-inc)
@@ -127,7 +128,8 @@
     (setq mode-name "lctags-dispatcher" major-mode 'lctags-dispatcher)
     )
   (setq buffer-read-only t)
-  (fit-window-to-buffer))
+  (fit-window-to-buffer)
+  (beginning-of-buffer))
 
 
 (defun lctags-dispatch-mode ()

@@ -209,7 +209,7 @@ function DBAccess:mapRowList( tableName, condition, limit, attrib, func )
       query = string.format( "%s LIMIT %d", query, limit )
    end
 
-   self:mapQuery( query, func )
+   return self:mapQuery( query, func )
 end
 
 
@@ -219,12 +219,15 @@ function DBAccess:mapQuery( query, func )
 
    self.writeAccessFlag = false
 
+   local callCount = 0
+   
    local success, message
    if self.server then
       local err
       local result = self.server:requestInq(
 	 query,
 	 function( item )
+	    callCount = callCount + 1
 	    local continue = func( item )
 	    if not continue then
 	       if continue == nil then
@@ -263,6 +266,7 @@ function DBAccess:mapQuery( query, func )
 		     if not item then
 			break
 		     end
+		     callCount = callCount + 1
 		     local continue = func( item )
 		     if not continue then
 			if continue == nil then
@@ -286,6 +290,8 @@ function DBAccess:mapQuery( query, func )
    if not success then
       self:errorExit( 3, message, query )
    end
+
+   return callCount
 end
 
 

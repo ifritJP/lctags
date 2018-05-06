@@ -386,6 +386,7 @@ if lctagOptMap.mode == "inq" then
 
    if lctagOptMap.query == "matchFile" or
       lctagOptMap.query == "defAtFileId" or
+      lctagOptMap.query == "defBody" or
       lctagOptMap.query == "callee" or
       lctagOptMap.query == "caller"
    then

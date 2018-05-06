@@ -282,6 +282,7 @@ endif
 	$(call build-test, test/incFuncTest.c )
 	$(call build-test, test/highlight.cpp )
 	$(call build-test, test/inctest.cpp, , -Itest/inc )
+	$(call build-test, test/indirect.cpp )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -486,6 +487,7 @@ install-lib:
 	$(INSTALL) $(IF_LUA) $(IFC_LUA) $(LUA_MOD_DIR)/libclanglua
 	if [ -f lsqlite3.so  ]; then $(INSTALL) lsqlite3.so $(LUA_LIB_DIR); fi
 	mkdir -p $(LUA_MOD_DIR)/lctags
+	$(INSTALL) lctags/_lctags.conf $(LUA_MOD_DIR)/lctags
 	$(INSTALL) lctags/*.lua $(LUA_MOD_DIR)/lctags
 	$(INSTALL) lctags/*.so $(LUA_LIB_DIR)/lctags
 ifneq ($(LUA_INST_DIR),)

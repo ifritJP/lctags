@@ -8,6 +8,8 @@ local log = require( 'lctags.LogCtrl' )
 local Util = require( 'lctags.Util' )
 local Writer = require( 'lctags.Writer' )
 local idMap = require( 'lctags.idMap' )
+local config = require( 'lctags.config' )
+local clang = require( 'libclanglua.if' )
 
 local Query = {}
 
@@ -50,6 +52,12 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       Util:printLocate( db, name, item.fileId, item.line, absFlag, printLine )
    end
 
+   if query == "dbPath" then
+      print( db.dbPath )
+      return
+   end
+   
+
    if form then
       if form == "json" then
 	 writer = Writer.JSON:open( io.stdout )
@@ -57,6 +65,31 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	 writer = Writer.XML:open( io.stdout )
       end
       writer:startParent( "lctags_result" )
+      if query == "callee" then
+	 writer:startParent( "funcInfo" )
+
+	 local nsInfo
+	 if type( target ) == "number" or string.find( target, "^%d" ) then
+	    nsInfo = db:getNamespace( tonumber( target ) )
+	 else
+	    nsInfo = db:getNamespace( nil, target )
+	 end
+	 if not nsInfo then
+	    return
+	 end
+
+	 writer:write( "nsId", nsInfo.id )
+	 writer:write( "name", nsInfo.name )
+
+	 db:mapDecl( nsInfo.id,
+		     function( item )
+			writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
+			return false
+		     end
+	 )
+	 writer:endElement()
+      end
+      
       writer:startParent( query, true )
       output = function( db, query, target, name, item )
 	 local outputInfo = nil
@@ -79,6 +112,16 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	       writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
 	       writer:endElement()
 	    end
+	 elseif query == "defBody" then
+	    outputInfo = function( item )
+	       writer:startParent( "info" )
+	       writer:write( "fileId", item.fileId )
+	       writer:write( "line", item.line )
+	       writer:write( "column", item.column )
+	       writer:write( "path",
+			     db:getSystemPath( db:getFileInfo( item.fileId ).path ) )
+	       writer:endElement()
+	    end
 	 elseif query == "callee" then
 	    outputInfo = function( item )
 	       writer:startParent( "info" )
@@ -91,8 +134,13 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	    outputInfo( item )
 	 else
 	    writer:startParent( "info" )
+	    local list = {}
 	    for key, val in pairs( item ) do
-	       writer:write( key, val )
+	       table.insert( list, key )
+	    end
+	    table.sort( list )
+	    for index, key in ipairs( list ) do
+	       writer:write( key, item[ key ] )
 	    end
 	    writer:endElement()
 	 end
@@ -155,14 +203,47 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       if not nsInfo then
 	 return false
       end
+      local matchFlag = false
       db:mapCall(
 	 ( (query == "callee") and "belongNsId = " or "nsId = " ) .. tostring( nsInfo.id ),
 	 function( item )
 	    if isLimit() then return false; end
 	    output( db, query, target, target, item )
+	    matchFlag = true
 	    return true
 	 end
       )
+      if not matchFlag then
+	 if query == "callee" then
+	    -- 関数呼び出しがない場合、動的呼び出しを探す
+	    local indirectFlag = false
+	    db:mapDecl( nsInfo.id,
+			function( item )
+			   if item.type == clang.core.CXCursor_TypedefDecl then
+			      -- コール元が typedef の場合は動的呼び出しとする
+			      indirectFlag = true
+			      return false
+			   end
+			   return true
+			end
+	    )
+	    if indirectFlag then
+	       local indirectSet = {}
+	       for index, symbol in ipairs( config:getIndirectFuncList( nsInfo.name ) ) do
+		  db:mapFuncDeclPattern(
+		     symbol,
+		     function( item )
+			if not indirectSet[ item.nsId ] then
+			   indirectSet[ item.nsId ] = true
+			   output( db, query, target, target, item )
+			end
+			return true
+		     end
+		  )
+	       end
+	    end
+	 end
+      end
    elseif query == "dumpDir" then
       local dirSet = {}
       db:mapFile(
@@ -179,6 +260,14 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       )
    elseif query == "defAtFileId" then
       db:mapDeclAtFile(
+	 target,
+	 function( item )
+	    output( db, query, target, target, item )
+	    return true
+	 end
+      )
+   elseif query == "defBody" then
+      db:mapDeclHasBody(
 	 target,
 	 function( item )
 	    output( db, query, target, target, item )
@@ -590,6 +679,8 @@ function Query:queryFor( db, nsInfo, mode, target, absFlag, form )
    elseif mode == "defAtFileId" then
       Query:execWithDb( db, mode, target, nil, nil, form )
    elseif mode == "callee" then
+      Query:execWithDb( db, mode, target, nil, nil, form )
+   elseif mode == "defBody" then
       Query:execWithDb( db, mode, target, nil, nil, form )
    else
       log( 1, "illegal mode", mode )

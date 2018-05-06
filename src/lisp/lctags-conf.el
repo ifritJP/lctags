@@ -18,8 +18,9 @@
       (t
        (error "please set helm or anything")))
 
-(when (featurep 'simple-httpd)
-  (require 'lctags-servlet))
+
+(eval-after-load 'simple-httpd 
+  '(require 'lctags-servlet))
 
 (add-hook 'c-mode-common-hook
           '(lambda()

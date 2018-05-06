@@ -1,3 +1,33 @@
+function lctags_getCookies( cookiesEle ) {
+    $.ajax({
+        url: '/lctags/inq?command=cookies',
+        type: 'GET',
+        timeout: 5000,
+    }).done(function(data) {
+        var cookieListObj = data.list;
+        var cookieList = [];
+        for (val in cookieListObj) {
+            cookieList.push( cookieListObj[val] );
+        }
+        cookieList = cookieList.sort(
+            function( obj1, obj2 ) {
+                return obj1.cookie < obj2.cookie;
+            });
+
+        for (val in cookieList) {
+            var obj = document.createElement( "a" );
+            var cookieInfo = cookieList[ val ];
+            obj.innerHTML = cookieInfo.db;
+            obj.href = "/lctags/start?cookie=" + cookieInfo.cookie;
+
+            cookiesEle.appendChild( obj );
+            cookiesEle.appendChild( document.createElement( "br" ) );
+        }
+    }).fail(function() {
+    });
+};
+
+
 function lctags_dumpDir() {
     $.ajax({
         url: '/lctags/inq?command=dumpDir',
@@ -53,6 +83,11 @@ function lctags_matchFile( dirPath, parentObj ) {
         for (val in fileListObj) {
             fileList.push( fileListObj[ val ].info );
         }
+        fileList = fileList.sort(
+            function( obj1, obj2 ) {
+                return obj1.path.localeCompare( obj2.path );
+        });
+        
         for (val in fileList) {
             var obj = document.createElement( "button" );
             obj.type = "button";
@@ -91,6 +126,13 @@ function lctags_getFileInfo( fileId ) {
             defList.push( info );
             idMap.set( info.nsId );
         }
+
+        defList = defList.sort(
+            function( obj1, obj2 ) {
+                return obj1.name.localeCompare( obj2.name );
+        });
+
+        
         var parentObj = $('#file-cont' ).get( 0 );
         for (val in defList) {
             var info = defList[ val ];
@@ -121,9 +163,9 @@ function lctags_getFileInfo( fileId ) {
     });
 }
 
-function lctags_funcCallGraph( nsId, name ) {
-// http://bl.ocks.org/tgk/6068367
+function lctags_funcCallGraph_force( nsId, name ) {
 
+    var obj;
     var paramInfo = {
         svgClick: function() {
             ;
@@ -131,7 +173,7 @@ function lctags_funcCallGraph( nsId, name ) {
         nodeClick: function( node ) {
             d3.event.stopPropagation();
             if ( node.opened ) {
-                obj.lctags_addNodeLink( [], [] );
+                obj.addNodeLink( [], [] );
             }
             else {
                 node.opened = true;
@@ -160,15 +202,69 @@ function lctags_funcCallGraph( nsId, name ) {
                             { src: nsId, dst: info.nsId } );
                     }
 
-                    obj.lctags_addNodeLink( nodeInfoArray, linkInfoArray );
+                    obj.addNodeLink( nodeInfoArray, linkInfoArray );
                 }).fail(function() {
                 });
             }
         }
     };
     
-    var obj = lctags_graph( paramInfo );
+    obj = lctags_graph_force( paramInfo );
 
-    obj.lctags_addNodeLink(
+    obj.addNodeLink(
         [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ], null );
+}
+
+
+function lctags_funcCallGraph_tree( nsId, name ) {
+
+    var paramInfo = {
+        svgClick: function() {
+            ;
+        },
+        nodeClick: function( obj, node ) {
+            d3.event.stopPropagation();
+            var nsId = node.nsId;
+            var nodeId = node.id;
+            $.ajax({
+                url: '/lctags/inq?command=callee&nsId=' + nsId,
+                type: 'GET',
+                timeout: 5000
+            }).done(function(data) {
+                var funcListObj = data.lctags_result.callee;
+
+                var nodeInfoArray = [];
+                for (val in funcListObj) {
+                    var info = funcListObj[ val ].info;
+                    
+                    nodeInfoArray.push( { nsId: info.nsId, name: info.name } );
+                }
+
+                nodeInfoArray = nodeInfoArray.sort( function( obj1, obj2 ) {
+                    return obj1.name.localeCompare( obj2.name );
+                });
+
+                obj.setNodeType( nodeId, data.lctags_result.funcInfo.type );
+                obj.addChild( nodeId, nodeInfoArray );
+            }).fail(function() {
+            });
+        },
+        nodeContext: function( obj, node ) {
+            d3.event.stopPropagation();
+            var nsId = node.nsId;
+            $.ajax({
+                url: '/lctags/inq?command=defBody&nsId=' + nsId,
+                type: 'GET',
+                timeout: 5000
+            }).done(function(data) {
+                var funcListObj = data.lctags_result.callee;
+
+            }).fail(function() {
+            });
+        }
+    };
+    
+    var obj = lctags_graph_tree( paramInfo );
+
+    obj.addChild( null, [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ] );
 }

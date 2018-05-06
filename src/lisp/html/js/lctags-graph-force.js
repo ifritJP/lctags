@@ -1,4 +1,4 @@
-function lctags_graph( paramInfo ) {
+function lctags_graph_force( paramInfo ) {
 
     var obj = {};
 
@@ -67,9 +67,10 @@ function lctags_graph( paramInfo ) {
         "transform", "translate(" + obj.orgX + "," + obj.orgY + ")");
 
     // SVG の画像要素
-    var node = g.selectAll(".node");
-    var link = g.selectAll(".link");
-    var label = g.selectAll(".label");
+    obj.sel = {};
+    obj.sel.node = g.selectAll(".node");
+    obj.sel.link = g.selectAll(".link");
+    obj.sel.label = g.selectAll(".label");
 
     var selectRect = null;
 
@@ -82,7 +83,7 @@ function lctags_graph( paramInfo ) {
         .on("drag", lctags_dragged)
         .on("end", lctags_dragended);
 
-    obj.lctags_addNodeLink = function( nodeInfoArray, linkInfoArray ) {
+    obj.addNodeLink = function( nodeInfoArray, linkInfoArray ) {
         var modFlag = false;
         
         if ( nodeInfoArray ) {
@@ -94,7 +95,6 @@ function lctags_graph( paramInfo ) {
                              opened: false, selected: false,
                              dstMap: new Map(), srcMap: new Map()
                            };
-                label.node = node;
                 obj.nodes.push( node );
                 obj.nodeMap.set( node.nsId, node );
                 modFlag = true;
@@ -127,11 +127,11 @@ function lctags_graph( paramInfo ) {
         }
 
         
-        
         lctags_update( obj, modFlag );
     };
 
-    obj.lctags_deleteNode = function( node ) {
+
+    obj.deleteNode = function( node ) {
         // node を削除する
 
         var deleteNode = function( delNode ) {
@@ -146,6 +146,7 @@ function lctags_graph( paramInfo ) {
             delNode.dstMap.forEach( function( link, dstNode ) {
                 dstNode.srcMap.delete( delNode );
             } );
+
 
             // node に繋がっている link を削除
             obj.links = obj.links.filter(function(l) {
@@ -179,7 +180,7 @@ function lctags_graph( paramInfo ) {
         // graph を更新
         lctags_update( obj, true );
     };
-        
+
     function lctags_update( obj, startForceFlag ) {
 
         // transition
@@ -188,12 +189,14 @@ function lctags_graph( paramInfo ) {
         // node の更新  ======>
 
         // 新しく nodes をバインド
-        node = node.data( obj.nodes );
+        obj.sel.node = obj.sel.node.data(
+            obj.nodes, function( d ) { return d.nsId; } );
         // バインドした情報に存在しない DOM を削除
-        node.exit().transition( t ).attr( "r", 1e-4 ).remove();
+        obj.sel.removedNode = obj.sel.node.exit();
+        obj.sel.removedNode.transition( t ).attr( "r", 1e-4 ).remove();
 
-        // 削除後の node に対する操作
-        node.transition( t )        
+        // 既存の node に対する操作
+        obj.sel.node.transition( t )        
             .style( "fill",
                     function( node ) {
                         if ( node.opened ) {
@@ -205,7 +208,7 @@ function lctags_graph( paramInfo ) {
                     });
 
         // 新しくバインドした nodes を元に DOM を生成
-        node = node.enter().append("circle")
+        obj.sel.node = obj.sel.node.enter().append("circle")
             .style("fill", "green")
             .attr("r", node_r )
             .call( drag ) // ドラッグ対象とする
@@ -217,7 +220,7 @@ function lctags_graph( paramInfo ) {
                      d3.event.preventDefault();
 
                      // node の右クリックは削除
-                     obj.lctags_deleteNode( d );
+                     obj.deleteNode( d );
                  } )
             .on("click",
                 function( node ) {
@@ -225,7 +228,7 @@ function lctags_graph( paramInfo ) {
                     paramInfo.nodeClick( node );
                 })
         // 追加分の DOM を生成する
-            .merge(node) // 前の DOM とマージする
+            .merge( obj.sel.node ) // 前の DOM とマージする
             .style( "stroke",
                     function( node ) {
                         if ( node.selected ) {
@@ -235,25 +238,26 @@ function lctags_graph( paramInfo ) {
                     } );
         
         // label の更新 ======>
-        label = label.data( obj.nodes );
-        label.exit().remove();
+        obj.sel.label = obj.sel.label.data( obj.nodes );
+        obj.sel.label.exit().remove();
 
-        label.style( "z-index",
-                     function( node ) {
-                         if ( node === obj.focus ) {
-                             return 100;
-                         }
-                         return 0;
-                     } )
+        obj.sel.label.style( "z-index",
+                             function( node ) {
+                                 if ( node === obj.focus ) {
+                                     return 100;
+                                 }
+                                 return 0;
+                             } )
+            .text( function(d) { return d.name; } )
             .attr( "fill",
                    function( node ) {
-                         if ( node === obj.focus ) {
-                             return "red";
-                         }
-                         return "gray";
+                       if ( node === obj.focus ) {
+                           return "red";
+                       }
+                       return "gray";
                    } );
         
-        label = label.enter().append("text")
+        obj.sel.label = obj.sel.label.enter().append("text")
             .attr("class", "label")
             .attr( "fill", "gray" )
             .attr( "font-weight", "bold" )
@@ -264,18 +268,18 @@ function lctags_graph( paramInfo ) {
             .attr("dy", ".35em")
             .style( "pointer-events", "none" )
             .text( function(d) { return d.name; } )
-            .merge(label);
+            .merge( obj.sel.label );
 
         // link の更新 ======>
-        link = link.data( obj.links );
-        link.exit().remove();
+        obj.sel.link = obj.sel.link.data( obj.links );
+        obj.sel.link.exit().remove();
         
-        link = link.enter().append("line")
+        obj.sel.link = obj.sel.link.enter().append("line")
             .style( "stroke", "black" )
             .style( "pointer-events", "none" )
             .attr( "stroke-width", 2 )
             .attr( "marker-end", "url(#arrow)" )
-            .merge(link);
+            .merge( obj.sel.link );
 
         if ( startForceFlag ) {
             // forceSimulation 開始
@@ -288,33 +292,43 @@ function lctags_graph( paramInfo ) {
                         d3.forceLink( obj.links )
                         .distance(
                             function( link ) {
-                                var dis = link.weight * 5 + 70;
-                                if ( dis > 150 ) {
-                                    return 150;
+                                var dis = link.weight * 10 + 70;
+                                if ( dis > 250 ) {
+                                    return 250;
                                 }
                                 return dis;
                             })
                         .strength(0.9).iterations(2) )
                 .alpha(1)
-                .alphaTarget(0);
+                .alphaTarget(0).restart();
         }
 
-    }
+    };
+        
 
     function lctags_ticked() {
-        link.attr("x1", function(d) { return d.source.x; })
+        obj.sel.link
+            .attr("x1", function(d) { return d.source.x; })
             .attr("y1", function(d) { return d.source.y; })
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; });
 
-        node.attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; });
+        obj.sel.node
+            .attr("cx", function( node ) { return node.x; })
+            .attr("cy", function( node ) { return node.y; });
 
-        label.attr("x", function(d) { return d.x; })
+        // obj.sel.removedNode
+        //     .attr("cx", function( node ) { node.x += 2; return node.x; })
+        //     .attr("cy", function( node ) { return node.y; });
+            
+
+        obj.sel.label.attr("x", function(d) { return d.x; })
             .attr("y", function(d) { return d.y; });
     }
 
     function lctags_dragstarted(d) {
+        obj.focus = d;
+        lctags_update( obj, false );
         if (!d3.event.active) {
             simulation.alphaTarget(0.3).restart();
         }

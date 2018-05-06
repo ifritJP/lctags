@@ -838,7 +838,7 @@ function DBCtrl:mapJoin2(
 end
 
 function DBCtrl:mapRowList( tableName, condition, limit, attrib, func )
-   self.db:mapRowList( tableName, condition, limit, attrib, func )
+   return self.db:mapRowList( tableName, condition, limit, attrib, func )
 end
 
 function DBCtrl:getRowList( tableName, condition, limit, attrib )
@@ -1970,6 +1970,14 @@ function DBCtrl:mapDecl( nsId, func )
       "symbolDecl", "nsId = " .. tostring( nsId ), nil, nil, func )
 end
 
+function DBCtrl:mapDeclHasBody( nsId, func )
+   self:mapRowList(
+      "symbolDecl",
+      string.format( "nsId = %s AND (hasBodyFlag <> 0)", nsId ),
+      nil, nil, func )
+end
+
+
 function DBCtrl:mapSymbolRefInfoList( symbol, func )
    return self:mapSymbolInfoList( "symbolRef", symbol, func )
 end
@@ -3054,6 +3062,18 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
       end
    end
    if pattern and pattern ~= "" then
+      local nsInfo = self:getNamespace( nil, pattern )
+      if nsInfo then
+	 log( 3, "mapSymbolDeclPattern", nsInfo.name )
+	 local count = self:mapRowList(
+	    "symbolDecl",
+	    string.format( "nsId = %s AND ( %s )", nsInfo.id, cond ),
+	    nil, nil, func )
+	 if count > 1 then
+	    return
+	 end
+      end
+      
       local work = string.format( "(simpleName.name LIKE '%s' escape '$')", pattern )
       if cond then
 	 cond = string.format( "(%s) AND (%s)", cond, work )

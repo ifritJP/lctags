@@ -5,11 +5,17 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <title>lctags</title>
 <script src="lctags/contents/js/lctags.js"></script>
+<script>
+window.onload = function() {
+  lctags_getCookies( $( '#cookies' ).get( 0 ) );
+}
+</script>
 </head>
 <body>
 <form action="/lctags/start" method="get">
-  lctags db path: <input type="text" name="db" size="50"> <br>
+  lctags db path: <input type="text" name="db" size="50"> 
   <input type="submit">
 </form>
+<div id="cookies"></div>
 </body>
 </html>

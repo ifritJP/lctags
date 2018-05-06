@@ -149,18 +149,27 @@ This parameter can set function and string.
 (defun lctags-execute-op2 (src-buf lctags-buf input async &rest lctags-opts)
   (lctags-execute-op src-buf lctags-buf input async lctags-opts))
 
-(defun lctags-execute-op (src-buf lctags-buf input async lctags-opts)
-  (let ((db-path lctags-db)
-	(target lctags-target)
-	(config lctags-conf)
-	command dir exit-code)
-    (with-current-buffer src-buf
+(defun lctags-get-db (buf)
+  (with-current-buffer buf
+    (let ((db-path lctags-db)
+	  (target lctags-target)
+	  (config lctags-conf))
       (when (and lctags-db (functionp lctags-db))
 	(setq db-path (funcall lctags-db)))
       (when (and lctags-target (functionp lctags-target))
 	(setq target (funcall lctags-target)))
       (when (and lctags-conf (functionp lctags-conf))
 	(setq config (funcall lctags-conf)))
+      (list :db db-path :target target :conf config)
+      )))
+  
+(defun lctags-execute-op (src-buf lctags-buf input async lctags-opts)
+  (let* ((db-info (lctags-get-db src-buf))
+	 (db-path (plist-get db-info :db))
+	 (target (plist-get db-info :target))
+	 (config (plist-get db-info :conf))
+	 command dir exit-code)
+    (with-current-buffer src-buf
       (setq dir default-directory))
     
     (with-temp-buffer
