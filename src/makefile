@@ -189,6 +189,7 @@ ifndef NO_INIT
 	$(LUA_COMMAND) $(LCTAGS_LUA) init . $(IT_OP) $(IS_OP) $(IM_OP)
 endif
 	sync
+	rm -f test-result test-result2
 	rm -rf .lctags/pch
 	$(MAKE) test-dbbuild
 	LANG= $(MAKE) test-query | \

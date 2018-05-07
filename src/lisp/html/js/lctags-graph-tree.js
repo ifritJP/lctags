@@ -101,7 +101,6 @@ function lctags_graph_tree( paramInfo ) {
                 .attr("class", "node")
                 .attr("transform",
                       function(d) {
-                          // var val = d.parent || d;
                           var val = source;
                           return "translate(" + val.data.y0 + "," + val.data.x0 + ")";
                       })
@@ -232,8 +231,6 @@ function lctags_graph_tree( paramInfo ) {
             .attr("stroke-width", "1.5px" )
             .attr("d", function(d) {
                 var pos = {};
-                // pos.x = d.source.data.x0;
-                // pos.y = d.source.data.y0;
                 pos.x = source.data.x0;
                 pos.y = source.data.y0;
                 return linkD2( pos, pos );
@@ -272,7 +269,6 @@ function lctags_graph_tree( paramInfo ) {
 
         // depth 毎の offset を計算
         var totalWidth = 0;
-        //obj.depthOffset = [ 10 ];
         textWidthList.forEach( function( width, index ) {
             totalWidth += width;
             obj.depthOffset[ index + 1 ] = totalWidth;

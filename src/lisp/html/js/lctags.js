@@ -229,7 +229,7 @@ function lctags_funcCallGraph_tree( nsId, name ) {
             $.ajax({
                 url: '/lctags/inq?command=callee&nsId=' + nsId,
                 type: 'GET',
-                timeout: 5000
+                timeout: 10 * 1000
             }).done(function(data) {
                 var funcListObj = data.lctags_result.callee;
 

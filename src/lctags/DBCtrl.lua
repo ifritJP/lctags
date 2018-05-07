@@ -3062,19 +3062,56 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
       end
    end
    if pattern and pattern ~= "" then
-      local nsInfo = self:getNamespace( nil, pattern )
-      if nsInfo then
-	 log( 3, "mapSymbolDeclPattern", nsInfo.name )
+      local work
+      local nsInfoList = {}
+      if type( pattern ) == "table" then
+	 local patCond
+	 for key, pat in ipairs( pattern ) do
+	    if patCond then
+	       patCond = string.format(
+		  "%s OR simpleName.name LIKE '%s' escape '$'", patCond, pat )
+	    else
+	       patCond = string.format(
+		  "simpleName.name LIKE '%s' escape '$'", pat )
+	    end
+	 end
+	 work = string.format( "(%s)", patCond )
+
+	 local nsInfo = self:getNamespace( nil, pattern )
+	 if nsInfoList and nsInfo then
+	    talbe.insert( nsInfoList, nsInfo )
+	 else
+	    nsInfoList = nil
+	 end
+      else
+	 work = string.format( "(simpleName.name LIKE '%s' escape '$')", pattern )
+	 
+	 local nsInfo = self:getNamespace( nil, pattern )
+	 if nsInfo then
+	    talbe.insert( nsInfoList, nsInfo )
+	 end
+      end
+
+      if nsInfoList and #nsInfoList > 0 then
+	 local nsInfoCond
+	 for key, val in ipairs( nsInfoList ) do
+	    if nsInfoCond then
+	       nsInfoCond = string.format( "%s OR nsId = %s", nsInfoCond, nsInfo.id )
+	    else
+	       nsInfoCond = string.format( "nsId = %s", nsInfo.id )
+	    end
+	 end
+	 
+	 log( 3, "mapSymbolDeclPattern", nsInfoCond )
 	 local count = self:mapRowList(
 	    "symbolDecl",
-	    string.format( "nsId = %s AND ( %s )", nsInfo.id, cond ),
+	    string.format( "(%s) AND ( %s )", nsInfoCond, cond ),
 	    nil, nil, func )
 	 if count > 1 then
 	    return
 	 end
       end
       
-      local work = string.format( "(simpleName.name LIKE '%s' escape '$')", pattern )
       if cond then
 	 cond = string.format( "(%s) AND (%s)", cond, work )
       else

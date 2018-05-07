@@ -23,7 +23,7 @@ sub                 6 ./test/enum2.cpp static void sub( eval_t val )
 sub                 5 ./test/enum3.cpp static eval_t sub( void )
 sub                21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 sub                 3 ./test/inctest.cpp void sub( void )
-sub                 3 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
+sub                 7 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
 lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
@@ -97,7 +97,7 @@ lua lctags/lctags.lua -xT sub
 ::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
-::sub               3 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
+::sub               7 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
 lua lctags/lctags.lua -xT sub$
 ::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
 ::@enum::<enum_anonymous>::FPE_FLTSUB  222 /usr/include/x86_64-linux-gnu/bits/siginfo.h   FPE_FLTSUB			/* Subscript out of range.  */
@@ -129,7 +129,7 @@ lua lctags/lctags.lua -xT sub$
 ::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
-::sub               3 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
+::sub               7 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
 lua lctags/lctags.lua -xT %sub
 ::FP_SUBNORMAL    221 /usr/include/math.h # define FP_SUBNORMAL 3
 ::@enum::<enum_anonymous>::FP_SUBNORMAL  220 /usr/include/math.h     FP_SUBNORMAL =
@@ -160,8 +160,8 @@ lua lctags/lctags.lua -xT %sub
 ::sub               4 ./test/comp19.cpp void sub( int val )
 ::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
 ::Sub              11 ./test/class3.cpp template <typename T>
-::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
 ::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
+::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
 ::sub::188          3 ./test/stdinc.cpp static void sub( void )
 ::sub::189          4 ./test/stack.cpp static void sub();
 ::sub::189         52 ./test/stack.cpp static void sub()
@@ -171,7 +171,7 @@ lua lctags/lctags.lua -xT %sub
 ::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
-::sub               3 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
+::sub               7 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
@@ -201,8 +201,8 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
 lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
-::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 ::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
+::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
 lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
@@ -285,7 +285,7 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 </lctags_result>
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:309: recipe for target 'test-query' failed
+makefile:310: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -721,7 +721,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </diagnostics>
 </lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:309: recipe for target 'test-query' failed
+makefile:310: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <completion>
@@ -3302,7 +3302,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
 </refactoring_split>
 </lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:309: recipe for target 'test-query' failed
+makefile:310: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result>
 <refactoring_split>
@@ -4431,5 +4431,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:420: recipe for target 'test-chg-proj' failed
+makefile:421: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

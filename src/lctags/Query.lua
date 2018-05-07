@@ -214,6 +214,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	 end
       )
       if not matchFlag then
+	 log( 3, "no match" )
 	 if query == "callee" then
 	    -- 関数呼び出しがない場合、動的呼び出しを探す
 	    local indirectFlag = false
@@ -228,19 +229,18 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 			end
 	    )
 	    if indirectFlag then
+	       log( 3, "no match: indirect" )
 	       local indirectSet = {}
-	       for index, symbol in ipairs( config:getIndirectFuncList( nsInfo.name ) ) do
-		  db:mapFuncDeclPattern(
-		     symbol,
-		     function( item )
-			if not indirectSet[ item.nsId ] then
-			   indirectSet[ item.nsId ] = true
-			   output( db, query, target, target, item )
-			end
-			return true
+	       db:mapFuncDeclPattern(
+		  config:getIndirectFuncList( nsInfo.name ),
+		  function( item )
+		     if not indirectSet[ item.nsId ] then
+			indirectSet[ item.nsId ] = true
+			output( db, query, target, target, item )
 		     end
-		  )
-	       end
+		     return true
+		  end
+	       )
 	    end
 	 end
       end
