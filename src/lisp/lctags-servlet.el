@@ -46,6 +46,9 @@
 
 (defun lctags-servlet-set-cookie ()
   (interactive)
+  (let ((src-buf (current-buffer)))
+    (with-temp-buffer
+      (lctags-execute-op2 src-buf (current-buffer) nil nil "prepare")))
   (let ((db-info (lctags-get-db (current-buffer))))
     (lctags-servlet-make-cookie (plist-get db-info :db)
 				(plist-get db-info :target)

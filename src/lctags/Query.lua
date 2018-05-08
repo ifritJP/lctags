@@ -231,16 +231,20 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	    if indirectFlag then
 	       log( 3, "no match: indirect" )
 	       local indirectSet = {}
-	       db:mapFuncDeclPattern(
-		  config:getIndirectFuncList( nsInfo.name ),
-		  function( item )
-		     if not indirectSet[ item.nsId ] then
-			indirectSet[ item.nsId ] = true
-			output( db, query, target, target, item )
+	       local indirectList = config:getIndirectFuncList( nsInfo.name )
+
+	       if indirectList and #indirectList > 0 then
+		  db:mapFuncDeclPattern(
+		     indirectList,
+		     function( item )
+			if not indirectSet[ item.nsId ] then
+			   indirectSet[ item.nsId ] = true
+			   output( db, query, target, target, item )
+			end
+			return true
 		     end
-		     return true
-		  end
-	       )
+		  )
+	       end
 	    end
 	 end
       end

@@ -43,6 +43,29 @@ function lctags_graph_tree( paramInfo ) {
              function( d, i ) {
                  // ブラウザの contextmenu を表示しない
                  d3.event.preventDefault();
+                 var popup = d3.select("body").append( "div" )
+                     .style( "width", "50%" )
+                     .style( "height", "20%" )
+                     .style( "position", "absolute" )
+                     .style( "top", "0px" )
+                     .style( "left", "0px" );
+
+                 popup.append( "button" )
+                     .text( "close" )
+                     .on( "click",
+                          function() {
+                              popup.remove();
+                          });
+                 popup.append( "br" );
+                 
+                 var textarea = popup
+                     .append( "textarea" )
+                     .style( "width", "100%" )
+                     .style( "height", "100%" )
+                     .text( JSON.stringify( rootNode ) );
+
+                 
+                 textarea
              } )
         .call( obj.dragMode );
 
@@ -104,6 +127,7 @@ function lctags_graph_tree( paramInfo ) {
                           var val = source;
                           return "translate(" + val.data.y0 + "," + val.data.x0 + ")";
                       })
+		.style( "cursor", "pointer" )
                 .on( "contextmenu",
                      function( d, i ) {
                          // ブラウザの contextmenu を表示しない

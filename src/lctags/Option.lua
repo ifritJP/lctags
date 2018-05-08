@@ -285,6 +285,8 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.mode = "copyConf"
 	    elseif arg == "update" then
 	       lctagOptMap.mode = "update"
+	    elseif arg == "prepare" then
+	       lctagOptMap.mode = arg
 	    elseif arg == "lazyUpdate" then
 	       lctagOptMap.mode = "lazyUpdate"
 	    elseif arg == "updateForMake" then

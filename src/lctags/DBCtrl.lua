@@ -3136,4 +3136,16 @@ function DBCtrl:mapFuncDeclPattern( pattern, func )
    self:mapSymbolDeclPattern( pattern, kindList, func )
 end
 
+
+--[[
+   DB ファイルがメモリに乗るようにアクセスする
+]]
+function DBCtrl:prepare()
+   local noneFunc = function( item ) return true end
+   self:mapRowList( "symbolDecl", nil, nil, nil, noneFunc )
+   self:mapRowList( "funcCall", nil, nil, nil, noneFunc )
+end
+
+
+
 return DBCtrl

@@ -401,6 +401,13 @@ if lctagOptMap.mode == "inq" then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "prepare" then
+   local db = DBCtrl:open( lctagOptMap.dbPath, false, Util:getcwd() )
+   db:prepare()
+   db:close()
+   finish( 0 )
+end
+
 local analyzer = Analyzer:new(
    lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
 
