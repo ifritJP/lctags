@@ -89,6 +89,20 @@
 		       )
     ))
 
+(defun lctags-servlet-open-pos ( sym &rest arg )
+  (apply 'lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+		      "--lctags-form json" arg)
+  (let* ((result (cdr (lctags-json-get (current-buffer) sym)))
+	 (info (lctags-json-val (aref result 0) 'info))
+	 (path (lctags-json-val info 'path))
+	 (line (lctags-json-val info 'line))
+	 (column (lctags-json-val info 'column)))
+    (when path
+      (find-file path)
+      (lctags-goto-line-column line column)
+      (recenter)
+      ))
+  )
 
 (defun lctags-servlet-handle (path query req)
   (let* ((cookie (string-to-number
@@ -118,6 +132,11 @@
 				   "inq" command
 				   (cadr (assoc "nsId" query))
 				   "--lctags-form json" ))
+	      ((equal command "caller")
+	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				   "inq" command
+				   (cadr (assoc "nsId" query))
+				   "--lctags-form json" ))
 	      ((equal command "cookies")
 	       (let* (obj list)
 		 (maphash (lambda (cookie val)
@@ -137,21 +156,14 @@
 							  "list" (vconcat list))))
 		 ))
 	      ((equal command "defBody")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (cadr (assoc "nsId" query))
-				   "--lctags-form json" )
-	       (let* ((result (cdr (lctags-json-get (current-buffer) 'defBody)))
-		      (info (lctags-json-val (aref result 0) 'info))
-		      (path (lctags-json-val info 'path))
-		      (line (lctags-json-val info 'line))
-		      (column (lctags-json-val info 'column)))
-		 (when path
-		   (find-file path)
-		   (lctags-goto-line-column line column)
-		   (recenter)
-		   ))
-	       )
+	       (lctags-servlet-open-pos 'defBody
+					"inq" command
+					(cadr (assoc "nsId" query))))
+	      ((equal command "callPair")
+	       (lctags-servlet-open-pos 'callPair
+					"inq" command
+					(cadr (assoc "nsId" query))
+					(cadr (assoc "belongNsId" query))))
 	      (t
 	       (httpd-error t 500)
 	       ))

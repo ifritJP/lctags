@@ -3,6 +3,7 @@ local gcc = require( 'lctags.gcc' )
 local config = require( 'lctags.config' )
 local clang = require( 'libclanglua.if' )
 local Util = require( 'lctags.Util' )
+local QueryParam = require( 'lctags.QueryParam' )
 
 local Option = {}
 
@@ -345,22 +346,15 @@ function Option:analyzeOption( argList )
 		  lctagOptMap.query = "dumpVersion"
 	       elseif argList[ index + 1 ] == "projDir" then
 		  lctagOptMap.query = "dumpProjDir"
-	       elseif argList[ index + 1 ] == "dir" then
-		  lctagOptMap.query = "dumpDir"
-	       elseif argList[ index + 1 ] == "matchFile" then
-		  lctagOptMap.query = argList[ index + 1 ]
-	       elseif argList[ index + 1 ] == "defAtFileId" then
-		  lctagOptMap.query = argList[ index + 1 ]
-	       elseif argList[ index + 1 ] == "defBody" then
-		  lctagOptMap.query = argList[ index + 1 ]
-	       elseif argList[ index + 1 ] == "callee" then
-		  lctagOptMap.query = argList[ index + 1 ]
-	       elseif argList[ index + 1 ] == "caller" then
-		  lctagOptMap.query = argList[ index + 1 ]
 	       elseif argList[ index + 1 ] == "dbPath" then
 		  lctagOptMap.query = argList[ index + 1 ]
 	       else
-		  self:printUsage( "unknown dump option" )
+		  local query = QueryParam:getQueryId( argList[ index + 1 ] )
+		  if query then
+		     lctagOptMap.query = query
+		  else
+		     self:printUsage( "unknown dump option" )
+		  end
 	       end
 	       skipArgNum = 1
 	    elseif string.find( arg, "-x", 1, true ) == 1 then

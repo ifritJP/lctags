@@ -1,3 +1,15 @@
+var reset_node = function( obj, rootNode ) {
+    obj.nsId2CountMap = new Map();
+    obj.inquiredNsIdSet = new Set();
+
+    if ( rootNode ) {
+        rootNode.children = null;
+        rootNode.inquired = false;
+    }
+        
+    obj.depthOffset = [ 10 ];
+}
+
 function lctags_graph_tree( paramInfo ) {
 
     var obj = {};
@@ -7,23 +19,32 @@ function lctags_graph_tree( paramInfo ) {
         idSeed = 0,
         rootNode;
 
-    obj.nsId2CountMap = new Map();
-    obj.inquiredNsIdSet = new Set();
+    reset_node( obj, rootNode );
 
-    obj.depthOffset = [ 10 ];
     obj.orgX = 0;
     obj.orgY = 0;
     obj.dragX = 0;
     obj.dragY = 0;
 
+    var node_r = 6;
+
     obj.dragMove = d3.drag()
                .on("start", lctags_svg_move_dragstarted)
                .on("drag", lctags_svg_move_dragged)
                .on("end", lctags_svg_move_dragended);
+    obj.dragSelect = d3.drag()
+               .on("start", lctags_svg_select_dragstarted)
+               .on("drag", lctags_svg_select_dragged)
+               .on("end", lctags_svg_select_dragended); 
     obj.dragMode = obj.dragMove;
+    obj.callerMode = false;
 
+    var headerHeight = 50;
 
-    var tree = d3.tree().size([ height - 30, width - 20 ]);
+    var selectRect = null;
+
+    
+    var tree = d3.tree().size([ height - 30 - headerHeight, width - 20 ]);
 
     function linkD( d ) {
         return linkD2( d.source, d.target );
@@ -36,39 +57,18 @@ function lctags_graph_tree( paramInfo ) {
             + " " + dst.y + "," + dst.x;
     }
 
+    make_header( headerHeight, obj, rootNode );
+    
+
     var svg = d3.select("body").append("svg")
-        .attr("width", width).attr("height", height)
+        .attr("width", width).attr("height", height - headerHeight)
         .on("click", paramInfo.svgClick )
         .on( "contextmenu",
              function( d, i ) {
-                 // ブラウザの contextmenu を表示しない
+                 // 右クリックでブラウザの contextmenu を表示しない。
                  d3.event.preventDefault();
-                 var popup = d3.select("body").append( "div" )
-                     .style( "width", "50%" )
-                     .style( "height", "20%" )
-                     .style( "position", "absolute" )
-                     .style( "top", "0px" )
-                     .style( "left", "0px" );
-
-                 popup.append( "button" )
-                     .text( "close" )
-                     .on( "click",
-                          function() {
-                              popup.remove();
-                          });
-                 popup.append( "br" );
-                 
-                 var textarea = popup
-                     .append( "textarea" )
-                     .style( "width", "100%" )
-                     .style( "height", "100%" )
-                     .text( JSON.stringify( rootNode ) );
-
-                 
-                 textarea
              } )
         .call( obj.dragMode );
-
 
     var defs = svg.append("defs");
     var marker = defs.append("filter")
@@ -88,8 +88,8 @@ function lctags_graph_tree( paramInfo ) {
         width = window.innerWidth;
         height = window.innerHeight;
         svg.attr("width", width )
-            .attr("height", height );
-        tree = d3.tree().size([ height - 30, width - 20 ]);
+            .attr("height", height - headerHeight );
+        tree = d3.tree().size([ height - 30 - headerHeight, width - 20 ]);
         update( rootNode );
     });
 
@@ -119,6 +119,18 @@ function lctags_graph_tree( paramInfo ) {
                 .data( nodesInfo,
                        function(d) { return d.data.id || (d.data.id = idSeed++); });
 
+        var nodeColor = function( d ) {
+            if ( d.data.selected ) {
+                return "#f0f";
+            }
+            if ( d.data.inquired ) {
+                return d.data._children ? "green" : "#f88";
+            }
+            else {
+                return "white";
+            }
+        };
+        
         // 追加ノード生成
         var nodeEnter = node.enter().append("svg:g")
                 .attr("class", "node")
@@ -133,10 +145,25 @@ function lctags_graph_tree( paramInfo ) {
                          // ブラウザの contextmenu を表示しない
                          d3.event.preventDefault();
                          paramInfo.nodeContext( obj, d.data );
-                     } )
-                .on("click", function(d) {
-                    toggle(d.data); 
-                });
+
+                         var curNode = g.selectAll("g.node").
+                             select( "circle" ).select( function( ddd ) {
+                             if ( ddd === d ) {
+                                 return this;
+                             }
+                             return null;
+                         } );
+                         curNode.style( "fill", "blue" )
+                             .transition()
+                             .duration( duration )
+                             .style( "fill", nodeColor );
+                     })
+            .call( d3.drag() )
+            .on("click", function(d) {
+                d3.event.stopPropagation();
+                d3.event.preventDefault();
+                toggle(d.data); 
+            });
 
         nodeEnter.transition()
             .duration(duration)
@@ -146,14 +173,6 @@ function lctags_graph_tree( paramInfo ) {
                   });
         
 
-        var nodeColor = function( d ) {
-            if ( d.data.inquired ) {
-                return d.data._children ? "green" : "#f88";
-            }
-            else {
-                return "white";
-            }
-        };
         var textColor = function( d ) {
             if ( obj.nsId2CountMap.get( d.data.nsId ) >= 2 ) {
                 if ( obj.inquiredNsIdSet.has( d.data.nsId ) ) {
@@ -178,7 +197,7 @@ function lctags_graph_tree( paramInfo ) {
             .style( "stroke-width", "1.5px" )
             .transition()
             .duration(duration)
-            .attr("r", 6);
+            .attr("r", node_r );
 
         nodeEnter.append("svg:text")
             .attr("x", function(d) {
@@ -208,7 +227,7 @@ function lctags_graph_tree( paramInfo ) {
                       function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
         nodeUpdate.select("circle")
-            .attr("r", 6)
+            .attr("r", node_r)
             .style("fill", nodeColor );
 
         nodeUpdate.select("text")
@@ -252,13 +271,29 @@ function lctags_graph_tree( paramInfo ) {
             .attr("class", "link")
             .attr("fill", "none" )
             .attr("stroke", "#ccc" )
-            .attr("stroke-width", "1.5px" )
+            .attr("stroke-width", "3px" )
             .attr("d", function(d) {
                 var pos = {};
                 pos.x = source.data.x0;
                 pos.y = source.data.y0;
                 return linkD2( pos, pos );
             })
+	    .style( "cursor", "pointer" )
+            .on( "contextmenu", function( d ) {
+                d3.event.preventDefault();
+                paramInfo.pathClick( obj, d );
+
+                var curLink = g.selectAll("path.link").select( function( ddd ) {
+                    if ( ddd === d ) {
+                        return this;
+                    }
+                    return null;
+                } );
+                curLink.attr( "stroke", "red" )
+                    .transition()
+                    .duration( duration )
+                    .attr( "stroke", "#ccc" );
+                })
             .transition()
             .duration(duration)
             .attr("d", linkD);
@@ -285,7 +320,7 @@ function lctags_graph_tree( paramInfo ) {
 
             // depth 毎の text サイズを計算
             var width = textWidthList[ d.depth ] || 0;
-            var newWidth = d.data.textWidth + 30;
+            var newWidth = d.data.textWidth + 40;
             if ( width < newWidth ) {
                 textWidthList[ d.depth ] = newWidth;
             }
@@ -299,23 +334,37 @@ function lctags_graph_tree( paramInfo ) {
         } );
     }
 
-    // Toggle children.
-    function toggle(d) {
+    function expandNode(d) {
         if (d.inquired) {
-            if ( d.children ) {
-                d._children = d.children;
-                d.children = null;
-            }
-            else {
+            if ( !d.children ) {
                 d.children = d._children;
                 d._children = null;
+                update( d );
             }
-            update( d );
         } else {
             obj.inquiredNsIdSet.add( d.nsId );
             d.inquired = true;
             d._children = null;
             paramInfo.nodeClick( obj, d );
+        }
+    }
+    function closeNode(d) {
+        d._children = d.children;
+        d.children = null;
+        update( d );
+    }
+    
+    // Toggle children.
+    function toggle(d) {
+        if (d.inquired) {
+            if ( d.children ) {
+                closeNode( d );
+            }
+            else {
+                expandNode( d );
+            }
+        } else {
+            expandNode( d );
         }
     }
 
@@ -376,6 +425,92 @@ function lctags_graph_tree( paramInfo ) {
         }
     };
 
+    function make_header() {
+        var header = d3.select("body").append("div")
+            .style( "background", "#ccc" )
+            .style( "width", "100%" )
+            .style( "height", headerHeight + "px" );
+        var callerModeButton = header.append( "input" )
+            .attr( "type", "checkbox" )
+            .attr( "id", "callerMode" )
+            .style( "position", "relative" )
+            .style( "top", headerHeight / 4 + "px" )
+            .style( "background", "none" )
+            .on( "click",
+                 function(){
+                     obj.callerMode = callerModeButton.property( "checked" );
+                     reset_node( obj, rootNode );
+                     update( rootNode );
+                 });
+        header.append( "label" )
+            .attr( "for", "callerMode" )
+            .style( "position", "relative" )
+            .style( "top", headerHeight / 4 + "px" )
+            .text( "caller" );
+
+        header.append( "button" )
+            .text( "export" )
+            .style( "position", "relative" )
+            .style( "left", "30px" )
+            .style( "top", headerHeight / 4 + "px" )
+            .on( "click",
+                 function() {
+                     // ツリーのデータを JSON でエクスポート。
+                     var popup = d3.select("body").append( "div" )
+                         .style( "width", "50%" )
+                         .style( "height", "20%" )
+                         .style( "position", "absolute" )
+                         .style( "top", "0px" )
+                         .style( "left", "0px" );
+
+                     popup.append( "button" )
+                         .text( "close" )
+                         .on( "click",
+                              function() {
+                                  popup.remove();
+                              });
+                     popup.append( "br" );
+                     
+                     var textarea = popup
+                         .append( "textarea" )
+                         .style( "width", "100%" )
+                         .style( "height", "100%" )
+                         .text( JSON.stringify( rootNode ) );
+                 });
+
+        var select = header.append( "select" )
+            .style( "position", "relative" )
+            .style( "top", headerHeight / 4 + "px" )
+            .style( "left", "50px" )
+            .on( "change", function() {
+                var svg = d3.select("body").select("svg");
+
+                if ( this.selectedIndex == 0 ) {
+                    obj.dragMode = obj.dragMove;
+                    svg.style( "cursor", "default" );
+                }
+                else if ( this.selectedIndex == 1 ) {
+                    obj.dragMode = obj.dragSelect;
+                    obj.selectClose = false;
+                    svg.style( "cursor", "crosshair" );
+                }
+                else if ( this.selectedIndex == 2 ) {
+                    obj.dragMode = obj.dragSelect;
+                    obj.selectClose = true;
+                    svg.style( "cursor", "crosshair" );
+                }
+                svg.call( obj.dragMode );
+
+            });
+        select.append( "option" )
+            .text( "move" );
+        select.append( "option" )
+            .text( "expandRegion" );
+        select.append( "option" )
+            .text( "closeRegion" );
+        
+    }
+
 
     function lctags_svg_move_dragstarted(d) {
         obj.dragX = d3.event.x;
@@ -393,7 +528,81 @@ function lctags_graph_tree( paramInfo ) {
         obj.orgY -= ( obj.dragY - d3.event.y );
         g.attr( "transform", "translate(" + obj.orgX + "," + obj.orgY + ")");
     }
-    
+
+    function lctags_svg_select_dragstarted(d) {
+        obj.dragX = d3.event.x - obj.orgX;
+        obj.dragY = d3.event.y - obj.orgY - headerHeight;
+        selectRect = g.append("rect")
+            .attr( "x", obj.dragX )
+            .attr( "y", obj.dragY )
+            .attr( "width", 5 )
+            .attr( "height", 5 )
+            .style( "pointer-events", "none" )
+            .style( "fill", "none" )
+            .style( "stroke", "black" );
+
+
+        d3.hierarchy( rootNode ).each( function( d ) {
+            d.data.selected = false;
+        });
+    }
+
+    function lctags_svg_select_dragged(d) {
+
+        var x1 = obj.dragX;
+        var y1 = obj.dragY;
+        var posX = d3.event.x - obj.orgX;
+        var posY = d3.event.y - obj.orgY - headerHeight;
+
+        if ( x1 > posX ) {
+            // swap
+            var work = x1; x1 = posX; posX = work;
+        }
+        if ( y1 > posY ) {
+            // swap
+            var work = y1; y1 = posY; posY = work;
+        }
+        
+        var width = posX - x1;
+        var height = posY - y1;
+        posX -= node_r;
+        posY -= node_r;
+
+        selectRect
+            .attr( "x", x1 )
+            .attr( "y", y1 )
+            .attr( "width", width )
+            .attr( "height", height );
+
+        d3.hierarchy( rootNode ).each( function( d ) {
+            var data = d.data;
+            if ( data.x0 >= y1 && ( data.x0 <= posY ) &&
+                 data.y0 >= x1 && ( data.y0 <= posX ) ) {
+                data.selected = true;
+            }
+            else { 
+                data.selected = false;
+            }
+        } );
+        update( rootNode );
+    }
+
+    function lctags_svg_select_dragended(d) {
+        selectRect.remove();
+
+        d3.hierarchy( rootNode ).each( function( d ) {
+            var data = d.data;
+            if ( data.selected ) {
+                data.selected = false;
+                if ( obj.selectClose ) {
+                    closeNode( data );
+                }
+                else {
+                    expandNode( data );
+                }
+            }
+        } );
+    }
 
     return obj;
 };

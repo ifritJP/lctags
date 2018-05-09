@@ -370,8 +370,8 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class4.cpp 11 7
 	$(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/class5.cpp 24 6
 	$(LUA_COMMAND) $(LCTAGS_LUA) testOpe test/operator.cpp
-	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 337 8
-	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 337 8 -ignore-sym-list val1
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 340 12
+	$(LUA_COMMAND) $(LCTAGS_LUA) split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:val1,:o:vvv2:val2'
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
 	$(LUA_COMMAND) $(LCTAGS_LUA) chg-proj . test@./test > /dev/null
 	$(LUA_COMMAND) $(LCTAGS_LUA) dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"

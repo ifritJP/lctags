@@ -19,6 +19,7 @@ local StackCalc = require( 'lctags.StackCalc' )
 local Split = require( 'lctags.Split' )
 local Scan = require( 'lctags.Scan' )
 local Util = require( 'lctags.Util' )
+local QueryParam = require( 'lctags.QueryParam' )
 
 local startTime = Helper.getTime( true )
 
@@ -384,13 +385,11 @@ if lctagOptMap.mode == "inq" then
    local nsInfo
    local target = ""
 
-   if lctagOptMap.query == "matchFile" or
-      lctagOptMap.query == "defAtFileId" or
-      lctagOptMap.query == "defBody" or
-      lctagOptMap.query == "callee" or
-      lctagOptMap.query == "caller"
-   then
-      target = srcList[ 1 ]
+   local queryParam = QueryParam:getQuery( lctagOptMap.query )
+   if queryParam then
+      local ret = queryParam:getQueryParam( srcList )
+      nsInfo = ret[ 1 ]
+      target = ret[ 2 ]
    elseif lctagOptMap.query == "sym" then
       nsInfo = db:getSimpleName( nil, srcList[ 1 ] )
    else

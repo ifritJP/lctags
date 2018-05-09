@@ -10,6 +10,7 @@ local Writer = require( 'lctags.Writer' )
 local idMap = require( 'lctags.idMap' )
 local config = require( 'lctags.config' )
 local clang = require( 'libclanglua.if' )
+local QueryParam = require( 'lctags.QueryParam' )
 
 local Query = {}
 
@@ -56,7 +57,8 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       print( db.dbPath )
       return
    end
-   
+
+   local queryParam = QueryParam:getQuery( query )
 
    if form then
       if form == "json" then
@@ -65,71 +67,19 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	 writer = Writer.XML:open( io.stdout )
       end
       writer:startParent( "lctags_result" )
-      if query == "callee" then
-	 writer:startParent( "funcInfo" )
-
-	 local nsInfo
-	 if type( target ) == "number" or string.find( target, "^%d" ) then
-	    nsInfo = db:getNamespace( tonumber( target ) )
-	 else
-	    nsInfo = db:getNamespace( nil, target )
-	 end
-	 if not nsInfo then
-	    return
-	 end
-
-	 writer:write( "nsId", nsInfo.id )
-	 writer:write( "name", nsInfo.name )
-
-	 db:mapDecl( nsInfo.id,
-		     function( item )
-			writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
-			return false
-		     end
-	 )
-	 writer:endElement()
+      if queryParam then
+	 queryParam:queryOutputHeader( writer, db, target )
       end
       
       writer:startParent( query, true )
       output = function( db, query, target, name, item )
 	 local outputInfo = nil
-	 if query == "dumpDir" then
+	 if queryParam then
 	    outputInfo = function( item )
-	       writer:write( "path", db:getSystemPath( item.path ) )
-	    end
-	 elseif query == "matchFile" then
-	    outputInfo = function( item )
-	       writer:startParent( "info" )
-	       writer:write( "fileId", item.id )
-	       writer:write( "path", db:getSystemPath( item.path ) )
-	       writer:endElement()
-	    end
-	 elseif query == "defAtFileId" then
-	    outputInfo = function( item )
-	       writer:startParent( "info" )
-	       writer:write( "nsId", item.nsId )
-	       writer:write( "name", db:getNamespace( item.nsId ).name )
-	       writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
-	       writer:endElement()
-	    end
-	 elseif query == "defBody" then
-	    outputInfo = function( item )
-	       writer:startParent( "info" )
-	       writer:write( "fileId", item.fileId )
-	       writer:write( "line", item.line )
-	       writer:write( "column", item.column )
-	       writer:write( "path",
-			     db:getSystemPath( db:getFileInfo( item.fileId ).path ) )
-	       writer:endElement()
-	    end
-	 elseif query == "callee" then
-	    outputInfo = function( item )
-	       writer:startParent( "info" )
-	       writer:write( "nsId", item.nsId )
-	       writer:write( "name", db:getNamespace( item.nsId ).name )
-	       writer:endElement()
+	       queryParam:queryOutputItem( writer, db, item )
 	    end
 	 end
+	 
 	 if outputInfo then
 	    outputInfo( item )
 	 else
@@ -147,8 +97,10 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       end
    end
 
-   
-   if query == "dumpAll" then
+
+   if queryParam then
+      queryParam:queryOutput( db, isLimit, output, target )
+   elseif query == "dumpAll" then
       db:dump( 1, target )
    elseif query == "dumpTarget" then
       db:dumpTargetInfo( 1, target )
@@ -160,23 +112,6 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       db:dumpProjDir( 1 )
    elseif query == "dumpFile" then
       db:dumpFile( 1, target )
-   elseif query == "matchFile" then
-      local path = db:convPath( target )
-      if not string.find( path, "/$" ) then
-	 path = path .. "/"
-      end
-      db:mapRowList(
-	 "filePath",
-	 string.format( "path like '%%%s%%' escape '$'", path ),
-	 nil, nil,
-	 function( item )
-	    local basename = string.gsub( item.path, path, "" )
-	    if not string.find( basename, "/" ) then
-	       output( db, query, target, "file", item )
-	    end
-	    return true
-	 end
-      )
    elseif query == "dumpRef" then
       db:dumpSymbolRef( 1, target )
    elseif query == "dumpDef" then
@@ -193,91 +128,6 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       db:dumpTokenDigest( 1, target )
    elseif query == "dumpPrepro" then
       db:dumpPreproDigest( 1, target )
-   elseif query == "callee" or query == "caller" then
-      local nsInfo
-      if type( target ) == "number" or string.find( target, "^%d" ) then
-	 nsInfo = db:getNamespace( tonumber( target ) )
-      else
-	 nsInfo = db:getNamespace( nil, target )
-      end
-      if not nsInfo then
-	 return false
-      end
-      local matchFlag = false
-      db:mapCall(
-	 ( (query == "callee") and "belongNsId = " or "nsId = " ) .. tostring( nsInfo.id ),
-	 function( item )
-	    if isLimit() then return false; end
-	    output( db, query, target, target, item )
-	    matchFlag = true
-	    return true
-	 end
-      )
-      if not matchFlag then
-	 log( 3, "no match" )
-	 if query == "callee" then
-	    -- 関数呼び出しがない場合、動的呼び出しを探す
-	    local indirectFlag = false
-	    db:mapDecl( nsInfo.id,
-			function( item )
-			   if item.type == clang.core.CXCursor_TypedefDecl then
-			      -- コール元が typedef の場合は動的呼び出しとする
-			      indirectFlag = true
-			      return false
-			   end
-			   return true
-			end
-	    )
-	    if indirectFlag then
-	       log( 3, "no match: indirect" )
-	       local indirectSet = {}
-	       local indirectList = config:getIndirectFuncList( nsInfo.name )
-
-	       if indirectList and #indirectList > 0 then
-		  db:mapFuncDeclPattern(
-		     indirectList,
-		     function( item )
-			if not indirectSet[ item.nsId ] then
-			   indirectSet[ item.nsId ] = true
-			   output( db, query, target, target, item )
-			end
-			return true
-		     end
-		  )
-	       end
-	    end
-	 end
-      end
-   elseif query == "dumpDir" then
-      local dirSet = {}
-      db:mapFile(
-	 nil,
-	 function( item )
-	    local path = string.gsub( item.path, "/[^/]+$", "" )
-	    if not dirSet[ path ] then
-	       dirSet[ path ] = true
-	       output( db, query, target, "path",
-		       { path = path, fileId = item.id, line = 1 } )
-	    end
-	    return true
-	 end
-      )
-   elseif query == "defAtFileId" then
-      db:mapDeclAtFile(
-	 target,
-	 function( item )
-	    output( db, query, target, target, item )
-	    return true
-	 end
-      )
-   elseif query == "defBody" then
-      db:mapDeclHasBody(
-	 target,
-	 function( item )
-	    output( db, query, target, target, item )
-	    return true
-	 end
-      )
    elseif query:find( "P" ) then
       db:mapFile(
 	 target and string.format( "path like '%%%s%%' escape '$'",
@@ -397,7 +247,7 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       )
    end
 
-   if form == "json" then
+   if form then
       writer:endElement()
       writer:endElement()
       writer:fin()
@@ -676,19 +526,15 @@ function Query:queryFor( db, nsInfo, mode, target, absFlag, form )
       print( nsInfo.id, nsInfo.name )
    elseif mode == "sym" then
       print( nsInfo.id, nsInfo.name )
-   elseif mode == "dumpDir" then
-      Query:execWithDb( db, mode .. (absFlag and "a" or ""), "", nil, nil, form )
-   elseif mode == "matchFile" then
-      Query:execWithDb( db, mode .. (absFlag and "a" or ""), target, nil, nil, form )
-   elseif mode == "defAtFileId" then
-      Query:execWithDb( db, mode, target, nil, nil, form )
-   elseif mode == "callee" then
-      Query:execWithDb( db, mode, target, nil, nil, form )
-   elseif mode == "defBody" then
-      Query:execWithDb( db, mode, target, nil, nil, form )
    else
-      log( 1, "illegal mode", mode )
-      os.exit( 1 )
+      local queryParam = QueryParam:getQuery( mode )
+      if queryParam then
+	 local param = queryParam:getQueryExecParam( db, nsInfo, mode, target, absFlag )
+	 Query:execWithDb( db, param[1], param[2], nil, nil, form )
+      else
+	 log( 1, "illegal mode", mode )
+	 os.exit( 1 )
+      end
    end
 end
 

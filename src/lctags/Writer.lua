@@ -97,6 +97,7 @@ function JSON:startLayer( arrayFlag, madeByArrayFlag )
    info.name = self.prevName
    info.madeByArrayFlag = madeByArrayFlag
    info.elementNameSet = {}
+   info.parentFlag = true
 
    table.insert( self.layerQueue, info )
 
@@ -188,6 +189,13 @@ function JSON:startElement( name )
    if self:isArrayLayer( state ) then
       self:startLayer( false, true )
    end
+
+   local info = self:getLayerInfo()
+
+   if info.openElement then
+      error( 'illegal openElement' )
+   end
+   info.openElement = true
    
    self.stream:write( string.format( '"%s": ', name ) )
    self:setLayerState( 'named' )
@@ -198,6 +206,10 @@ function JSON:endElement()
    if self:equalLayerState( 'none' ) or self:equalLayerState( 'termed' ) then
       self:endLayer()
    elseif self:equalLayerState( 'valued' ) then
+      local info = self:getLayerInfo()
+      if info.openElement then
+	 info.openElement = false
+      end
       if self:getLayerInfo().madeByArrayFlag then
 	 self:endLayer()
       end

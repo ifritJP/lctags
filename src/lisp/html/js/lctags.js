@@ -1,3 +1,6 @@
+var lctags_graph_window_map = new Map();
+var lctags_file_window_map = new Map();
+
 function lctags_getCookies( cookiesEle ) {
     $.ajax({
         url: '/lctags/inq?command=cookies',
@@ -97,9 +100,14 @@ function lctags_matchFile( dirPath, parentObj ) {
             obj.innerHTML = info.fileId + ":" + path;
             obj.onclick = function( info ) {
                 return function() {
-                    window.open(
-                        "/lctags/gen/file.html?fileId=" + info.fileId,
-                        "lctags:file:" + info.fileId );
+                    var key = "lctags:file:" + info.fileId;
+                    var win = lctags_file_window_map.get( key );
+                    if ( win ) {
+                        win.close();
+                    }
+                    var newWindow = window.open(
+                        "/lctags/gen/file.html?fileId=" + info.fileId, key );
+                    lctags_file_window_map.set( key, newWindow );
                 };
             }(info);
             parentObj.appendChild( obj );
@@ -149,10 +157,15 @@ function lctags_getFileInfo( fileId ) {
             obj.innerHTML = info.name;
             obj.onclick = function( info ) {
                 return function() {
-                    window.open(
+                    var key = "lctags:func:" + info.nsId;
+                    var win = lctags_graph_window_map.get( key );
+                    if ( win ) {
+                        win.close();
+                    }
+                    var newWindow = window.open(
                         "/lctags/gen/func-call-graph.html?nsId=" + info.nsId +
-                            "&name=" + info.name,
-                        "lctags:func:" + info.nsId );
+                            "&name=" + info.name, key );
+                    lctags_graph_window_map.set( key, newWindow );
                 };
             }(info);
             
@@ -223,15 +236,22 @@ function lctags_funcCallGraph_tree( nsId, name ) {
             ;
         },
         nodeClick: function( obj, node ) {
-            d3.event.stopPropagation();
             var nsId = node.nsId;
             var nodeId = node.id;
+            var command = "callee";
+            if ( obj.callerMode ) {
+                command = "caller";
+            }
             $.ajax({
-                url: '/lctags/inq?command=callee&nsId=' + nsId,
+                url: '/lctags/inq?command=' + command + '&nsId=' + nsId,
                 type: 'GET',
                 timeout: 10 * 1000
             }).done(function(data) {
                 var funcListObj = data.lctags_result.callee;
+                if ( obj.callerMode ) {
+                    funcListObj = data.lctags_result.caller;
+                }
+
 
                 var nodeInfoArray = [];
                 for (val in funcListObj) {
@@ -246,6 +266,24 @@ function lctags_funcCallGraph_tree( nsId, name ) {
 
                 obj.setNodeType( nodeId, data.lctags_result.funcInfo.type );
                 obj.addChild( nodeId, nodeInfoArray );
+            }).fail(function() {
+            });
+        },
+        pathClick: function( obj, path ) {
+            d3.event.stopPropagation();
+            var srcNode = path.source.data;
+            var dstNode = path.target.data;
+            if ( obj.callerMode ) {
+                srcNode = path.target.data;
+                dstNode = path.source.data;
+            }
+            $.ajax({
+                url: '/lctags/inq?command=callPair&nsId=' + dstNode.nsId +
+                    "&belongNsId=" + srcNode.nsId,
+                type: 'GET',
+                timeout: 5 * 1000
+            }).done(function(data) {
+                var funcListObj = data.lctags_result.callPair;
             }).fail(function() {
             });
         },
