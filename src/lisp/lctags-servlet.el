@@ -40,24 +40,42 @@
   "cookie -> val map")
 (defvar lctags-servlet-cookie-hash-key (make-hash-table :test 'equal)
   "key -> val map")
+(defvar lctags-servlet-last-cookie nil)
 
 
 ;;(gethash 0 lctags-servlet-cookie-hash)
 
-(defun lctags-servlet-set-cookie ()
+(defun lctags-servlet-set-cookie-of-symbol-at ()
   (interactive)
-  (let ((src-buf (current-buffer)))
+  (let ((src-buf (current-buffer))
+	tmp-buf result symbol)
     (with-temp-buffer
-      (lctags-execute-op2 src-buf (current-buffer) nil nil "prepare")))
+      (setq tmp-buf (current-buffer))
+      (with-current-buffer src-buf
+	(lctags-execute-op (current-buffer) tmp-buf (buffer-string) nil 
+			   (list "cursor-at" (buffer-file-name)
+				 (number-to-string (lctags-get-line))
+				 (number-to-string (lctags-get-column)) "-i")))
+      (setq result (lctags-xml-get (current-buffer) 'cursor)))
+    (setq symbol (list (lctags-xml-get-val result 'fullName)
+		       (string-to-number (lctags-xml-get-val result 'nsId))))
+    (when symbol
+      (lctags-servlet-set-cookie symbol))
+  ))
+
+(defun lctags-servlet-set-cookie (&optional targetSymbol)
+  (interactive)
   (let ((db-info (lctags-get-db (current-buffer))))
-    (lctags-servlet-make-cookie (plist-get db-info :db)
-				(plist-get db-info :target)
-				(plist-get db-info :conf))))
+    (setq lctags-servlet-last-cookie
+	  (lctags-servlet-make-cookie (plist-get db-info :db)
+				      (plist-get db-info :target)
+				      (plist-get db-info :conf)
+				      targetSymbol))))
 
 (defun lctags-servlet-hash-key (db-path target conf-path)
   (format "%s$%s$%s" db-path target conf-path))
 
-(defun lctags-servlet-make-cookie (db-path target conf-path)
+(defun lctags-servlet-make-cookie (db-path target conf-path &optional targetSymbol)
   (when (not db-path)
     (let ((src-buf (current-buffer)))
       (with-temp-buffer
@@ -66,28 +84,59 @@
 	(when (re-search-forward "^\\(.+\\)$")
 	  (setq db-path (match-string-no-properties 1)))
 	)))
-  (let ((cookie (hash-table-count lctags-servlet-cookie-hash))
-	(key (lctags-servlet-hash-key db-path target conf-path))
-	val)
-    (when (not (gethash key lctags-servlet-cookie-hash-key))
-      (setq val (list :db db-path :table target :conf conf-path :cookie cookie))
+  (let ((key (lctags-servlet-hash-key db-path target conf-path))
+	cookie val)
+    (setq val (gethash key lctags-servlet-cookie-hash-key))
+    (if val
+	(progn
+	  (plist-put val :targetSymbol targetSymbol)
+	  (setq cookie (plist-get val :cookie)))
+      (setq cookie (hash-table-count lctags-servlet-cookie-hash))
+      (setq val (list :db db-path :table target :conf conf-path :cookie cookie
+		      :targetSymbol targetSymbol))
       (puthash cookie val lctags-servlet-cookie-hash)
       (puthash key val lctags-servlet-cookie-hash-key)
-      )
+
+      ;; lctags の準備
+      (with-temp-buffer
+	(let ((lctags-db db-path)
+	      (lctags-target target)
+	      (lctags-conf conf-path))
+	  (lctags-execute-op2 (current-buffer) (current-buffer) nil nil "prepare"))))
     cookie))
 
 (defun lctags-servlet-start (path query req)
   (let ((db (cadr (assoc "db" query)))
 	(target (cadr (assoc "target" query)))
 	(conf (cadr (assoc "conf" query)))
-	(cookie (cadr (assoc "cookie" query))))
-    (when (not cookie)
-      (setq cookie (lctags-servlet-make-cookie db target conf)))
+	(cookie (cadr (assoc "cookie" query)))
+	(jumpCallGraph (cadr (assoc "jumpCallGraph" query)))
+	(jumpLastSymbol (cadr (assoc "jumpLastSymbol" query)))
+	(location "contents/file-list.html")
+	conf-info symbol)
+    (when cookie
+      (setq cookie (string-to-number cookie)))
+    (when jumpLastSymbol
+      (setq jumpCallGraph t)
+      (setq cookie lctags-servlet-last-cookie))
+    (if (not cookie)
+	(setq cookie (lctags-servlet-make-cookie db target conf))
+      (setq conf-info (gethash cookie lctags-servlet-cookie-hash))
+      (setq symbol (plist-get conf-info :targetSymbol)))
+    (when (and jumpCallGraph symbol)
+      (setq location (format "/lctags/gen/func-call-graph.html?nsId=%d&name=%s"
+			     (cadr symbol) (car symbol))))
     (httpd-send-header t "text/plain" 302
 		       :Set-Cookie (format "confId=%s; path=/lctags;" cookie)
-		       :Location "contents/file-list.html"
-		       )
+		       :Location location)
     ))
+
+(defun lctags-servlet-display-at ()
+  (interactive)
+  (lctags-servlet-set-cookie)
+  
+  
+  )
 
 (defun lctags-servlet-open-pos ( sym &rest arg )
   (apply 'lctags-execute-op2 (current-buffer) (current-buffer) nil nil
@@ -137,6 +186,25 @@
 				   "inq" command
 				   (cadr (assoc "nsId" query))
 				   "--lctags-form json" ))
+	      ((equal command "refSym")
+	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				   "inq" command
+				   (cadr (assoc "nsId" query))
+				   "--lctags-form json" ))
+	      ((equal command "defBody")
+	       (lctags-servlet-open-pos 'defBody
+					"inq" command
+					(cadr (assoc "nsId" query))))
+	      ((equal command "callPair")
+	       (lctags-servlet-open-pos 'callPair
+					"inq" command
+					(cadr (assoc "nsId" query))
+					(cadr (assoc "belongNsId" query))))
+	      ((equal command "refPair")
+	       (lctags-servlet-open-pos 'refPair
+					"inq" command
+					(cadr (assoc "nsId" query))
+					(cadr (assoc "belongNsId" query))))
 	      ((equal command "cookies")
 	       (let* (obj list)
 		 (maphash (lambda (cookie val)
@@ -147,6 +215,10 @@
 							  (plist-get val :target)))
 			    (setq obj (json-add-to-object obj "conf"
 							  (plist-get val :conf)))
+			    (setq obj (json-add-to-object obj "targetSymbol"
+							  (car (plist-get val :targetSymbol))))
+			    (setq obj (json-add-to-object obj "targetNsId"
+							  (cadr (plist-get val :targetSymbol))))
 			    (setq obj (json-add-to-object obj "cookie" cookie))
 			    (setq list (cons obj list))
 			    )
@@ -155,15 +227,6 @@
 		 (insert (json-encode (json-add-to-object (json-new-object)
 							  "list" (vconcat list))))
 		 ))
-	      ((equal command "defBody")
-	       (lctags-servlet-open-pos 'defBody
-					"inq" command
-					(cadr (assoc "nsId" query))))
-	      ((equal command "callPair")
-	       (lctags-servlet-open-pos 'callPair
-					"inq" command
-					(cadr (assoc "nsId" query))
-					(cadr (assoc "belongNsId" query))))
 	      (t
 	       (httpd-error t 500)
 	       ))

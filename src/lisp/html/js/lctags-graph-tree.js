@@ -37,7 +37,7 @@ function lctags_graph_tree( paramInfo ) {
                .on("drag", lctags_svg_select_dragged)
                .on("end", lctags_svg_select_dragended); 
     obj.dragMode = obj.dragMove;
-    obj.callerMode = false;
+    obj.expandMode = "callee";
 
     var headerHeight = 50;
 
@@ -430,24 +430,26 @@ function lctags_graph_tree( paramInfo ) {
             .style( "background", "#ccc" )
             .style( "width", "100%" )
             .style( "height", headerHeight + "px" );
-        var callerModeButton = header.append( "input" )
-            .attr( "type", "checkbox" )
-            .attr( "id", "callerMode" )
-            .style( "position", "relative" )
-            .style( "top", headerHeight / 4 + "px" )
-            .style( "background", "none" )
-            .on( "click",
-                 function(){
-                     obj.callerMode = callerModeButton.property( "checked" );
-                     reset_node( obj, rootNode );
-                     update( rootNode );
-                 });
-        header.append( "label" )
-            .attr( "for", "callerMode" )
-            .style( "position", "relative" )
-            .style( "top", headerHeight / 4 + "px" )
-            .text( "caller" );
 
+
+        var expandModeSelect = header.append( "select" )
+                .style( "position", "relative" )
+                .style( "top", headerHeight / 4 + "px" )
+                .style( "left", "10px" )
+                .on( "change", function() {
+                    var svg = d3.select("body").select("svg");
+
+                    obj.expandMode = this.options[ this.selectedIndex ].text;
+                    reset_node( obj, rootNode );
+                    update( rootNode );
+                });
+        expandModeSelect.append( "option" )
+            .text( "callee" );
+        expandModeSelect.append( "option" )
+            .text( "caller" );
+        expandModeSelect.append( "option" )
+            .text( "refSym" );
+        
         header.append( "button" )
             .text( "export" )
             .style( "position", "relative" )
@@ -478,7 +480,7 @@ function lctags_graph_tree( paramInfo ) {
                          .text( JSON.stringify( rootNode ) );
                  });
 
-        var select = header.append( "select" )
+        var dragModeSelect = header.append( "select" )
             .style( "position", "relative" )
             .style( "top", headerHeight / 4 + "px" )
             .style( "left", "50px" )
@@ -502,11 +504,11 @@ function lctags_graph_tree( paramInfo ) {
                 svg.call( obj.dragMode );
 
             });
-        select.append( "option" )
+        dragModeSelect.append( "option" )
             .text( "move" );
-        select.append( "option" )
+        dragModeSelect.append( "option" )
             .text( "expandRegion" );
-        select.append( "option" )
+        dragModeSelect.append( "option" )
             .text( "closeRegion" );
         
     }

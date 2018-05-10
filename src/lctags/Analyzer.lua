@@ -2226,6 +2226,15 @@ function Analyzer:cursorAt( filePath, line, column, target )
 
    local info = { cursor = {} }
 
+   local db = self:openDBForReadOnly()
+   local nsInfo = db:getNamespaceFromCursor( cursor )
+   if nsInfo then
+      info.cursor.nsId = nsInfo.id
+      info.cursor.fullName = nsInfo.name
+   end
+   db:close()
+   
+   
    info.cursor.spelling = cursor:getCursorSpelling()
    info.cursor.kind = cursor:getCursorKind()
    info.cursor.kindName = clang.getCursorKindSpelling( info.cursor.kind )
@@ -2246,6 +2255,7 @@ function Analyzer:cursorAt( filePath, line, column, target )
    end
 
    OutputCtrl.form( info )
+
 end
 
 function Analyzer:visitAST( filePath, target, optionList, func )

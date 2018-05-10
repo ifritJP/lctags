@@ -17,6 +17,7 @@
     (:name "graph" :bind "g"
 	   :submenu
 	   ((:name "setCookie" :bind "c" :action lctags-servlet-set-cookie)
+	    (:name "setCookie-at" :bind "a" :action lctags-servlet-set-cookie-of-symbol-at)
 	    (:name "caller" :bind "r" :action lctags-graph-caller-at)
 	    (:name "callee" :bind "e" :action lctags-graph-callee-at)
 	    (:name "symbol" :bind "s" :action lctags-graph-symbol-at)

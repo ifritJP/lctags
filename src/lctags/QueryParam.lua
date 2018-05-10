@@ -164,7 +164,6 @@ end
 
 ------ caller ------
 
-
 local caller = QueryParam:addQuery( { name = "caller" }, { __index = callee } )
 
 function caller:queryOutputItem( writer, db, item )
@@ -172,6 +171,38 @@ function caller:queryOutputItem( writer, db, item )
    writer:write( "nsId", item.belongNsId )
    writer:write( "name", db:getNamespace( item.belongNsId ).name )
    writer:endElement()
+end
+
+
+------ refSym ------
+
+local refSym = QueryParam:addQuery( { name = "refSym" }, { __index = callee } )
+
+function refSym:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "nsId", item.belongNsId )
+   writer:write( "name", db:getNamespace( item.belongNsId ).name )
+   writer:endElement()
+end
+
+function refSym:queryOutput( db, isLimit, output, target )
+   local nsInfo = self:getNsInfo( db, target )
+   
+   if not nsInfo then
+      log( 1, "not found nsInfo" )
+      return nil
+   end
+
+   local matchFlag = false
+   db:mapSymbolRef(
+      nsInfo.id, 
+      function( item )
+	 if isLimit() then return false; end
+	 output( db, self.name, target, target, item )
+	 matchFlag = true
+	 return true
+      end
+   )
 end
 
 
@@ -307,6 +338,37 @@ function callPair:queryOutput( db, isLimit, output, target )
       end
    )
 end
+
+
+------ refPair ------
+
+local refPair = QueryParam:addQuery( { name = "refPair" } )
+
+function refPair:getQueryParam( param )
+   return { nil, { param[ 1 ], param[ 2 ] } }
+end
+
+function refPair:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "fileId", item.fileId )
+   writer:write( "line", item.line )
+   writer:write( "column", item.column )
+   writer:write( "path",
+		 db:getSystemPath( db:getFileInfo( item.fileId ).path ) )
+   writer:endElement()
+end
+
+function refPair:queryOutput( db, isLimit, output, target )
+   db:mapSymbolRefFromTo(
+      target[ 1 ], target[ 2 ],
+      function( item )
+	 if isLimit() then return false; end
+	 output( db, self.name, target[1], target[2], item )
+	 return true
+      end
+   )
+end
+
 
 
 return QueryParam

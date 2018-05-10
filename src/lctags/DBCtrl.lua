@@ -1487,6 +1487,14 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
    if not cursor or cursor:getCursorKind() == clang.core.CXCursor_InvalidFile then
       return self:getNamespace( rootNsId, nil )
    end
+
+   local kind = cursor:getCursorKind()
+   if clang.isReference( kind ) or
+      kind == clang.core.CXCursor_MemberRefExpr
+   then
+      cursor = cursor:getCursorReferenced()
+   end
+   
    local hash = cursor:hashCursor()
    local nsInfo = self.hashCursor2NSMap[ hash ]
    if nsInfo then
@@ -1500,6 +1508,7 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
    end
 
    local fileId, line, column = self:getFileIdLocation( cursor )
+   log( 3, "getNamespaceFromCursorCache", fileId, line, column )
 
    fullname = self:getFullname( cursor, fileId, "", "" )
    nsInfo = self:getNamespace( nil, fullname )
@@ -1990,6 +1999,13 @@ end
 function DBCtrl:mapSymbolRefFrom( nsId, func )
    return self:mapRowList(
       "symbolRef", "belongNsId = " .. tostring( nsId ), nil, nil, func )
+end
+
+function DBCtrl:mapSymbolRefFromTo( belongNsId, nsId, func )
+   return self:mapRowList(
+      "symbolRef",
+      string.format( "belongNsId = %d AND nsId = %d", belongNsId, nsId ),
+      nil, nil, func )
 end
 
 function DBCtrl:SymbolRefInfoListForCursor( cursor, func )
