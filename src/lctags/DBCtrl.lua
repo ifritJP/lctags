@@ -1490,7 +1490,8 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
 
    local kind = cursor:getCursorKind()
    if clang.isReference( kind ) or
-      kind == clang.core.CXCursor_MemberRefExpr
+      kind == clang.core.CXCursor_MemberRefExpr or
+      kind == clang.core.CXCursor_DeclRefExpr
    then
       cursor = cursor:getCursorReferenced()
    end

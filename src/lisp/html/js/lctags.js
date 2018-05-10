@@ -300,6 +300,12 @@ function lctags_funcCallGraph_tree( nsId, name ) {
             d3.event.stopPropagation();
             var srcNode = path.source.data;
             var dstNode = path.target.data;
+
+            if ( obj.expandMode == "caller" ) {
+                srcNode = path.target.data;
+                dstNode = path.source.data;
+            }
+            
             var command = "callPair";
             if ( obj.expandMode == "refSym" ) {
                 command = "refPair";
