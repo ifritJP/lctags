@@ -48,6 +48,8 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 	 printLine = false
 	 if query == "dumpDir" then
 	    id = item.path
+	    elseif query == "matchFile" then
+	    id = item.path
 	 end
       end
       Util:printLocate( db, name, item.fileId, item.line, absFlag, printLine )

@@ -141,11 +141,12 @@
 (defun lctags-servlet-open-pos ( sym &rest arg )
   (apply 'lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 		      "--lctags-form json" arg)
-  (let* ((result (cdr (lctags-json-get (current-buffer) sym)))
-	 (info (lctags-json-val (aref result 0) 'info))
-	 (path (lctags-json-val info 'path))
-	 (line (lctags-json-val info 'line))
-	 (column (lctags-json-val info 'column)))
+  (let* ((result (lctags-json-get (current-buffer)
+				  (intern (format ":%s" sym))))
+	 (info (lctags-json-val (car result) :info))
+	 (path (lctags-json-val info :path))
+	 (line (lctags-json-val info :line))
+	 (column (lctags-json-val info :column)))
     (when path
       (find-file path)
       (lctags-goto-line-column line column)

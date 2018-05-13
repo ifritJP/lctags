@@ -407,15 +407,21 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) ref-at-all test/highlight.cpp 27 19
 	$(LUA_COMMAND) $(LCTAGS_LUA) expand-macro test/inc/inctest1.h
 	$(LUA_COMMAND) $(LCTAGS_LUA) call-func test/simple.cpp printf
-	sed 's@//@@' test/simple.cpp | $(LUA_COMMAND) $(LCTAGS_LUA) inq-at test/simple.cpp 4 4 -i 
-
+	sed 's@//@@' test/simple.cpp | $(LUA_COMMAND) $(LCTAGS_LUA) inq-at test/simple.cpp 4 4 -i
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq callee ::test_indirect_t
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq caller ::test_indirect_t
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq callee '::@struct::<struct_test_str_t>::func_t'
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq refSym ::@struct::test_str_t::func_t
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq matchFile $(NDIR)/test
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq defBody ::test_indirect_t
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq callPair ::test_indirect_t ::test_sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq refPair ::test_indirect_t ::test_sub
 
 
 	$(LUA_COMMAND) $(LCTAGS_LUA) addIncRef test/incFuncTest.c /usr/include/string.h
 	sed 's@//@@' test/incFuncTest.c | $(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/incFuncTest.c 3 8 -i
 
 	$(MAKE) test-chg-proj
-
 
 test-chg-proj:
 	$(LUA_COMMAND) $(LCTAGS_LUA) set-projDir . test@test2 > /dev/null

@@ -139,7 +139,7 @@ function lctags_graph_tree( paramInfo ) {
                           var val = source;
                           return "translate(" + val.data.y0 + "," + val.data.x0 + ")";
                       })
-		.style( "cursor", "pointer" )
+                .style( "cursor", "pointer" )
                 .on( "contextmenu",
                      function( d, i ) {
                          // ブラウザの contextmenu を表示しない
@@ -183,7 +183,7 @@ function lctags_graph_tree( paramInfo ) {
             return "black";
         };
         var textFilter = function( d ) {
-            if ( d.data.type == "TypedefDecl" ) {
+            if ( d.data.type == "TypedefDecl" || d.data.type == "FieldDecl" ) {
                 return "url(#background-dynamic)";
             }
             return "none";
@@ -271,14 +271,14 @@ function lctags_graph_tree( paramInfo ) {
             .attr("class", "link")
             .attr("fill", "none" )
             .attr("stroke", "#ccc" )
-            .attr("stroke-width", "3px" )
+            .attr("stroke-width", "5px" )
             .attr("d", function(d) {
                 var pos = {};
                 pos.x = source.data.x0;
                 pos.y = source.data.y0;
                 return linkD2( pos, pos );
             })
-	    .style( "cursor", "pointer" )
+            .style( "cursor", "pointer" )
             .on( "contextmenu", function( d ) {
                 d3.event.preventDefault();
                 paramInfo.pathClick( obj, d );
@@ -472,12 +472,27 @@ function lctags_graph_tree( paramInfo ) {
                                   popup.remove();
                               });
                      popup.append( "br" );
+
+                     var exportNode = function( node ) {
+                         var clone = {};
+                         clone.nsId = node.nsId;
+                         clone.type = node.type;
+                         clone.name = node.name;
+                         clone.children = [];
+                         if ( node.children ) {
+                             node.children.forEach( function( d ) {
+                                 clone.children.push( exportNode( d ) );
+                             });
+                         }
+                         return clone;
+                     };
+                     var cloneRoot = exportNode( rootNode );
                      
                      var textarea = popup
                          .append( "textarea" )
                          .style( "width", "100%" )
                          .style( "height", "100%" )
-                         .text( JSON.stringify( rootNode ) );
+                         .text( JSON.stringify( cloneRoot ) );
                  });
 
         var dragModeSelect = header.append( "select" )

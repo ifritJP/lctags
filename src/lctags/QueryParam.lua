@@ -32,14 +32,13 @@ end
 ------ default -----
 
 function default:getNsInfo( db, target )
-   if not self.nsInfo then
-      if type( target ) == "number" or string.find( target, "^%d" ) then
-	 self.nsInfo = db:getNamespace( tonumber( target ) )
-      else
-	 self.nsInfo = db:getNamespace( nil, target )
-      end
+   local nsInfo
+   if type( target ) == "number" or string.find( target, "^%d" ) then
+      nsInfo = db:getNamespace( tonumber( target ) )
+   else
+      nsInfo = db:getNamespace( nil, target )
    end
-   return self.nsInfo
+   return nsInfo
 end
 
 
@@ -84,7 +83,7 @@ function callee:queryOutputHeader( writer, db, target )
    writer:startParent( "funcInfo" )
 
    writer:write( "nsId", nsInfo.id )
-   writer:write( "name", nsInfo.name )
+   writer:write( "name", nsInfo.otherName )
 
    db:mapDecl( nsInfo.id,
 	       function( item )
@@ -98,7 +97,7 @@ end
 function callee:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.nsId )
-   writer:write( "name", db:getNamespace( item.nsId ).name )
+   writer:write( "name", db:getNamespace( item.nsId ).otherName )
 
    writer:write( "belongNsId", item.belongNsId )
    
@@ -109,7 +108,7 @@ function callee:queryOutput( db, isLimit, output, target )
    local nsInfo = self:getNsInfo( db, target )
    
    if not nsInfo then
-      log( 1, "not found nsInfo" )
+      log( 1, "not found nsInfo", target )
       return nil
    end
 
@@ -131,7 +130,9 @@ function callee:queryOutput( db, isLimit, output, target )
 	 local indirectFlag = false
 	 db:mapDecl( nsInfo.id,
 		     function( item )
-			if item.type == clang.core.CXCursor_TypedefDecl then
+			if item.type == clang.core.CXCursor_TypedefDecl or
+			   item.type == clang.core.CXCursor_FieldDecl
+			then
 			   -- コール元が typedef の場合は動的呼び出しとする
 			   indirectFlag = true
 			   return false
@@ -169,7 +170,7 @@ local caller = QueryParam:addQuery( { name = "caller" }, { __index = callee } )
 function caller:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.belongNsId )
-   writer:write( "name", db:getNamespace( item.belongNsId ).name )
+   writer:write( "name", db:getNamespace( item.belongNsId ).otherName )
    writer:endElement()
 end
 
@@ -181,7 +182,7 @@ local refSym = QueryParam:addQuery( { name = "refSym" }, { __index = callee } )
 function refSym:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.belongNsId )
-   writer:write( "name", db:getNamespace( item.belongNsId ).name )
+   writer:write( "name", db:getNamespace( item.belongNsId ).otherName )
    writer:endElement()
 end
 
@@ -237,7 +238,7 @@ local defAtFileId = QueryParam:addQuery( { name = "defAtFileId" } )
 function defAtFileId:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.nsId )
-   writer:write( "name", db:getNamespace( item.nsId ).name )
+   writer:write( "name", db:getNamespace( item.nsId ).otherName )
    writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
    writer:endElement()
 end
@@ -276,7 +277,8 @@ function matchFile:queryOutput( db, isLimit, output, target )
       function( item )
 	 local basename = string.gsub( item.path, path, "" )
 	 if not string.find( basename, "/" ) then
-	    output( db, query, target, "file", item )
+	    output( db, query, target, "path",
+		    { path = item.path, fileId = item.id, id = item.id, line = 1 } )
 	 end
 	 return true
       end
@@ -300,7 +302,7 @@ end
 
 function defBody:queryOutput( db, isLimit, output, target )
    db:mapDeclHasBody(
-      target,
+      self:getNsInfo( db, target ).id,
       function( item )
 	 output( db, query, target, target, item )
 	 return true
@@ -328,9 +330,12 @@ function callPair:queryOutputItem( writer, db, item )
 end
 
 function callPair:queryOutput( db, isLimit, output, target )
+   local nsInfo1 = self:getNsInfo( db, target[1] )
+   local nsInfo2 = self:getNsInfo( db, target[2] )
+
    db:mapCall(
-      "nsId = " .. tostring( target[ 1 ] ) .. " AND " ..
-	 "belongNsId = " .. tostring( target[ 2 ] ),
+      "nsId = " .. tostring( nsInfo1.id ) .. " AND " ..
+	 "belongNsId = " .. tostring( nsInfo2.id ),
       function( item )
 	 if isLimit() then return false; end
 	 output( db, self.name, target[1], target[2], item )
@@ -359,8 +364,11 @@ function refPair:queryOutputItem( writer, db, item )
 end
 
 function refPair:queryOutput( db, isLimit, output, target )
+   local nsInfo1 = self:getNsInfo( db, target[1] )
+   local nsInfo2 = self:getNsInfo( db, target[2] )
+   
    db:mapSymbolRefFromTo(
-      target[ 1 ], target[ 2 ],
+      nsInfo2.id, nsInfo1.id,
       function( item )
 	 if isLimit() then return false; end
 	 output( db, self.name, target[1], target[2], item )

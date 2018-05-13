@@ -23,7 +23,6 @@ sub                 6 ./test/enum2.cpp static void sub( eval_t val )
 sub                 5 ./test/enum3.cpp static eval_t sub( void )
 sub                21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 sub                 3 ./test/inctest.cpp void sub( void )
-sub                15 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
 lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
@@ -51,6 +50,7 @@ sub
 pSub
 Sub
 func10__sub
+test_sub
 lua lctags/lctags.lua -c %sub
 FP_SUBNORMAL
 FPE_FLTSUB
@@ -66,6 +66,7 @@ Sub
 __glibcxx_requires_subscript
 substr
 func10__sub
+test_sub
 lua lctags/lctags.lua -xT sub
 ::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
 ::ns1::ns31::sub2  259 ./test/hoge.cpp          void sub2() {
@@ -97,7 +98,6 @@ lua lctags/lctags.lua -xT sub
 ::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
-::sub              15 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
 lua lctags/lctags.lua -xT sub$
 ::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
 ::@enum::<enum_anonymous>::FPE_FLTSUB  222 /usr/include/x86_64-linux-gnu/bits/siginfo.h   FPE_FLTSUB			/* Subscript out of range.  */
@@ -129,7 +129,7 @@ lua lctags/lctags.lua -xT sub$
 ::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
-::sub              15 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
+::test_sub         22 ./test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
 lua lctags/lctags.lua -xT %sub
 ::FP_SUBNORMAL    221 /usr/include/math.h # define FP_SUBNORMAL 3
 ::@enum::<enum_anonymous>::FP_SUBNORMAL  220 /usr/include/math.h     FP_SUBNORMAL =
@@ -160,8 +160,8 @@ lua lctags/lctags.lua -xT %sub
 ::sub               4 ./test/comp19.cpp void sub( int val )
 ::Sub               9 ./test/class2.cpp class Sub : public Super1, Super2 {
 ::Sub              11 ./test/class3.cpp template <typename T>
-::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
 ::std::__cxx11::basic_string::substr 2292 /usr/include/c++/5.4.0/bits/basic_string.h       basic_string
+::__glibcxx_requires_subscript   80 /usr/include/c++/5.4.0/debug/debug.h # define __glibcxx_requires_subscript(_N)
 ::sub::188          3 ./test/stdinc.cpp static void sub( void )
 ::sub::189          4 ./test/stack.cpp static void sub();
 ::sub::189         52 ./test/stack.cpp static void sub()
@@ -171,7 +171,7 @@ lua lctags/lctags.lua -xT %sub
 ::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
-::sub              15 ./test/indirect.cpp void sub( test_indirect_t * pFunc) {
+::test_sub         22 ./test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
 lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
@@ -3267,9 +3267,9 @@ lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:v
 <directRet>false</directRet>
 </arg>
 <arg>
-<addressAccess>true</addressAccess>
-<name>val4</name>
-<argSymbol>pVal4</argSymbol>
+<addressAccess>false</addressAccess>
+<name>aaa</name>
+<argSymbol>aaa</argSymbol>
 <directRet>false</directRet>
 </arg>
 <arg>
@@ -3279,19 +3279,19 @@ lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:v
 <directRet>false</directRet>
 </arg>
 <arg>
-<addressAccess>false</addressAccess>
-<name>aaa</name>
-<argSymbol>aaa</argSymbol>
+<addressAccess>true</addressAccess>
+<name>val4</name>
+<argSymbol>pVal4</argSymbol>
 <directRet>false</directRet>
 </arg>
 </args>
 <call>{
     int * funcRet__ = 0;
-if ( func__sub( &amp;funcRet__, val1, val2, abcddd, &amp;val4, val3, aaa ) ) {
+if ( func__sub( &amp;funcRet__, val1, val2, abcddd, aaa, val3, &amp;val4 ) ) {
        return funcRet__;
     }
 }</call>
-<sub_routine>static int func__sub( int ** pFuncRet__, int vvv1, int vvv2, int abcddd[10][1], int* pVal4, int * val3, int aaa[1][2] )
+<sub_routine>static int func__sub( int ** pFuncRet__, int vvv1, int vvv2, int abcddd[10][1], int aaa[1][2], int * val3, int* pVal4 )
 {
                 int * pVal = POINTER(vvv1);
                 int valval2 = -vvv2;
@@ -4499,7 +4499,7 @@ lua lctags/lctags.lua call-func test/simple.cpp printf
 <diagnostics>
 </diagnostics>
 </lctags_result>
-sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua inq-at test/simple.cpp 4 4 -i 
+sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua inq-at test/simple.cpp 4 4 -i
 <lctags_result>
 <candidate>
 <canonical>printf( const char * __restrict __format, ... )</canonical>
@@ -4524,6 +4524,71 @@ sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua inq-at test/simple.cpp 4 4 
 <diagnostics>
 </diagnostics>
 </lctags_result>
+lua lctags/lctags.lua inq callee ::test_indirect_t
+::test_indirect_t   10 NDIR/test/indirect.cpp static void test_indirect( void )
+::test_indirect_t   14 NDIR/test/indirect.cpp static void test_indirect2( void )
+::test_indirect_t   18 NDIR/test/indirect.cpp static void test_indirect3( void )
+lua lctags/lctags.lua inq caller ::test_indirect_t
+::test_indirect_t   23 NDIR/test/indirect.cpp     pFunc();
+lua lctags/lctags.lua inq callee '::@struct::<struct_test_str_t>::func_t'
+::@struct::<struct_test_str_t>::func_t   14 NDIR/test/indirect.cpp static void test_indirect2( void )
+lua lctags/lctags.lua inq refSym ::@struct::test_str_t::func_t
+::@struct::test_str_t::func_t   24 ./test/indirect.cpp     pStr->func_t();
+lua lctags/lctags.lua inq matchFile NDIR/test
+path                1 NDIR/test/hoge.cpp 
+path                1 NDIR/test/field.h 
+path                1 NDIR/test/hoge.h 
+path                1 NDIR/test/sub.cpp 
+path                1 NDIR/test/sub2.cpp 
+path                1 NDIR/test/comp.cpp 
+path                1 NDIR/test/comp-2.cpp 
+path                1 NDIR/test/comp2.cpp 
+path                1 NDIR/test/comp3.cpp 
+path                1 NDIR/test/comp4.cpp 
+path                1 NDIR/test/comp5.cpp 
+path                1 NDIR/test/comp6.cpp 
+path                1 NDIR/test/comp7.cpp 
+path                1 NDIR/test/comp8.cpp 
+path                1 NDIR/test/comp9.cpp 
+path                1 NDIR/test/comp10.cpp 
+path                1 NDIR/test/comp11.cpp 
+path                1 NDIR/test/comp12.cpp 
+path                1 NDIR/test/comp13.cpp 
+path                1 NDIR/test/comp14.cpp 
+path                1 NDIR/test/comp15.cpp 
+path                1 NDIR/test/comp16.cpp 
+path                1 NDIR/test/comp17.cpp 
+path                1 NDIR/test/comp18.cpp 
+path                1 NDIR/test/comp19.cpp 
+path                1 NDIR/test/class2.cpp 
+path                1 NDIR/test/class3.cpp 
+path                1 NDIR/test/class4.cpp 
+path                1 NDIR/test/class5.cpp 
+path                1 NDIR/test/inc1.cpp 
+path                1 NDIR/test/inc3.h 
+path                1 NDIR/test/inc2.h 
+path                1 NDIR/test/inc1.h 
+path                1 NDIR/test/stdinc.cpp 
+path                1 NDIR/test/stack.cpp 
+path                1 NDIR/test/sample.c 
+path                1 NDIR/test/simple.cpp 
+path                1 NDIR/test/operator.cpp 
+path                1 NDIR/test/split.cpp 
+path                1 NDIR/test/split2.cpp 
+path                1 NDIR/test/enum.cpp 
+path                1 NDIR/test/enum2.cpp 
+path                1 NDIR/test/enum3.cpp 
+path                1 NDIR/test/enum4.cpp 
+path                1 NDIR/test/incFuncTest.c 
+path                1 NDIR/test/highlight.cpp 
+path                1 NDIR/test/inctest.cpp 
+path                1 NDIR/test/indirect.cpp 
+lua lctags/lctags.lua inq defBody ::test_indirect_t
+::test_indirect_t    8 ./test/indirect.cpp typedef void (test_indirect_t)(void);
+lua lctags/lctags.lua inq callPair ::test_indirect_t ::test_sub
+::test_sub         23 NDIR/test/indirect.cpp     pFunc();
+lua lctags/lctags.lua inq refPair ::test_indirect_t ::test_sub
+::test_sub         22 NDIR/test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
 lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
 sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result>
@@ -4561,5 +4626,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:421: recipe for target 'test-chg-proj' failed
+makefile:427: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

@@ -860,8 +860,13 @@ function DBCtrl:getNamespace( id, canonicalName )
    if id then
       return self:getRow( "namespace", string.format( "id == %d", id ) )
    end
-   return self:getRow(
+   local nsInfo = self:getRow(
       "namespace", string.format( "name == '%s'", canonicalName ) )
+   if nsInfo then
+      return nsInfo
+   end
+   return self:getRow(
+      "namespace", string.format( "otherName == '%s'", canonicalName ) )
 end
 
 function DBCtrl:getSimpleName( id, name )
@@ -1165,15 +1170,26 @@ function DBCtrl:addNamespace( cursor, hasBodyFlag )
    local fileInfo = self:getFileFromCursor( cursor )
    if fileInfo.id == systemFileId then
       log( 3, "addNamespace skip for system", cursor:getCursorSpelling() )
-      return 
+      return nil
    end
    if fileInfo.uptodate then
       local fullname = self:getFullname( cursor, fileInfo.id, "", "" )
       self.hashCursor2FullnameMap[ cursor:hashCursor() ] = fullname
       log( "update namespace:", fullname, cursor:hashCursor() )
+      return fullname
+   end
+
+   local nsInfo = self:addNamespaceSub( cursor, fileInfo, "", "", nil, hasBodyFlag )
+   return nsInfo and nsInfo.name or nil
+end
+
+function DBCtrl:registTypeDef( cursor )
+   local fullname = self:addNamespace( cursor, true )
+   if not fullname then
       return
    end
-   self:addNamespaceSub( cursor, fileInfo, "", "", nil, hasBodyFlag )
+   local srcCursor = cursor:getTypedefDeclUnderlyingType():getTypeDeclaration()
+   self.hashCursor2FullnameMap[ srcCursor:hashCursor() ] = fullname
 end
 
 function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
@@ -1240,7 +1256,7 @@ function DBCtrl:addNamespaceSub(
    log( 3,
 	function()
 	   local kind = clang.getCursorKindSpelling( cursor:getCursorKind() )
-	   return "addNamespaceSub:", spell, kind, hasBodyFlag
+	   return "addNamespaceSub:", spell, kind, hasBodyFlag, typedefName
 	end
    )
    
@@ -1671,8 +1687,11 @@ function DBCtrl:addCall( cursor, namespace )
       kind == clang.core.CXCursor_ParmDecl or
       kind == clang.core.CXCursor_FieldDecl
    then
-      declCursor = clang.getDeclCursorFromType( declCursor:getCursorType() )
-      kind = declCursor:getCursorKind()
+      local work = clang.getDeclCursorFromType( declCursor:getCursorType() )
+      if work:getCursorKind() ~= clang.core.CXCursor_NoDeclFound then
+	 declCursor = work
+	 kind = declCursor:getCursorKind()
+      end
       nsInfo = self:getNamespaceFromCursor( declCursor )
       if not nsInfo then
 	 -- 関数ポインタ型の呼び出しで、

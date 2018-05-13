@@ -1203,7 +1203,7 @@ function Analyzer:registerSpInfo( db, spInfo )
       log( info:getCursorSpelling(),
 	   clang.getCursorKindSpelling( info:getCursorKind() ) )
       
-      db:addNamespace( info, true )
+      db:registTypeDef( info )
    end
    
    log( 2, "-- classList --", os.clock(), os.date()  )

@@ -165,12 +165,14 @@
 
 (defun lctags-json-get (buf symbol)
   (with-current-buffer buf
-    (let (info)
+    (let ((json-object-type 'plist)
+	  (json-array-type 'list)
+	  info)
       (setq info (json-read-from-string (buffer-string)))
-      (assoc symbol (assoc 'lctags_result info)))))
+      (plist-get (plist-get info :lctags_result) symbol))))
 
 (defun lctags-json-val (json symbol)
-  (cdr (assoc symbol json)))
+  (plist-get json symbol))
 
 
 (defun lctags-xml-get (buf symbol)
