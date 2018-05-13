@@ -309,6 +309,8 @@ function lctags_funcCallGraph_tree( nsId, name ) {
             var command = "callPair";
             if ( obj.expandMode == "refSym" ) {
                 command = "refPair";
+                srcNode = path.target.data;
+                dstNode = path.source.data;
             }
             $.ajax({
                 url: '/lctags/inq?command=' + command + '&nsId=' + dstNode.nsId +
