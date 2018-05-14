@@ -21,6 +21,7 @@ function lctags_graph_tree( paramInfo ) {
 
     reset_node( obj, rootNode );
 
+    obj.updateCount = 0;
     obj.orgX = 0;
     obj.orgY = 0;
     obj.dragX = 0;
@@ -38,13 +39,17 @@ function lctags_graph_tree( paramInfo ) {
                .on("end", lctags_svg_select_dragended); 
     obj.dragMode = obj.dragMove;
     obj.expandMode = "callee";
+    obj.selectMode = "close";
 
     var headerHeight = 50;
+    var marginWidth = 20;
+    var marginHeigth = 30;
 
     var selectRect = null;
 
     
-    var tree = d3.tree().size([ height - 30 - headerHeight, width - 20 ]);
+    var tree = d3.tree().size([ height - marginHeigth - headerHeight,
+                                width - marginWidth ]);
 
     function linkD( d ) {
         return linkD2( d.source, d.target );
@@ -83,35 +88,67 @@ function lctags_graph_tree( paramInfo ) {
     marker.append("feComposite")
         .attr( "in", "SourceGraphic" );
 
-    
-    d3.select( window ).on( "resize", function() {
+
+    var fitTo = function() {
         width = window.innerWidth;
         height = window.innerHeight;
+
+        d3.select( "#lctags_callgraph_header" )
+            .style( "width", width - marginWidth + "px" );
+
+        d3.select( "#lctags_callgraph_header_parent" )
+            .style( "position", "sticky" )
+            .style( "width", width - marginWidth + "px" );
+        
+
         svg.attr("width", width )
             .attr("height", height - headerHeight );
         tree = d3.tree().size([ height - 30 - headerHeight, width - 20 ]);
-        update( rootNode );
-    });
+        update();
+    };
+    
+    d3.select( window ).on( "resize",
+                            function() {
+                                fitTo();
+                            } );
 
     var g = svg.append("g").attr( "transform", "translate( 0, 0 )");
+
+    function hideNode( src, dst, updateFlag ) {
+        src.children = src.children.filter(
+            function( child ) {
+                return child.nsId != dst.nsId;
+            });
+        src.hideList.push( dst );
+
+        if ( updateFlag ) {
+            update();
+        }
+    }
     
-    function update(source) {
+    function update() {
         var duration = 500;
 
         var nodeHierarchy = d3.hierarchy( rootNode );
         tree( nodeHierarchy );
 
-        
+
+        var id2HieMap = new Map();
+        var prevUpdateCount = obj.updateCount;
+        obj.updateCount++;
         // ノードの深さに応じて座標を決定 ( depth は D3 によって計算されている )
-        var workSrc = null;
         nodeHierarchy.each(
             function(d) {
-                if ( !workSrc && d.data.id == source.id ) {
-                    workSrc = d;
-                }
                 d.y = obj.depthOffset[ d.depth ];
+                if ( d.parent ) {
+                    d.data.parent = d.parent.data;
+                }
+                else {
+                    d.data.parent = rootNode;
+                }
+                d.data.updateCount = obj.updateCount;
+                id2HieMap.set( d.data.id, d );
             });
-        source = workSrc;
 
         // ノードにデータをバインド
         var nodesInfo = nodeHierarchy.descendants();
@@ -122,6 +159,9 @@ function lctags_graph_tree( paramInfo ) {
         var nodeColor = function( d ) {
             if ( d.data.selected ) {
                 return "#f0f";
+            }
+            if ( d.data.hideList.length > 0 ) {
+                return "#88f";
             }
             if ( d.data.inquired ) {
                 return d.data._children ? "green" : "#f88";
@@ -134,10 +174,17 @@ function lctags_graph_tree( paramInfo ) {
         // 追加ノード生成
         var nodeEnter = node.enter().append("svg:g")
                 .attr("class", "node")
+                .attr( "id", function( d ) { return "node" + d.data.id; } )
                 .attr("transform",
                       function(d) {
-                          var val = source;
-                          return "translate(" + val.data.y0 + "," + val.data.x0 + ")";
+                          var val = d.data.parent;
+                          while ( val.prevUpdateCount != prevUpdateCount ) {
+                              val = val.parent;
+                              if ( val.id == rootNode.id ) {
+                                  break;
+                              }
+                          }
+                          return "translate(" + val.y0 + "," + val.x0 + ")";
                       })
                 .style( "cursor", "pointer" )
                 .on( "contextmenu",
@@ -240,7 +287,14 @@ function lctags_graph_tree( paramInfo ) {
                 .duration(duration)
                 .attr("transform",
                       function(d) {
-                          var val = source;
+                          var data = d.data.parent;
+                          while ( data.updateCount != obj.updateCount ) {
+                              data = data.parent;
+                              if ( data.id == rootNode.id ) {
+                                  break;
+                              }
+                          }
+                          var val = id2HieMap.get( data.id );
                           return "translate(" + val.y + "," + val.x + ")";
                       })
                 .remove();
@@ -274,11 +328,22 @@ function lctags_graph_tree( paramInfo ) {
             .attr("stroke-width", "5px" )
             .attr("d", function(d) {
                 var pos = {};
-                pos.x = source.data.x0;
-                pos.y = source.data.y0;
+                var val = d.source;
+                while ( val.data.prevUpdateCount != prevUpdateCount ) {
+                    val = val.parent;
+                    if ( val.data.id == rootNode.id ) {
+                        break;
+                    }
+                }
+                pos.x = val.data.x0;
+                pos.y = val.data.y0;
                 return linkD2( pos, pos );
             })
             .style( "cursor", "pointer" )
+            .on( "click", function( d ) {
+                d3.event.preventDefault();
+                hideNode( d.source.data, d.target.data, true );
+            })
             .on( "contextmenu", function( d ) {
                 d3.event.preventDefault();
                 paramInfo.pathClick( obj, d );
@@ -293,7 +358,7 @@ function lctags_graph_tree( paramInfo ) {
                     .transition()
                     .duration( duration )
                     .attr( "stroke", "#ccc" );
-                })
+            })
             .transition()
             .duration(duration)
             .attr("d", linkD);
@@ -307,7 +372,15 @@ function lctags_graph_tree( paramInfo ) {
         link.exit().transition()
             .duration(duration)
             .attr("d", function(d) {
-                return linkD2( source, source );
+                var val = d.source;
+                while ( val.data.updateCount != obj.updateCount ) {
+                    val = val.parent;
+                    if ( val.data.id == rootNode.id ) {
+                        break;
+                    }
+                }
+                val = id2HieMap.get( val.data.id );
+                return linkD2( val, val );
             })
             .remove();
 
@@ -317,6 +390,7 @@ function lctags_graph_tree( paramInfo ) {
             // ノードの現在位置を保存
             d.data.x0 = d.x;
             d.data.y0 = d.y;
+            d.data.prevUpdateCount = d.data.updateCount;
 
             // depth 毎の text サイズを計算
             var width = textWidthList[ d.depth ] || 0;
@@ -334,12 +408,20 @@ function lctags_graph_tree( paramInfo ) {
         } );
     }
 
+    function expandHided( node ) {
+        node.hideList.forEach( function( data ) {
+            node.children.push( data );
+        } );
+        node.hideList = [];
+    }
+    
     function expandNode(d) {
         if (d.inquired) {
             if ( !d.children ) {
                 d.children = d._children;
+                expandHided( d );
                 d._children = null;
-                update( d );
+                update();
             }
         } else {
             obj.inquiredNsIdSet.add( d.nsId );
@@ -351,7 +433,7 @@ function lctags_graph_tree( paramInfo ) {
     function closeNode(d) {
         d._children = d.children;
         d.children = null;
-        update( d );
+        update();
     }
     
     // Toggle children.
@@ -375,6 +457,8 @@ function lctags_graph_tree( paramInfo ) {
             nsId: nsId,
             name: name,
             inquired: false,
+            hideList: [],
+            updateCount: 0,
             x0: 0,
             y0: 0
         };
@@ -398,7 +482,7 @@ function lctags_graph_tree( paramInfo ) {
 
         if ( parentId == null ) {
             rootNode = obj.newNode( nodeList[0].nsId, nodeList[0].name );
-            update( rootNode );
+            update();
         }
         else {
             var nodeHierarchy = d3.hierarchy( rootNode );
@@ -419,41 +503,39 @@ function lctags_graph_tree( paramInfo ) {
             }
             nodeList.forEach(
                 function( src ) {
-                    workSrc.children.push( obj.newNode( src.nsId, src.name ) );
+                    var node = obj.newNode( src.nsId, src.name );
+                    node.type = src.type;
+                    workSrc.children.push( node );
                 });
-            update( workSrc );
+            update();
         }
     };
 
     function make_header() {
-        var header = d3.select("body").append("div")
-            .style( "background", "#ccc" )
-            .style( "width", "100%" )
-            .style( "height", headerHeight + "px" );
-
-
-        var expandModeSelect = header.append( "select" )
-                .style( "position", "relative" )
-                .style( "top", headerHeight / 4 + "px" )
-                .style( "left", "10px" )
-                .on( "change", function() {
-                    var svg = d3.select("body").select("svg");
-
-                    obj.expandMode = this.options[ this.selectedIndex ].text;
-                    reset_node( obj, rootNode );
-                    update( rootNode );
-                });
-        expandModeSelect.append( "option" )
-            .text( "callee" );
-        expandModeSelect.append( "option" )
-            .text( "caller" );
-        expandModeSelect.append( "option" )
-            .text( "refSym" );
+        var headerParent = d3.select("body").append("div")
+                .attr( "id", "lctags_callgraph_header_parent" )
+                .style( "position", "sticky" )
+                .style( "top", "0" )
+                .style( "left", "0" )
+                .style( "height", headerHeight + "px" )
+                .style( "width", "100%" );
         
+        
+        var header = headerParent.append("div")
+                .attr( "id", "lctags_callgraph_header" )
+                .style( "position", "sticky" )
+                .style( "background", "#ccc" )
+                .style( "left", "0" )
+                .style( "top", "0" )
+                .style( "width", window.innerWidth - marginWidth + "px" )
+                .style( "height", headerHeight + "px" );
+
+        var offset = 10;
+
         header.append( "button" )
             .text( "export" )
             .style( "position", "relative" )
-            .style( "left", "30px" )
+            .style( "left", offset + "px" )
             .style( "top", headerHeight / 4 + "px" )
             .on( "click",
                  function() {
@@ -495,10 +577,31 @@ function lctags_graph_tree( paramInfo ) {
                          .text( JSON.stringify( cloneRoot ) );
                  });
 
+        offset += 10;
+        var expandModeSelect = header.append( "select" )
+                .style( "position", "relative" )
+                .style( "top", headerHeight / 4 + "px" )
+                .style( "left", offset + "px" )
+                .on( "change", function() {
+                    var svg = d3.select("body").select("svg");
+
+                    obj.expandMode = this.options[ this.selectedIndex ].text;
+                    reset_node( obj, rootNode );
+                    update();
+                });
+        expandModeSelect.append( "option" )
+            .text( "callee" );
+        expandModeSelect.append( "option" )
+            .text( "caller" );
+        expandModeSelect.append( "option" )
+            .text( "refSym" );
+       
+
+        offset += 10;
         var dragModeSelect = header.append( "select" )
             .style( "position", "relative" )
             .style( "top", headerHeight / 4 + "px" )
-            .style( "left", "50px" )
+            .style( "left", offset + "px" )
             .on( "change", function() {
                 var svg = d3.select("body").select("svg");
 
@@ -508,12 +611,17 @@ function lctags_graph_tree( paramInfo ) {
                 }
                 else if ( this.selectedIndex == 1 ) {
                     obj.dragMode = obj.dragSelect;
-                    obj.selectClose = false;
+                    obj.selectMode = "expand";
                     svg.style( "cursor", "crosshair" );
                 }
                 else if ( this.selectedIndex == 2 ) {
                     obj.dragMode = obj.dragSelect;
-                    obj.selectClose = true;
+                    obj.selectMode = "close";
+                    svg.style( "cursor", "crosshair" );
+                }
+                else if ( this.selectedIndex == 3 ) {
+                    obj.dragMode = obj.dragSelect;
+                    obj.selectMode = "hide";
                     svg.style( "cursor", "crosshair" );
                 }
                 svg.call( obj.dragMode );
@@ -525,7 +633,149 @@ function lctags_graph_tree( paramInfo ) {
             .text( "expandRegion" );
         dragModeSelect.append( "option" )
             .text( "closeRegion" );
+        dragModeSelect.append( "option" )
+            .text( "hideRegion" );
+
+
+        offset += 10;
+        header.append( "button" )
+            .text( "expandNodes" )
+            .style( "position", "relative" )
+            .style( "left", offset + "px" )
+            .style( "top", headerHeight / 4 + "px" )
+            .on( "click",
+                 function() {
+                     // ノードを open する。
+                     // ただし、他のノードで展開済み、 名無しノードは open しない。
+                     var nodeMap = new Map();
+                     var excludeSet = new Set();
+                     excludeSet.add( 1 );
+                     d3.hierarchy( rootNode ).each( function( d ) {
+                         var data = d.data;
+                         var setFlag = false;
+                         if ( !data.inquired && data.children == null ) {
+                             if ( !nodeMap.get( data.nsId ) &&
+                                  !excludeSet.has( data.nsId ) ) {
+                                 nodeMap.set( data.nsId, data );
+                                 setFlag = true;
+                             }
+                         }
+                         if ( !setFlag ) {
+                             excludeSet.add( data.nsId );
+                         }
+                     });
+
+                     nodeMap.forEach( function( node ) {
+                         expandNode( node );
+                     });
+                 });
+
+
+        offset += 10;
+        header.append( "button" )
+            .text( "showHidedNodes" )
+            .style( "position", "relative" )
+            .style( "left", offset + "px" )
+            .style( "top", headerHeight / 4 + "px" )
+            .on( "click",
+                 function() {
+                     var nodeList = [];
+                     d3.hierarchy( rootNode ).each( function( node ) {
+                         if ( node.data.hideList.length > 0 ) {
+                             nodeList.push( node.data );
+                         }
+                     });
+                     
+                     nodeList.forEach( function( node ) {
+                         expandHided( node );
+                     });
+                     update();
+                 });
+
+        offset += 10;
+        header.append( "button" )
+            .text( "hideSameNodes" )
+            .style( "position", "relative" )
+            .style( "left", offset + "px" )
+            .style( "top", headerHeight / 4 + "px" )
+            .on( "click",
+                 function() {
+                     var nodeList = [];
+                     var nodeMap = new Map();
+                     d3.hierarchy( rootNode ).each( function( node ) {
+                         var existNode = nodeMap.get( node.data.nsId );
+                         if ( existNode && existNode.inquired ) {
+                             nodeList.push( node );
+                         }
+                         else {
+                             nodeMap.set( node.data.nsId, node.data );
+                         }
+                     });
+                     nodeList.forEach( function( node ) {
+                         hideNode( node.parent.data, node.data, false );
+                     });
+                     update();
+                 });
         
+        offset += 10;
+        header.append( "button" )
+            .text( "resize" )
+            .style( "position", "relative" )
+            .style( "left", offset + "px" )
+            .style( "top", headerHeight / 4 + "px" )
+            .on( "click",
+                 function() {
+                     var depth = 0;
+                     var prevX = -100;
+                     var overlapSize = 0;
+                     var maxY = svg.attr( "width" ) - marginWidth;
+                     d3.hierarchy( rootNode ).each( function( d ) {
+                         var tailPos = d.data.y0 + d.data.textWidth;
+                         if ( maxY < tailPos ) {
+                             maxY = tailPos;
+                         }
+                         if ( depth != d.depth ) {
+                             prevX = -100;
+                         }
+                         else {
+                             var data = d.data;
+                             var size = prevX + node_r * 2 - data.x0;
+                             if ( overlapSize < size ) {
+                                 overlapSize = size;
+                             }
+                         }
+                         prevX = d.data.x0;
+                         depth = d.depth;
+                     });
+                     if ( overlapSize > 0 || maxY > svg.attr( "width" ) ) {
+                         var ratio = 1 + 2 * overlapSize / (node_r * 2);
+
+                         width = maxY;
+                         height = svg.attr( "height" ) * ratio;
+                         
+
+                         headerParent
+                             .style( "position", "sticky" )
+                             .style( "width", width + "px" );
+
+                         svg.attr("height", height);
+                         svg.attr( "width", width );
+                         tree.size([ height, width ]);
+                         update();
+                     }
+                 });
+
+
+        offset += 10;
+        header.append( "button" )
+            .text( "fit" )
+            .style( "position", "relative" )
+            .style( "left", offset + "px" )
+            .style( "top", headerHeight / 4 + "px" )
+            .on( "click",
+                 function() {
+                     fitTo();
+                 } );
     }
 
 
@@ -601,7 +851,7 @@ function lctags_graph_tree( paramInfo ) {
                 data.selected = false;
             }
         } );
-        update( rootNode );
+        update();
     }
 
     function lctags_svg_select_dragended(d) {
@@ -611,11 +861,14 @@ function lctags_graph_tree( paramInfo ) {
             var data = d.data;
             if ( data.selected ) {
                 data.selected = false;
-                if ( obj.selectClose ) {
+                if ( obj.selectMode == "close" ) {
                     closeNode( data );
                 }
-                else {
+                else if ( obj.selectMode == "expand" ) {
                     expandNode( data );
+                }
+                else {
+                    hideNode( d.parent.data, data, true );
                 }
             }
         } );

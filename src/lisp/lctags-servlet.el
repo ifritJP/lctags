@@ -112,8 +112,7 @@
 	(cookie (cadr (assoc "cookie" query)))
 	(jumpCallGraph (cadr (assoc "jumpCallGraph" query)))
 	(jumpLastSymbol (cadr (assoc "jumpLastSymbol" query)))
-	(location "contents/file-list.html")
-	conf-info symbol)
+	location conf-info symbol)
     (when cookie
       (setq cookie (string-to-number cookie)))
     (when jumpLastSymbol
@@ -123,11 +122,12 @@
 	(setq cookie (lctags-servlet-make-cookie db target conf))
       (setq conf-info (gethash cookie lctags-servlet-cookie-hash))
       (setq symbol (plist-get conf-info :targetSymbol)))
-    (when (and jumpCallGraph symbol)
-      (setq location (format "/lctags/gen/func-call-graph.html?nsId=%d&name=%s"
-			     (cadr symbol) (car symbol))))
+    (if (and jumpCallGraph symbol)
+	(setq location (format "/lctags/gen/func-call-graph.html?confId=%s&nsId=%d&name=%s"
+			       cookie (cadr symbol) (car symbol)))
+      (setq location (format "/lctags/gen/file-list.html?confId=%s" cookie)))
     (httpd-send-header t "text/plain" 302
-		       :Set-Cookie (format "confId=%s; path=/lctags;" cookie)
+		       ;;:Set-Cookie (format "confId=%s; path=/lctags;" cookie)
 		       :Location location)
     ))
 
@@ -156,7 +156,7 @@
 
 (defun lctags-servlet-handle (path query req)
   (let* ((cookie (string-to-number
-		  (cadr (split-string (or (cadr (assoc "Cookie" req)) "=-1") "="))))
+		  (or (cadr (assoc "confId" query)) "-1")))
 	 (conf-info (gethash cookie lctags-servlet-cookie-hash))
 	 (command (cadr (assoc "command" query)))
 	 result)

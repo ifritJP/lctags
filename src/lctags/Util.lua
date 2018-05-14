@@ -87,6 +87,7 @@ function Util:printLocateDirect(
    if symbol == "" then
       symbol = "none"
    end
+
    -- GNU globalフォーマット
    outputHandle:write(
       string.format(

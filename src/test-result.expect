@@ -285,7 +285,7 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 </lctags_result>
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:310: recipe for target 'test-query' failed
+makefile:311: recipe for target 'test-query' failed
 lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
 lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
 lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
@@ -544,6 +544,10 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <typeInfoList>
 <typeInfo>
 <candidateList>
+</candidateList>
+</typeInfo>
+<typeInfo>
+<candidateList>
 <candidate>
 <canonical>efgh</canonical>
 <simple>efgh</simple>
@@ -565,10 +569,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <column>19</column>
 </endPos>
 </candidate>
-</candidateList>
-</typeInfo>
-<typeInfo>
-<candidateList>
 </candidateList>
 </typeInfo>
 </typeInfoList>
@@ -721,7 +721,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 </diagnostics>
 </lctags_result>
 lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:310: recipe for target 'test-query' failed
+makefile:311: recipe for target 'test-query' failed
 lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <completion>
@@ -3268,12 +3268,6 @@ lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:v
 </arg>
 <arg>
 <addressAccess>false</addressAccess>
-<name>aaa</name>
-<argSymbol>aaa</argSymbol>
-<directRet>false</directRet>
-</arg>
-<arg>
-<addressAccess>false</addressAccess>
 <name>val3</name>
 <argSymbol>val3</argSymbol>
 <directRet>false</directRet>
@@ -3284,14 +3278,20 @@ lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:v
 <argSymbol>pVal4</argSymbol>
 <directRet>false</directRet>
 </arg>
+<arg>
+<addressAccess>false</addressAccess>
+<name>aaa</name>
+<argSymbol>aaa</argSymbol>
+<directRet>false</directRet>
+</arg>
 </args>
 <call>{
     int * funcRet__ = 0;
-if ( func__sub( &amp;funcRet__, val1, val2, abcddd, aaa, val3, &amp;val4 ) ) {
+if ( func__sub( &amp;funcRet__, val1, val2, abcddd, val3, &amp;val4, aaa ) ) {
        return funcRet__;
     }
 }</call>
-<sub_routine>static int func__sub( int ** pFuncRet__, int vvv1, int vvv2, int abcddd[10][1], int aaa[1][2], int * val3, int* pVal4 )
+<sub_routine>static int func__sub( int ** pFuncRet__, int vvv1, int vvv2, int abcddd[10][1], int * val3, int* pVal4, int aaa[1][2] )
 {
                 int * pVal = POINTER(vvv1);
                 int valval2 = -vvv2;
@@ -3432,7 +3432,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
 </refactoring_split>
 </lctags_result>
 lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:310: recipe for target 'test-query' failed
+makefile:311: recipe for target 'test-query' failed
 lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result>
 <refactoring_split>
@@ -4364,6 +4364,12 @@ lua lctags/lctags.lua call-func test/simple.cpp printf
 <lctags_result>
 <functionList>
 <function>
+<name>_IO_vfprintf</name>
+<include>/usr/include/libio.h</include>
+<included>false</included>
+<declaration>/usr/include/libio.h</declaration>
+</function>
+<function>
 <name>fprintf</name>
 <include>/usr/include/stdio.h</include>
 <included>false</included>
@@ -4422,12 +4428,6 @@ lua lctags/lctags.lua call-func test/simple.cpp printf
 <include>/usr/include/stdio.h</include>
 <included>false</included>
 <declaration>/usr/include/stdio.h</declaration>
-</function>
-<function>
-<name>_IO_vfprintf</name>
-<include>/usr/include/libio.h</include>
-<included>false</included>
-<declaration>/usr/include/libio.h</declaration>
 </function>
 <function>
 <name>fwprintf</name>
@@ -4529,7 +4529,7 @@ lua lctags/lctags.lua inq callee ::test_indirect_t
 ::test_indirect_t   14 NDIR/test/indirect.cpp static void test_indirect2( void )
 ::test_indirect_t   18 NDIR/test/indirect.cpp static void test_indirect3( void )
 lua lctags/lctags.lua inq caller ::test_indirect_t
-::test_indirect_t   23 NDIR/test/indirect.cpp     pFunc();
+::test_indirect_t   22 NDIR/test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
 lua lctags/lctags.lua inq callee '::@struct::<struct_test_str_t>::func_t'
 ::@struct::<struct_test_str_t>::func_t   14 NDIR/test/indirect.cpp static void test_indirect2( void )
 lua lctags/lctags.lua inq refSym ::@struct::test_str_t::func_t
@@ -4583,12 +4583,15 @@ path                1 NDIR/test/incFuncTest.c
 path                1 NDIR/test/highlight.cpp 
 path                1 NDIR/test/inctest.cpp 
 path                1 NDIR/test/indirect.cpp 
+path                1 NDIR/test/macro.cpp 
 lua lctags/lctags.lua inq defBody ::test_indirect_t
 ::test_indirect_t    8 ./test/indirect.cpp typedef void (test_indirect_t)(void);
 lua lctags/lctags.lua inq callPair ::test_indirect_t ::test_sub
 ::test_sub         23 NDIR/test/indirect.cpp     pFunc();
 lua lctags/lctags.lua inq refPair ::test_indirect_t ::test_sub
 ::test_sub         22 NDIR/test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
+lua lctags/lctags.lua inq refSym ::macro_func
+::macro_func       33 ./test/macro.cpp     macro_func();
 lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
 sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result>
@@ -4626,5 +4629,5 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 make test-chg-proj
 lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
 lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:427: recipe for target 'test-chg-proj' failed
+makefile:429: recipe for target 'test-chg-proj' failed
 lua lctags/lctags.lua set-projDir . test2@test > /dev/null

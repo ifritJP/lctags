@@ -3161,8 +3161,29 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
       "simpleName", "simpleName.id = symbolDecl.snameId",
       cond, 10000,
       "namespace.name, symbolDecl.nsId, "
-	 .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column",
+	 .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column, "
+	 .. "symbolDecl.type, symbolDecl.hasBodyFlag",
       func )
+end
+
+function DBCtrl:mapCalleeDecl( nsId, func )
+   self:mapJoin( "funcCall", "symbolDecl",
+		 "funcCall.nsId = symbolDecl.nsId",
+		 "funcCall.belongNsId = " .. nsId, 10000,
+		 "funcCall.nsId, funcCall.belongNsId, "
+		    .. "symbolDecl.type, symbolDecl.hasBodyFlag, "
+		    .. "symbolDecl.fileId, symbolDecl.line",
+		 func )
+end
+
+function DBCtrl:mapCallerDecl( nsId, func )
+   self:mapJoin( "funcCall", "symbolDecl",
+		 "funcCall.belongNsId = symbolDecl.nsId",
+		 "funcCall.nsId = " .. nsId, 10000,
+		 "funcCall.nsId, funcCall.belongNsId, "
+		    .. "symbolDecl.type, symbolDecl.hasBodyFlag, "
+		    .. "symbolDecl.fileId, symbolDecl.line",
+		 func )
 end
 
 

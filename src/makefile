@@ -284,6 +284,7 @@ endif
 	$(call build-test, test/highlight.cpp )
 	$(call build-test, test/inctest.cpp, , -Itest/inc )
 	$(call build-test, test/indirect.cpp )
+	$(call build-test, test/macro.cpp )
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -416,6 +417,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq defBody ::test_indirect_t
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq callPair ::test_indirect_t ::test_sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq refPair ::test_indirect_t ::test_sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq refSym ::macro_func
 
 
 	$(LUA_COMMAND) $(LCTAGS_LUA) addIncRef test/incFuncTest.c /usr/include/string.h

@@ -221,8 +221,11 @@ end
 
 function JSON:writeValue( val )
    local txt
-   if type( val ) == "number" then
+   local typeId = type( val )
+   if typeId == "number" then
       txt = string.format( "%g", val )
+   elseif typeId == "boolean" then
+      txt = val and "true" or "false";
    else
       txt = string.format( '"%s"', convertJsonTxt( val ) )
    end

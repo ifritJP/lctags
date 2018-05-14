@@ -73,31 +73,12 @@ end
 
 local callee = QueryParam:addQuery( { name = "callee" } )
 
-function callee:queryOutputHeader( writer, db, target )
-   local nsInfo = self:getNsInfo( db, target )
-   if not nsInfo then
-      log( 1, "not found nsInfo" )
-      return nil
-   end
-   
-   writer:startParent( "funcInfo" )
-
-   writer:write( "nsId", nsInfo.id )
-   writer:write( "name", nsInfo.otherName )
-
-   db:mapDecl( nsInfo.id,
-	       function( item )
-		  writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
-		  return false
-	       end
-   )
-   writer:endElement()
-end
-
 function callee:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.nsId )
    writer:write( "name", db:getNamespace( item.nsId ).otherName )
+   writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
+   writer:write( "fileId", item.fileId );
 
    writer:write( "belongNsId", item.belongNsId )
    
@@ -114,8 +95,12 @@ function callee:queryOutput( db, isLimit, output, target )
 
    local matchFlag = false
    local cond = (self.name == "callee") and "belongNsId = " or "nsId = "
-   db:mapCall(
-      cond .. tostring( nsInfo.id ),
+   local mapFunc = db.mapCallerDecl
+   if self.name == "callee" then
+      mapFunc = db.mapCalleeDecl
+   end
+   mapFunc(
+      db, nsInfo.id, 
       function( item )
 	 if isLimit() then return false; end
 	 output( db, self.name, target, target, item )
@@ -240,6 +225,7 @@ function defAtFileId:queryOutputItem( writer, db, item )
    writer:write( "nsId", item.nsId )
    writer:write( "name", db:getNamespace( item.nsId ).otherName )
    writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
+   writer:write( "hasBody", item.hasBodyFlag ~= 0 );
    writer:endElement()
 end
 

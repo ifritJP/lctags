@@ -207,6 +207,9 @@ local function visitFuncNsInc( cursor, parent, analyzer, exInfo )
    end
 
    if cursorKind == clang.core.CXCursor_MacroExpansion then
+      -- マクロ参照は、参照箇所(ファイルパス、行番号)の情報(getFileLoc)は有効だが、
+      -- どの関数内かなどの情報(getCursorSemanticParent)は無効。
+      -- これは、マクロ展開の後に構文解析していることが要因と思われる。
       local declCursor = cursor:getCursorReferenced()
       analyzer:addRef( analyzer.macroRefList, cursor, declCursor, nil )
       -- マクロ参照はヘッダの多重 include 抑止に利用していることが多い。

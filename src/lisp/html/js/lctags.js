@@ -1,6 +1,10 @@
 var lctags_graph_window_map = new Map();
 var lctags_file_window_map = new Map();
 
+var lctags_getPath = function( path, confId ) {
+    return "/lctags/" + path + "?confId=" + confId;
+}
+
 function lctags_getCookies( cookiesEle ) {
     $.ajax({
         url: '/lctags/inq?command=cookies',
@@ -44,7 +48,7 @@ function lctags_getCookies( cookiesEle ) {
         }
         if ( validSymbol ) {
             var obj = document.createElement( "a" );
-            obj.innerHTML = "jump to lastSymbol"
+            obj.innerHTML = "jump to lastSymbol";
             obj.href = "/lctags/start?&jumpLastSymbol=t";
 
             cookiesEle.appendChild( obj );
@@ -55,9 +59,9 @@ function lctags_getCookies( cookiesEle ) {
 };
 
 
-function lctags_dumpDir() {
+function lctags_dumpDir( confId ) {
     $.ajax({
-        url: '/lctags/inq?command=dumpDir',
+        url: lctags_getPath( "inq", confId ) + "&command=dumpDir",
         type: 'GET',
         timeout: 5000,
     }).done(function(data) {
@@ -80,7 +84,7 @@ function lctags_dumpDir() {
                 return function() {
                     var opened = jQuery.data( obj, "opened" );
                     if ( !opened ) {
-                        lctags_matchFile( path, obj );
+                        lctags_matchFile( confId, path, obj );
                     }
                     else {
                         while (obj.firstChild) {
@@ -99,9 +103,9 @@ function lctags_dumpDir() {
     });
 }
 
-function lctags_matchFile( dirPath, parentObj ) {
+function lctags_matchFile( confId, dirPath, parentObj ) {
     $.ajax({
-        url: '/lctags/inq?command=matchFile&pattern=' + dirPath,
+        url: lctags_getPath( 'inq', confId ) + '&command=matchFile&pattern=' + dirPath,
         type: 'GET',
         timeout: 5000,
     }).done(function(data) {
@@ -130,7 +134,8 @@ function lctags_matchFile( dirPath, parentObj ) {
                         win.close();
                     }
                     var newWindow = window.open(
-                        "/lctags/gen/file.html?fileId=" + info.fileId, key );
+                        lctags_getPath( "gen/file.html", confId ) +
+                            "&fileId=" + info.fileId, key );
                     lctags_file_window_map.set( key, newWindow );
                 };
             }(info);
@@ -141,9 +146,9 @@ function lctags_matchFile( dirPath, parentObj ) {
     });
 }
 
-function lctags_getFileInfo( fileId ) {
+function lctags_getFileInfo( confId, fileId ) {
     $.ajax({
-        url: '/lctags/inq?command=defAtFileId&fileId=' + fileId,
+        url: lctags_getPath( 'inq', confId ) + "&command=defAtFileId&fileId=" + fileId,
         type: 'GET',
         timeout: 5000,
     }).done(function(data) {
@@ -151,12 +156,13 @@ function lctags_getFileInfo( fileId ) {
         var defList = [];
         var idMap = new Map();
         for (val in defListObj) {
-            var info = defListObj[ val ].info
-            if ( idMap.has( info.nsId ) ) {
+            var info = defListObj[ val ].info;
+            var key = "" + info.nsId + info.type;
+            if ( idMap.has( key ) ) {
                 continue;
             }
             defList.push( info );
-            idMap.set( info.nsId );
+            idMap.set( key );
         }
 
         defList = defList.sort(
@@ -187,8 +193,8 @@ function lctags_getFileInfo( fileId ) {
                         win.close();
                     }
                     var newWindow = window.open(
-                        "/lctags/gen/func-call-graph.html?nsId=" + info.nsId +
-                            "&name=" + info.name, key );
+                        lctags_getPath( "gen/func-call-graph.html", confId ) +
+                            "&nsId=" + info.nsId + "&name=" + info.name, key );
                     lctags_graph_window_map.set( key, newWindow );
                 };
             }(info);
@@ -200,7 +206,7 @@ function lctags_getFileInfo( fileId ) {
     });
 }
 
-function lctags_funcCallGraph_force( nsId, name ) {
+function lctags_funcCallGraph_force( confId, nsId, name ) {
 
     var obj;
     var paramInfo = {
@@ -218,9 +224,9 @@ function lctags_funcCallGraph_force( nsId, name ) {
 
                 var nsId = node.nsId;
                 $.ajax({
-                    url: '/lctags/inq?command=callee&nsId=' + nsId,
+                    url: lctags_getPath( 'inq', confId ) + '&command=callee&nsId=' + nsId,
                     type: 'GET',
-                    timeout: 5000,
+                    timeout: 5000
                 }).done(function(data) {
                     var funcListObj = data.lctags_result.callee;
 
@@ -253,7 +259,7 @@ function lctags_funcCallGraph_force( nsId, name ) {
 }
 
 
-function lctags_funcCallGraph_tree( nsId, name ) {
+function lctags_funcCallGraph_tree( confId, nsId, name ) {
 
     var paramInfo = {
         svgClick: function() {
@@ -270,7 +276,8 @@ function lctags_funcCallGraph_tree( nsId, name ) {
                 command = "refSym";
             }
             $.ajax({
-                url: '/lctags/inq?command=' + command + '&nsId=' + nsId,
+                url: lctags_getPath( 'inq', confId ) +
+                    "&command=" + command + '&nsId=' + nsId,
                 type: 'GET',
                 timeout: 10 * 1000
             }).done(function(data) {
@@ -283,7 +290,8 @@ function lctags_funcCallGraph_tree( nsId, name ) {
 
                     if ( !nsIdSet.has( info.nsId ) ) {
                         nsIdSet.add( info.nsId );
-                        nodeInfoArray.push( { nsId: info.nsId, name: info.name } );
+                        nodeInfoArray.push(
+                            { nsId: info.nsId, name: info.name, type: info.type } );
                     }
                 }
 
@@ -291,7 +299,6 @@ function lctags_funcCallGraph_tree( nsId, name ) {
                     return obj1.name.localeCompare( obj2.name );
                 });
 
-                obj.setNodeType( nodeId, data.lctags_result.funcInfo.type );
                 obj.addChild( nodeId, nodeInfoArray );
             }).fail(function() {
             });
@@ -313,7 +320,8 @@ function lctags_funcCallGraph_tree( nsId, name ) {
                 dstNode = path.source.data;
             }
             $.ajax({
-                url: '/lctags/inq?command=' + command + '&nsId=' + dstNode.nsId +
+                url: lctags_getPath( 'inq', confId ) +
+                    '&command=' + command + '&nsId=' + dstNode.nsId +
                     "&belongNsId=" + srcNode.nsId,
                 type: 'GET',
                 timeout: 5 * 1000
@@ -326,7 +334,7 @@ function lctags_funcCallGraph_tree( nsId, name ) {
             d3.event.stopPropagation();
             var nsId = node.nsId;
             $.ajax({
-                url: '/lctags/inq?command=defBody&nsId=' + nsId,
+                url: lctags_getPath( 'inq', confId ) + '&command=defBody&nsId=' + nsId,
                 type: 'GET',
                 timeout: 5000
             }).done(function(data) {
