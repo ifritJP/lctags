@@ -25,6 +25,9 @@ function config:loadConfig( path, exitOnErr )
    return nil
 end
 
+function config:hasUserConf()
+   return self.conf
+end
 
 function config:getIgnorePattern()
    if self.conf and self.conf.getIgnorePattern then
@@ -90,9 +93,9 @@ function config:getClangIncPathOp()
    return self.clangIncPathOp
 end
 
-function config:getIndirectFuncList( symbol )
+function config:getIndirectFuncList( symbol, mode )
    if self.conf and self.conf.getIndirectFuncList then
-      return self.conf:getIndirectFuncList( symbol )
+      return self.conf:getIndirectFuncList( symbol, mode )
    end
    return {}
 end

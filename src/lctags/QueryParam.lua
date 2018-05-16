@@ -80,8 +80,6 @@ function callee:queryOutputItem( writer, db, item )
    writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
    writer:write( "fileId", item.fileId );
 
-   writer:write( "belongNsId", item.belongNsId )
-   
    writer:endElement()
 end
 
@@ -108,6 +106,25 @@ function callee:queryOutput( db, isLimit, output, target )
 	 return true
       end
    )
+   if self.name == "caller" then
+      local indirectSet = {}
+      local indirectList = config:getIndirectFuncList( nsInfo.name, self.name )
+
+      if indirectList and #indirectList > 0 then
+	 local kindList = { clang.core.CXCursor_TypedefDecl,
+			    clang.core.CXCursor_FieldDecl }
+	 db:mapSymbolDeclPattern(
+	    indirectList, kindList,
+	    function( item )
+	       if not indirectSet[ item.nsId ] then
+		  indirectSet[ item.nsId ] = true
+		  output( db, self.name, target, target, item )
+	       end
+	       return true
+	    end
+	 )
+      end
+   end
    if not matchFlag then
       log( 3, "no match" )
       if self.name == "callee" then
@@ -128,7 +145,7 @@ function callee:queryOutput( db, isLimit, output, target )
 	 if indirectFlag then
 	    log( 3, "no match: indirect" )
 	    local indirectSet = {}
-	    local indirectList = config:getIndirectFuncList( nsInfo.name )
+	    local indirectList = config:getIndirectFuncList( nsInfo.name, self.name )
 
 	    if indirectList and #indirectList > 0 then
 	       db:mapFuncDeclPattern(
@@ -154,8 +171,11 @@ local caller = QueryParam:addQuery( { name = "caller" }, { __index = callee } )
 
 function caller:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
-   writer:write( "nsId", item.belongNsId )
-   writer:write( "name", db:getNamespace( item.belongNsId ).otherName )
+   local belongNsId = item.belongNsId or item.nsId
+   writer:write( "nsId", belongNsId  )
+   writer:write( "name", db:getNamespace( belongNsId ).otherName )
+   writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
+   writer:write( "fileId", item.fileId );
    writer:endElement()
 end
 
@@ -166,8 +186,11 @@ local refSym = QueryParam:addQuery( { name = "refSym" }, { __index = callee } )
 
 function refSym:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
-   writer:write( "nsId", item.belongNsId )
-   writer:write( "name", db:getNamespace( item.belongNsId ).otherName )
+   local belongNsId = item.belongNsId or item.nsId
+   writer:write( "nsId", belongNsId )
+   writer:write( "name", db:getNamespace( belongNsId ).otherName )
+   writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
+   writer:write( "fileId", item.fileId );
    writer:endElement()
 end
 
@@ -189,6 +212,24 @@ function refSym:queryOutput( db, isLimit, output, target )
 	 return true
       end
    )
+
+   local indirectSet = {}
+   local indirectList = config:getIndirectFuncList( nsInfo.name, self.name )
+
+   if indirectList and #indirectList > 0 then
+      local kindList = { clang.core.CXCursor_TypedefDecl,
+			 clang.core.CXCursor_FieldDecl }
+      db:mapSymbolDeclPattern(
+	 indirectList, kindList,
+	 function( item )
+	    if not indirectSet[ item.nsId ] then
+	       indirectSet[ item.nsId ] = true
+	       output( db, self.name, target, target, item )
+	    end
+	    return true
+	 end
+      )
+   end
 end
 
 
@@ -278,6 +319,7 @@ local defBody = QueryParam:addQuery( { name = "defBody" } )
 
 function defBody:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
+   writer:write( "nsId", item.nsId )
    writer:write( "fileId", item.fileId )
    writer:write( "line", item.line )
    writer:write( "column", item.column )
@@ -358,6 +400,31 @@ function refPair:queryOutput( db, isLimit, output, target )
       function( item )
 	 if isLimit() then return false; end
 	 output( db, self.name, target[1], target[2], item )
+	 return true
+      end
+   )
+end
+
+
+------ subNS ------
+
+local subNS = QueryParam:addQuery( { name = "subNS" } )
+
+function subNS:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "nsId", item.nsId )
+   writer:write( "name", db:getNamespace( item.nsId ).otherName )
+   writer:endElement()
+end
+
+function subNS:queryOutput( db, isLimit, output, target )
+   local nsInfo = self:getNsInfo( db, target )
+
+   db:mapDeclForParent(
+      nsInfo.id,
+      function( item )
+	 if isLimit() then return false; end
+	 output( db, self.name, target, target, item )
 	 return true
       end
    )

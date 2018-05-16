@@ -3113,11 +3113,14 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
 	 end
 	 work = string.format( "(%s)", patCond )
 
-	 local nsInfo = self:getNamespace( nil, pattern )
-	 if nsInfoList and nsInfo then
-	    talbe.insert( nsInfoList, nsInfo )
-	 else
-	    nsInfoList = nil
+	 for key, pat in ipairs( pattern ) do
+	    local nsInfo = self:getNamespace( nil, pat )
+	    if nsInfo then
+	       table.insert( nsInfoList, nsInfo )
+	    else
+	       nsInfoList = nil
+	       break
+	    end
 	 end
       else
 	 work = string.format( "(simpleName.name LIKE '%s' escape '$')", pattern )
@@ -3130,7 +3133,7 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
 
       if nsInfoList and #nsInfoList > 0 then
 	 local nsInfoCond
-	 for key, val in ipairs( nsInfoList ) do
+	 for index, nsInfo in ipairs( nsInfoList ) do
 	    if nsInfoCond then
 	       nsInfoCond = string.format( "%s OR nsId = %s", nsInfoCond, nsInfo.id )
 	    else
@@ -3161,8 +3164,8 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
       "simpleName", "simpleName.id = symbolDecl.snameId",
       cond, 10000,
       "namespace.name, symbolDecl.nsId, "
-	 .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column, "
-	 .. "symbolDecl.type, symbolDecl.hasBodyFlag",
+      	 .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column, "
+      	 .. "symbolDecl.type, symbolDecl.hasBodyFlag",
       func )
 end
 

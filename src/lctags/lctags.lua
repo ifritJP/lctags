@@ -20,6 +20,7 @@ local Split = require( 'lctags.Split' )
 local Scan = require( 'lctags.Scan' )
 local Util = require( 'lctags.Util' )
 local QueryParam = require( 'lctags.QueryParam' )
+local config = require( 'lctags.config' )
 
 local startTime = Helper.getTime( true )
 
@@ -75,6 +76,13 @@ if not lctagOptMap.dbPath then
       end
    end
 end
+
+if not lctagOptMap.confPath then
+   lctagOptMap.confPath = Option:getConfPathFromDbPath( lctagOptMap.dbPath )
+end
+
+package.path = package.path .. ";" ..
+   string.gsub( lctagOptMap.confPath, "^(.*)/[^/]+$", "%1/?.lua" )
 
 -- local lockObj = Helper.createLock( DBAccess:getLockName( lctagOptMap.dbPath ) )
 -- if not lockObj then
@@ -147,9 +155,7 @@ end
 
 
 if lctagOptMap.mode == "copyConf" then
-   if not lctagOptMap.confPath then
-      lctagOptMap.confPath = Option:getConfPathFromDbPath( lctagOptMap.dbPath )
-      
+   if not config:hasUserConf() then
       local confFile = io.open( lctagOptMap.confPath, "w" )
       local baseFile = io.open( Option:getSameDirFile( arg[0], "_lctags.conf" ) )
       confFile:write( baseFile:read( '*a' ) )
@@ -186,9 +192,7 @@ main(){
 
    for index, diag in ipairs( diagList ) do
       if diag.message:find( 'stddef.h' ) then
-	 if not lctagOptMap.confPath then
-	    lctagOptMap.confPath = Option:getConfPathFromDbPath( lctagOptMap.dbPath )
-	    
+	 if not config:hasUserConf() then
 	    local confFile = io.open( lctagOptMap.confPath, "w" )
 	    local baseFile = io.open( Option:getSameDirFile( arg[0], "_lctags.conf" ) )
 	    confFile:write( baseFile:read( '*a' ) )
@@ -390,10 +394,13 @@ if lctagOptMap.mode == "inq" then
       local ret = queryParam:getQueryParam( srcList )
       nsInfo = ret[ 1 ]
       target = ret[ 2 ]
-   elseif lctagOptMap.query == "sym" then
-      nsInfo = db:getSimpleName( nil, srcList[ 1 ] )
+   elseif type( srcList[ 1 ] ) == "number" or string.find( srcList[ 1 ], "^%d" ) then
+      nsInfo = db:getNamespace( srcList[ 1 ] )
    else
-      nsInfo = db:getSimpleName( srcList[ 1 ] )
+      nsInfo = db:getNamespace( nil, srcList[ 1 ] )
+      if not nsInfo then
+	 nsInfo = db:getSimpleName( nil, srcList[ 1 ] )
+      end
    end
    Query:queryFor( db, nsInfo, lctagOptMap.query, target, absFlag, Option:getOutputForm() )
    db:close()
