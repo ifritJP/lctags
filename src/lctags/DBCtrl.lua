@@ -2505,6 +2505,10 @@ function DBCtrl:dumpProjDir()
    print( self.projDir )
 end
 
+function DBCtrl:getProjDir()
+   return self.projDir
+end
+
 function DBCtrl:isAlreadyAnalyzed( fileInfo )
    local analyzedFlag = true
    self:mapRowList(

@@ -251,6 +251,11 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
 
    if form then
       writer:endElement()
+
+      if queryParam then
+	 queryParam:queryOutputFooter( writer, db )
+      end
+      
       writer:endElement()
       writer:fin()
    end

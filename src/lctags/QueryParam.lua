@@ -66,6 +66,10 @@ function default:queryOutputItem( writer, db, item )
    writer:endElement()
 end
 
+
+function default:queryOutputFooter( writer, db )
+end
+
 function default:queryOutput( db, isLimit, output, target )
 end
 
@@ -74,18 +78,39 @@ end
 local callee = QueryParam:addQuery( { name = "callee" } )
 
 function callee:queryOutputItem( writer, db, item )
+   if not self.fileSet then
+      self.fileSet = {}
+   end
+
    writer:startParent( "info" )
    writer:write( "nsId", item.nsId )
    writer:write( "name", db:getNamespace( item.nsId ).otherName )
    writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
    writer:write( "fileId", item.fileId );
+   writer:endElement()
 
+   self.fileSet[ item.fileId ] = true
+end
+
+function callee:queryOutputFooter( writer, db )
+   if not self.fileSet then
+      return
+   end
+   writer:startParent( "fileList", true )
+   for fileId in pairs( self.fileSet ) do
+      writer:startParent( "info" )
+      writer:write( "fileId", fileId )
+      local fileInfo = db:getFileInfo( fileId )
+      writer:write( "path", db:convFullpath( db:getSystemPath( fileInfo.path ) ) )
+      writer:endElement()
+   end
    writer:endElement()
 end
 
+
 function callee:queryOutput( db, isLimit, output, target )
    local nsInfo = self:getNsInfo( db, target )
-   
+
    if not nsInfo then
       log( 1, "not found nsInfo", target )
       return nil
@@ -170,6 +195,10 @@ end
 local caller = QueryParam:addQuery( { name = "caller" }, { __index = callee } )
 
 function caller:queryOutputItem( writer, db, item )
+   if not self.fileSet then
+      self.fileSet = {}
+   end
+   
    writer:startParent( "info" )
    local belongNsId = item.belongNsId or item.nsId
    writer:write( "nsId", belongNsId  )
@@ -177,6 +206,8 @@ function caller:queryOutputItem( writer, db, item )
    writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
    writer:write( "fileId", item.fileId );
    writer:endElement()
+
+   self.fileSet[ item.fileId ] = true
 end
 
 
@@ -185,6 +216,10 @@ end
 local refSym = QueryParam:addQuery( { name = "refSym" }, { __index = callee } )
 
 function refSym:queryOutputItem( writer, db, item )
+   if not self.fileSet then
+      self.fileSet = {}
+   end
+
    writer:startParent( "info" )
    local belongNsId = item.belongNsId or item.nsId
    writer:write( "nsId", belongNsId )
@@ -192,6 +227,8 @@ function refSym:queryOutputItem( writer, db, item )
    writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
    writer:write( "fileId", item.fileId );
    writer:endElement()
+
+   self.fileSet[ item.fileId ] = true
 end
 
 function refSym:queryOutput( db, isLimit, output, target )
@@ -428,6 +465,15 @@ function subNS:queryOutput( db, isLimit, output, target )
 	 return true
       end
    )
+end
+
+
+------ projDir ------
+
+local projDir = QueryParam:addQuery( { name = "projDir" } )
+
+function projDir:queryOutput( db, isLimit, output, target )
+   writer:write( "path", db:getProjDir() )
 end
 
 

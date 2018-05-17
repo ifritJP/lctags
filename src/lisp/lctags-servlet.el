@@ -102,6 +102,10 @@
 	(let ((lctags-db db-path)
 	      (lctags-target target)
 	      (lctags-conf conf-path))
+	  (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+			      "inq" "projDir" "--lctags-form" "json")
+	  (plist-put val :projDir 
+		     (plist-get (car (lctags-json-get (current-buffer) :projDir)) :path))
 	  (lctags-execute-op2 (current-buffer) (current-buffer) nil nil "prepare"))))
     cookie))
 
@@ -241,11 +245,16 @@
   (let* ((command (cadr (assoc "command" query)))
 	 (content-path (expand-file-name (substring path (length "/lctags/gen/"))
 					 lctags-servlet-content-dir))
+	 (cookie (string-to-number
+		  (or (cadr (assoc "confId" query)) "-1")))
+	 (conf-info (gethash cookie lctags-servlet-cookie-hash))
+	 (proj-dir (plist-get conf-info :projDir))
 	 result)
     (with-temp-buffer
       (set-buffer-multibyte nil)
       (insert-file-contents content-path)
-      (dolist (rep-info query)
+      (dolist (rep-info (cons (list 'projDir proj-dir)
+				(copy-sequence query)))
 	(beginning-of-buffer)
 	(replace-string (format "$%s$" (car rep-info))
 			(cadr rep-info) nil (point-min) (point-max)))
