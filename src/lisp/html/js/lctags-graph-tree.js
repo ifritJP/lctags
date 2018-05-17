@@ -625,7 +625,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
             .text( "close" )
             .on( "click",
                  function() {
-                     obj.fileListPopupParent.remove();
+                     obj.fileListPopupParent.style( "display", "none" );
                  });
 
        
@@ -685,7 +685,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
                          .text( "close" )
                          .on( "click",
                               function() {
-                                  obj.fileListPopupParent.style( "display", "none" );
+                                  popup.remove();
                               });
                      popup.append( "br" );
 
