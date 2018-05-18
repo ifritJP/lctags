@@ -194,8 +194,7 @@ function lctags_getFileInfo( confId, fileId ) {
                     }
                     var newWindow = window.open(
                         lctags_getPath( "gen/func-call-graph.html", confId ) +
-                            "&nsId=" + info.nsId + "&name=" + info.name +
-                            "&fileId=" + fileId, key );
+                            "&nsId=" + info.nsId + "&name=" + info.name, key );
                     lctags_graph_window_map.set( key, newWindow );
                 };
             }(info);
@@ -260,7 +259,7 @@ function lctags_funcCallGraph_force( confId, nsId, name ) {
 }
 
 
-function lctags_funcCallGraph_tree( projDir, confId, nsId, name, fileId ) {
+function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
 
     var paramInfo = {
         svgClick: function() {

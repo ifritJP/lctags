@@ -532,6 +532,9 @@ function DBCtrl:begin()
 end
 
 function DBCtrl:beginForTemp()
+   self.db:close()
+   self.db = DBAccess:open( self.dbPath, true )
+   
    local obj = {
       insertList = {},
       updateList = {},
@@ -565,9 +568,15 @@ end
 
 function DBCtrl:commit()
    if self.writeDb ~= self.db then
+
+      self.db:close()
+      self.db = DBAccess:open( self.dbPath, false )
+      
       local writeDb = self.writeDb
       self.writeDb = self.db
 
+
+      
       self.db:begin( "merge" )
       log( 2, "merge begin:", os.clock(), os.date() )
 

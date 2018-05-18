@@ -126,7 +126,11 @@ if lctagOptMap.mode == "status" then
    local TermCtrl = require( 'lctags.TermCtrl' )
    
    while true do
-      local statusList = StatusServer:requestGetStatus()
+      local status = StatusServer:requestGetStatus()
+      if not status then
+	 break
+      end
+      local statusList = status.list
       if not statusList or #statusList == 0 then
 	 break
       end
@@ -145,7 +149,8 @@ if lctagOptMap.mode == "status" then
       end
       TermCtrl:gotoAt( 1, #statusList + 1 )
       TermCtrl:clrLine()
-      print( "run:", runCount )
+      print( string.format( "run: %d, write: %d, read: %d",
+			    runCount, status.writeModeCount, status.readModeCount ) )
       TermCtrl:gotoAt( 1, #statusList + 2 )
       TermCtrl:clrLine()
       Helper.msleep( 500 )

@@ -9,3 +9,5 @@ src/dump
 src/dump.c
 src/dump.update
 src/lctags/Helper
+src/lctags/Helper
+src/lctags/*.py

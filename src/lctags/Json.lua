@@ -166,7 +166,6 @@ function JsonStream:readString( startIndex, endIndex )
       txt = string.sub( self.buf, startIndex, endIndex - 1 )
    end
    oneChar = string.sub( self.buf, endIndex + 1, endIndex + 1 )
-   print( oneChar )
    if oneChar == '\\' then
       txt = txt .. '\\'
    elseif oneChar == '"' then
@@ -257,7 +256,7 @@ function Json:convertTo( obj )
 
    if typeId == "string" then
       if string.find( obj, '\"', 1, true ) then
-	 print( "find " )
+	 ; --print( "find " )
       end
       obj = string.gsub( obj, "\n", "\\n" )
       obj = string.gsub( obj, '%"', '"' )
@@ -351,7 +350,7 @@ function Json:readValue( func )
 	    nextToken = self.jsonStream:readToken()
 	 end
 	 if nextToken:sub( 1, 1 ) ~= '"' then
-	    log( 1, "nothing key in obj" )
+	    log( 1, "nothing key in obj", nextToken )
 	    return nil
 	 end
 
@@ -364,7 +363,7 @@ function Json:readValue( func )
 	 table.insert( self.keyList, key )
 	 local value = self:readValue( func )
 	 table.remove( self.keyList )
-	 if value then
+	 if value ~= nil then
 	    obj[ key ] = value
 	    length = length + 1
 	 end

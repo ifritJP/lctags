@@ -8,7 +8,8 @@ var reset_node = function( obj, rootNode ) {
     }
     
     obj.depthOffset = [ 10 ];
-    obj.fileId2PathMap = new Map();
+    obj.fileId2InfoMap = new Map();
+    obj.fileIdList = [];
 };
 
 function lctags_graph_tree( projDir, paramInfo ) {
@@ -22,14 +23,14 @@ function lctags_graph_tree( projDir, paramInfo ) {
         idSeed = 0,
         rootNode;
 
-   
+    
     reset_node( obj, rootNode );
 
 
     obj.colorList = [
-        "#ddd", "#ccf", "#cfc", "#dff",
+        "#ddd", "#ccf", "#cfc", "#cee",
         "#fdd", "#fdf", "#dd8",
-        "#bbb", "#bbd", "#bdb", "#bdd",
+        "#bbb", "#aac", "#bdb", "#bdd",
         "#dbb", "#dbd", "#bb8"
     ];
     obj.getColor = function( colorId ) {
@@ -62,9 +63,16 @@ function lctags_graph_tree( projDir, paramInfo ) {
 
     var selectRect = null;
 
-    d3.select("html").style( "height", "100%" );
+    d3.select("html").
+        style( "height", "100%" )
+        .style( "width", "100%" );
     d3.select("body")
-        .style( "height", "100%" );
+        .style( "height", "100%" )
+        .style( "width", "100%" );
+    
+    obj.topEle = d3.select( "body" ).append( "div" )
+        .style( "height", height - marginHeigth + "px" )
+        .style( "width", width - marginWidth + "px" );
     
     var tree = d3.tree().size([ height - marginHeigth - headerHeight,
                                 width - marginWidth ]);
@@ -83,8 +91,11 @@ function lctags_graph_tree( projDir, paramInfo ) {
     
     make_header();
     
-    var svg = d3.select("body").append("svg")
+    var svg = obj.topEle.append("svg")
             .attr("width", width).attr("height", height - headerHeight)
+            .style( "position", "absolute" )
+            .style( "top", headerHeight )
+            .style( "left", "0" )
             .on("click", paramInfo.svgClick )
             .on( "contextmenu",
                  function( d, i ) {
@@ -107,27 +118,9 @@ function lctags_graph_tree( projDir, paramInfo ) {
         .attr( "in", "SourceGraphic" );
 
 
-    var fitTo = function() {
-        width = window.innerWidth;
-        height = window.innerHeight;
-
-        d3.select( "#lctags_callgraph_header" )
-            .style( "width", width - marginWidth + "px" );
-
-        d3.select( "#lctags_callgraph_header_parent" )
-            .style( "position", "sticky" )
-            .style( "width", width - marginWidth + "px" );
-        
-
-        svg.attr("width", width )
-            .attr("height", height - headerHeight );
-        tree = d3.tree().size([ height - 30 - headerHeight, width - 20 ]);
-        update();
-    };
-    
     d3.select( window ).on( "resize",
                             function() {
-                                fitTo();
+                                lctags_fitTo();
                             } );
 
     var g = svg.append("g").attr( "transform", "translate( 0, 0 )");
@@ -254,12 +247,12 @@ function lctags_graph_tree( projDir, paramInfo ) {
             return "none";
         };
         var linkColor = function( d ) {
-            var fileInfo = obj.fileId2PathMap.get( d.target.data.fileId );
+            var fileInfo = obj.fileId2InfoMap.get( d.target.data.fileId );
             return obj.getColor( fileInfo && fileInfo.colorId || 0 );
 
         };
         var linkDash = function( d ) {
-            var fileInfo = obj.fileId2PathMap.get( d.target.data.fileId );
+            var fileInfo = obj.fileId2InfoMap.get( d.target.data.fileId );
             if ( fileInfo.checked ) {
                 return "none";
             }
@@ -397,9 +390,18 @@ function lctags_graph_tree( projDir, paramInfo ) {
             .attr("d", linkD);
 
         // 既存リンクの移動
-        link.transition()
+        link.attr( "stroke",
+                   function( d ) {
+                       var fileInfo = obj.fileId2InfoMap.get( d.target.data.fileId );
+                       if ( fileInfo.bold ) {
+                           return "red";
+                       }
+                       return linkColor(d);
+                   } )
+            .transition()
             .duration(duration)
             .attr("stroke-dasharray", linkDash )
+            .attr( "stroke", linkColor )
             .attr("d", linkD);
 
         // リンクの削除 (最終位置を親のノード位置とする)
@@ -434,11 +436,38 @@ function lctags_graph_tree( projDir, paramInfo ) {
             }
         });
 
+        // 幅を拡張
+        var maxY = svg.attr( "width" ) - marginWidth;
+        d3.hierarchy( rootNode ).each( function( d ) {
+            var tailPos = d.data.y0 + d.data.textWidth;
+            if ( maxY < tailPos ) {
+                maxY = tailPos;
+            }
+        });
+        if ( maxY > svg.attr( "width" ) ) {
+            var width = maxY + 40;
+
+            obj.topEle
+                .style( "width", width  + "px");
+
+            obj.headerParent
+                .style( "position", "sticky" )
+                .style( "width", width + "px" );
+
+            svg.attr( "width", width );
+            tree.size([ svg.attr( "height" ), width ]);
+        }
+        
+
         // depth 毎の offset を計算
         var totalWidth = 0;
         textWidthList.forEach( function( width, index ) {
             totalWidth += width;
             obj.depthOffset[ index + 1 ] = totalWidth;
+        } );
+
+        obj.fileId2InfoMap.forEach( function( info ) {
+            info.bold = false;
         } );
     }
 
@@ -517,7 +546,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
 
         if ( parentId == null ) {
             rootNode = obj.newNode(
-                nodeList[0].nsId, nodeList[0].name, nodeList[0].fileId );
+                nodeList[0].nsId, nodeList[0].name, -1 );
             update();
         }
         else {
@@ -531,16 +560,16 @@ function lctags_graph_tree( projDir, paramInfo ) {
                 });
 
             fileList.forEach( function( file ) {
-                if ( !obj.fileId2PathMap.get( file.fileId ) ) {
-                    obj.fileId2PathMap.set(
+                if ( !obj.fileId2InfoMap.get( file.fileId ) ) {
+                    obj.fileId2InfoMap.set(
                         file.fileId,
                         { path: file.path, fileId: file.fileId,
-                          colorId: obj.fileId2PathMap.size } );
+                          colorId: obj.fileId2InfoMap.size, checked: false } );
                 }
             } );
 
             obj.fileIdList = [];
-            obj.fileId2PathMap.forEach( function( info ) {
+            obj.fileId2InfoMap.forEach( function( info ) {
                 obj.fileIdList.push( info );
             });
             obj.fileIdList.sort(
@@ -549,39 +578,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
                 }
             );
 
-            if ( obj.fileListBody ) {
-                obj.fileListBody.remove();
-            }
-            obj.fileListBody = obj.fileListPopup.append( "div" );
-            
-            obj.fileIdList.forEach( function( info ) {
-                var path = info.path;
-                if ( path == "" ) {
-                    path = "<system>";
-                }
-                obj.fileListBody.append( "input" )
-                    .attr( "id", "fileId" + info.fileId )
-                    .attr( "value", "" + info.fileId )
-                    .attr( "checked", info.checked )
-                    .attr( "type", "checkbox" )
-                    .on( "click", function( d ) {
-                        info.checked = !info.checked;
-                        update();
-                    });
-                obj.fileListBody
-                    .append( "label" )
-                    .attr( "for", "fileId" + info.fileId )
-                    .style( "background", function() {
-                        return obj.getColor( info.colorId );
-                    })
-                    .style("margin-left", "10px" )
-                    .style("font-size", "12px")
-                    .style( "fontWeight", "bold" )
-                    .style( "white-space", "nowrap" )
-                    .text( path.replace( obj.projDir + "/", "" ) );
-                obj.fileListBody.append( "br" );
-            } );
-            
+            updateFileList();
 
             if ( workSrc == null ) {
                 workSrc = {};
@@ -599,15 +596,121 @@ function lctags_graph_tree( projDir, paramInfo ) {
         }
     };
 
+    function updateFileList() {
+
+        if ( obj.fileListPopupParent.style( "display" ) == "none" ) {
+            return;
+        }
+
+        if ( obj.fileListBody ) {
+            obj.fileListBody.remove();
+        }
+        obj.fileListBody = obj.fileListPopup.append( "div" );
+        
+        
+        var maxWidth = 0;
+        obj.fileIdList.forEach( function( info ) {
+            var path = info.path;
+            if ( path == "" ) {
+                path = "<system>";
+            }
+            var checkBox = obj.fileListBody.append( "input" )
+                    .attr( "id", "fileId" + info.fileId )
+                    .attr( "value", "" + info.fileId )
+                    .property( "checked", info.checked )
+                    .attr( "type", "checkbox" )
+                    .on( "click", function( d ) {
+                        info.checked = !info.checked;
+                        if ( info.checked ) {
+                            info.bold = true;
+                        }
+                        update();
+                    });
+            var label = obj.fileListBody.append( "label" )
+                    .attr( "for", "fileId" + info.fileId )
+                    .style( "background", function() {
+                        return obj.getColor( info.colorId );
+                    })
+                    .style("margin-left", "10px" )
+                    .style("font-size", "12px")
+                    .style( "fontWeight", "bold" )
+                    .style( "white-space", "nowrap" )
+                    .text( path.replace( obj.projDir + "/", "" ) )
+                    .each( function() {
+                        var width = this.scrollWidth;
+                        if ( maxWidth < width ) {
+                            maxWidth = width;
+                        }
+                    } );
+            obj.fileListBody.append( "br" );
+        } );
+        obj.fileListBody.style( "width", maxWidth + 80 + "px" );
+    }
+
+    var lctags_fitTo = function() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        d3.select( "#lctags_callgraph_header" )
+            .style( "width", width - marginWidth + "px" );
+
+        d3.select( "#lctags_callgraph_header_parent" )
+            .style( "position", "sticky" )
+            .style( "width", width - marginWidth + "px" );
+        
+
+        obj.topEle
+            .style("width", width + "px")
+            .style("height", height + "px");
+        obj.fileListPopupParent.style("height", height + "px" );
+        svg.attr("width", width )
+            .attr("height", height - headerHeight );
+        tree = d3.tree().size([ height - 30 - headerHeight, width - 20 ]);
+        update();
+    };
+    
+    function lctags_resize() {
+        var depth = 0;
+        var prevX = -100;
+        var overlapSize = 0;
+        d3.hierarchy( rootNode ).each( function( d ) {
+            if ( depth != d.depth ) {
+                prevX = -100;
+            }
+            else {
+                var data = d.data;
+                var size = prevX + node_r * 2 - data.x0;
+                if ( overlapSize < size ) {
+                    overlapSize = size;
+                }
+            }
+            prevX = d.data.x0;
+            depth = d.depth;
+        });
+        if ( overlapSize > 0 ) {
+            var ratio = 1 + 2 * overlapSize / (node_r * 2);
+
+            height = svg.attr( "height" ) * ratio;
+
+            obj.topEle.style( "height", height + headerHeight + "px");
+
+            obj.fileListPopupParent.style("height", height + "px" );
+            
+            svg.attr("height", height);
+            tree.size([ height, svg.attr( "width" ) ]);
+            update();
+        }
+    }
+    
     function make_header() {
 
-        obj.fileListPopupParent = d3.select("body").append( "div" )
-            .style( "z-index", "1" )
+        obj.fileListPopupParent = obj.topEle.append( "div" )
+            .style( "z-index", "20" )
             .style( "width", "20%" )
             .style( "height", window.innerHeight - headerHeight + "px" )
             .style( "float", "right" )
-            .style( "position", "absolute" )
             .style( "display", "none" )
+            .style( "position", "sticky" )
             .style( "top", "0" )
             .style( "right", "0" );
         
@@ -628,9 +731,10 @@ function lctags_graph_tree( projDir, paramInfo ) {
                      obj.fileListPopupParent.style( "display", "none" );
                  });
 
-       
-        var headerParent = d3.select("body").append("div")
+        
+        obj.headerParent = obj.topEle.append("div")
                 .attr( "id", "lctags_callgraph_header_parent" )
+                .style( "z-index", "10" )
                 .style( "position", "sticky" )
                 .style( "top", "0" )
                 .style( "left", "0" )
@@ -638,7 +742,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
                 .style( "width", "100%" );
         
         
-        var header = headerParent.append("div")
+        var header = obj.headerParent.append("div")
                 .attr( "id", "lctags_callgraph_header" )
                 .style( "position", "sticky" )
                 .style( "background", "#ccc" )
@@ -659,9 +763,15 @@ function lctags_graph_tree( projDir, paramInfo ) {
                  function() {
                      if ( obj.fileListPopupParent.style( "display" ) == "none" ) {
                          obj.fileListPopupParent.style( "display", "block" );
+
+                         updateFileList();
                      }
                      else {
                          obj.fileListPopupParent.style( "display", "none" );
+                         if ( obj.fileListBody ) {
+                             obj.fileListBody.remove();
+                             obj.fileListBody = null;
+                         }
                      }
                  });
 
@@ -674,7 +784,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
             .on( "click",
                  function() {
                      // ツリーのデータを JSON でエクスポート。
-                     var popup = d3.select("body").append( "div" )
+                     var popup = obj.topEle.append( "div" )
                              .style( "width", "50%" )
                              .style( "height", "20%" )
                              .style( "position", "absolute" )
@@ -718,7 +828,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
                 .style( "top", headerHeight / 4 + "px" )
                 .style( "left", offset + "px" )
                 .on( "change", function() {
-                    var svg = d3.select("body").select("svg");
+                    var svg = obj.topEle.select("svg");
 
                     obj.expandMode = this.options[ this.selectedIndex ].text;
                     reset_node( obj, rootNode );
@@ -738,7 +848,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
                 .style( "top", headerHeight / 4 + "px" )
                 .style( "left", offset + "px" )
                 .on( "change", function() {
-                    var svg = d3.select("body").select("svg");
+                    var svg = obj.topEle.select("svg");
 
                     if ( this.selectedIndex == 0 ) {
                         obj.dragMode = obj.dragMove;
@@ -860,46 +970,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
             .style( "top", headerHeight / 4 + "px" )
             .on( "click",
                  function() {
-                     var depth = 0;
-                     var prevX = -100;
-                     var overlapSize = 0;
-                     var maxY = svg.attr( "width" ) - marginWidth;
-                     d3.hierarchy( rootNode ).each( function( d ) {
-                         var tailPos = d.data.y0 + d.data.textWidth;
-                         if ( maxY < tailPos ) {
-                             maxY = tailPos;
-                         }
-                         if ( depth != d.depth ) {
-                             prevX = -100;
-                         }
-                         else {
-                             var data = d.data;
-                             var size = prevX + node_r * 2 - data.x0;
-                             if ( overlapSize < size ) {
-                                 overlapSize = size;
-                             }
-                         }
-                         prevX = d.data.x0;
-                         depth = d.depth;
-                     });
-                     if ( overlapSize > 0 || maxY > svg.attr( "width" ) ) {
-                         var ratio = 1 + 2 * overlapSize / (node_r * 2);
-
-                         width = maxY;
-                         height = svg.attr( "height" ) * ratio;
-                         
-
-                         headerParent
-                             .style( "position", "sticky" )
-                             .style( "width", width + "px" );
-
-                         obj.fileListPopupParent.style("height", height + "px" );
-                         
-                         svg.attr("height", height);
-                         svg.attr( "width", width );
-                         tree.size([ height, width ]);
-                         update();
-                     }
+                     lctags_resize();
                  });
 
 
@@ -911,9 +982,9 @@ function lctags_graph_tree( projDir, paramInfo ) {
             .style( "top", headerHeight / 4 + "px" )
             .on( "click",
                  function() {
-                     fitTo();
+                     lctags_fitTo();
                  } );
-        }
+    }
 
 
     function lctags_svg_move_dragstarted(d) {

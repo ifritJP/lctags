@@ -36,6 +36,9 @@ function StatusServer:setup( name, serverFlag, createFlag )
    if serverFlag then
       self.statusList = {}
    end
+
+   self.writeModeCount = 0
+   self.readModeCount = 0
    
    log( 1, "StatusServer:setup", serverFlag )
 end
@@ -104,6 +107,10 @@ function StatusServer:connect( name, createFlag )
 end
 
 
+function StatusServer:requestNotifyOpenClose( openFlag, readonlyFlag )
+   self:request( "notifyOpenClose", { openFlag = openFlag, readonlyFlag = readonlyFlag } )
+end
+
 function StatusServer:requestEnd()
    self:request( "exit" )
 end
@@ -160,8 +167,29 @@ function StatusServer:updateStatus( info )
    self.statusList[ findIndex ].info = info
 end
 
+function StatusServer:notifyOpenClose( info )
+   local val = 1
+
+   for key, val in pairs( info ) do
+      print( "info:", key, val )
+   end
+   
+   if not info.openFlag then
+      val = -1
+   end
+
+   if info.readonlyFlag then
+      self.readModeCount = self.readModeCount + val
+   else
+      self.writeModeCount = self.writeModeCount + val
+   end
+end
+
+
 function StatusServer:getStatus()
-   self:reply( self.statusList )
+   self:reply( { readModeCount = self.readModeCount,
+		 writeModeCount = self.writeModeCount,
+		 list = self.statusList } )
 end
 
 function StatusServer:requestGetStatus()

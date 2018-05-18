@@ -51,6 +51,8 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       return nil
    end
 
+   log:openDB( readonly )
+   
    local server
    if not readonly and Option:isValidService() then
       server = Server
@@ -146,6 +148,8 @@ function DBAccess:close()
    self.db:close()
    -- self.inLockFlag = nil
    -- self.transLockObj:fin()
+
+   log:closeDB( self.readonly )
 
    if not self.readonly then
       log( 2,

@@ -401,14 +401,15 @@ function Make:updateFor( dbPath, target, jobs, src )
 
    -- 最初のファイルは共通インクルードが多いので並列に処理せずにビルドし、
    -- 他のファイルを並列処理するように make を生成する。
-   -- 共通インクルードが多い序盤は並列処理を半分にする。
+   -- 共通インクルードが多い序盤に並列度が高いと無駄になるので
+   -- 並列度を下げる。
    for index, fileInfo in ipairs( list ) do
       local group
       if index == 1 then
 	 group = "FIRST"
       elseif index == 2 then
 	 group = "SECOND"
-      elseif index < (#list / 10) then
+      elseif ( index < (#list / 10) ) and ( index < 100 ) then
 	 group = "THIRD"
       else
 	 group = "SRCS"

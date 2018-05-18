@@ -88,6 +88,18 @@ function LogCtrl:setStatusServer( server, name )
    self.statusName = name
 end
 
+function LogCtrl:openDB( readonly )
+   if self.server then
+      self.server:requestNotifyOpenClose( true, readonly )
+   end
+end
+
+function LogCtrl:closeDB( readonly )
+   if self.server then
+      self.server:requestNotifyOpenClose( false, readonly )
+   end
+end
+
 
 setmetatable( LogCtrl, { __call = function( func, ... ) return LogCtrl:log( ... ) end  } )
 
