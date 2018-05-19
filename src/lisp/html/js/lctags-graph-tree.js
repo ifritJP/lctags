@@ -4,7 +4,7 @@ var lctags_graph_tree_manual =
         "    nodes:\n" +
         "      L-click: expand / close.\n" +
         "      R-click: open the declaration.\n" +
-        "      ctrl + R-click: open the graph of the node.\n" +
+        "      ctrl + L-click: open the graph of the node.\n" +
         "    links:\n" +
         "      L-click: hide.\n" +
         "      R-click: open the point.\n" +
@@ -234,30 +234,30 @@ function lctags_graph_tree( projDir, paramInfo ) {
                          // ブラウザの contextmenu を表示しない
                          d3.event.preventDefault();
 
-                         if (d3.event.ctrlKey ) {
-                             paramInfo.openNewWindow( d.data.nsId, d.data.name );
-                         }
-                         else {
-                             paramInfo.nodeContext( obj, d.data );
+                         paramInfo.nodeContext( obj, d.data );
 
-                             var curNode = g.selectAll("g.node").
-                                     select( "circle" ).select( function( ddd ) {
-                                         if ( ddd === d ) {
-                                             return this;
-                                         }
-                                         return null;
-                                     } );
-                             curNode.style( "fill", "blue" )
-                                 .transition()
-                                 .duration( duration )
-                                 .style( "fill", nodeColor );
-                         }
+                         var curNode = g.selectAll("g.node").
+                                 select( "circle" ).select( function( ddd ) {
+                                     if ( ddd === d ) {
+                                         return this;
+                                     }
+                                     return null;
+                                 } );
+                         curNode.style( "fill", "blue" )
+                             .transition()
+                             .duration( duration )
+                             .style( "fill", nodeColor );
                      })
                 .call( d3.drag() )
                 .on("click", function(d) {
                     d3.event.stopPropagation();
                     d3.event.preventDefault();
-                    toggle(d.data); 
+                    if (d3.event.ctrlKey ) {
+                        paramInfo.openNewWindow( d.data.nsId, d.data.name );
+                    }
+                    else {
+                        toggle(d.data); 
+                    }
                 });
 
         nodeEnter.transition()

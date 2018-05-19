@@ -1630,7 +1630,6 @@ function DBCtrl:addReference( refInfo )
    end
 
    -- local fileId, line = self:getFileIdLocation( cursor )
-
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
    local line = startInfo and startInfo[ 2 ] or 0
    local filePath
@@ -1641,11 +1640,8 @@ function DBCtrl:addReference( refInfo )
    local fileId = fileInfo and fileInfo.id or systemFileId
 
    local parentNsInfo = self:getNamespaceFromCursorCache( refInfo.namespace, true )
-
    local nsInfo = self:getNamespaceFromCursorCache( declCursor, true )
-
    local kind = declCursor:getCursorKind()
-
    if not nsInfo then
       -- 宣言のないもの
       if kind == clang.core.CXCursor_VarDecl or
