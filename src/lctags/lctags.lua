@@ -178,7 +178,7 @@ if lctagOptMap.mode == "init" then
       lctagOptMap.individualMacroFlag )
 
    local analyzer = Analyzer:new(
-      lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
+      lctagOptMap.dbPath, Option:isValidRecordDigestSrc(), not lctagOptMap.quiet )
 
    local code = [[
 #include <stdio.h>
@@ -212,7 +212,7 @@ main(){
 	 finish( 1 )
       end
    end
-   
+
    finish( 0 )
 end
 
@@ -338,6 +338,15 @@ if lctagOptMap.mode == "cancel-kill" then
    finish( 0 )
 end
 
+if lctagOptMap.mode == "check-kill" then
+   if DBCtrl:checkKilling( lctagOptMap.dbPath ) then
+      print( "is killing" )
+      finish( 1 )
+   end
+   print( "is not killing" )
+   finish( 0 )
+end
+
 if lctagOptMap.mode == "update" then
    local src = srcList[1]
    if not src then
@@ -420,7 +429,7 @@ if lctagOptMap.mode == "prepare" then
 end
 
 local analyzer = Analyzer:new(
-   lctagOptMap.dbPath, lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet )
+   lctagOptMap.dbPath, Option:isValidRecordDigestSrc(), not lctagOptMap.quiet )
 
 local db = analyzer:openDBForReadOnly( Util:getcwd() )
 
@@ -432,7 +441,7 @@ if srcList[ 1 ] then
    targetFileInfo = db:getFileInfo( nil, db:convFullpath( srcList[ 1 ] ) )
    if targetFileInfo then
       analyzer = analyzer:newAs(
-	 lctagOptMap.recordDigestSrcFlag, not lctagOptMap.quiet,
+	 Option:isValidRecordDigestSrc(), not lctagOptMap.quiet,
 	 db:convFullpath( db:getSystemPath( targetFileInfo.currentDir ) ) )
       targetFullPath = db:convFullpath( db:getSystemPath( targetFileInfo.path ) )
    end

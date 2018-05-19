@@ -1,9 +1,13 @@
 -- Copyright (C) 2017 ifritJP
 
+local Helper = require( 'lctags.Helper' )
+
 local displayLevel = 1
 local prefix = "lctags:"
 
 local LogCtrl = {}
+
+LogCtrl.lastMessage = ""
 
 function LogCtrl:log( level, ... )
    local logLevel = level
@@ -36,8 +40,9 @@ function LogCtrl:log( level, ... )
       if logLevel <= 2 and self.server then
 	 local message = ""
 	 for index, val in ipairs( table.pack( ... ) ) do
-	    message = message .. "\t" .. tostring( val )
+	    message = message .. tostring( val ) .. "\t"
 	 end
+	 self.lastMessage = message
 	 self.server:requestUpdateStatus( self.statusName, message )
       end
       return
@@ -47,6 +52,10 @@ function LogCtrl:log( level, ... )
    else
       self:raw( logLevel, table.unpack( param ) )
    end
+end
+
+function LogCtrl:getLastMessage()
+   return self.lastMessage
 end
 
 function LogCtrl:raw( logLevel, ... )
@@ -82,6 +91,18 @@ function LogCtrl:raw( logLevel, ... )
 	     "\n", debugInfo7.short_src, debugInfo7.currentline )
    end
 end
+
+function LogCtrl:calcTime( id, param )
+   local nowTime = Helper.getTime( true )
+   if self.prevTime then
+      self:log( 2, "calcTime:", self.prevTimeId, self.prevTimeParam, nowTime - self.prevTime )
+   end
+   self:log( 2, "calcTime:", "start", self.prevTimeId, self.prevTimeParam )
+   self.prevTime = nowTime
+   self.prevTimeId = id
+   self.prevTimeParam = param
+end
+
 
 function LogCtrl:setStatusServer( server, name )
    self.server = server

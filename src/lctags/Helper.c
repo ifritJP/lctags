@@ -25,6 +25,7 @@
 #define DIGEST_ID "lctags.digest"
 #define LOCK_ID "lctags.lock"
 #define MQUEUE_ID "lctags.mqueue"
+#define STRBLD_ID "lctags.strBld"
 
 
 #define LOCK_DEFAULT_NAME "default"
@@ -58,6 +59,9 @@ typedef struct {
 
 #define toMQueue(L)                                        \
     ((helper_mqueue_t *)luaL_checkudata(L, 1, MQUEUE_ID))
+
+#define toStrBld(L)                                        \
+    ((helper_strBld_t *)luaL_checkudata(L, 1, STRBLD_ID))
 
 typedef struct {
     EVP_MD_CTX * pMctx;
@@ -96,6 +100,11 @@ typedef struct {
     evp_md_func_t * pMd;
 } helper_typeMap_t;
 
+typedef struct {
+    char * pBuf;
+    int maxSize;
+    int validSize;
+} helper_strBld_t;
 
 static int helper_openDigest( lua_State * pLua );
 static int helper_createMQueue( lua_State * pLua );
@@ -134,6 +143,11 @@ static int helper_digestLib_write( helper_digestInfo_t * pInfo, const void * pDa
 static int helper_digestLib_fix( helper_digestInfo_t * pInfo, void * pMDBuf, int size );
 static void helper_digestLib_dispose( helper_digestInfo_t * pInfo );
 
+static int helper_strBld_init( lua_State * pLua );
+static int helper_strBld_add( lua_State * pLua );
+static int helper_strBld_get( lua_State * pLua );
+static int helper_strBld_gc( lua_State * pLua );
+
 
 static const luaL_Reg s_if_lib[] = {
     { "openDigest", helper_openDigest },
@@ -141,6 +155,8 @@ static const luaL_Reg s_if_lib[] = {
     { "deleteLock", helper_deleteLock },
     { "createMQueue", helper_createMQueue },
     { "deleteMQueue", helper_deleteMQueue },
+    { "createStrBld", helper_strBld_init },
+
     { "msleep", helper_msleep },
     { "chdir", helper_chdir },
     { "mkdir", helper_mkdir },
@@ -176,6 +192,14 @@ static const luaL_Reg s_mqueueObj_lib[] = {
     {"__tostring", helper_mqueue_tostring },
     {NULL, NULL}
 };
+
+static const luaL_Reg s_strBld_lib[] = {
+    { "add", helper_strBld_add },
+    { "get", helper_strBld_get },
+    { "__gc", helper_strBld_gc },
+    {NULL, NULL}
+};
+
 
 
 static const helper_typeMap_t s_typeMap[] = {
@@ -257,6 +281,7 @@ int luaopen_lctags_Helper( lua_State * pLua )
     helper_digestLib_setupObjMethod( pLua, DIGEST_ID, s_digestObj_lib );
     helper_digestLib_setupObjMethod( pLua, LOCK_ID, s_lockObj_lib );
     helper_digestLib_setupObjMethod( pLua, MQUEUE_ID, s_mqueueObj_lib );
+    helper_digestLib_setupObjMethod( pLua, STRBLD_ID, s_strBld_lib );
 
 #if LUA_VERSION_NUM >= 502
     luaL_newlib( pLua, s_if_lib );
@@ -862,7 +887,66 @@ static void helper_digestLib_dispose( helper_digestInfo_t * pInfo )
 
     free( pInfo );
 }
-    
+
+
+static int helper_strBld_init( lua_State * pLua )
+{
+    helper_strBld_t * pBld = (helper_strBld_t*)helper_newUserData(
+        pLua, STRBLD_ID, sizeof( helper_strBld_t ) );
+    if ( pBld == NULL ) {
+        return 0;
+    }
+    pBld->maxSize = luaL_checkinteger( pLua, 1 );
+    pBld->validSize = 0;
+    pBld->pBuf = malloc( pBld->maxSize );
+    if ( pBld->pBuf == NULL ) {
+    }
+    return 1;
+}
+
+static int helper_strBld_add( lua_State * pLua )
+{
+    helper_strBld_t * pBld = toStrBld( pLua );
+    size_t size = 0;
+    const char * pBuf = luaL_checklstring( pLua, 2, &size );
+    if ( pBld == NULL || pBld == NULL ) {
+        return 0;
+    }
+    if ( size > ( pBld->maxSize - pBld->validSize ) ) {
+        int newSize = pBld->maxSize * 2;
+        if ( newSize < pBld->maxSize + size ) {
+            newSize = pBld->maxSize + size;
+        }
+        char * pNew = malloc( newSize );
+        if ( pNew == NULL ) {
+            return luaL_error( pLua, "failed to alloc" );
+        }
+        memcpy( pNew, pBld->pBuf, pBld->validSize );
+        free( pBld->pBuf );
+        pBld->maxSize = newSize;
+        pBld->pBuf = pNew;
+    }
+    memcpy( pBld->pBuf + pBld->validSize, pBuf, size );
+    pBld->validSize += size;
+    return 0;
+}
+
+static int helper_strBld_get( lua_State * pLua )
+{
+    helper_strBld_t * pBld = toStrBld( pLua );
+    lua_pushlstring( pLua, pBld->pBuf, pBld->validSize );
+    return 1;        
+}
+
+static int helper_strBld_gc( lua_State * pLua )
+{
+    helper_strBld_t * pBld = toStrBld( pLua );
+    free( pBld->pBuf );
+    return 0;
+}
+
+
+
 #ifdef HELPER_STAND_ALONE
 int main(){
     helper_digestInfo_t * pInfo = helper_digestLib_setup( EVP_md5() );
@@ -886,3 +970,5 @@ int main(){
     helper_digestLib_dispose( pInfo );
 }
 #endif
+
+

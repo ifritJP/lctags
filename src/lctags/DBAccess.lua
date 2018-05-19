@@ -96,6 +96,8 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 
    --db:busy_timeout( 0 )
 
+   --local sleepTime = 100
+   local sleepTime = math.random( 5, 40 )
    db:busy_handler(
       function()
 	 -- 更新アクセスと読み込みアクセスがバッティングすると busy になる。
@@ -103,13 +105,15 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 	 -- 読み込みアクセスのみの場合、 busy にならないはず。
 	 if obj.lockLogFlag then
 	    obj.lockLogFlag = false
-	    log( 2, "db is busy", obj.readonly, obj.writeAccessFlag,
+	    log( 2, "db is busy", obj.readonly and "r" or "w",
+		 obj.writeAccessFlag and "write" or "read",
 		 obj.beginFlag, obj.inLockFlag, obj.inActLockFlag, obj.actDepth )
+	    Helper.msleep( sleepTime )
 	 end
 	 if not obj.inLockFlag then
 	    -- 更新アクセスを優先し、読み込みアクセスは遅延させる。
 	    -- 更新アクセスを止めると、更新処理が溜っていって並列性が下がるため。
-	    Helper.msleep( 10 )
+	    Helper.msleep( sleepTime )
 	    obj.lockCount = obj.lockCount + 1
 	    -- obj:outputLog( "read busy " .. tostring( obj.transLockObj:isLocking() ) )
 	    -- obj.transLockObj:begin()
@@ -118,7 +122,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 	    -- 	 obj.readonly, obj.writeAccessFlag, obj.inActLockFlag, obj.actDepth )
 	    -- obj.transLockObj:fin()
 	 elseif not obj.beginFlag then
-	    Helper.msleep( 10 )
+	    Helper.msleep( sleepTime )
 	    obj.lockCount = obj.lockCount + 1
 	 end
 	 return true
@@ -223,6 +227,10 @@ function DBAccess:mapQuery( query, func )
 
    self.writeAccessFlag = false
 
+   self.lockLogFlag = true
+   self.prevMessage = log:getLastMessage()
+
+   
    local callCount = 0
    
    local success, message
@@ -295,6 +303,10 @@ function DBAccess:mapQuery( query, func )
       self:errorExit( 3, message, query )
    end
 
+   if not self.lockLogFlag then
+      log( 2, self.prevMessage )
+   end
+
    return callCount
 end
 
@@ -302,6 +314,9 @@ end
 
 function DBAccess:exec( stmt, errHandle )
 
+   self.lockLogFlag = true
+   self.prevMessage = log:getLastMessage()
+   
    local prev = os.clock()
    if recordFile then
       recordFile:write( stmt .. "\n" )
@@ -330,6 +345,11 @@ function DBAccess:exec( stmt, errHandle )
    end
 
    self.time = self.time + (os.clock() - prev)
+
+   if not self.lockLogFlag then
+      log( 2, self.prevMessage )
+   end
+   
 end
 
 function DBAccess:outputLog( message )
@@ -408,6 +428,27 @@ function DBAccess:commit()
    -- self.transLockObj:fin()
 
    log( 2, "commit: end", Helper.getTime( true ) - startTime, os.date() )
+end
+
+function DBAccess:addInsert( strBld, tableName, values )
+   self.insertCount = self.insertCount + 1
+   strBld:add( string.format(
+		  "INSERT OR IGNORE INTO %s VALUES ( %s );\n", tableName, values ) )
+end
+
+function DBAccess:fixInsert( strBld )
+   self:exec(
+      strBld:get(),
+      function( db, stmt, message )
+	 if not message:find( "UNIQUE constraint failed" ) and
+	    not message:find( " not unique" )
+	 then
+	    self:errorExit( 5, message, stmt )
+	 else
+	    self.uniqueCount = self.uniqueCount + 1
+	 end
+      end
+   )
 end
 
 function DBAccess:insert( tableName, values )

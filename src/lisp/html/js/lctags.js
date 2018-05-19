@@ -146,6 +146,18 @@ function lctags_matchFile( confId, dirPath, parentObj ) {
     });
 }
 
+function lctags_openCallGraph( confId, nsId, name ) {
+    var key = "lctags:func:" + nsId;
+    var win = lctags_graph_window_map.get( key );
+    if ( win ) {
+        win.close();
+    }
+    var newWindow = window.open(
+        lctags_getPath( "gen/func-call-graph.html", confId ) +
+            "&nsId=" + nsId + "&name=" + name, key );
+    lctags_graph_window_map.set( key, newWindow );
+}
+
 function lctags_getFileInfo( confId, fileId ) {
     $.ajax({
         url: lctags_getPath( 'inq', confId ) + "&command=defAtFileId&fileId=" + fileId,
@@ -187,15 +199,7 @@ function lctags_getFileInfo( confId, fileId ) {
             obj.innerHTML = info.name;
             obj.onclick = function( info ) {
                 return function() {
-                    var key = "lctags:func:" + info.nsId;
-                    var win = lctags_graph_window_map.get( key );
-                    if ( win ) {
-                        win.close();
-                    }
-                    var newWindow = window.open(
-                        lctags_getPath( "gen/func-call-graph.html", confId ) +
-                            "&nsId=" + info.nsId + "&name=" + info.name, key );
-                    lctags_graph_window_map.set( key, newWindow );
+                    lctags_openCallGraph( confId, info.nsId, info.name );
                 };
             }(info);
             
@@ -353,6 +357,9 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
 
             }).fail(function() {
             });
+        },
+        openNewWindow: function( nsId, name ) {
+            lctags_openCallGraph( confId, nsId, name );
         }
     };
     

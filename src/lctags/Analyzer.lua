@@ -356,15 +356,43 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       -- analyzer:registCursor( cursor, exInfo )
       analyzer.cursorHash2SpInfoMap[ cursor:hashCursor() ] = currentSpInfo
       --]]
-   elseif clang.isReference( cursorKind ) then
-      if cursorKind ~= clang.core.CXCursor_NamespaceRef then
+   elseif clang.isReference( cursorKind ) or
+      cursorKind == clang.core.CXCursor_DeclRefExpr or
+      cursorKind == clang.core.CXCursor_MemberRefExpr
+   then
+      local addFlag = false
+      if cursorKind == clang.core.CXCursor_DeclRefExpr or
+	 cursorKind == clang.core.CXCursor_MemberRefExpr
+      then
+	 addFlag = true
+      else
+	 if cursorKind ~= clang.core.CXCursor_NamespaceRef then
+	    addFlag = true
+	 end
+      end
+
+      if addFlag then
 	 local declCursor = cursor:getCursorReferenced()
-	 local namespace = analyzer:getNowNs()
-	 analyzer:addRef( analyzer.refList, cursor, declCursor, namespace )
-	 calcDigestTxt( cursorOffset, currentSpInfo )
-	 analyzer:registCursor( cursor, exInfo )
-	 calcDigest( declCursor, currentSpInfo )
-	 calcDigest( namespace, currentSpInfo )
+	 if declCursor:getCursorKind() == clang.core.CXCursor_ParmDecl then
+	    -- 関数パラメータの参照は登録しない
+	    addFlag = false
+	 elseif declCursor:getCursorKind() == clang.core.CXCursor_VarDecl then
+	    local parentCursor = declCursor:getCursorSemanticParent()
+	    local parentKind = parentCursor:getCursorKind() 
+	    if isFuncDecl( parentKind ) then
+	       -- ローカル変数の参照は登録しない
+	       addFlag = false
+	    end
+	 end
+	 if addFlag then
+	    local namespace = analyzer:getNowNs()
+
+	    analyzer:addRef( analyzer.refList, cursor, declCursor, namespace )
+	    calcDigestTxt( cursorOffset, currentSpInfo )
+	    analyzer:registCursor( cursor, exInfo )
+	    calcDigest( declCursor, currentSpInfo )
+	    calcDigest( namespace, currentSpInfo )
+	 end
       end
    elseif cursorKind == clang.core.CXCursor_DeclRefExpr or
       cursorKind == clang.core.CXCursor_MemberRefExpr
@@ -376,11 +404,24 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	    storageClass ~= clang.core.CX_SC_Register
 	 then
 	    local namespace = analyzer:getNowNs()
-	    analyzer:addRef( analyzer.refList, cursor, declCursor, namespace )
-	    calcDigestTxt( cursorOffset, currentSpInfo )
-	    analyzer:registCursor( cursor, exInfo )
-	    calcDigest( declCursor, currentSpInfo )
-	    calcDigest( namespace, currentSpInfo )
+
+	    local addFlag = true
+	    
+	    if declCursor:getCursorKind() == clang.CXCursor_VarDecl then
+	       local parentCursor = declCursor:getCursorSemanticParent()
+	       local parentKind = parentCursor:getCursorKind() 
+	       if isFuncDecl( parentKind ) then
+		  addFlag = false
+	       end
+	    end
+
+	    if addFlag then
+	       analyzer:addRef( analyzer.refList, cursor, declCursor, namespace )
+	       calcDigestTxt( cursorOffset, currentSpInfo )
+	       analyzer:registCursor( cursor, exInfo )
+	       calcDigest( declCursor, currentSpInfo )
+	       calcDigest( namespace, currentSpInfo )
+	    end
 	 end
       end
    elseif cursorKind == clang.core.CXCursor_CallExpr then
@@ -682,9 +723,9 @@ function Analyzer:createSpInfo( path, uptodateFlag, cxfile )
    
 
    if self.recordDigestSrcFlag then
-      local target = self.targetFilePath
-      spInfo.recordDigest =
-	 io.open( string.gsub( path, ".*/", "digest." .. target .. "." ), "w" )
+      local target = string.gsub( self.targetFilePath, ".*/", "" )
+      local digestPath = "digest." .. target .. string.gsub( path, ".*/", "." )
+      spInfo.recordDigest = io.open( digestPath, "w" )
    end
 
    return spInfo
@@ -1307,7 +1348,7 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
    self:registerSpInfo( db, targetSpInfo )
 
 
-   log( 2, "-- macroRefList --", os.clock(), os.date()  )
+   log:calcTime( "-- macroRefList --", #self.macroRefList )
    for index, macroRef in ipairs( self.macroRefList ) do
       db:addReference( macroRef )
    end
@@ -1317,28 +1358,30 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
    --    db:addIncBelong( incBelong )
    -- end
    
-   log( 2, "-- incCache --", os.clock(),  os.date() )
+   log:calcTime( "-- incCache --" )
    db:addIncludeCache(
       db:getFileInfo( nil, self.targetFile:getFileName() ),
       fileId2IncFileInfoListMap )
 
-   log( 2, "-- refList --", #self.refList, os.clock(), os.date()  )
+   log:calcTime( "-- refList --", #self.refList )
    for index, refInfo in ipairs( self.refList ) do
       log( refInfo.cursor:getCursorSpelling(),
 	   clang.getCursorKindSpelling( refInfo.cursor:getCursorKind() ) )
       db:addReference( refInfo )
    end
 
-   log( 2, "-- callList --", os.clock(), os.date()  )
+   log:calcTime( "-- callList --", #self.callList )
    for index, info in ipairs( self.callList ) do
       log( info.cursor:getCursorSpelling() )
       db:addCall( info.cursor, info.namespace )
    end
 
-   log( 2, "-- update token digest -- ", os.clock(), os.date()  )
+   log:calcTime( "-- update token digest --" )
    for filePath, spInfo in pairs( self.path2InfoMap ) do
       db:addTokenDigest( spInfo.fileInfo.id, spInfo.fixDigest )
    end
+
+   log:calcTime( "-- end regist --" )
 end
 
 

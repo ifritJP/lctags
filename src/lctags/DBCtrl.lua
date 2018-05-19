@@ -88,6 +88,27 @@ function DBCtrl:setKill( path, currentDir, flag )
    obj:close()
 end
 
+function DBCtrl:checkKilling( path )
+   local db = DBAccess:open( path, false )
+   if not db then
+      log( 1, "open error." )
+      return false
+   end
+   local obj = newObj( db )
+   local result = DBCtrl:isKilling( obj )
+   db:close()
+   return result
+end
+
+function DBCtrl:isKilling( obj )
+   local killFlagInfo = obj:getEtc( "killFlag" )
+   if killFlagInfo and killFlagInfo.val ~= "0" then
+      return true
+   end
+   return false
+end
+
+
 function DBCtrl:init(
       path, currentDir, projDir,
       individualTypeFlag, individualStructFlag, individualMacroFlag )
@@ -499,8 +520,7 @@ function DBCtrl:open( path, readonly, currentDir, message )
 
    local projDirInfo = obj:getEtc( "projDir" )
 
-   local killFlagInfo = obj:getEtc( "killFlag" )
-   if killFlagInfo and killFlagInfo.val ~= "0" then
+   if DBCtrl:isKilling( obj ) then
       error( "db is killed now" )
    end
 
@@ -648,29 +668,36 @@ function DBCtrl:commit()
       -- end
 
       log( 2, "merge insert begin:", os.clock(), os.date() )
-      for index, insert in ipairs( writeDb.insertList ) do
-	 local val = insert[ 2 ]
-	 if string.find( val, "^%-" ) then
-	    local index = string.find( val, ",", 1, true )
-	    local tmpId = string.sub( val, 1, index - 1 )
-	    local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
-	    local pattern = string.format( "%s, %s,", tmpId, tmpId )
-	    val = string.format( "%d, %d, %s", actIdList[ 1 ], actIdList[ 2 ],
-				 val:sub( #pattern + 1 ) )
-	 end
-	 local findIndex = string.find( val, "-", 1, true )
-	 if findIndex then
-	    local tmpId = string.gsub( val:sub( findIndex ), "^(%-%d+).*$", "%1" )
-	    local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
-	    if actIdList then
-	       val = string.format( "%s%s%s", val:sub( 1, findIndex - 1),
-				    actIdList[ 1 ], val:sub( findIndex + #tmpId ) )
-	    else
-	       log( 1, "merge error", insert[ 1 ], tmpId, val, insert[ 2 ] )
-	       os.exit( 1 )
+      if #writeDb.insertList > 0 then
+	 -- local sql = writeDb.insertList[ 1 ][ 2 ]
+	 -- local strBldSize = #writeDb.insertList * #sql * 2
+	 -- local insertSQL = Helper.createStrBld( strBldSize )
+	 for index, insert in ipairs( writeDb.insertList ) do
+	    local val = insert[ 2 ]
+	    if string.find( val, "^%-" ) then
+	       local index = string.find( val, ",", 1, true )
+	       local tmpId = string.sub( val, 1, index - 1 )
+	       local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
+	       local pattern = string.format( "%s, %s,", tmpId, tmpId )
+	       val = string.format( "%d, %d, %s", actIdList[ 1 ], actIdList[ 2 ],
+				    val:sub( #pattern + 1 ) )
 	    end
+	    local findIndex = string.find( val, "-", 1, true )
+	    if findIndex then
+	       local tmpId = string.gsub( val:sub( findIndex ), "^(%-%d+).*$", "%1" )
+	       local actIdList = tmpId2ActIdMap[ tonumber( tmpId ) ]
+	       if actIdList then
+		  val = string.format( "%s%s%s", val:sub( 1, findIndex - 1),
+				       actIdList[ 1 ], val:sub( findIndex + #tmpId ) )
+	       else
+		  log( 1, "merge error", insert[ 1 ], tmpId, val, insert[ 2 ] )
+		  os.exit( 1 )
+	       end
+	    end
+	    self:insert( insert[ 1 ], val )
+	    -- self.db:addInsert( insertSQL, insert[ 1 ], val )
 	 end
-	 self:insert( insert[ 1 ], val )
+	 -- self.db:fixInsert( insertSQL )
       end
 
       log( 2, "merge update begin:", os.clock(), os.date() )
@@ -1546,7 +1573,10 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
 	 if not symbolDeclList then
 	    local fileInfo = self:getFileInfo( fileId )
 	    symbolDeclList = self:getRowList(
-	       "symbolDecl", "fileId = " .. tostring( fileId ) )
+	       "symbolDecl",
+	       string.format( 
+		  "fileId = %d AND line <= %d AND endLine >= %d",
+		  fileId, line, line ) )
 	    self.fileId2SymbolDeclListMap[ fileId ] = symbolDeclList
 	    table.sort( symbolDeclList,
 			function( item1, item2 )
@@ -1556,10 +1586,12 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
 	 end
       end
       symbolDeclInfo = self:infoAt(
-	 "symbolDecl", fileId, line, column,
-	 cursor:getCursorKind(), nil, symbolDeclList )
+      	 "symbolDecl", fileId, line, column,
+      	 cursor:getCursorKind(), nil, symbolDeclList )
       if symbolDeclInfo then
-	 nsInfo = self:getNamespace( symbolDeclInfo.nsId )
+      	 nsInfo = self:getNamespace( symbolDeclInfo.nsId )
+      else
+	 log( 2, "getNamespaceFromCursorCache: not found", fullname )
       end
    end
    self.hashCursor2FullnameMap[ hash ] = fullname
@@ -1598,46 +1630,48 @@ function DBCtrl:addReference( refInfo )
    end
 
    -- local fileId, line = self:getFileIdLocation( cursor )
+
    local startInfo, endInfo = self:getRangeFromCursor( cursor )
    local line = startInfo and startInfo[ 2 ] or 0
    local filePath
    if startInfo and startInfo[ 1 ] then
       filePath = startInfo[ 1 ]:getFileName()
    end
-   local fileInfo = startInfo and self:getFileInfo( nil, filePath )
+   local fileInfo = filePath and self:getFileInfo( nil, filePath )
    local fileId = fileInfo and fileInfo.id or systemFileId
 
    local parentNsInfo = self:getNamespaceFromCursorCache( refInfo.namespace, true )
+
    local nsInfo = self:getNamespaceFromCursorCache( declCursor, true )
+
    local kind = declCursor:getCursorKind()
+
    if not nsInfo then
       -- 宣言のないもの
       if kind == clang.core.CXCursor_VarDecl or
-	 kind == clang.core.CXCursor_ParmDecl 
+   	 kind == clang.core.CXCursor_ParmDecl 
       then
-	 local storageClass = declCursor:getStorageClass()
-	 if storageClass ~= clang.core.CX_SC_Auto and
-	    storageClass ~= clang.core.CX_SC_Register
-	 then
-	    -- ローカル変数, パラメータは参照には登録しない
-	    return
-	 end
+   	 local storageClass = declCursor:getStorageClass()
+   	 if storageClass ~= clang.core.CX_SC_Auto and
+   	    storageClass ~= clang.core.CX_SC_Register
+   	 then
+   	    -- ローカル変数, パラメータは参照には登録しない
+   	    return
+   	 end
       end
       -- ローカル変数, パラメータでなく、
       -- 宣言のないものはここでグローバルとして登録する
 
       local name = cursor:getCursorSpelling()
       log( 3,
-	   function()
-	      return "regist none decl namespace", name, declCursor:hashCursor(), clang.getCursorKindSpelling( kind ), declCursor:getCursorSpelling()
-	   end
+   	   function()
+   	      return "regist none decl namespace", name, declCursor:hashCursor(), clang.getCursorKindSpelling( kind ), declCursor:getCursorSpelling()
+   	   end
       )
       
       nsInfo = self:addNamespaceOne(
-	 declCursor, "", systemFileId, rootNsId, name, "::" .. name, false )
+   	 declCursor, "", systemFileId, rootNsId, name, "::" .. name, false )
    end
-
-   log( 3, "symbolRef", nsInfo.id, nsInfo.snameId, nsInfo.name )
 
    local charSize = startInfo and endInfo and ( endInfo[ 4 ] - startInfo[ 4 ] ) or 0
    if charSize < 0 then
@@ -1646,11 +1680,11 @@ function DBCtrl:addReference( refInfo )
    self:insert(
       "symbolRef",
       string.format( "%d, %d, %d, %d, %d, %d, %d, %d, %d",
-		     nsInfo.id, nsInfo.snameId, fileId, line,
-		     startInfo and startInfo[ 3 ] or 0,
-		     endInfo and endInfo[ 2 ] or 0,
-		     endInfo and endInfo[ 3 ] or 0,
-		     charSize, parentNsInfo and parentNsInfo.id or 0 ) )
+   		     nsInfo.id, nsInfo.snameId, fileId, line,
+   		     startInfo and startInfo[ 3 ] or 0,
+   		     endInfo and endInfo[ 2 ] or 0,
+   		     endInfo and endInfo[ 3 ] or 0,
+   		     charSize, parentNsInfo and parentNsInfo.id or 0 ) )
 end
 
 
@@ -1836,7 +1870,7 @@ function DBCtrl:addInclude( cursor, digest, fileId2IncFileInfoListMap )
 
    if not self:existsFileWithTokenDigest( fileInfo.id, digest ) then
       log( 2, "detect new digest inc", fileInfo.path, digest )
-      self:addTokenDigest( fileInfo.id, digest )
+      -- self:addTokenDigest( fileInfo.id, digest )
       fileInfo.uptodate = false
    elseif fileInfo.uptodate == nil then
       fileInfo.uptodate = true

@@ -445,6 +445,10 @@ endif
 ifndef NO_INIT
 	$(LUA_COMMAND) $(LCTAGS_LUA) init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 $(LOCKLOG) --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
 endif
+ifdef WORK_DIR
+	mv $(TEST_LUA_DIR)/lctags.sqlite3 $(WORK_DIR)
+	ln -s $(WORK_DIR)/lctags.sqlite3 $(TEST_LUA_DIR)
+endif
 	$(MAKE) -C $(TEST_LUA_DIR) linux ALL=clean
 ifdef BATCH
 	LUA_DIR_SCRIPT=$(NDIR)/lctags $(MAKE) -C $(TEST_LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS) -I$(NDIR)/$(LIBCLANG_STD_INC) $(LCTAGS_PROF_OP) --lctags-only-reg $(LOCKLOG) --lctags-log ${LCTAGS_LOG} --lctags-digestRec --lctags-recSql" CC="lctags build gcc" AR=echo RANLIB=echo | tee dump | grep -e ':[[:space:]][12][[:space:]]'
@@ -464,6 +468,13 @@ endif
 	-mv $(TEST_LUA_DIR)/digest.* $(TEST_LUA_DIR)/digest
 	ls -l $(TEST_LUA_DIR)/lctags.sqlite3
 	$(LUA_COMMAND) $(LCTAGS_LUA) shrink --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 >> dump
+ifdef WORK_DIR
+	rm $(TEST_LUA_DIR)/lctags.sqlite3
+	mv $(WORK_DIR)/lctags.sqlite3 $(TEST_LUA_DIR)
+endif
+
+
+
 #	sleep 1
 #	touch $(TEST_LUA_DIR)/lauxlib.h
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3

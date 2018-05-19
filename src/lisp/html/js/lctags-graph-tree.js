@@ -1,3 +1,27 @@
+var lctags_graph_tree_manual =
+        "manual:\n" +
+        "  operation:\n" +
+        "    nodes:\n" +
+        "      L-click: expand / close.\n" +
+        "      R-click: open the declaration.\n" +
+        "      ctrl + R-click: open the graph of the node.\n" +
+        "    links:\n" +
+        "      L-click: hide.\n" +
+        "      R-click: open the point.\n" +
+        "  color:\n" +
+        "    node circles:\n" +
+        "      white: not expanded\n" +
+        "      red: expanded\n" +
+        "      green: closed\n" +
+        "      blue: has hided nodes\n" +
+        "    node labels:\n" +
+        "      black: normal\n" +
+        "      green: exists same node\n" +
+        "      blue: exists same expaned node\n" +
+        "    links:\n" +
+        "      file type of target node.\n" +
+        "";
+
 var reset_node = function( obj, rootNode ) {
     obj.nsId2CountMap = new Map();
     obj.inquiredNsIdSet = new Set();
@@ -81,6 +105,13 @@ function lctags_graph_tree( projDir, paramInfo ) {
         return linkD2( d.source, d.target );
     }
 
+    function linkDPrev( d ) {
+        var src = d.source.data;
+        var dst = d.target.data;
+        return linkD2( { x: src.x0, y: src.y0 },
+                       { x: dst.x0, y: dst.y0 } );
+    }
+    
     function linkD2( src, dst ) {
         return "M" + src.y + "," + src.x
             + "C" + (src.y + dst.y) / 2 + "," + src.x
@@ -118,10 +149,10 @@ function lctags_graph_tree( projDir, paramInfo ) {
         .attr( "in", "SourceGraphic" );
 
 
-    d3.select( window ).on( "resize",
-                            function() {
-                                lctags_fitTo();
-                            } );
+    // d3.select( window ).on( "resize",
+    //                         function() {
+    //                             lctags_fitTo();
+    //                         } );
 
     var g = svg.append("g").attr( "transform", "translate( 0, 0 )");
 
@@ -202,19 +233,25 @@ function lctags_graph_tree( projDir, paramInfo ) {
                      function( d, i ) {
                          // ブラウザの contextmenu を表示しない
                          d3.event.preventDefault();
-                         paramInfo.nodeContext( obj, d.data );
 
-                         var curNode = g.selectAll("g.node").
-                                 select( "circle" ).select( function( ddd ) {
-                                     if ( ddd === d ) {
-                                         return this;
-                                     }
-                                     return null;
-                                 } );
-                         curNode.style( "fill", "blue" )
-                             .transition()
-                             .duration( duration )
-                             .style( "fill", nodeColor );
+                         if (d3.event.ctrlKey ) {
+                             paramInfo.openNewWindow( d.data.nsId, d.data.name );
+                         }
+                         else {
+                             paramInfo.nodeContext( obj, d.data );
+
+                             var curNode = g.selectAll("g.node").
+                                     select( "circle" ).select( function( ddd ) {
+                                         if ( ddd === d ) {
+                                             return this;
+                                         }
+                                         return null;
+                                     } );
+                             curNode.style( "fill", "blue" )
+                                 .transition()
+                                 .duration( duration )
+                                 .style( "fill", nodeColor );
+                         }
                      })
                 .call( d3.drag() )
                 .on("click", function(d) {
@@ -398,11 +435,12 @@ function lctags_graph_tree( projDir, paramInfo ) {
                        }
                        return linkColor(d);
                    } )
+            //.attr("d", linkDPrev)
             .transition()
             .duration(duration)
             .attr("stroke-dasharray", linkDash )
-            .attr( "stroke", linkColor )
-            .attr("d", linkD);
+            .attr("d", linkD)
+            .attr( "stroke", linkColor );
 
         // リンクの削除 (最終位置を親のノード位置とする)
         link.exit().transition()
@@ -755,25 +793,38 @@ function lctags_graph_tree( projDir, paramInfo ) {
 
         offset += 10;
         header.append( "button" )
-            .text( "fileList" )
+            .text( "manual" )
             .style( "position", "relative" )
             .style( "left", offset + "px" )
             .style( "top", headerHeight / 4 + "px" )
             .on( "click",
                  function() {
-                     if ( obj.fileListPopupParent.style( "display" ) == "none" ) {
-                         obj.fileListPopupParent.style( "display", "block" );
+                     // manual 表示
+                     var popup = obj.topEle.append( "div" )
+                             .style( "z-index", "100" )
+                             .style( "width", "50%" )
+                             .style( "height", "20%" )
+                             .style( "position", "absolute" )
+                             .style( "top", "0px" )
+                             .style( "left", "0px" );
 
-                         updateFileList();
-                     }
-                     else {
-                         obj.fileListPopupParent.style( "display", "none" );
-                         if ( obj.fileListBody ) {
-                             obj.fileListBody.remove();
-                             obj.fileListBody = null;
-                         }
-                     }
+                     popup.append( "button" )
+                         .text( "close" )
+                         .on( "click",
+                              function() {
+                                  popup.remove();
+                              });
+                     popup.append( "br" );
+
+                     var textarea = popup
+                             .append( "textarea" )
+                             .property( "readOnly", true )
+                             .style( "background", "#eee" )
+                             .style( "width", "100%" )
+                             .style( "height", "100%" )
+                             .text( lctags_graph_tree_manual );
                  });
+
 
         offset += 10;
         header.append( "button" )
@@ -785,6 +836,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
                  function() {
                      // ツリーのデータを JSON でエクスポート。
                      var popup = obj.topEle.append( "div" )
+                             .style( "z-index", "100" )
                              .style( "width", "50%" )
                              .style( "height", "20%" )
                              .style( "position", "absolute" )
@@ -820,7 +872,28 @@ function lctags_graph_tree( projDir, paramInfo ) {
                              .style( "height", "100%" )
                              .text( JSON.stringify( cloneRoot ) );
                  });
+        
+        offset += 10;
+        header.append( "button" )
+            .text( "fileList" )
+            .style( "position", "relative" )
+            .style( "left", offset + "px" )
+            .style( "top", headerHeight / 4 + "px" )
+            .on( "click",
+                 function() {
+                     if ( obj.fileListPopupParent.style( "display" ) == "none" ) {
+                         obj.fileListPopupParent.style( "display", "block" );
 
+                         updateFileList();
+                     }
+                     else {
+                         obj.fileListPopupParent.style( "display", "none" );
+                         if ( obj.fileListBody ) {
+                             obj.fileListBody.remove();
+                             obj.fileListBody = null;
+                         }
+                     }
+                 });
         
         offset += 10;
         var expandModeSelect = header.append( "select" )

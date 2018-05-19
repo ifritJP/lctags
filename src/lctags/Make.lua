@@ -409,7 +409,7 @@ function Make:updateFor( dbPath, target, jobs, src )
 	 group = "FIRST"
       elseif index == 2 then
 	 group = "SECOND"
-      elseif ( index < (#list / 10) ) and ( index < 100 ) then
+      elseif ( index < (#list / 20) ) and ( index < 100 ) then
 	 group = "THIRD"
       else
 	 group = "SRCS"
@@ -430,6 +430,12 @@ function Make:updateFor( dbPath, target, jobs, src )
    if Option:isValidRecordSql() then
       opt = opt .. " --lctags-recSql"
    end
+   if Option:isValidRecordDigestSrc() then
+      opt = opt .. " --lctags-digestRec"
+   end
+   if Option:isValidLockLog() then
+      opt = opt .. " --lctags-recSql"
+   end
    if Option:isIndivisualWrite() then
       opt = opt .. " --lctags-indiv"
    end
@@ -442,6 +448,8 @@ function Make:updateFor( dbPath, target, jobs, src )
    fileHandle:write(
       string.format( 
 	 [[
+.PHONY: all build setup first second third other
+
 FIRST := $(addsuffix .lc, $(FIRST))
 SECOND := $(addsuffix .lc, $(SECOND))
 THIRD := $(addsuffix .lc, $(THIRD))
@@ -485,6 +493,7 @@ other: $(SRCS)
 %%.lc:
 	@echo $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@[\1]  /@'))
 	-@%s %s updateForMake %s $(patsubst %%.lc,%%,$(shell echo $@ | sed 's@^\([^/]*/[^/]*\)/@/@')) --lctags-log %d --lctags-db %s %s $(SRV) || echo "=== MAKE NG === $@"
+	@%s %s check-kill > /dev/null || exit 1
 ]],
 	 -- build
 	 tmpName, tmpName, math.floor(((jobs>=3) and jobs or 3) / 3), tmpName,
@@ -499,7 +508,8 @@ other: $(SRCS)
 	 -- %%.lc
 	 arg[-1], arg[0], 
 	 target and ("--lctags-target " .. target ) or "",
-	 log( 0, -1 ), dbPath, opt, tmpName ) )
+	 log( 0, -1 ), dbPath, opt, 
+	 arg[-1], arg[0] ) )
 
    fileHandle:close()
 

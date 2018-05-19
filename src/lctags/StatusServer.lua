@@ -170,10 +170,6 @@ end
 function StatusServer:notifyOpenClose( info )
    local val = 1
 
-   for key, val in pairs( info ) do
-      print( "info:", key, val )
-   end
-   
    if not info.openFlag then
       val = -1
    end

@@ -63,6 +63,7 @@ usage:
    %s clang-ver
    %s kill
    %s cancel-kill
+   %s check-kill
    %s copyConf
 
   option:
@@ -138,7 +139,7 @@ function Option:analyzeLctagsOption( arg, argList, index, lctagOptMap )
       skipArgNum = 1
       lctagOptMap.target = argList[ index + 1 ]
    elseif arg == "--lctags-digestRec" then
-      lctagOptMap.recordDigestSrcFlag = true
+      self.recordDigestSrcFlag = true
    elseif arg == "--lctags-recSql" then
       self.recordSql = true
    elseif arg == "--use-global" then
@@ -438,6 +439,8 @@ function Option:analyzeOption( argList )
 	       lctagOptMap.mode = arg
 	    elseif arg == "cancel-kill" then
 	       lctagOptMap.mode = arg
+	    elseif arg == "check-kill" then
+	       lctagOptMap.mode = arg
 	    elseif arg == "call-func" then
 	       lctagOptMap.mode = arg
 	    else
@@ -582,6 +585,10 @@ end
 
 function Option:isValidRecordSql()
    return self.recordSql
+end
+
+function Option:isValidRecordDigestSrc()
+   return self.recordDigestSrcFlag
 end
 
 function Option:isValidService()
