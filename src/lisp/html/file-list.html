@@ -2,21 +2,33 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<title>lctags file list</title>
 <style>
 .dir_file {
   margin-left: 25px;
 }
 </style>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<title>lctags file list</title>
-<script src="js/lctags.js"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script type="text/javascript" src="js/lctags.js"></script>
 <script>
 window.onload = function() {
-  lctags_dumpDir( $confId$ );
+  lctags_dumpDir( $confId$, "$projDir$" );
 }
 </script>
 </head>
 <body>
+
+  <input id="filepath" size="50" />
+  <button onclick="lctags_dumpDir_decideFile( $confId$ );" >Go</button>
+  <label>FILE (max 100)</label>
+  <br>
+
+  <input id="symbol" size="50" />
+  <button onclick="lctags_dumpDir_decideSymbol( $confId$ );" >Go</button>
+  <label>SYMBOL (max 100)</label>
+  
 <div id="file-list"></div>
 </body>
 </html>

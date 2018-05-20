@@ -416,7 +416,8 @@ if lctagOptMap.mode == "inq" then
 	 nsInfo = db:getSimpleName( nil, srcList[ 1 ] )
       end
    end
-   Query:queryFor( db, nsInfo, lctagOptMap.query, target, absFlag, Option:getOutputForm() )
+   Query:queryFor( db, nsInfo, lctagOptMap.query, target, absFlag,
+		   lctagOptMap.candidateLimit, Option:getOutputForm() )
    db:close()
    finish( 0 )
 end
@@ -594,7 +595,8 @@ if lctagOptMap.mode == "call-for" then
    local db = analyzer:openDBForReadOnly()
 
    local nsInfo = db:getNamespace( srcList[1] )
-   Query:queryFor( db, nsInfo, lctagOptMap.mode, lctagOptMap.abs, "json" )
+   Query:queryFor( db, nsInfo, lctagOptMap.mode, lctagOptMap.abs,
+		   lctagOptMap.candidateLimit, "json" )
    finish( 0 )
 end
 

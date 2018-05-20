@@ -58,12 +58,107 @@ function lctags_getCookies( cookiesEle ) {
     });
 };
 
+function lctags_dumpDir_decideFile( confId ) {
+    var filePathObj = $('#filepath');
 
-function lctags_dumpDir( confId ) {
+    var path = filePathObj.val();
+    var map = filePathObj.data( "map" );
+    var fileId = map.get( path );
+
+    lctags_openFileTab( confId, fileId );
+}
+
+function lctags_dumpDir_decideSymbol( confId ) {
+    var symbolObj = $('#symbol');
+
+    var path = symbolObj.val();
+    var map = symbolObj.data( "map" );
+    var nsId = map.get( path );
+
+    lctags_openCallGraph( confId, nsId, symbolObj.val() );
+}
+
+function lctags_dumpDir( confId, projDir ) {
+
+    var limit = 100;
+    
+    var path2IdMap = new Map();
+    var filePathObj = $('#filepath');
+    filePathObj.val( "" );
+    
+    filePathObj.keyup( function() {
+        var filepath = this;
+        if ( filepath.value.length == 0 ) {
+            return;            
+        }
+        $.ajax({
+            url: lctags_getPath( 'inq', confId ) +
+                "&command=searchFile&path=" + filepath.value + "&limit=" + limit,
+            type: 'GET',
+            timeout: 10 * 1000
+        }).done(function(data) {
+            var fileList = [];
+            data.lctags_result.searchFile.forEach( function( info ) {
+                var fileInfo = info.info;
+                var path = fileInfo.path;
+                if ( path.startsWith( projDir + "/" ) ) {
+                    path = path.replace( projDir + "/", "" );
+                }
+                fileList.push( path );
+                path2IdMap.set( path, fileInfo.fileId );
+            } );
+            
+            filePathObj.autocomplete({
+                source: fileList
+            });
+            filePathObj.data( "map", path2IdMap );
+        }).fail(function() {
+        });
+    });
+
+
+
+    var name2IdMap = new Map();
+    var symbolObj = $('#symbol');
+    symbolObj.val( "" );
+    
+    symbolObj.keyup( function() {
+        var symbol = this;
+        if ( symbol.value.length == 0 ) {
+            return;            
+        }
+        $.ajax({
+            url: lctags_getPath( 'inq', confId ) +
+                "&command=searchDecl&name=" + symbol.value + "&limit=" + limit,
+            type: 'GET',
+            timeout: 10 * 1000
+        }).done(function(data) {
+            var nameList = [];
+            name2IdMap.clear();
+            data.lctags_result.searchDecl.forEach( function( info ) {
+                var nameInfo = info.info;
+                var name = nameInfo.name;
+                if ( name2IdMap.has( name ) ) {
+                    return;
+                }
+                nameList.push( name );
+                name2IdMap.set( name, nameInfo.nsId );
+            } );
+
+            symbolObj.autocomplete({
+                source: nameList
+            });
+            symbolObj.data( "map", name2IdMap );
+        }).fail(function() {
+        });
+    });
+
+    
+    
     $.ajax({
         url: lctags_getPath( "inq", confId ) + "&command=dumpDir",
         type: 'GET',
-        timeout: 5000,
+        timeout: 5000
     }).done(function(data) {
         var dirListObj = data.lctags_result.dumpDir;
         var dirList = [];
@@ -103,6 +198,18 @@ function lctags_dumpDir( confId ) {
     });
 }
 
+function lctags_openFileTab( confId, fileId ) {
+    var key = "lctags:file:" + fileId;
+    var win = lctags_file_window_map.get( key );
+    if ( win ) {
+        win.close();
+    }
+    var newWindow = window.open(
+        lctags_getPath( "gen/file.html", confId ) +
+            "&fileId=" + fileId, key );
+    lctags_file_window_map.set( key, newWindow );
+}
+
 function lctags_matchFile( confId, dirPath, parentObj ) {
     $.ajax({
         url: lctags_getPath( 'inq', confId ) + '&command=matchFile&pattern=' + dirPath,
@@ -117,7 +224,7 @@ function lctags_matchFile( confId, dirPath, parentObj ) {
         fileList = fileList.sort(
             function( obj1, obj2 ) {
                 return obj1.path.localeCompare( obj2.path );
-        });
+            });
         
         for (val in fileList) {
             var obj = document.createElement( "button" );
@@ -125,18 +232,10 @@ function lctags_matchFile( confId, dirPath, parentObj ) {
             obj.classList.add( "dir_file" );
             var info = fileList[ val ];
             var path = info.path.replace( dirPath + "/", "" );
-            obj.innerHTML = info.fileId + ":" + path;
+            obj.innerHTML = path + " (" + info.fileId + ")";
             obj.onclick = function( info ) {
                 return function() {
-                    var key = "lctags:file:" + info.fileId;
-                    var win = lctags_file_window_map.get( key );
-                    if ( win ) {
-                        win.close();
-                    }
-                    var newWindow = window.open(
-                        lctags_getPath( "gen/file.html", confId ) +
-                            "&fileId=" + info.fileId, key );
-                    lctags_file_window_map.set( key, newWindow );
+                    lctags_openFileTab( confId, info.fileId );
                 };
             }(info);
             parentObj.appendChild( obj );
@@ -180,32 +279,62 @@ function lctags_getFileInfo( confId, fileId ) {
         defList = defList.sort(
             function( obj1, obj2 ) {
                 return obj1.name.localeCompare( obj2.name );
-        });
+            });
 
         
         var parentObj = $('#file-cont' ).get( 0 );
-        for (val in defList) {
-            var info = defList[ val ];
+        var listing = function( labelName, typeList, titleType ) {
+            var typeSet = new Set( typeList );
 
-            if ( !( info.type == "FunctionDecl" || info.type == "CXXMethod" ||
-                    info.type == "Constructor" || info.type == "Destructor" ) ) {
-                        continue;
-                    }
+            var label = document.createElement( "h1" );
+            label.innerHTML = labelName;
+            parentObj.appendChild( label );
+            
+            return function( info ) {
+                if ( !typeSet.has( info.type ) ) {
+                    return;
+                }
 
-            var obj = document.createElement( "button" );
-            obj.type = "button";
-            
-            
-            obj.innerHTML = info.name;
-            obj.onclick = function( info ) {
-                return function() {
-                    lctags_openCallGraph( confId, info.nsId, info.name );
-                };
-            }(info);
-            
-            parentObj.appendChild( obj );
-            parentObj.appendChild( document.createElement( "br" ) );
-        }
+                var obj = document.createElement( "button" );
+                obj.type = "button";
+                
+                obj.innerHTML = info.name + " (" + info.nsId + ")";
+                obj.onclick = function( info ) {
+                    return function() {
+                        lctags_openCallGraph( confId, info.nsId, info.name );
+                    };
+                }(info);
+
+                if ( info.type == titleType ) {
+                    var label = document.createElement( "h2" );
+                    label.innerHTML = info.name;
+                    parentObj.appendChild( label );
+                }
+                
+                parentObj.appendChild( obj );
+                parentObj.appendChild( document.createElement( "br" ) );
+            };
+        };
+
+        // 現状マクロは参照元の namespace が全て 0 になってしまい、
+        // コールグラフ表示の意味がないがないので出さない
+        // defList.forEach( listing( "macro", [ "MacroDefinition" ]) );
+        
+        defList.forEach( listing( "typedef", [ "TypedefDecl" ] ) );
+        
+        defList.forEach( listing(
+            "enums", [ "EnumDecl", "EnumConstantDecl" ], "EnumDecl" ) );
+
+        defList.forEach( listing(
+            "structs", [ "StructDecl", "FieldDecl" ], "StructDecl") );
+
+        defList.forEach( listing( "variables", [ "VarDecl" ]) );
+        
+        defList.forEach( listing( "functions", [ "FunctionDecl", "CXXMethod",
+                                                 "Constructor", "Destructor"]) );
+        
+        
+        
     }).fail(function() {
     });
 }
@@ -349,7 +478,7 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
             d3.event.stopPropagation();
             var nsId = node.nsId;
             $.ajax({
-                url: lctags_getPath( 'inq', confId ) + '&command=defBody&nsId=' + nsId,
+                url: lctags_getPath( 'inq', confId ) + '&command=openDef&nsId=' + nsId,
                 type: 'GET',
                 timeout: 5000
             }).done(function(data) {
@@ -366,4 +495,17 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
     var obj = lctags_graph_tree( projDir, paramInfo );
 
     obj.addChild( null, [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ], [] );
+
+    $.ajax({
+        url: lctags_getPath( 'inq', confId ) + "&command=def&nsId=" + nsId,
+        type: 'GET',
+        timeout: 10 * 1000
+    }).done(function(data) {
+        var typeName = data.lctags_result.def[0].info.type;
+        if ( !( typeName == "FunctionDecl" || typeName == "CXXMethod" ||
+                typeName == "Constructor" || typeName == "Destructor" ) ) {
+                    obj.setExpandMode( "refSym" );
+                }
+    }).fail(function() {
+    });
 }

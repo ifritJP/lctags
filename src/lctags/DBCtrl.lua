@@ -3212,6 +3212,91 @@ function DBCtrl:mapSymbolDeclPattern( pattern, kindList, func )
       func )
 end
 
+
+function DBCtrl:mapSymbolDeclPatternFullname( pattern, kindList, func )
+   local cond
+   if kindList and #kindList ~= 0 then
+      for index, kind in ipairs( kindList ) do
+	 local work = string.format( "symbolDecl.type = %d", kind )
+	 if index == 1 then
+	    cond = work
+	 else
+	    cond = string.format( "%s OR %s", cond, work )
+	 end
+      end
+   end
+   if pattern and pattern ~= "" then
+      local work
+      local nsInfoList = {}
+      if type( pattern ) == "table" then
+	 local patCond
+	 for key, pat in ipairs( pattern ) do
+	    if patCond then
+	       patCond = string.format(
+		  "%s OR namespace.name LIKE '%s' escape '$'", patCond, pat )
+	    else
+	       patCond = string.format(
+		  "namespace.name LIKE '%s' escape '$'", pat )
+	    end
+	 end
+	 work = string.format( "(%s)", patCond )
+
+	 for key, pat in ipairs( pattern ) do
+	    local nsInfo = self:getNamespace( nil, pat )
+	    if nsInfo then
+	       table.insert( nsInfoList, nsInfo )
+	    else
+	       nsInfoList = nil
+	       break
+	    end
+	 end
+      else
+	 work = string.format( "(namespace.name LIKE '%s' escape '$')", pattern )
+	 
+	 local nsInfo = self:getNamespace( nil, pattern )
+	 if nsInfo then
+	    talbe.insert( nsInfoList, nsInfo )
+	 end
+      end
+
+      if nsInfoList and #nsInfoList > 0 then
+	 local nsInfoCond
+	 for index, nsInfo in ipairs( nsInfoList ) do
+	    if nsInfoCond then
+	       nsInfoCond = string.format( "%s OR nsId = %s", nsInfoCond, nsInfo.id )
+	    else
+	       nsInfoCond = string.format( "nsId = %s", nsInfo.id )
+	    end
+	 end
+	 
+	 log( 3, "mapSymbolDeclPattern", nsInfoCond )
+	 local count = self:mapRowList(
+	    "symbolDecl",
+	    string.format( "(%s) AND ( %s )", nsInfoCond, cond ),
+	    nil, nil, func )
+	 if count > 1 then
+	    return
+	 end
+      end
+      
+      if cond then
+	 cond = string.format( "(%s) AND (%s)", cond, work )
+      else
+	 cond = work
+      end
+   end
+   log( 3, "mapSymbolDeclPattern", cond )
+
+   self:mapJoin(
+      "namespace", "symbolDecl", "namespace.id = symbolDecl.nsId",
+      cond, 10000,
+      "namespace.name, symbolDecl.nsId, "
+      	 .. "symbolDecl.fileId, symbolDecl.line, symbolDecl.column, "
+      	 .. "symbolDecl.type, symbolDecl.hasBodyFlag",
+      func )
+end
+
+
 function DBCtrl:mapCalleeDecl( nsId, func )
    self:mapJoin( "funcCall", "symbolDecl",
 		 "funcCall.nsId = symbolDecl.nsId",

@@ -191,16 +191,16 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       )
    elseif query:find( "t" ) then
       if not target then
-	 return false
+      	 return false
       end
 
       db:mapDeclInfoList(
-	 target,
-	 function( item )
-	    if isLimit() then return false; end
-	    output( db, query, target, target, item )
-	    return true
-	 end
+      	 target,
+      	 function( item )
+      	    if isLimit() then return false; end
+      	    output( db, query, target, target, item )
+      	    return true
+      	 end
       )
    elseif query:find( "T" ) then
       if not target then
@@ -518,17 +518,17 @@ function Query:outputIncSrcHeader( db, file, stream )
    )
 end
 
-function Query:queryFor( db, nsInfo, mode, target, absFlag, form )
+function Query:queryFor( db, nsInfo, mode, target, absFlag, limit, form )
    mode = string.gsub( mode, "-.*", "" )
    if mode == "ref" then
       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name,
-			nil, nil, form )
-   elseif mode == "def" then
+			nil, limit, form )
+   elseif mode == "def-at" then
       Query:execWithDb( db, "t" .. (absFlag and "a" or ""), nsInfo.name,
-			nil, nil, form )
+			nil, limit, form )
    elseif mode == "call" then
       Query:execWithDb( db, "C" .. (absFlag and "a" or ""), nsInfo.name,
-			nil, nil, form )
+			nil, limit, form )
    elseif mode == "ns" then
       print( nsInfo.id, nsInfo.name )
    elseif mode == "sym" then
@@ -537,14 +537,12 @@ function Query:queryFor( db, nsInfo, mode, target, absFlag, form )
       local queryParam = QueryParam:getQuery( mode )
       if queryParam then
 	 local param = queryParam:getQueryExecParam( db, nsInfo, mode, target, absFlag )
-	 Query:execWithDb( db, param[1], param[2], nil, nil, form )
+	 Query:execWithDb( db, param[1], param[2], nil, limit, form )
       else
 	 log( 1, "illegal mode", mode )
 	 os.exit( 1 )
       end
    end
 end
-
-
 
 return Query

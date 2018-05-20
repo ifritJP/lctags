@@ -739,7 +739,7 @@ function lctags_graph_tree( projDir, paramInfo ) {
             update();
         }
     }
-    
+
     function make_header() {
 
         obj.fileListPopupParent = obj.topEle.append( "div" )
@@ -896,7 +896,8 @@ function lctags_graph_tree( projDir, paramInfo ) {
                  });
         
         offset += 10;
-        var expandModeSelect = header.append( "select" )
+
+        obj.expandModeSelect = header.append( "select" )
                 .style( "position", "relative" )
                 .style( "top", headerHeight / 4 + "px" )
                 .style( "left", offset + "px" )
@@ -907,11 +908,11 @@ function lctags_graph_tree( projDir, paramInfo ) {
                     reset_node( obj, rootNode );
                     update();
                 });
-        expandModeSelect.append( "option" )
+        obj.expandModeSelect.append( "option" )
             .text( "callee" );
-        expandModeSelect.append( "option" )
+        obj.expandModeSelect.append( "option" )
             .text( "caller" );
-        expandModeSelect.append( "option" )
+        obj.expandModeSelect.append( "option" )
             .text( "refSym" );
         
 
@@ -1059,6 +1060,18 @@ function lctags_graph_tree( projDir, paramInfo ) {
                  } );
     }
 
+    obj.setExpandMode = function( mode ) {
+        if ( mode == "callee" ) {
+            obj.expandModeSelect.property( "selectedIndex", 0 );
+        }
+        else if ( mode == "caller" ) {
+            obj.expandModeSelect.property( "selectedIndex", 1 );
+        }
+        else if ( mode == "refSym" ) {
+            obj.expandModeSelect.property( "selectedIndex", 2 );
+        }
+        obj.expandMode = mode;
+    };
 
     function lctags_svg_move_dragstarted(d) {
         obj.dragX = d3.event.x;

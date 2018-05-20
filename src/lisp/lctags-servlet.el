@@ -147,16 +147,23 @@
 		      "--lctags-form json" arg)
   (let* ((result (lctags-json-get (current-buffer)
 				  (intern (format ":%s" sym))))
-	 (info (lctags-json-val (car result) :info))
-	 (path (lctags-json-val info :path))
-	 (line (lctags-json-val info :line))
-	 (column (lctags-json-val info :column)))
-    (when path
-      (find-file path)
-      (lctags-goto-line-column line column)
-      (recenter)
-      ))
-  )
+	 def-info)
+    (dolist (def result)
+      (let ((info (lctags-json-val def :info)))
+	(when (or (not def-info)
+		  (lctags-json-val info :hasBodyFlag))
+	  (setq def-info info))))
+    (httpd-send-header t "text/json" 200)
+    (let* ((info (lctags-json-val def-info :info))
+	   (path (lctags-json-val def-info :path))
+	   (line (lctags-json-val def-info :line))
+	   (column (lctags-json-val def-info :column)))
+      (when path
+	(find-file path)
+	(lctags-goto-line-column line column)
+	(recenter)
+	))
+    ))
 
 (defun lctags-servlet-handle (path query req)
   (let* ((cookie (string-to-number
@@ -170,35 +177,54 @@
 	    (lctags-conf (plist-get conf-info :conf)))
 	(cond ((equal command "dumpDir")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command "--lctags-form json"))
+				   "inq" command "--lctags-form" "json"))
 	      ((equal command "matchFile")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
 				   (cadr (assoc "pattern" query))
-				   "--lctags-form json" ))
+				   "--lctags-form" "json" ))
+	      ((equal command "searchFile")
+	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				   "inq" command
+			  	   (cadr (assoc "path" query))
+				   "--lctags-form" "json"
+				   "--lctags-candidateLimit"
+				   (cadr (assoc "limit" query))))
+	      ((equal command "searchDecl")
+	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				   "inq" command
+			  	   (cadr (assoc "name" query))
+				   "--lctags-form" "json"
+				   "--lctags-candidateLimit"
+				   (cadr (assoc "limit" query))))
 	      ((equal command "defAtFileId")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
 				   (cadr (assoc "fileId" query))
-				   "--lctags-form json" ))
+				   "--lctags-form" "json" ))
 	      ((equal command "callee")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
 				   (cadr (assoc "nsId" query))
-				   "--lctags-form json" ))
+				   "--lctags-form" "json" ))
 	      ((equal command "caller")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
 				   (cadr (assoc "nsId" query))
-				   "--lctags-form json" ))
+				   "--lctags-form" "json" ))
 	      ((equal command "refSym")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
 				   (cadr (assoc "nsId" query))
-				   "--lctags-form json" ))
-	      ((equal command "defBody")
-	       (lctags-servlet-open-pos 'defBody
-					"inq" command
+				   "--lctags-form" "json" ))
+	      ((equal command "def")
+	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				   "inq" command
+				   (cadr (assoc "nsId" query))
+				   "--lctags-form" "json" ))
+	      ((equal command "openDef")
+	       (lctags-servlet-open-pos 'def
+					"inq" "def"
 					(cadr (assoc "nsId" query))))
 	      ((equal command "callPair")
 	       (lctags-servlet-open-pos 'callPair

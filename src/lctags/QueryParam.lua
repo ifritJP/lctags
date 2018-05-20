@@ -142,6 +142,7 @@ function callee:queryOutput( db, isLimit, output, target )
 	    indirectList, kindList,
 	    function( item )
 	       if not indirectSet[ item.nsId ] then
+		  if isLimit() then return false; end
 		  indirectSet[ item.nsId ] = true
 		  output( db, self.name, target, target, item )
 	       end
@@ -177,6 +178,7 @@ function callee:queryOutput( db, isLimit, output, target )
 		  indirectList,
 		  function( item )
 		     if not indirectSet[ item.nsId ] then
+			if isLimit() then return false; end
 			indirectSet[ item.nsId ] = true
 			output( db, self.name, target, target, item )
 		     end
@@ -261,6 +263,7 @@ function refSym:queryOutput( db, isLimit, output, target )
 	 function( item )
 	    if not indirectSet[ item.nsId ] then
 	       indirectSet[ item.nsId ] = true
+	       if isLimit() then return false; end
 	       output( db, self.name, target, target, item )
 	    end
 	    return true
@@ -286,6 +289,7 @@ function dumpDir:queryOutput( db, isLimit, output, target )
 	 local path = string.gsub( item.path, "/[^/]+$", "" )
 	 if not dirSet[ path ] then
 	    dirSet[ path ] = true
+	    if isLimit() then return false; end
 	    output( db, query, target, "path",
 		    { path = path, fileId = item.id, line = 1 } )
 	 end
@@ -311,6 +315,7 @@ function defAtFileId:queryOutput( db, isLimit, output, target )
    db:mapDeclAtFile(
       target,
       function( item )
+	 if isLimit() then return false; end
 	 output( db, query, target, target, item )
 	 return true
       end
@@ -341,9 +346,59 @@ function matchFile:queryOutput( db, isLimit, output, target )
       function( item )
 	 local basename = string.gsub( item.path, path, "" )
 	 if not string.find( basename, "/" ) then
+	    if isLimit() then return false; end
 	    output( db, query, target, "path",
 		    { path = item.path, fileId = item.id, id = item.id, line = 1 } )
 	 end
+	 return true
+      end
+   )
+end
+
+
+------ searchFile ------
+
+local searchFile = QueryParam:addQuery( { name = "searchFile" } )
+
+function searchFile:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "fileId", item.id )
+   writer:write( "path", db:getSystemPath( item.path ) )
+   writer:endElement()
+end
+
+function searchFile:queryOutput( db, isLimit, output, target )
+   local path = target
+   db:mapRowList(
+      "filePath",
+      string.format( "path like '%%%s%%' escape '$'", path ),
+      nil, nil,
+      function( item )
+	 if isLimit() then return false; end
+	 output( db, query, target, "path",
+		 { path = item.path, fileId = item.id, id = item.id, line = 1 } )
+	 return true
+      end
+   )
+end
+
+------ searchDecl ------
+
+local searchDecl = QueryParam:addQuery( { name = "searchDecl" } )
+
+function searchDecl:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "nsId", item.nsId )
+   writer:write( "name", item.name )
+   writer:endElement()
+end
+
+function searchDecl:queryOutput( db, isLimit, output, target )
+   db:mapSymbolDeclPatternFullname( 
+      "%%" .. target .. "%%", nil,
+      function( item )
+	 if isLimit() then return false; end
+	 output( db, query, target, target, item )
 	 return true
       end
    )
@@ -369,6 +424,7 @@ function defBody:queryOutput( db, isLimit, output, target )
    db:mapDeclHasBody(
       self:getNsInfo( db, target ).id,
       function( item )
+	 if isLimit() then return false; end
 	 output( db, query, target, target, item )
 	 return true
       end
@@ -458,6 +514,37 @@ function subNS:queryOutput( db, isLimit, output, target )
    local nsInfo = self:getNsInfo( db, target )
 
    db:mapDeclForParent(
+      nsInfo.id,
+      function( item )
+	 if isLimit() then return false; end
+	 output( db, self.name, target, target, item )
+	 return true
+      end
+   )
+end
+
+
+------ def ------
+
+local def = QueryParam:addQuery( { name = "def" } )
+
+function def:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "nsId", item.nsId )
+   writer:write( "fileId", item.fileId )
+   writer:write( "line", item.line )
+   writer:write( "column", item.column )
+   writer:write( "path",
+		 db:getSystemPath( db:getFileInfo( item.fileId ).path ) )
+   writer:write( "hasBodyFlag", item.hasBodyFlag ~= 0 )
+   writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
+   writer:endElement()
+end
+
+function def:queryOutput( db, isLimit, output, target )
+   local nsInfo = self:getNsInfo( db, target )
+
+   db:mapDecl(
       nsInfo.id,
       function( item )
 	 if isLimit() then return false; end
