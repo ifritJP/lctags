@@ -478,7 +478,7 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
             d3.event.stopPropagation();
             var nsId = node.nsId;
             $.ajax({
-                url: lctags_getPath( 'inq', confId ) + '&command=openDef&nsId=' + nsId,
+                url: lctags_getPath( 'inq', confId ) + '&command=openDecl&nsId=' + nsId,
                 type: 'GET',
                 timeout: 5000
             }).done(function(data) {
@@ -497,11 +497,11 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
     obj.addChild( null, [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ], [] );
 
     $.ajax({
-        url: lctags_getPath( 'inq', confId ) + "&command=def&nsId=" + nsId,
+        url: lctags_getPath( 'inq', confId ) + "&command=decl&nsId=" + nsId,
         type: 'GET',
         timeout: 10 * 1000
     }).done(function(data) {
-        var typeName = data.lctags_result.def[0].info.type;
+        var typeName = data.lctags_result.decl[0].info.type;
         if ( !( typeName == "FunctionDecl" || typeName == "CXXMethod" ||
                 typeName == "Constructor" || typeName == "Destructor" ) ) {
                     obj.setExpandMode( "refSym" );

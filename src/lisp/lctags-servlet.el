@@ -217,14 +217,14 @@
 				   "inq" command
 				   (cadr (assoc "nsId" query))
 				   "--lctags-form" "json" ))
-	      ((equal command "def")
+	      ((equal command "decl")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
 				   (cadr (assoc "nsId" query))
 				   "--lctags-form" "json" ))
-	      ((equal command "openDef")
-	       (lctags-servlet-open-pos 'def
-					"inq" "def"
+	      ((equal command "openDecl")
+	       (lctags-servlet-open-pos 'decl
+					"inq" "decl"
 					(cadr (assoc "nsId" query))))
 	      ((equal command "callPair")
 	       (lctags-servlet-open-pos 'callPair

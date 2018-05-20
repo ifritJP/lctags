@@ -526,9 +526,9 @@ end
 
 ------ def ------
 
-local def = QueryParam:addQuery( { name = "def" } )
+local decl = QueryParam:addQuery( { name = "decl" } )
 
-function def:queryOutputItem( writer, db, item )
+function decl:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.nsId )
    writer:write( "fileId", item.fileId )
@@ -541,7 +541,7 @@ function def:queryOutputItem( writer, db, item )
    writer:endElement()
 end
 
-function def:queryOutput( db, isLimit, output, target )
+function decl:queryOutput( db, isLimit, output, target )
    local nsInfo = self:getNsInfo( db, target )
 
    db:mapDecl(

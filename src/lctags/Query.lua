@@ -523,7 +523,7 @@ function Query:queryFor( db, nsInfo, mode, target, absFlag, limit, form )
    if mode == "ref" then
       Query:execWithDb( db, "r" .. (absFlag and "a" or ""), nsInfo.name,
 			nil, limit, form )
-   elseif mode == "def-at" then
+   elseif mode == "def" then
       Query:execWithDb( db, "t" .. (absFlag and "a" or ""), nsInfo.name,
 			nil, limit, form )
    elseif mode == "call" then
