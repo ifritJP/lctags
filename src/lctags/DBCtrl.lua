@@ -50,8 +50,11 @@ function newObj( db, currentDir )
       -- path -> info マップ
       path2fileInfoMap = {},
       fileId2fileInfoMap = {},
-      -- sname -> sname マップ
+      -- sname -> sname info マップ
       name2snameInfoMap = {},
+
+      -- fullname -> info マップ
+      fullname2NsInfoMap = {},
       -- path -> converted path マップ
       convPathCache = {},
       -- 解析対象のソースファイル情報
@@ -64,6 +67,9 @@ function newObj( db, currentDir )
       individualMacroFlag = false,
       getFileInfoFromCursor = function() return nil end,
       fileId2SymbolDeclListMap = {},
+
+      -- 参照を無視する hashCursor のセット
+      ignoreHashCursorSet = {}
    }
    setmetatable( obj, { __index = DBCtrl } )
 
@@ -750,7 +756,7 @@ INSERT INTO filePath VALUES( NULL, '', 0, '', '', 1 );
 
 CREATE TABLE targetInfo ( fileId INTEGER, target VARCHAR COLLATE binary, compOp VARCHAR COLLATE binary, hasPch INTEGER, updateTime INTEGER, PRIMARY KEY ( fileId, target, compOp ) );
 CREATE TABLE symbolDecl ( nsId INTEGER, snameId INTEGER, parentId INTEGER, type INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, comment VARCHAR COLLATE binary, hasBodyFlag INTEGER, PRIMARY KEY( nsId, fileId, line ) );
-INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, '', 0 );
+INSERT INTO symbolDecl VALUES( 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, '', 0 );
 
 CREATE TABLE symbolRef ( nsId INTEGER, snameId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, belongNsId INTEGER, PRIMARY KEY( nsId, fileId, line, column ) );
 CREATE TABLE funcCall ( nsId INTEGER, snameId INTEGER, belongNsId INTEGER, fileId INTEGER, line INTEGER, column INTEGER, endLine INTEGER, endColumn INTEGER, charSize INTEGER, PRIMARY KEY( nsId, belongNsId ) );
@@ -904,6 +910,19 @@ function DBCtrl:getNamespace( id, canonicalName )
    return self:getRow(
       "namespace", string.format( "otherName == '%s'", canonicalName ) )
 end
+
+function DBCtrl:getNamespaceFromCache( canonicalName )
+   local nsInfo = self.fullname2NsInfoMap[ canonicalName ]
+   if nsInfo then
+      return nsInfo
+   end
+   nsInfo = self:getRow(
+      "namespace", string.format( "name == '%s'", canonicalName ) )
+   return self:getRow(
+      "namespace", string.format( "otherName == '%s'", canonicalName ) )
+end
+
+
 
 function DBCtrl:getSimpleName( id, name )
    if not name then
@@ -1109,15 +1128,16 @@ function DBCtrl:makeSymbolDeclInfo( cursor, fileInfo, nsInfo, hasBodyFlag )
 end
 
 function DBCtrl:addSymbolDecl( cursor, fileId, nsInfo, hasBodyFlag )
-   self.hashCursor2FullnameMap[ cursor:hashCursor() ] = nsInfo.name
-   self.hashCursor2NSMap[ cursor:hashCursor() ] = nsInfo
+   local hash = cursor:hashCursor()
+   self.hashCursor2FullnameMap[ hash ] = nsInfo.name
+   self.hashCursor2NSMap[ hash ] = nsInfo
 
    local fileInfo = self:getFileInfo( fileId )
    local item = self:makeSymbolDeclInfo( cursor, fileInfo, nsInfo, hasBodyFlag )
 
    log( 3,
 	function()
-	   return "addSymbolDecl", fileInfo.id, fileInfo.uptodate, nsInfo.name, cursor:hashCursor(), hasBodyFlag
+	   return "addSymbolDecl", fileInfo.id, fileInfo.uptodate, nsInfo.name, hash, hasBodyFlag
 	end
    )
 
@@ -1161,6 +1181,9 @@ function DBCtrl:addNamespaceOne(
 	 tmpId, tmpId, parentId, digest, namespace, otherName )
       nsInfo.simpleName = simpleName
       table.insert( self.writeDb.nsInfoList, nsInfo )
+
+      self.fullname2NsInfoMap[ nsInfo.name ] = nsInfo
+      
       if not cursor then
 	 return nsInfo
       end
@@ -1424,6 +1447,18 @@ function DBCtrl:calcEnumStructDigest( decl, kind, digest )
    end
 end
 
+function DBCtrl:addIgnoreEnum( cursor, memberList )
+   self.ignoreHashCursorSet[ cursor:hashCursor() ] = true
+   for index, info in ipairs( memberList ) do
+      local valCursor = info[ 1 ]
+      log( 3, "addIgnoreEnum", valCursor:getCursorSpelling() )
+      self.ignoreHashCursorSet[ valCursor:hashCursor() ] = true
+   end
+end
+
+   
+
+
 function DBCtrl:addEnumStructDecl( decl, anonymousName, typedefName, kind, nsObj )
    local fileInfo = self:getFileFromCursor( decl )
 
@@ -1547,26 +1582,87 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
    then
       cursor = cursor:getCursorReferenced()
    end
-   
-   local hash = cursor:hashCursor()
-   local nsInfo = self.hashCursor2NSMap[ hash ]
-   if nsInfo then
-      return nsInfo
-   end
-   local fullname = self.hashCursor2FullnameMap[ hash ]
-   if fullname then
-      nsInfo = self:getNamespace( nil, fullname )
-      self.hashCursor2NSMap[ hash ] = nsInfo
-      return nsInfo
+
+   local hash
+   local nsInfo
+   local fullname
+
+   -- 1 度目は cursor の調査
+   -- 2 度目は cursor の templete の実態
+   -- 1 度目の調査でヒットしない場合に
+   -- 使用頻度の多くない templete の調査を行なう
+   for index = 1, 2 do
+      hash = cursor:hashCursor()
+      nsInfo = self.hashCursor2NSMap[ hash ]
+      if nsInfo then
+	 log( 3, "find", hash, nsInfo.name )
+	 return nsInfo
+      end
+      fullname = self.hashCursor2FullnameMap[ hash ]
+      if fullname then
+	 nsInfo = self:getNamespace( nil, fullname )
+	 self.hashCursor2NSMap[ hash ] = nsInfo
+	 log( 3, "find", fullname )
+	 return nsInfo
+      end
+      if self.ignoreHashCursorSet[ hash ] then
+	 log( 3, "igore", cursor:getCursorSpelling() )
+	 return nil, true
+      end
+
+      if kind == clang.core.CXCursor_FieldDecl then
+	 -- field の場合、getSpecializedCursorTemplate だと定義元カーソルが
+	 -- 取れないので、親の定義元カーソルから fullname を特して調べる
+	 local parent = cursor:getCursorSemanticParent()
+	 local parentTemp = parent:getSpecializedCursorTemplate()
+	 if not parentTemp or 
+	    parentTemp:getCursorKind() == clang.core.CXCursor_InvalidFile
+	 then
+	    log( 3, "getSpecializedCursorTemplate: not temp" )
+	    break
+	 end
+	 local parentNsInfo = self:getNamespaceFromCursorCache( parent, validCacheFlag )
+	 log( 3, "getSpecializedCursorTemplate: parentNsInfo", parentNsInfo )
+	 if not parentNsInfo then
+	    break
+	 end
+	 fullname = parentNsInfo.name .. "::" .. cursor:getCursorDisplayName()
+	 log( 3, "getSpecializedCursorTemplate: fullname", fullname )
+	 nsInfo = self:getNamespaceFromCache( fullname )
+	 if nsInfo then
+	    self.hashCursor2FullnameMap[ hash ] = fullname
+	    self.hashCursor2NSMap[ hash ] = nsInfo
+	    return nsInfo
+	 end
+      end
+
+      local temp = cursor:getSpecializedCursorTemplate()
+      if not temp then
+	 break
+      end
+
+      local tempKind = temp:getCursorKind()
+      if tempKind == clang.core.CXCursor_InvalidFile then
+	 break
+      end
+
+      cursor = temp
+      kind = tempKind
+
+      log( 3, "getNamespaceFromCursorCache: check templete",
+	   self.hashCursor2FullnameMap[ cursor:hashCursor()],
+	   clang.getCursorKindSpelling( kind ),
+	   cursor:getCursorSpelling() )
    end
 
    local fileId, line, column = self:getFileIdLocation( cursor )
-   log( 3, "getNamespaceFromCursorCache", fileId, line, column )
+   log( 3, "getNamespaceFromCursorCache", fileId, line, column, hash )
 
    fullname = self:getFullname( cursor, fileId, "", "" )
    nsInfo = self:getNamespace( nil, fullname )
 
    if not nsInfo then
+      -- 名前から見つからない場合は、定義位置から見つける
       local symbolDeclList
       if validCacheFlag then
 	 symbolDeclList = self.fileId2SymbolDeclListMap[ fileId ]
@@ -1574,23 +1670,46 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
 	    local fileInfo = self:getFileInfo( fileId )
 	    symbolDeclList = self:getRowList(
 	       "symbolDecl",
-	       string.format( 
-		  "fileId = %d AND line <= %d AND endLine >= %d",
-		  fileId, line, line ) )
+	       string.format( "fileId = %d", fileId ) )
 	    self.fileId2SymbolDeclListMap[ fileId ] = symbolDeclList
 	    table.sort( symbolDeclList,
 			function( item1, item2 )
 			   return item1.line < item2.line
 			end
 	    )
+	    log( 2, "symbolDeclList", #symbolDeclList )
 	 end
       end
+      log( "infoAt", symbolDeclList and #symbolDeclList or "" )
       symbolDeclInfo = self:infoAt(
       	 "symbolDecl", fileId, line, column,
       	 cursor:getCursorKind(), nil, symbolDeclList )
       if symbolDeclInfo then
       	 nsInfo = self:getNamespace( symbolDeclInfo.nsId )
+
+	 -- 名前無しの構造体メンバにアクセスした場合、
+	 -- その構造体自身の Cursor -> 名前情報を登録する。
+	 local workNsInfo = nsInfo
+	 while workNsInfo.parent ~= rootNsId do
+	    local parent = cursor:getCursorSemanticParent()
+	    local parentHash = parent:hashCursor()
+	    local parentNsInfo = self.hashCursor2NSMap[ parentHash ]
+	    if parentNsInfo then
+	       break
+	    end
+	    parentNsInfo = self:getNamespace( workNsInfo.parentId )
+	    self.hashCursor2NSMap[ parentHash ] = parentNsInfo
+	    self.hashCursor2FullnameMap[ parentHash ] = parentNsInfo.name
+	    log( 3, "getNamespaceFromCursorCache: parent", parentNsInfo.name, parentHash )
+	    
+	    workNsInfo = parentNsInfo
+	 end
       else
+
+	 local temp = cursor:getSpecializedCursorTemplate()
+	 log( "temp", clang.getCursorKindSpelling( temp:getCursorKind() ),
+	      temp:hashCursor() )
+	 
 	 log( 2, "getNamespaceFromCursorCache: not found", fullname )
       end
    end
@@ -1640,10 +1759,14 @@ function DBCtrl:addReference( refInfo )
    local fileId = fileInfo and fileInfo.id or systemFileId
 
    local parentNsInfo = self:getNamespaceFromCursorCache( refInfo.namespace, true )
-   local nsInfo = self:getNamespaceFromCursorCache( declCursor, true )
+   local nsInfo, ignoreFlag = self:getNamespaceFromCursorCache( declCursor, true )
    local kind = declCursor:getCursorKind()
    if not nsInfo then
       -- 宣言のないもの
+      if ignoreFlag then
+	 return
+      end
+      
       if kind == clang.core.CXCursor_VarDecl or
    	 kind == clang.core.CXCursor_ParmDecl 
       then

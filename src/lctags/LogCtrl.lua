@@ -97,7 +97,7 @@ function LogCtrl:calcTime( id, param )
    if self.prevTime then
       self:log( 2, "calcTime:", self.prevTimeId, self.prevTimeParam, nowTime - self.prevTime )
    end
-   self:log( 2, "calcTime:", "start", self.prevTimeId, self.prevTimeParam )
+   self:log( 2, "calcTime:", "start", id, param )
    self.prevTime = nowTime
    self.prevTimeId = id
    self.prevTimeParam = param

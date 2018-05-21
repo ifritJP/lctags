@@ -308,6 +308,7 @@ function defAtFileId:queryOutputItem( writer, db, item )
    writer:write( "name", db:getNamespace( item.nsId ).otherName )
    writer:write( "type", idMap.cursorKind2NameMap[ item.type ] )
    writer:write( "hasBody", item.hasBodyFlag ~= 0 );
+   writer:write( "line", item.line );
    writer:endElement()
 end
 

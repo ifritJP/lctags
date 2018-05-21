@@ -802,4 +802,13 @@ func parameter is called with enum value name argument.
     ))
 
 
+(defun lctags-replace-txt (txt regex new)
+  (let (index)
+    (while (setq index (string-match regex txt index))
+      (setq txt (replace-match new t nil txt))
+      (setq index (+ index (length new)))))
+  txt)
+
+;; (lctags-replace-txt "ab_cd_" "_" "$_")
+
 (provide 'lctags)

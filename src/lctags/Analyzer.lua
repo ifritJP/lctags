@@ -304,7 +304,11 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       end
       local list
       if cursorKind == clang.core.CXCursor_EnumDecl then
-	 list = currentSpInfo.enumList
+	 if not analyzer.currentFunc then
+	    list = currentSpInfo.enumList
+	 else
+	    table.insert( analyzer.ignoreEnumList, cursor )
+	 end
       elseif cursorKind == clang.core.CXCursor_StructDecl then
 	 list = currentSpInfo.structList
       elseif cursorKind == clang.core.CXCursor_UnionDecl then
@@ -314,10 +318,12 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
       then
 	 list = currentSpInfo.classList
       end
-	 
-      table.insert( list, { cursor, currentSpInfo } )
-      calcDigestTxt( cursorOffset, currentSpInfo )
-      analyzer:registCursor( cursor, exInfo )
+
+      if list then
+	 table.insert( list, { cursor, currentSpInfo } )
+	 calcDigestTxt( cursorOffset, currentSpInfo )
+	 analyzer:registCursor( cursor, exInfo )
+      end
    elseif cursorKind == clang.core.CXCursor_TemplateTypeParameter then
       local nsObj = analyzer.nsLevelList[ #analyzer.nsLevelList ]
       tmpTypeList = nsObj.tmpTypeList
@@ -601,6 +607,8 @@ function Analyzer:new(
       -- hash -> range
       hash2RangeMap = {},
       cursor2RangeMap = {},
+
+      ignoreEnumList = {},
    }
 
    setmetatable( obj, { __index = Analyzer } )
@@ -1259,7 +1267,7 @@ function Analyzer:registerSpInfo( db, spInfo )
    log( 2, "-- funcList --", os.clock(), os.date()  )
    for index, funcDecl in ipairs( spInfo.funcList ) do
       local hash = funcDecl:hashCursor()
-      log( funcDecl:getCursorSpelling(), self.hasBodyHashSet[ hash ], hash )
+      log( "func", funcDecl:getCursorSpelling(), self.hasBodyHashSet[ hash ], hash )
       db:addNamespace( funcDecl, self.hasBodyHashSet[ hash ] )
    end
    
@@ -1323,6 +1331,12 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
       end
    )
 
+
+   for index, cursor in ipairs( self.ignoreEnumList ) do
+      local result, list = clang.getChildrenList(
+	 cursor, { clang.core.CXCursor_EnumConstantDecl }, 1 )
+      db:addIgnoreEnum( cursor, list )
+   end
    
    for filePath, spInfo in pairs( self.path2InfoMap ) do
       -- ヘッダの情報を登録する。

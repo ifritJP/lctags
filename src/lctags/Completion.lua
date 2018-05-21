@@ -1349,6 +1349,10 @@ function Completion:expandCursor( writer, db, path, cursor, frontSyntax )
       local enumCursor = cursor
       if kind == clang.core.CXCursor_EnumConstantDecl then
 	 enumCursor = cursor:getCursorSemanticParent()
+	 log( 2, "enum name", enumCursor:getCursorSpelling(),
+	      clang.getCursorKindSpelling( enumCursor:getCursorKind() ),
+	      db:getNamespaceFromCursorCache( enumCursor ).id )
+	 
       end
 
       local fullnameBase = ""

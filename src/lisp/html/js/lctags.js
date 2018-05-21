@@ -84,36 +84,65 @@ function lctags_dumpDir( confId, projDir ) {
     
     var path2IdMap = new Map();
     var filePathObj = $('#filepath');
+    var pathInq = 0;
+    var prevPath = "";
     filePathObj.val( "" );
+    filePathObj.autocomplete( { source: [] } );
     
     filePathObj.keyup( function() {
-        var filepath = this;
-        if ( filepath.value.length == 0 ) {
+        if ( event.which < 48 ) {
+            return;
+        }
+        if ( filePathObj.val().length == 0 ) {
             return;            
         }
-        $.ajax({
-            url: lctags_getPath( 'inq', confId ) +
-                "&command=searchFile&path=" + filepath.value + "&limit=" + limit,
-            type: 'GET',
-            timeout: 10 * 1000
-        }).done(function(data) {
-            var fileList = [];
-            data.lctags_result.searchFile.forEach( function( info ) {
-                var fileInfo = info.info;
-                var path = fileInfo.path;
-                if ( path.startsWith( projDir + "/" ) ) {
-                    path = path.replace( projDir + "/", "" );
-                }
-                fileList.push( path );
-                path2IdMap.set( path, fileInfo.fileId );
-            } );
-            
-            filePathObj.autocomplete({
-                source: fileList
-            });
-            filePathObj.data( "map", path2IdMap );
-        }).fail(function() {
-        });
+        if ( prevPath == filePathObj.val() ) {
+            return;
+        }
+        setTimeout(
+            function( prev ) {
+                return function() {
+                    var input = filePathObj.val();
+                    if ( prev != input ) {
+                        return;
+                    }
+                    var nowInq = pathInq;
+                    $("#filepathGo").prop( "disabled", true );
+                    $.ajax({
+                        url: lctags_getPath( 'inq', confId ) +
+                            "&command=searchFile&path=" + input + "&limit=" + limit,
+                        type: 'GET',
+                        timeout: 10 * 1000
+                    }).done(function(data) {
+                        if ( nowInq != pathInq ) {
+                            return;
+                        }
+                        pathInq++;
+                        var fileList = [];
+                        data.lctags_result.searchFile.forEach( function( info ) {
+                            var fileInfo = info.info;
+                            var path = fileInfo.path;
+                            if ( path.startsWith( projDir + "/" ) ) {
+                                path = path.replace( projDir + "/", "" );
+                            }
+                            fileList.push( path );
+                            path2IdMap.set( path, fileInfo.fileId );
+                        } );
+
+                        fileList = fileList.sort();
+
+                        filePathObj.autocomplete( "destroy" );
+                        filePathObj.autocomplete({
+                            source: fileList
+                        });
+                        filePathObj.trigger( { type : 'keydown', which : 40 });
+                        filePathObj.data( "map", path2IdMap );
+                        prevPath = filePathObj.val();
+                        $("#filepathGo").prop( "disabled", false );
+                    }).fail(function() {
+                    });
+                };
+            }( filePathObj.val() ), 300 );
     });
 
 
@@ -121,36 +150,71 @@ function lctags_dumpDir( confId, projDir ) {
     var name2IdMap = new Map();
     var symbolObj = $('#symbol');
     symbolObj.val( "" );
+    var symbolInq = 0;
+    var prevSymbol = "";
+    symbolObj.autocomplete( { source: [] } );
     
-    symbolObj.keyup( function() {
-        var symbol = this;
-        if ( symbol.value.length == 0 ) {
+    symbolObj.keyup( function( event ) {
+        if ( event.which < 48 ) {
+            return;
+        }
+        if ( symbolObj.val().length == 0 ) {
             return;            
         }
-        $.ajax({
-            url: lctags_getPath( 'inq', confId ) +
-                "&command=searchDecl&name=" + symbol.value + "&limit=" + limit,
-            type: 'GET',
-            timeout: 10 * 1000
-        }).done(function(data) {
-            var nameList = [];
-            name2IdMap.clear();
-            data.lctags_result.searchDecl.forEach( function( info ) {
-                var nameInfo = info.info;
-                var name = nameInfo.name;
-                if ( name2IdMap.has( name ) ) {
-                    return;
-                }
-                nameList.push( name );
-                name2IdMap.set( name, nameInfo.nsId );
-            } );
+        if ( prevSymbol == symbolObj.val() ) {
+            return;
+        }
+        var symbol = symbolObj.val();
+        setTimeout(
+            function( prev ) {
+                return function() {
+                    var input = symbolObj.val();
+                    if ( prev != input ) {
+                        return;
+                    }
+                    var nowInq = symbolInq;
 
-            symbolObj.autocomplete({
-                source: nameList
-            });
-            symbolObj.data( "map", name2IdMap );
-        }).fail(function() {
-        });
+                    $("#symbolGo").prop( "disabled", true );
+                    $.ajax({
+                        url: lctags_getPath( 'inq', confId ) +
+                            "&command=searchDecl&name=" + input + "&limit=" + limit,
+                        type: 'GET',
+                        timeout: 10 * 1000
+                    }).done(function(data) {
+                        if ( nowInq != symbolInq ) {
+                            return;
+                        }
+                        symbolInq++;
+                        var nameList = [];
+                        name2IdMap.clear();
+                        data.lctags_result.searchDecl.forEach( function( info ) {
+                            var nameInfo = info.info;
+                            var name = nameInfo.name;
+                            if ( name2IdMap.has( name ) ) {
+                                return;
+                            }
+                            nameList.push( name );
+                            name2IdMap.set( name, nameInfo.nsId );
+                        } );
+
+                        nameList = nameList.sort();
+                        symbolObj.autocomplete( "destroy" );
+                        symbolObj.autocomplete({
+                            delay: 1000,
+                            source: nameList
+                        });
+                        symbolObj.on( "autocompleteselect",
+                                      function( event, ui ) {
+                                          
+                                      } );
+                        symbolObj.trigger( { type : 'keydown', which : 40 });
+                        symbolObj.data( "map", name2IdMap );
+                        prevSymbol = symbolObj.val();
+                        $("#symbolGo").prop( "disabled", false );
+                    }).fail(function() {
+                    });
+                };
+            }( symbol ), 500 );
     });
 
     
@@ -283,8 +347,9 @@ function lctags_getFileInfo( confId, fileId ) {
 
         
         var parentObj = $('#file-cont' ).get( 0 );
-        var listing = function( labelName, typeList, titleType ) {
+        var listing = function( labelName, typeList, titleTypeList ) {
             var typeSet = new Set( typeList );
+            var titleSet = new Set( titleTypeList );
 
             var label = document.createElement( "h1" );
             label.innerHTML = labelName;
@@ -305,7 +370,7 @@ function lctags_getFileInfo( confId, fileId ) {
                     };
                 }(info);
 
-                if ( info.type == titleType ) {
+                if ( titleSet.has( info.type ) ) {
                     var label = document.createElement( "h2" );
                     label.innerHTML = info.name;
                     parentObj.appendChild( label );
@@ -323,10 +388,12 @@ function lctags_getFileInfo( confId, fileId ) {
         defList.forEach( listing( "typedef", [ "TypedefDecl" ] ) );
         
         defList.forEach( listing(
-            "enums", [ "EnumDecl", "EnumConstantDecl" ], "EnumDecl" ) );
+            "enums", [ "EnumDecl", "EnumConstantDecl" ], [ "EnumDecl" ] ) );
 
         defList.forEach( listing(
-            "structs", [ "StructDecl", "FieldDecl" ], "StructDecl") );
+            "structs/unions/classes",
+            [ "ClassDecl", "UnionDecl", "StructDecl", "FieldDecl" ],
+            [ "ClassDecl", "UnionDecl", "StructDecl" ]) );
 
         defList.forEach( listing( "variables", [ "VarDecl" ]) );
         

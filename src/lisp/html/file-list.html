@@ -21,12 +21,12 @@ window.onload = function() {
 <body>
 
   <input id="filepath" size="50" />
-  <button onclick="lctags_dumpDir_decideFile( $confId$ );" >Go</button>
+  <button id="filepathGo" onclick="lctags_dumpDir_decideFile( $confId$ );" >Go</button>
   <label>FILE (max 100)</label>
   <br>
 
   <input id="symbol" size="50" />
-  <button onclick="lctags_dumpDir_decideSymbol( $confId$ );" >Go</button>
+  <button id="symbolGo" onclick="lctags_dumpDir_decideSymbol( $confId$ );" >Go</button>
   <label>SYMBOL (max 100)</label>
   
 <div id="file-list"></div>

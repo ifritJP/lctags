@@ -186,14 +186,16 @@
 	      ((equal command "searchFile")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
-			  	   (cadr (assoc "path" query))
+			  	   (lctags-replace-txt (cadr (assoc "path" query))
+						       "_" "$_")
 				   "--lctags-form" "json"
 				   "--lctags-candidateLimit"
 				   (cadr (assoc "limit" query))))
 	      ((equal command "searchDecl")
 	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
 				   "inq" command
-			  	   (cadr (assoc "name" query))
+				   (lctags-replace-txt (cadr (assoc "name" query))
+						       "_" "$_")
 				   "--lctags-form" "json"
 				   "--lctags-candidateLimit"
 				   (cadr (assoc "limit" query))))
