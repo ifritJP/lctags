@@ -307,12 +307,20 @@ local function visitFuncMain( cursor, parent, analyzer, exInfo )
 	 if not analyzer.currentFunc then
 	    list = currentSpInfo.enumList
 	 else
-	    table.insert( analyzer.ignoreEnumList, cursor )
+	    table.insert( analyzer.ignoreCursorList, cursor )
 	 end
       elseif cursorKind == clang.core.CXCursor_StructDecl then
-	 list = currentSpInfo.structList
+	 if not analyzer.currentFunc then
+	    list = currentSpInfo.structList
+	 else
+	    table.insert( analyzer.ignoreCursorList, cursor )
+	 end
       elseif cursorKind == clang.core.CXCursor_UnionDecl then
-	 list = currentSpInfo.unionList
+	 if not analyzer.currentFunc then
+	    list = currentSpInfo.unionList
+	 else
+	    table.insert( analyzer.ignoreCursorList, cursor )
+	 end
       elseif cursorKind == clang.core.CXCursor_ClassDecl or
 	 cursorKind == clang.core.CXCursor_ClassTemplate
       then
@@ -608,7 +616,7 @@ function Analyzer:new(
       hash2RangeMap = {},
       cursor2RangeMap = {},
 
-      ignoreEnumList = {},
+      ignoreCursorList = {},
    }
 
    setmetatable( obj, { __index = Analyzer } )
@@ -1168,12 +1176,6 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target, srcFlag )
 	 inclusion, spInfo.fixDigest, fileId2IncFileInfoListMap )
    end
 
-   log( 2, "-- prepro -- ", os.clock(), os.date() )
-   for index, prepro in ipairs( preproDigestList ) do
-      db:addPrepro( prepro.fullPath, prepro.nsName, prepro.digest )
-   end
-
-
    -- ファイル登録の後で、更新チェックをかける
    local uptodateFlag = true
    for filePath, spInfo in pairs( self.path2InfoMap ) do
@@ -1188,7 +1190,8 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target, srcFlag )
    else
       Util:profile(
 	 function()
-	    self:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
+	    self:registerToDB( db, fileId2IncFileInfoListMap,
+			       targetSpInfo, preproDigestList )
 	 end, "profi." .. string.gsub( targetPath, ".*/", "" ) )
    end
 
@@ -1298,7 +1301,8 @@ function Analyzer:registerSpInfo( db, spInfo )
    end
 end
 
-function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
+function Analyzer:registerToDB(
+      db, fileId2IncFileInfoListMap, targetSpInfo, preproDigestList )
 
    if not Option:isValidService() and not Option:isIndivisualWrite() then
       db:commit()
@@ -1332,10 +1336,14 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
    )
 
 
-   for index, cursor in ipairs( self.ignoreEnumList ) do
+   for index, cursor in ipairs( self.ignoreCursorList ) do
       local result, list = clang.getChildrenList(
-	 cursor, { clang.core.CXCursor_EnumConstantDecl }, 1 )
-      db:addIgnoreEnum( cursor, list )
+	 cursor, { clang.core.CXCursor_EnumConstantDecl,
+		   clang.core.CXCursor_FieldDecl,
+		   clang.core.CXCursor_StructDecl,
+		   clang.core.CXCursor_EnumDecl,
+		   clang.core.CXCursor_UnionDecl }, 1 )
+      db:addIgnoreCursor( cursor, list )
    end
    
    for filePath, spInfo in pairs( self.path2InfoMap ) do
@@ -1361,6 +1369,14 @@ function Analyzer:registerToDB( db, fileId2IncFileInfoListMap, targetSpInfo )
 
    self:registerSpInfo( db, targetSpInfo )
 
+   -- 宣言系のデータ登録後に prepro の登録を行なう.
+   -- こうしないと、並列で解析した場合に不整合が発生する
+   log:calcTime( "-- prepro --" )
+   for index, prepro in ipairs( preproDigestList ) do
+      db:addPrepro( prepro.fullPath, prepro.nsName, prepro.digest )
+   end
+
+   
 
    log:calcTime( "-- macroRefList --", #self.macroRefList )
    for index, macroRef in ipairs( self.macroRefList ) do

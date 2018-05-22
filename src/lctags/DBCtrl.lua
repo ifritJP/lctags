@@ -1248,7 +1248,20 @@ function DBCtrl:registTypeDef( cursor )
       return
    end
    local srcCursor = cursor:getTypedefDeclUnderlyingType():getTypeDeclaration()
-   self.hashCursor2FullnameMap[ srcCursor:hashCursor() ] = fullname
+   log( 3, "registTypeDef", fullname, srcCursor:getCursorSpelling() )
+   local srcKind = srcCursor:getCursorKind()
+   if srcKind == clang.core.CXCursor_StructDecl or
+      srcKind == clang.core.CXCursor_UnionDecl or
+      srcKind == clang.core.CXCursor_EnumDecl
+   then
+      local name = srcCursor:getCursorSpelling()
+      if name == "" then
+	 -- anonymous は typedef の名前をセットする。
+	 -- これをセットしないと、参照元から namespace を解決できない。
+	 log( 2, "registTypeDef", fullname )
+	 self.hashCursor2FullnameMap[ srcCursor:hashCursor() ] = fullname
+      end
+   end
 end
 
 function DBCtrl:getFullname( cursor, fileId, anonymousName, typedefName )
@@ -1447,11 +1460,11 @@ function DBCtrl:calcEnumStructDigest( decl, kind, digest )
    end
 end
 
-function DBCtrl:addIgnoreEnum( cursor, memberList )
+function DBCtrl:addIgnoreCursor( cursor, memberList )
    self.ignoreHashCursorSet[ cursor:hashCursor() ] = true
    for index, info in ipairs( memberList ) do
       local valCursor = info[ 1 ]
-      log( 3, "addIgnoreEnum", valCursor:getCursorSpelling() )
+      log( 3, "addIgnoreCursor", valCursor:getCursorSpelling() )
       self.ignoreHashCursorSet[ valCursor:hashCursor() ] = true
    end
 end
@@ -1677,10 +1690,10 @@ function DBCtrl:getNamespaceFromCursorCache( cursor, validCacheFlag )
 			   return item1.line < item2.line
 			end
 	    )
-	    log( 2, "symbolDeclList", #symbolDeclList )
+	    log( 3, "symbolDeclList", #symbolDeclList )
 	 end
       end
-      log( "infoAt", symbolDeclList and #symbolDeclList or "" )
+      log( 3, "infoAt", symbolDeclList and #symbolDeclList or "" )
       symbolDeclInfo = self:infoAt(
       	 "symbolDecl", fileId, line, column,
       	 cursor:getCursorKind(), nil, symbolDeclList )
