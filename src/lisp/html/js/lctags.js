@@ -7,7 +7,7 @@ var lctags_getPath = function( path, confId ) {
 
 function lctags_getCookies( cookiesEle ) {
     $.ajax({
-        url: '/lctags/inq?command=cookies',
+        url: '/lctags/set?command=cookies',
         type: 'GET',
         timeout: 5000
     }).done(function(data) {

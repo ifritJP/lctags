@@ -17,9 +17,7 @@
   (httpd-def-file-servlet lctags/contents lctags-servlet-content-dir))
 
 (defservlet lctags text/json (path query req)
-  (lctags-servlet-gen "/lctags/gen/index.html" query req)
-  )
-
+  (httpd-serve-root t lctags-servlet-content-dir "index.html"))
 
 (defservlet lctags/start text/json (path query req)
   (lctags-servlet-start path query req)
@@ -27,6 +25,10 @@
 
 (defservlet lctags/inq text/json (path query req)
   (lctags-servlet-handle path query req)
+  )
+
+(defservlet lctags/set text/json (path query req)
+  (lctags-servlet-set-handle path query req)
   )
 
 (defservlet lctags/gen text/json (path query req)
@@ -171,99 +173,115 @@
 	 (conf-info (gethash cookie lctags-servlet-cookie-hash))
 	 (command (cadr (assoc "command" query)))
 	 result)
-    (with-temp-buffer
-      (let ((lctags-db (plist-get conf-info :db))
-	    (lctags-target (plist-get conf-info :target))
-	    (lctags-conf (plist-get conf-info :conf)))
-	(cond ((equal command "dumpDir")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command "--lctags-form" "json"))
-	      ((equal command "matchFile")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (cadr (assoc "pattern" query))
-				   "--lctags-form" "json" ))
-	      ((equal command "searchFile")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-			  	   (lctags-replace-txt (cadr (assoc "path" query))
-						       "_" "$_")
-				   "--lctags-form" "json"
-				   "--lctags-candidateLimit"
-				   (cadr (assoc "limit" query))))
-	      ((equal command "searchDecl")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (lctags-replace-txt (cadr (assoc "name" query))
-						       "_" "$_")
-				   "--lctags-form" "json"
-				   "--lctags-candidateLimit"
-				   (cadr (assoc "limit" query))))
-	      ((equal command "defAtFileId")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (cadr (assoc "fileId" query))
-				   "--lctags-form" "json" ))
-	      ((equal command "callee")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (cadr (assoc "nsId" query))
-				   "--lctags-form" "json" ))
-	      ((equal command "caller")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (cadr (assoc "nsId" query))
-				   "--lctags-form" "json" ))
-	      ((equal command "refSym")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (cadr (assoc "nsId" query))
-				   "--lctags-form" "json" ))
-	      ((equal command "decl")
-	       (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				   "inq" command
-				   (cadr (assoc "nsId" query))
-				   "--lctags-form" "json" ))
-	      ((equal command "openDecl")
-	       (lctags-servlet-open-pos 'decl
-					"inq" "decl"
-					(cadr (assoc "nsId" query))))
-	      ((equal command "callPair")
-	       (lctags-servlet-open-pos 'callPair
-					"inq" command
-					(cadr (assoc "nsId" query))
-					(cadr (assoc "belongNsId" query))))
-	      ((equal command "refPair")
-	       (lctags-servlet-open-pos 'refPair
-					"inq" command
-					(cadr (assoc "nsId" query))
-					(cadr (assoc "belongNsId" query))))
-	      ((equal command "cookies")
-	       (let* (obj list)
-		 (maphash (lambda (cookie val)
-			    (setq obj (json-new-object))
-			    (setq obj (json-add-to-object obj "db"
-							  (plist-get val :db)))
-			    (setq obj (json-add-to-object obj "target"
-							  (plist-get val :target)))
-			    (setq obj (json-add-to-object obj "conf"
-							  (plist-get val :conf)))
-			    (setq obj (json-add-to-object obj "targetSymbol"
-							  (car (plist-get val :targetSymbol))))
-			    (setq obj (json-add-to-object obj "targetNsId"
-							  (cadr (plist-get val :targetSymbol))))
-			    (setq obj (json-add-to-object obj "cookie" cookie))
-			    (setq list (cons obj list))
-			    )
-			  lctags-servlet-cookie-hash)
-		 
-		 (insert (json-encode (json-add-to-object (json-new-object)
-							  "list" (vconcat list))))
+    (if (not conf-info)
+	(httpd-error t 404 "not found cookie")
+      (with-temp-buffer
+	(let ((lctags-db (plist-get conf-info :db))
+	      (lctags-target (plist-get conf-info :target))
+	      (lctags-conf (plist-get conf-info :conf)))
+	  (cond ((equal command "dumpDir")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command "--lctags-form" "json"))
+		((equal command "matchFile")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (cadr (assoc "pattern" query))
+				     "--lctags-form" "json" ))
+		((equal command "searchFile")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (lctags-replace-txt (cadr (assoc "path" query))
+							 "_" "$_")
+				     "--lctags-form" "json"
+				     "--lctags-candidateLimit"
+				     (cadr (assoc "limit" query))))
+		((equal command "searchDecl")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (lctags-replace-txt (cadr (assoc "name" query))
+							 "_" "$_")
+				     "--lctags-form" "json"
+				     "--lctags-candidateLimit"
+				     (cadr (assoc "limit" query))))
+		((equal command "defAtFileId")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (cadr (assoc "fileId" query))
+				     "--lctags-form" "json" ))
+		((equal command "callee")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (cadr (assoc "nsId" query))
+				     "--lctags-form" "json" ))
+		((equal command "caller")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (cadr (assoc "nsId" query))
+				     "--lctags-form" "json" ))
+		((equal command "refSym")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (cadr (assoc "nsId" query))
+				     "--lctags-form" "json" ))
+		((equal command "decl")
+		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
+				     "inq" command
+				     (cadr (assoc "nsId" query))
+				     "--lctags-form" "json" ))
+		((equal command "openDecl")
+		 (lctags-servlet-open-pos 'decl
+					  "inq" "decl"
+					  (cadr (assoc "nsId" query))))
+		((equal command "callPair")
+		 (lctags-servlet-open-pos 'callPair
+					  "inq" command
+					  (cadr (assoc "nsId" query))
+					  (cadr (assoc "belongNsId" query))))
+		((equal command "refPair")
+		 (lctags-servlet-open-pos 'refPair
+					  "inq" command
+					  (cadr (assoc "nsId" query))
+					  (cadr (assoc "belongNsId" query))))
+		(t
+		 (httpd-error t 500 (format "not found command -- %s" command))
 		 ))
-	      (t
-	       (httpd-error t 500)
+	  (setq result (buffer-string))))
+      (insert result)
+      (httpd-send-header t "text/json" 200)
+      )))
+
+
+
+(defun lctags-servlet-set-handle (path query req)
+  (let* ((command (cadr (assoc "command" query)))
+	 result)
+    (with-temp-buffer
+      (cond ((equal command "cookies")
+	     (let* (obj list)
+	       (maphash (lambda (cookie val)
+			  (setq obj (json-new-object))
+			  (setq obj (json-add-to-object obj "db"
+							(plist-get val :db)))
+			  (setq obj (json-add-to-object obj "target"
+							(plist-get val :target)))
+			  (setq obj (json-add-to-object obj "conf"
+							(plist-get val :conf)))
+			  (setq obj (json-add-to-object obj "targetSymbol"
+							(car (plist-get val :targetSymbol))))
+			  (setq obj (json-add-to-object obj "targetNsId"
+							(cadr (plist-get val :targetSymbol))))
+			  (setq obj (json-add-to-object obj "cookie" cookie))
+			  (setq list (cons obj list))
+			  )
+			lctags-servlet-cookie-hash)
+	       
+	       (insert (json-encode (json-add-to-object (json-new-object)
+							"list" (vconcat list))))
 	       ))
-	(setq result (buffer-string))))
+	    (t
+	     (httpd-error t 500 (format "not found command -- %s" command))
+	     ))
+      (setq result (buffer-string)))
     (insert result)
     (httpd-send-header t "text/json" 200)
     ))
@@ -278,20 +296,22 @@
 	 (conf-info (gethash cookie lctags-servlet-cookie-hash))
 	 (proj-dir (plist-get conf-info :projDir))
 	 result)
-    (with-temp-buffer
-      (set-buffer-multibyte nil)
-      (insert-file-contents content-path)
-      (dolist (rep-info (cons (list 'projDir proj-dir)
+    (if (not conf-info)
+	(httpd-error t 404 "not found cookie")
+      (with-temp-buffer
+	(set-buffer-multibyte nil)
+	(insert-file-contents content-path)
+	(dolist (rep-info (cons (list 'projDir proj-dir)
 				(copy-sequence query)))
-	(beginning-of-buffer)
-	(replace-string (format "$%s$" (car rep-info))
-			(cadr rep-info) nil (point-min) (point-max)))
-      (setq result (buffer-string)))
-    (insert result)
-    (httpd-send-header t (httpd-get-mime (file-name-extension content-path))
-		       200
-		       :Last-Modified
-		       (httpd-date-string (nth 4 (file-attributes content-path)))))
+	  (beginning-of-buffer)
+	  (replace-string (format "$%s$" (car rep-info))
+			  (cadr rep-info) nil (point-min) (point-max)))
+	(setq result (buffer-string)))
+      (insert result)
+      (httpd-send-header t (httpd-get-mime (file-name-extension content-path))
+			 200
+			 :Last-Modified
+			 (httpd-date-string (nth 4 (file-attributes content-path))))))
   )
 
 (provide 'lctags-servlet)
