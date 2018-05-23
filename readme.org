@@ -95,6 +95,10 @@ include、関数の関係を示すグラフを作成することができます�
 この機能は graphviz の dot を利用します。
 グラフは svg フォーマットで作成します。
 
+*新しいコールグラフ*
+
+https://qiita.com/dwarfJP/items/ef868813a7aaa2572468
+
 *** サンプル
 
 #+CAPTION: サンプル
