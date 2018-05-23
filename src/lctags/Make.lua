@@ -56,6 +56,7 @@ local function searchNeedUpdateFiles( db, list, target )
       -- log( 3, "check path", fileInfo.path )
       if not uptodateFileMap[ fileInfo.id ] then
 	 local targetInfo = db:getTargetInfo( fileInfo.id, target )
+	 local addToDependFlag = false
 	 if targetInfo then
 	    local modTime = Helper.getFileModTime( db:getSystemPath( fileInfo.path ) )
 	    fileId2ModTime[ fileInfo.id ] = modTime
@@ -75,14 +76,22 @@ local function searchNeedUpdateFiles( db, list, target )
 		  if validCheckIncCache then
 		     -- 更新情報が新しい場合、
 		     -- そのファイルがインクルードしているファイルをチェック対象に入れる。
-		     db:mapIncludeCache(
-			fileInfo,
-			function( item )
-			   local incFileInfo = db:getFileInfo( item.id )
-			   -- log( 3, "add needUpdateIncFileInfoMap", incFileInfo.path )
-			   dependFileInfoMap[ item.id ] = incFileInfo
-			   return true
-			end
+		     -- mapIncludeCache だと遅いので、mapIncRefListFrom に切り替え
+		     -- db:mapIncludeCache(
+		     -- fileInfo
+		     db:mapIncRefListFrom(
+		  	fileInfo.id,
+		  	function( item )
+		  	   if not fileId2ModTime[ fileInfo.id ] and
+			      not dependFileInfoMap[ item.id ]
+			   then
+		  	      local incFileInfo = db:getFileInfo( item.id )
+		  	      -- log( 3, "add needUpdateIncFileInfoMap", incFileInfo.path )
+		  	      dependFileInfoMap[ item.id ] = incFileInfo
+			      addToDependFlag = true
+		  	   end
+		  	   return true
+		  	end
 		     )
 		  end
 	       end
@@ -91,16 +100,43 @@ local function searchNeedUpdateFiles( db, list, target )
 	    log( 2, string.format( "this file is not target %s", fileInfo.path ) )
 	 end
       end
+      return addToDependFlag
    end
 
    
    log( 1, "check modified files", #list )
    for index, fileInfo in ipairs( list ) do
+      if ( index % 100 ) == 0 then
+	 log( 1, string.format( "checking pass 1 -- %d/%d", index, #list ), os.date() )
+      end
       checkModTime( fileInfo, true )
    end
 
-   for fileId, fileInfo in pairs( dependFileInfoMap ) do
-      checkModTime( fileInfo, false )
+   -- include ファイルからさらに include しているファイルについてもチェック
+   local checkedFileIdSet = {}
+   local count = 2
+   while true do
+      local addToDependFlag = false
+      local checkList = {}
+      for fileId, fileInfo in pairs( dependFileInfoMap ) do
+	 if not checkedFileIdSet[ fileId ] then
+	    table.insert( checkList, fileInfo )
+	    checkedFileIdSet[ fileId ] = true
+	 end
+      end
+      for index, fileInfo in ipairs( checkList ) do
+	 if ( index % 100 ) == 0 then
+	    log( 1, string.format( "checking pass %d -- %d/%d",
+				   count, index, #checkList ), os.date() )
+	 end
+	 if checkModTime( fileInfo, false ) then
+	    addToDependFlag = true
+	 end
+      end
+      if not addToDependFlag then
+	 break
+      end
+      count = count + 1
    end
 
    local needUpdateIncNum = 0

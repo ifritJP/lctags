@@ -9,7 +9,7 @@ function lctags_getCookies( cookiesEle ) {
     $.ajax({
         url: '/lctags/inq?command=cookies',
         type: 'GET',
-        timeout: 5000,
+        timeout: 5000
     }).done(function(data) {
         var cookieListObj = data.list;
         var cookieList = [];
@@ -78,146 +78,112 @@ function lctags_dumpDir_decideSymbol( confId ) {
     lctags_openCallGraph( confId, nsId, symbolObj.val() );
 }
 
+
+function lctags_autocomplete( targetObj, submitObj, urlFunc, func ) {
+    var listMax = 100;
+    var candidate2IdMap = new Map();
+    var inqId = 0;
+    var prevInput = "";
+    var maxFlag = false;
+    targetObj.val( "" );
+    targetObj.autocomplete( { source: [] } );
+    
+    targetObj.keyup( function( event ) {
+        var val = targetObj.val();
+        if ( val.length == 0 || prevInput == val || candidate2IdMap.has( val ) ) {
+            return;            
+        }
+        if ( prevInput != "" && !maxFlag && val.startsWith( prevInput ) ) {
+            return;
+        }
+        setTimeout(
+            function( prev ) {
+                return function() {
+                    var input = targetObj.val();
+                    if ( prev != input ) {
+                        return;
+                    }
+                    var nowInq = inqId;
+                    submitObj.prop( "disabled", true );
+                    $.ajax({
+                        url: urlFunc( input ),
+                        type: 'GET',
+                        timeout: 10 * 1000
+                    }).done(function(data) {
+                        if ( nowInq != inqId ) {
+                            return;
+                        }
+                        inqId++;
+
+                        candidate2IdMap.clear();
+                        var candidateList = [];
+                        maxFlag = func( data.lctags_result,
+                                        candidateList, candidate2IdMap );
+                        candidateList = candidateList.sort();
+
+                        targetObj.autocomplete( "destroy" );
+                        targetObj.autocomplete({
+                            source: candidateList
+                        });
+                        targetObj.trigger( { type : 'keydown', which : 40 });
+                        targetObj.data( "map", candidate2IdMap );
+                        prevInput = targetObj.val();
+                        submitObj.prop( "disabled", false );
+                    }).fail(function() {
+                    });
+                };
+            }( targetObj.val() ), 300 );
+    });
+    
+}
+
+
 function lctags_dumpDir( confId, projDir ) {
 
     var limit = 100;
+
+    lctags_autocomplete(
+        $('#filepath'), $("#filepathGo"),
+        function( input ) {
+            return lctags_getPath( 'inq', confId ) +
+                "&command=searchFile&path=" + input + "&limit=" + limit;
+        },
+        function( data, candidateList, candidate2IdMap ) {
+            data.searchFile.forEach( function( info ) {
+                var fileInfo = info.info;
+                var path = fileInfo.path;
+                if ( path.startsWith( projDir + "/" ) ) {
+                    path = path.replace( projDir + "/", "" );
+                }
+                candidateList.push( path );
+                candidate2IdMap.set( path, fileInfo.fileId );
+            } );
+            return candidateList.length == 100;
+        }
+    );
+
+
+    lctags_autocomplete(
+        $('#symbol'), $("#symbolGo"),
+        function( input ) {
+            return lctags_getPath( 'inq', confId ) +
+                "&command=searchDecl&name=" + input + "&limit=" + limit;
+        },
+        function( data, candidateList, candidate2IdMap ) {
+            data.searchDecl.forEach( function( info ) {
+                var nameInfo = info.info;
+                var name = nameInfo.name;
+                if ( candidate2IdMap.has( name ) ) {
+                    return;
+                }
+                candidateList.push( name );
+                candidate2IdMap.set( name, nameInfo.nsId );
+            } );
+            return data.searchDecl.length == 100;
+        }
+    );
     
-    var path2IdMap = new Map();
-    var filePathObj = $('#filepath');
-    var pathInq = 0;
-    var prevPath = "";
-    filePathObj.val( "" );
-    filePathObj.autocomplete( { source: [] } );
-    
-    filePathObj.keyup( function() {
-        if ( event.which < 48 ) {
-            return;
-        }
-        if ( filePathObj.val().length == 0 ) {
-            return;            
-        }
-        if ( prevPath == filePathObj.val() ) {
-            return;
-        }
-        setTimeout(
-            function( prev ) {
-                return function() {
-                    var input = filePathObj.val();
-                    if ( prev != input ) {
-                        return;
-                    }
-                    var nowInq = pathInq;
-                    $("#filepathGo").prop( "disabled", true );
-                    $.ajax({
-                        url: lctags_getPath( 'inq', confId ) +
-                            "&command=searchFile&path=" + input + "&limit=" + limit,
-                        type: 'GET',
-                        timeout: 10 * 1000
-                    }).done(function(data) {
-                        if ( nowInq != pathInq ) {
-                            return;
-                        }
-                        pathInq++;
-                        var fileList = [];
-                        data.lctags_result.searchFile.forEach( function( info ) {
-                            var fileInfo = info.info;
-                            var path = fileInfo.path;
-                            if ( path.startsWith( projDir + "/" ) ) {
-                                path = path.replace( projDir + "/", "" );
-                            }
-                            fileList.push( path );
-                            path2IdMap.set( path, fileInfo.fileId );
-                        } );
 
-                        fileList = fileList.sort();
-
-                        filePathObj.autocomplete( "destroy" );
-                        filePathObj.autocomplete({
-                            source: fileList
-                        });
-                        filePathObj.trigger( { type : 'keydown', which : 40 });
-                        filePathObj.data( "map", path2IdMap );
-                        prevPath = filePathObj.val();
-                        $("#filepathGo").prop( "disabled", false );
-                    }).fail(function() {
-                    });
-                };
-            }( filePathObj.val() ), 300 );
-    });
-
-
-
-    var name2IdMap = new Map();
-    var symbolObj = $('#symbol');
-    symbolObj.val( "" );
-    var symbolInq = 0;
-    var prevSymbol = "";
-    symbolObj.autocomplete( { source: [] } );
-    
-    symbolObj.keyup( function( event ) {
-        if ( event.which < 48 ) {
-            return;
-        }
-        if ( symbolObj.val().length == 0 ) {
-            return;            
-        }
-        if ( prevSymbol == symbolObj.val() ) {
-            return;
-        }
-        var symbol = symbolObj.val();
-        setTimeout(
-            function( prev ) {
-                return function() {
-                    var input = symbolObj.val();
-                    if ( prev != input ) {
-                        return;
-                    }
-                    var nowInq = symbolInq;
-
-                    $("#symbolGo").prop( "disabled", true );
-                    $.ajax({
-                        url: lctags_getPath( 'inq', confId ) +
-                            "&command=searchDecl&name=" + input + "&limit=" + limit,
-                        type: 'GET',
-                        timeout: 10 * 1000
-                    }).done(function(data) {
-                        if ( nowInq != symbolInq ) {
-                            return;
-                        }
-                        symbolInq++;
-                        var nameList = [];
-                        name2IdMap.clear();
-                        data.lctags_result.searchDecl.forEach( function( info ) {
-                            var nameInfo = info.info;
-                            var name = nameInfo.name;
-                            if ( name2IdMap.has( name ) ) {
-                                return;
-                            }
-                            nameList.push( name );
-                            name2IdMap.set( name, nameInfo.nsId );
-                        } );
-
-                        nameList = nameList.sort();
-                        symbolObj.autocomplete( "destroy" );
-                        symbolObj.autocomplete({
-                            delay: 1000,
-                            source: nameList
-                        });
-                        symbolObj.on( "autocompleteselect",
-                                      function( event, ui ) {
-                                          
-                                      } );
-                        symbolObj.trigger( { type : 'keydown', which : 40 });
-                        symbolObj.data( "map", name2IdMap );
-                        prevSymbol = symbolObj.val();
-                        $("#symbolGo").prop( "disabled", false );
-                    }).fail(function() {
-                    });
-                };
-            }( symbol ), 500 );
-    });
-
-    
     
     $.ajax({
         url: lctags_getPath( "inq", confId ) + "&command=dumpDir",
@@ -278,7 +244,7 @@ function lctags_matchFile( confId, dirPath, parentObj ) {
     $.ajax({
         url: lctags_getPath( 'inq', confId ) + '&command=matchFile&pattern=' + dirPath,
         type: 'GET',
-        timeout: 5000,
+        timeout: 5000
     }).done(function(data) {
         var fileListObj = data.lctags_result.matchFile;
         var fileList = [];
@@ -325,7 +291,7 @@ function lctags_getFileInfo( confId, fileId ) {
     $.ajax({
         url: lctags_getPath( 'inq', confId ) + "&command=defAtFileId&fileId=" + fileId,
         type: 'GET',
-        timeout: 5000,
+        timeout: 5000
     }).done(function(data) {
         var defListObj = data.lctags_result.defAtFileId;
         var defList = [];
