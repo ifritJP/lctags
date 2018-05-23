@@ -184,12 +184,6 @@ libclanglua については次を参照してください。
 
 https://qiita.com/dwarfJP/items/607d46e0a1dcb1e3a2a5
 
-lctags は libclanglua を利用して libclang を操作します。
-
-libclanglua については次を参照してください。
-
-https://qiita.com/dwarfJP/items/607d46e0a1dcb1e3a2a5
-
 ** チュートリアル
 
 *** DB の作成
