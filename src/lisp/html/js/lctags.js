@@ -93,8 +93,10 @@ function lctags_autocomplete( targetObj, submitObj, urlFunc, func ) {
         if ( val.length == 0 || prevInput == val || candidate2IdMap.has( val ) ) {
             return;            
         }
-        if ( prevInput != "" && !maxFlag && val.startsWith( prevInput ) ) {
-            return;
+        if ( val.indexOf( " " ) == -1 ) {
+            if ( prevInput != "" && !maxFlag && val.startsWith( prevInput ) ) {
+                return;
+            }
         }
         setTimeout(
             function( prev ) {
@@ -123,9 +125,10 @@ function lctags_autocomplete( targetObj, submitObj, urlFunc, func ) {
 
                         targetObj.autocomplete( "destroy" );
                         targetObj.autocomplete({
+                            minLength: 0,
                             source: candidateList
                         });
-                        targetObj.trigger( { type : 'keydown', which : 40 });
+                        targetObj.autocomplete( "search", "" );
                         targetObj.data( "map", candidate2IdMap );
                         prevInput = targetObj.val();
                         submitObj.prop( "disabled", false );
@@ -146,7 +149,8 @@ function lctags_dumpDir( confId, projDir ) {
         $('#filepath'), $("#filepathGo"),
         function( input ) {
             return lctags_getPath( 'inq', confId ) +
-                "&command=searchFile&path=" + input + "&limit=" + limit;
+                "&command=searchFile&path=" +
+                input.replace( / /g, "%%" ) + "&limit=" + limit;
         },
         function( data, candidateList, candidate2IdMap ) {
             data.searchFile.forEach( function( info ) {
@@ -167,7 +171,8 @@ function lctags_dumpDir( confId, projDir ) {
         $('#symbol'), $("#symbolGo"),
         function( input ) {
             return lctags_getPath( 'inq', confId ) +
-                "&command=searchDecl&name=" + input + "&limit=" + limit;
+                "&command=searchDecl&name=" +
+                input.replace( / /g, "%" ) + "&limit=" + limit;
         },
         function( data, candidateList, candidate2IdMap ) {
             data.searchDecl.forEach( function( info ) {
