@@ -90,7 +90,12 @@ function lctags_autocomplete( targetObj, submitObj, urlFunc, func ) {
     
     targetObj.keyup( function( event ) {
         var val = targetObj.val();
-        if ( val.length == 0 || prevInput == val || candidate2IdMap.has( val ) ) {
+        if ( val.length == 0 ) {
+            targetObj.autocomplete( "destroy" );
+            targetObj.autocomplete( { source: [] } );
+            return;
+        }
+        if ( prevInput == val || candidate2IdMap.has( val ) ) {
             return;            
         }
         if ( val.indexOf( " " ) == -1 ) {
