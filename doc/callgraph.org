@@ -3,9 +3,9 @@
 #+STARTUP: nofold
 #+OPTIONS: ^:{}
 
-#+TITLE: C/C++ コードを解析してインタラクティブなコールグラフ表示 by lctags
+#+TITLE: C言語/C++ コードを解析してインタラクティブなコールグラフ表示 by lctags
 
-lctags で解析した C/C++ コードの情報を基に、
+lctags で解析した C言語/C++ コードの情報を基に、
 インタラクティブなコールグラフ表示に対応しました。
 
 [[https://raw.githubusercontent.com/ifritJP/lctags/master/doc/callgraph.png]]
