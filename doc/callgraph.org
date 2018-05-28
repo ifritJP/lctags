@@ -51,6 +51,9 @@ D3.js と svg に対応したブラウザを用意してください。
 このコールグラフは、ブラウザで表示するため HTTPD を必要とします。
 lctags では emacs を HTTPD とします。
 
+*emacs との連携機能を省いた python 版の HTTPD を作成しました。記事の末尾を参照してください。*
+
+
 * 使用方法
 
 ここではコールグラフを表示するための手順を説明します。
@@ -278,3 +281,17 @@ tree レイアウト以上に良い結果を得られると思います。
 
 force レイアウトのプロトタイプは、lctags に含めてあります。
 興味のある方は動かしてみてください。
+
+* python 版 HTTPD について
+
+コールグラフ確認サーバを立ててチームでコールグラフ機能を共有する場合、
+emacs が HTTPD だと色々と不便です。
+
+そこで、 emacs 連携機能を省いた python 版の HTTPD を作成しました。
+
+#+BEGIN_SRC txt
+$ python httpd.py [-lctags=path] port dbpath
+#+END_SRC
+
+httpd.py は src/lisp/httpd.py に格納しています。
+httpd.py は 2.x 系 python を利用します。

@@ -17,6 +17,7 @@
   (httpd-def-file-servlet lctags/contents lctags-servlet-content-dir))
 
 (defservlet lctags text/json (path query req)
+  "When servlet is accessed for '/lctags', servlet returns index.html. "
   (httpd-serve-root t lctags-servlet-content-dir "index.html"))
 
 (defservlet lctags/start text/json (path query req)
@@ -27,8 +28,8 @@
   (lctags-servlet-handle path query req)
   )
 
-(defservlet lctags/set text/json (path query req)
-  (lctags-servlet-set-handle path query req)
+(defservlet lctags/get text/json (path query req)
+  (lctags-servlet-get-handle path query req)
   )
 
 (defservlet lctags/gen text/json (path query req)
@@ -43,6 +44,42 @@
 (defvar lctags-servlet-cookie-hash-key (make-hash-table :test 'equal)
   "key -> val map")
 (defvar lctags-servlet-last-cookie nil)
+
+
+(defconst lctags-servlet-api-info-table
+  `(("dumpDir" (:param ("--lctags-form" "json")))
+    ("matchFile" (:param ("?pattern" "--lctags-form" "json" )))
+    ("searchFile" (:param (("?path" ,(lambda (val)
+				       (lctags-replace-txt val "_" "$_")))
+			   "--lctags-form" "json"
+			   "--lctags-candidateLimit" "?limit")))
+    ("searchDecl" (:param (("?name" ,(lambda (val)
+				       (lctags-replace-txt val "_" "$_")))
+			   "--lctags-form" "json"
+			   "--lctags-candidateLimit" "?limit")))
+    ("defAtFileId" (:param ("?fileId" "--lctags-form" "json" )))
+    ("callee" (:param ("?nsId" "--lctags-form" "json" )))
+    ("caller" (:param ("?nsId" "--lctags-form" "json" )))
+    ("refSym" (:param ("?nsId" "--lctags-form" "json" )))
+    ("decl" (:param ("?nsId" "--lctags-form" "json" )))
+    ("openDecl" (:param (decl "inq" "decl" "?nsId")
+			:func lctags-servlet-open-pos))
+    ("callPair" (:param (callPair "inq" "callPair" "?nsId" "?belongNsId")
+			:func lctags-servlet-open-pos))
+    ("refPair" (:param (refPair "inq" "refPair" "?nsId" "?belongNsId")
+		       :func lctags-servlet-open-pos)))
+  "REST API information table.
+'(API (:param PARAM-LIST :func FUNC))
+
+- API: API name
+- PARAM-LIST: parameter list.
+   if type of parameter is string and the parameter starts with ?, use from query.
+   if type of parameter is string and the parameter does not starts with ?, use raw.
+   if type of parameter is the list, the list consists of (val func).
+- FUNC: if FUNC is specified, servlet process the form (apply func param).
+")
+
+;; 
 
 
 ;;(gethash 0 lctags-servlet-cookie-hash)
@@ -167,6 +204,11 @@
 	))
     ))
 
+(defun lctags-servlet-conv-param (val query)
+  (if (string-match "^\\?" val)
+      (cadr (assoc (substring val 1) query))
+    val))
+
 (defun lctags-servlet-handle (path query req)
   (let* ((cookie (string-to-number
 		  (or (cadr (assoc "confId" query)) "-1")))
@@ -176,75 +218,36 @@
     (if (not conf-info)
 	(httpd-error t 404 "not found cookie")
       (with-temp-buffer
-	(let ((lctags-db (plist-get conf-info :db))
-	      (lctags-target (plist-get conf-info :target))
-	      (lctags-conf (plist-get conf-info :conf)))
-	  (cond ((equal command "dumpDir")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command "--lctags-form" "json"))
-		((equal command "matchFile")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (cadr (assoc "pattern" query))
-				     "--lctags-form" "json" ))
-		((equal command "searchFile")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (lctags-replace-txt (cadr (assoc "path" query))
-							 "_" "$_")
-				     "--lctags-form" "json"
-				     "--lctags-candidateLimit"
-				     (cadr (assoc "limit" query))))
-		((equal command "searchDecl")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (lctags-replace-txt (cadr (assoc "name" query))
-							 "_" "$_")
-				     "--lctags-form" "json"
-				     "--lctags-candidateLimit"
-				     (cadr (assoc "limit" query))))
-		((equal command "defAtFileId")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (cadr (assoc "fileId" query))
-				     "--lctags-form" "json" ))
-		((equal command "callee")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (cadr (assoc "nsId" query))
-				     "--lctags-form" "json" ))
-		((equal command "caller")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (cadr (assoc "nsId" query))
-				     "--lctags-form" "json" ))
-		((equal command "refSym")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (cadr (assoc "nsId" query))
-				     "--lctags-form" "json" ))
-		((equal command "decl")
-		 (lctags-execute-op2 (current-buffer) (current-buffer) nil nil
-				     "inq" command
-				     (cadr (assoc "nsId" query))
-				     "--lctags-form" "json" ))
-		((equal command "openDecl")
-		 (lctags-servlet-open-pos 'decl
-					  "inq" "decl"
-					  (cadr (assoc "nsId" query))))
-		((equal command "callPair")
-		 (lctags-servlet-open-pos 'callPair
-					  "inq" command
-					  (cadr (assoc "nsId" query))
-					  (cadr (assoc "belongNsId" query))))
-		((equal command "refPair")
-		 (lctags-servlet-open-pos 'refPair
-					  "inq" command
-					  (cadr (assoc "nsId" query))
-					  (cadr (assoc "belongNsId" query))))
-		(t
-		 (httpd-error t 500 (format "not found command -- %s" command))
-		 ))
+	(let* ((lctags-db (plist-get conf-info :db))
+	       (lctags-target (plist-get conf-info :target))
+	       (lctags-conf (plist-get conf-info :conf))
+	       (command-info (cadr (assoc command lctags-servlet-api-info-table)))
+	       (command-func (plist-get command-info :func))
+		param-list)
+	  (if (not command-info)
+	      (httpd-error t 500 (format "not found command -- %s" command))
+	    (setq param-list
+		  (mapcar (lambda (val)
+			    (cond ((stringp val)
+				   (lctags-servlet-conv-param val query))
+				  ((listp val)
+				   (let ((param (lctags-servlet-conv-param
+						 (car val) query))
+					 (func (cadr val)))
+				     (funcall func param)))
+				  ((functionp val)
+				   (httpd-error t 500 (format "illegal param -- %s" val)))
+				  (t
+				   val)))
+			  (plist-get command-info :param)))
+	    (if command-func
+		(apply command-func param-list)
+	      (apply 'lctags-execute-op2
+		     (current-buffer) (current-buffer) nil nil
+		     "inq" (if (plist-get command-func :command)
+			       (plist-get command-func :command)
+			     command)
+		     param-list)))
 	  (setq result (buffer-string))))
       (insert result)
       (httpd-send-header t "text/json" 200)
@@ -252,7 +255,7 @@
 
 
 
-(defun lctags-servlet-set-handle (path query req)
+(defun lctags-servlet-get-handle (path query req)
   (let* ((command (cadr (assoc "command" query)))
 	 result)
     (with-temp-buffer
