@@ -552,3 +552,52 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
     }).fail(function() {
     });
 }
+
+function lctags_moduleGraph_force( confId ) {
+
+    var nsId = 2208;
+    var obj;
+    var paramInfo = {
+        svgClick: function() {
+            ;
+        },
+        nodeClick: function( node ) {
+            d3.event.stopPropagation();
+            if ( node.opened ) {
+                obj.addNodeLink( [], [] );
+            }
+            else {
+                node.opened = true;
+            }
+        }
+    };
+    
+    obj = lctags_graph_module( paramInfo );
+
+    $.ajax({
+        url: lctags_getPath( 'inq', confId ) + '&command=callee&nsId=' + nsId,
+        type: 'GET',
+        timeout: 5000
+    }).done(function(data) {
+        var funcListObj = data.lctags_result.callee;
+
+        var nodeInfoArray = [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ];
+        var linkInfoArray = [];
+        for (val in funcListObj) {
+            var info = funcListObj[ val ].info;
+
+            if ( !obj.nodeMap.has( info.nsId ) ) {
+                nodeInfoArray.push(
+                    { nsId: info.nsId,
+                      name: info.name, pos: [ 0, 0 ] } );
+            }
+
+            linkInfoArray.push(
+                { src: nsId, dst: info.nsId } );
+        }
+
+        obj.addNodeLink( nodeInfoArray, linkInfoArray );
+    }).fail(function() {
+    });
+}
+

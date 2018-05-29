@@ -565,5 +565,117 @@ function projDir:queryOutput( db, isLimit, output, target )
 end
 
 
+------ refSymbolModule ------
+
+local refSymbolModule = QueryParam:addQuery( { name = "refSymbolModule" } )
+
+function refSymbolModule:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "nsId", item.nsId )
+   writer:write( "refFileId", item.refFileId )
+   writer:write( "refLine", item.refLine )
+   writer:write( "declFileId", item.declFileId )
+   writer:write( "declLine", item.declLine )
+   writer:endElement()
+end
+
+function refSymbolModule:queryOutput( db, isLimit, output, target )
+    self.fileIdSet = {}
+
+  -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
+   -- 参照しているファイルを取得
+   db:mapRefSymbolModule(
+      target, true,
+      function( item )
+	 if isLimit() then return false; end
+	 self.fileIdSet[ item.refFileId ] = true
+	 output( db, self.name, target, target, item )
+	 return true
+      end
+   )
+end
+
+function refSymbolModule:queryOutputFooter( writer, db )
+   if not self.fileIdSet then
+      return
+   end
+   writer:startParent( "fileList", true )
+   for fileId in pairs( self.fileIdSet ) do
+      writer:startParent( "info" )
+      writer:write( "fileId", fileId )
+      local fileInfo = db:getFileInfo( fileId )
+      writer:write( "path", db:convFullpath( db:getSystemPath( fileInfo.path ) ) )
+      writer:endElement()
+   end
+   writer:endElement()
+end
+
+------ refSymbolFile ------
+
+local refSymbolFile = QueryParam:addQuery( { name = "refSymbolFile" } )
+
+function refSymbolFile:getQueryParam( param )
+   return { nil, { param[ 1 ], param[ 2 ] } }
+end
+
+function refSymbolFile:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "nsId", item.nsId )
+   writer:write( "refFileId", item.refFileId )
+   writer:write( "refLine", item.refLine )
+   writer:write( "declFileId", item.declFileId )
+   writer:write( "declLine", item.declLine )
+   writer:endElement()
+end
+
+function refSymbolFile:queryOutput( db, isLimit, output, target )
+    self.fileIdSet = {}
+
+  -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
+   -- 参照しているファイルを取得
+    local fileId = tonumber( target[1] )
+    local excludePath = target[ 2 ] 
+   db:mapRefSymbolFile(
+      { fileId }, excludePath, true,
+      function( item )
+	 if isLimit() then return false; end
+	 self.fileIdSet[ item.refFileId ] = true
+	 output( db, self.name, target, target, item )
+	 return true
+      end
+   )
+end
+
+function refSymbolFile:queryOutputFooter( writer, db )
+   if not self.fileIdSet then
+      return
+   end
+   writer:startParent( "fileList", true )
+   for fileId in pairs( self.fileIdSet ) do
+      writer:startParent( "info" )
+      writer:write( "fileId", fileId )
+      local fileInfo = db:getFileInfo( fileId )
+      writer:write( "path", db:convFullpath( db:getSystemPath( fileInfo.path ) ) )
+      writer:endElement()
+   end
+   writer:endElement()
+end
+
+
+------ filePath ------
+
+local filePath = QueryParam:addQuery( { name = "filePath" } )
+
+function filePath:queryOutputItem( writer, db, item )
+   writer:startParent( "info" )
+   writer:write( "fileId", item.id )
+   writer:write( "path", db:convFullpath( db:getSystemPath( item.path ) ) )
+   writer:endElement()
+end
+
+function filePath:queryOutput( db, isLimit, output, target )
+   output( db, self.name, target, target, db:getFileInfo( tonumber( target ) ) )
+end
+
 
 return QueryParam

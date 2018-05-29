@@ -879,6 +879,14 @@ function DBCtrl:mapJoin2(
 		     condition, limit, attrib, func )
 end
 
+function DBCtrl:mapJoin3(
+      tableName, otherTable, on, otherTable2, on2, otherTable3, on3, 
+      condition, limit, attrib, func )
+   self.db:mapJoin3( tableName, otherTable, on, otherTable2, on2,
+		     otherTable3, on3, condition, limit, attrib, func )
+end
+
+
 function DBCtrl:mapRowList( tableName, condition, limit, attrib, func )
    return self.db:mapRowList( tableName, condition, limit, attrib, func )
 end
@@ -3452,6 +3460,102 @@ function DBCtrl:mapCallerDecl( nsId, func )
 		    .. "symbolDecl.fileId, symbolDecl.line",
 		 func )
 end
+
+
+--[[
+   searchRefed が真の場合、
+   dir ディレクトリ以降のファイル内で定義したシンボルを
+   参照しているファイルをピックアップ。
+   searchRefed が偽の場合、
+   dir ディレクトリ以降のファイル内が参照しているシンボルを
+   定義しているファイルをピックアップ。
+   
+   ピックアップするファイルは、 dir ディレクトリ以降のファイルは除外。
+]]
+function DBCtrl:mapRefSymbolModule( dir, searchRefed, func )
+   -- dir 以降の fileId を取得
+   local fileIdList = {}
+   local excludeFileSet = {}
+   local path = self:convPath( dir )
+   if not string.find( path, "/$" ) then
+      path = path .. "/"
+   end
+   self:mapRowList(
+      "filePath",
+      string.format( "path like '%s%%' escape '$'", path ),
+      nil, nil,
+      function( item )
+	 table.insert( fileIdList, item.id )
+	 excludeFileSet[ item.id ] = true
+	 return true
+      end
+   )
+
+   self:mapRefSymbolFileExcludeSet( fileIdList, excludeFileSet, searchRefed, func )
+end
+
+
+
+--[[
+   searchRefed が真の場合、
+   fileIdList の fileId 内で定義したシンボルを参照しているファイルをピックアップする。
+   searchRefed が偽の場合、
+   fileIdList の fileId 内で参照しているシンボルを定義しているファイルをピックアップする。
+   ファイルが excludePath 以降にある場合、ピックアップしない。
+]]
+function DBCtrl:mapRefSymbolFile( fileIdList, excludePath, searchRefed, func )
+   -- excludePath 以降の fileId を取得
+   local excludeFileSet = {}
+   excludePath = self:convPath( excludePath )
+   self:mapRowList(
+      "filePath",
+      string.format( "path like '%s%%' escape '$'", excludePath ),
+      nil, nil,
+      function( item )
+	 excludeFileSet[ item.id ] = true
+	 return true
+      end
+   )
+
+   self:mapRefSymbolFileExcludeSet( fileIdList, excludeFileSet, searchRefed, func )
+end
+
+
+function DBCtrl:mapRefSymbolFileExcludeSet(
+      fileIdList, excludeFileSet, searchRefed, func )
+   local cond = ""
+   for index, fileId in ipairs( fileIdList ) do
+      if index > 1 then
+	 cond = cond .. " OR "
+      end
+      if searchRefed then
+	 cond = string.format( "%s symbolDecl.fileId = %d", cond, fileId )
+      else
+	 cond = string.format( "%s symbolRef.fileId = %d", cond, fileId )
+      end
+   end
+
+   -- sql で除外すると異常に効率が悪いので、ピックアップした後に lua 側で除外はする
+   
+   self:mapJoin( "symbolRef", "symbolDecl", "symbolRef.nsId = symbolDecl.nsId",
+		 string.format( "(%s) AND refFileId <> declFileId", cond ), 1000000,
+		  "symbolRef.nsId, "
+		     .. "symbolRef.fileId AS refFileId, symbolRef.line AS refLine, "
+		     .. "symbolDecl.fileId AS declFileId, symbolDecl.line AS declLine",
+		  function( item )
+		     if excludeFileSet[ item.refFileId ] then
+			return true
+		     end
+		     if item.type == clang.core.CXCursor_TypedefDecl or
+			item.type == clang.core.CXCursor_MacroDefinition
+		     then
+			return true
+		     end
+		     return func( item )
+		  end
+		   )
+end
+
 
 
 function DBCtrl:mapFuncDeclPattern( pattern, func )
