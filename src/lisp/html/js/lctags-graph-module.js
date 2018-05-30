@@ -1,4 +1,4 @@
-function lctags_graph_module( paramInfo ) {
+function lctags_graph_module( paramInfo, targetDir ) {
 
     var obj = {};
 
@@ -14,18 +14,13 @@ function lctags_graph_module( paramInfo ) {
         return linkD2( d.source, d.target );
     }
 
-    function linkDPrev( d ) {
-        var src = d.source.data;
-        var dst = d.target.data;
-        return linkD2( { x: src.x0, y: src.y0 },
-                       { x: dst.x0, y: dst.y0 } );
-    }
-    
     function linkD2( src, dst ) {
-        // return "M" + src.x + "," + src.y
-        //     + "C" + (src.x + dst.y) / 1 + "," + src.y
-        //     + " " + (src.x + dst.y) / 1 + "," + dst.y
-        //     + " " + dst.x + "," + dst.y;
+        // if ( src.parentNode ) {
+        //     src = src.parentNode;
+        // }
+        // if ( dst.parentNode ) {
+        //     dst = dst.parentNode;
+        // }
         return "M" + src.x + "," + src.y
             + "L" + dst.x + "," + dst.y;
     }
@@ -35,6 +30,7 @@ function lctags_graph_module( paramInfo ) {
     obj.nodes = [];
     obj.links = [];
     obj.nodeMap = new Map();
+    obj.name2nodeMap = new Map();
     obj.orgX = width / 2;
     obj.orgY = height / 2;
     obj.dragX = 0;
@@ -96,17 +92,42 @@ function lctags_graph_module( paramInfo ) {
         if ( nodeInfoArray ) {
             for ( index in nodeInfoArray ) {
                 var info = nodeInfoArray[ index ];
-                if ( obj.nodeMap.has( info.nsId ) ) {
+                if ( obj.nodeMap.has( info.fileId ) ) {
                     continue;
                 }
-                var node = { x: info.pos[0],
-                             y: info.pos[1],
-                             name: info.name, nsId: info.nsId,
-                             opened: false, selected: false,
-                             dstMap: new Map(), srcMap: new Map()
-                           };
-                obj.nodes.push( node );
-                obj.nodeMap.set( node.nsId, node );
+                
+                var node = {
+                    id: idSeed++,
+                    x: info.pos[0], y: info.pos[1],
+                    name: info.name, fileId: info.fileId,
+                    opened: false, selected: false,
+                    children: [],
+                    dstMap: new Map(), srcMap: new Map()
+                };
+                obj.nodeMap.set( node.fileId, node );
+
+                var dirname = info.name.substring( 0, info.name.lastIndexOf( "/" ) );
+                if ( dirname.startsWith( targetDir ) ) {
+                    dirname = targetDir;
+                }
+                
+                var parentNode = obj.name2nodeMap.get( dirname );
+                
+                if ( parentNode == null ) {
+                    var newNode = {
+                        id: idSeed++,
+                        x: 0, y: 0,
+                        name: dirname, fileId: 0,
+                        opened: false, selected: false,
+                        children: []
+                    };
+                    parentNode = newNode;
+                    obj.nodes.push( newNode );
+                    obj.name2nodeMap.set( dirname, newNode );
+                }
+                parentNode.children.push( node );
+                node.parentNode = parentNode;
+                
                 modFlag = true;
             }
         }
@@ -118,25 +139,15 @@ function lctags_graph_module( paramInfo ) {
                     var srcNode = obj.nodeMap.get( info.src );
                     var dstNode = obj.nodeMap.get( info.dst );
 
-                    var link = { source: srcNode, target: dstNode };
-                    
-                    srcNode.dstMap.set( dstNode, link );
-                    dstNode.srcMap.set( srcNode, link );
+                    srcNode.dstMap.set( dstNode, true );
+                    dstNode.srcMap.set( srcNode, true );
 
-                    var weight =
-                        srcNode.dstMap.size +
-                        srcNode.srcMap.size +
-                        dstNode.dstMap.size +
-                        dstNode.srcMap.size;
-                    link.weight = weight;
-                    
-                    obj.links.push( link );
                     modFlag = true;
                 }
             }
         }
 
-        
+
         lctags_update( obj, modFlag );
     };
 
@@ -146,9 +157,9 @@ function lctags_graph_module( paramInfo ) {
 
         var deleteNode = function( delNode ) {
             obj.nodes = obj.nodes.filter(function(n) {
-                return delNode.nsId != n.nsId;
+                return delNode.fileId != n.fileId;
             });
-            obj.nodeMap.delete( delNode.nsId );
+            obj.nodeMap.delete( delNode.fileId );
 
             delNode.srcMap.forEach( function( link, srcNode ) {
                 srcNode.dstMap.delete( delNode );
@@ -193,6 +204,53 @@ function lctags_graph_module( paramInfo ) {
 
     function lctags_update( obj, startForceFlag ) {
 
+
+        var dispNodeSet = new Set();
+        var workNodes = [];
+        obj.nodes.forEach( function( node ) {
+            var dispNode = node;
+            if ( !node.parentNode ) {
+                if ( node.children.length == 1 ) {
+                    dispNode = node.children[ 0 ]; 
+                }
+            }
+            workNodes.push( dispNode );
+            dispNodeSet.add( dispNode );
+        });
+        obj.nodes = workNodes;
+
+        obj.links = [];
+        obj.nodes.forEach( function( node ) {
+            var srcNodeSet = new Set();
+            var linkCount = 0;
+
+            var checkNodeLink = function( child ) {
+                child.srcMap.forEach( function( val, src ) {
+                    if ( !dispNodeSet.has( src ) ) {
+                        src = src.parentNode;
+                    }
+                    linkCount++;
+                    if ( !srcNodeSet.has( src ) ) {
+                        srcNodeSet.add( src );
+                        obj.links.push( { target: node, source: src } );
+                    }
+               });
+            };
+
+            if ( node.parentNode ) {
+                checkNodeLink( node );
+            }
+            else {
+                node.children.forEach( checkNodeLink );
+            }
+            node.linkCount = linkCount;
+        });
+
+
+        
+
+        
+
         // transition
         var t = d3.transition().duration(750);    
 
@@ -208,7 +266,25 @@ function lctags_graph_module( paramInfo ) {
                 .attr("class", "node")
                 .attr( "id", function( d ) { return "node" + d.id; } )
                 .attr("transform", "translate( 0, 0 )" )
-                .style( "cursor", "pointer" );
+                .style( "cursor", "pointer" )
+                .on( "click", function( node ) {
+                    if ( node.parentNode ) {
+                        obj.nodes = obj.nodes.filter( function( val ) {
+                            return val.parentNode != node.parentNode;
+                        });
+                        obj.nodes.push( nodes.parentNode );
+                    }
+                    else {
+                        obj.nodes = obj.nodes.filter( function( val ) {
+                            return val.id != node.id;
+                        });
+                        node.children.forEach( function( child ) {
+                            obj.nodes.push( child );
+                        });
+                    }
+                    lctags_update( obj, true );
+                });
+        
 
         nodeEnter.append("svg:circle")
             .attr("r", node_r)
@@ -222,7 +298,7 @@ function lctags_graph_module( paramInfo ) {
             .attr("dy", ".35em")
             .attr("font-size", "11px")
             .attr( "font-weight", "bold" )
-            .text(function(d) { return d.name; });
+            .text(function(d) { return d.name + "(" + d.linkCount + ")"; });
 
 
         // ノード削除  (最終位置を親のノード位置とする)
@@ -275,9 +351,9 @@ function lctags_graph_module( paramInfo ) {
                         d3.forceLink( obj.links )
                         .distance( 
                             function( link ) {
-                                return 200;
+                                return 400;
                             })
-                        .strength(0.1).iterations(2) )
+                        .strength(0.6).iterations(2) )
                 .alpha(1)
                 .alphaTarget(0).restart();
         }

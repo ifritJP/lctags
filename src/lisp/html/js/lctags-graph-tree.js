@@ -581,7 +581,18 @@ function lctags_graph_tree( projDir, paramInfo ) {
     };
 
     obj.addChild = function( parentId, nodeList, fileList ) {
+        if ( fileList ) {
+            fileList.forEach( function( file ) {
+                if ( !obj.fileId2InfoMap.get( file.fileId ) ) {
+                    obj.fileId2InfoMap.set(
+                        file.fileId,
+                        { path: file.path, fileId: file.fileId,
+                          colorId: obj.fileId2InfoMap.size, checked: false } );
+                }
+            } );
+        }
 
+        
         if ( parentId == null ) {
             rootNode = obj.newNode(
                 nodeList[0].nsId, nodeList[0].name, -1 );
@@ -596,15 +607,6 @@ function lctags_graph_tree( projDir, paramInfo ) {
                         workSrc = d.data;
                     }
                 });
-
-            fileList.forEach( function( file ) {
-                if ( !obj.fileId2InfoMap.get( file.fileId ) ) {
-                    obj.fileId2InfoMap.set(
-                        file.fileId,
-                        { path: file.path, fileId: file.fileId,
-                          colorId: obj.fileId2InfoMap.size, checked: false } );
-                }
-            } );
 
             obj.fileIdList = [];
             obj.fileId2InfoMap.forEach( function( info ) {

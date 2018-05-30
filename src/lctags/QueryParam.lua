@@ -565,11 +565,11 @@ function projDir:queryOutput( db, isLimit, output, target )
 end
 
 
------- refSymbolModule ------
+------ refDir ------
 
-local refSymbolModule = QueryParam:addQuery( { name = "refSymbolModule" } )
+local refDir = QueryParam:addQuery( { name = "refDir" } )
 
-function refSymbolModule:queryOutputItem( writer, db, item )
+function refDir:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.nsId )
    writer:write( "refFileId", item.refFileId )
@@ -579,7 +579,7 @@ function refSymbolModule:queryOutputItem( writer, db, item )
    writer:endElement()
 end
 
-function refSymbolModule:queryOutput( db, isLimit, output, target )
+function refDir:queryOutput( db, isLimit, output, target )
     self.fileIdSet = {}
 
   -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
@@ -589,13 +589,14 @@ function refSymbolModule:queryOutput( db, isLimit, output, target )
       function( item )
 	 if isLimit() then return false; end
 	 self.fileIdSet[ item.refFileId ] = true
+	 self.fileIdSet[ item.declFileId ] = true
 	 output( db, self.name, target, target, item )
 	 return true
       end
    )
 end
 
-function refSymbolModule:queryOutputFooter( writer, db )
+function refDir:queryOutputFooter( writer, db )
    if not self.fileIdSet then
       return
    end
@@ -610,15 +611,15 @@ function refSymbolModule:queryOutputFooter( writer, db )
    writer:endElement()
 end
 
------- refSymbolFile ------
+------ refFile ------
 
-local refSymbolFile = QueryParam:addQuery( { name = "refSymbolFile" } )
+local refFile = QueryParam:addQuery( { name = "refFile" } )
 
-function refSymbolFile:getQueryParam( param )
+function refFile:getQueryParam( param )
    return { nil, { param[ 1 ], param[ 2 ] } }
 end
 
-function refSymbolFile:queryOutputItem( writer, db, item )
+function refFile:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "nsId", item.nsId )
    writer:write( "refFileId", item.refFileId )
@@ -628,7 +629,7 @@ function refSymbolFile:queryOutputItem( writer, db, item )
    writer:endElement()
 end
 
-function refSymbolFile:queryOutput( db, isLimit, output, target )
+function refFile:queryOutput( db, isLimit, output, target )
     self.fileIdSet = {}
 
   -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
@@ -640,13 +641,14 @@ function refSymbolFile:queryOutput( db, isLimit, output, target )
       function( item )
 	 if isLimit() then return false; end
 	 self.fileIdSet[ item.refFileId ] = true
+	 self.fileIdSet[ item.declFileId ] = true
 	 output( db, self.name, target, target, item )
 	 return true
       end
    )
 end
 
-function refSymbolFile:queryOutputFooter( writer, db )
+function refFile:queryOutputFooter( writer, db )
    if not self.fileIdSet then
       return
    end

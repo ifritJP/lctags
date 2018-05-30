@@ -61,6 +61,8 @@
     ("callee" (:param ("?nsId" "--lctags-form" "json" )))
     ("caller" (:param ("?nsId" "--lctags-form" "json" )))
     ("refSym" (:param ("?nsId" "--lctags-form" "json" )))
+    ("refDir" (:param ("?path" "--lctags-form" "json" )))
+    ("refFile" (:param ("?fileId" "?path" "--lctags-form" "json" )))
     ("decl" (:param ("?nsId" "--lctags-form" "json" )))
     ("openDecl" (:param (decl "inq" "decl" "?nsId")
 			:func lctags-servlet-open-pos))

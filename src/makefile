@@ -443,7 +443,7 @@ endif
 	rm -rf $(TEST_LUA_DIR)/lctags.sqlite3-journal
 	sync
 ifndef NO_INIT
-	$(LUA_COMMAND) $(LCTAGS_LUA) init $(TEST_LUA_DIR) --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 $(LOCKLOG) --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
+	$(LUA_COMMAND) $(LCTAGS_LUA) init $(TEST_LUA_DIR)/.. --lctags-db $(TEST_LUA_DIR)/lctags.sqlite3 $(LOCKLOG) --lctags-log 3 $(IT_OP) $(IS_OP) $(IM_OP)
 endif
 ifdef WORK_DIR
 	mv $(TEST_LUA_DIR)/lctags.sqlite3 $(WORK_DIR)

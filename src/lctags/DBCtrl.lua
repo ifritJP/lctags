@@ -3516,6 +3516,9 @@ function DBCtrl:mapRefSymbolFile( fileIdList, excludePath, searchRefed, func )
 	 return true
       end
    )
+   for index, fileId in ipairs( fileIdList ) do
+      excludeFileSet[ fileId ] = true
+   end
 
    self:mapRefSymbolFileExcludeSet( fileIdList, excludeFileSet, searchRefed, func )
 end
@@ -3523,37 +3526,34 @@ end
 
 function DBCtrl:mapRefSymbolFileExcludeSet(
       fileIdList, excludeFileSet, searchRefed, func )
-   local cond = ""
-   for index, fileId in ipairs( fileIdList ) do
-      if index > 1 then
-	 cond = cond .. " OR "
-      end
-      if searchRefed then
-	 cond = string.format( "%s symbolDecl.fileId = %d", cond, fileId )
-      else
-	 cond = string.format( "%s symbolRef.fileId = %d", cond, fileId )
-      end
-   end
+   -- sql で 同じ要素を使用して OR/AND すると異常に効率が悪いので、
+   -- lua で OR/AND する
 
-   -- sql で除外すると異常に効率が悪いので、ピックアップした後に lua 側で除外はする
-   
-   self:mapJoin( "symbolRef", "symbolDecl", "symbolRef.nsId = symbolDecl.nsId",
-		 string.format( "(%s) AND refFileId <> declFileId", cond ), 1000000,
-		  "symbolRef.nsId, "
-		     .. "symbolRef.fileId AS refFileId, symbolRef.line AS refLine, "
-		     .. "symbolDecl.fileId AS declFileId, symbolDecl.line AS declLine",
-		  function( item )
-		     if excludeFileSet[ item.refFileId ] then
-			return true
-		     end
-		     if item.type == clang.core.CXCursor_TypedefDecl or
-			item.type == clang.core.CXCursor_MacroDefinition
-		     then
-			return true
-		     end
-		     return func( item )
-		  end
-		   )
+   for index, fileId in ipairs( fileIdList ) do
+      if searchRefed then
+   	 cond = string.format( "symbolDecl.fileId = %d", fileId )
+      else
+   	 cond = string.format( "symbolRef.fileId = %d", fileId )
+      end
+      self:mapJoin( "symbolRef", "symbolDecl", "symbolRef.nsId = symbolDecl.nsId",
+		    string.format( "(%s) AND refFileId <> declFileId", cond ), 1000000,
+		    --cond, 1000000,
+		    "symbolRef.nsId, symbolDecl.type, "
+		       .. "symbolRef.fileId AS refFileId, symbolRef.line AS refLine, "
+		       .. "symbolDecl.fileId AS declFileId, symbolDecl.line AS declLine",
+		    function( item )
+		       if excludeFileSet[ item.refFileId ] then
+			  return true
+		       end
+		       if item.type == clang.core.CXCursor_TypedefDecl or
+			  item.type == clang.core.CXCursor_MacroDefinition
+		       then
+			  return true
+		       end
+		       return func( item )
+		    end
+      )
+   end
 end
 
 

@@ -1,5 +1,4 @@
-var lctags_graph_window_map = new Map();
-var lctags_file_window_map = new Map();
+var lctags_window_map = new Map();
 
 var lctags_getPath = function( path, confId ) {
     return "/lctags/" + path + "?confId=" + confId;
@@ -65,7 +64,7 @@ function lctags_dumpDir_decideFile( confId ) {
     var map = filePathObj.data( "map" );
     var fileId = map.get( path );
 
-    lctags_openFileTab( confId, fileId );
+    lctags_openFileTab( confId, fileId, path );
 }
 
 function lctags_dumpDir_decideSymbol( confId ) {
@@ -219,6 +218,19 @@ function lctags_dumpDir( confId, projDir ) {
                 return function() {
                     var opened = jQuery.data( obj, "opened" );
                     if ( !opened ) {
+                        var refDirButton = document.createElement( "button" );
+                        refDirButton.type = "button";
+                        refDirButton.innerHTML = "refDir";
+                        refDirButton.classList.add( "dir_file" );
+                        refDirButton.onclick = function( path ) {
+                            return function() {
+                                lctags_openRefDirTab( confId, path );
+                            };
+                        }( path );
+                        
+                        obj.appendChild( refDirButton );
+                        obj.appendChild( document.createElement( "br" ) );
+                        
                         lctags_matchFile( confId, path, obj );
                     }
                     else {
@@ -238,16 +250,41 @@ function lctags_dumpDir( confId, projDir ) {
     });
 }
 
-function lctags_openFileTab( confId, fileId ) {
+function lctags_openRefDirTab( confId, path ) {
+    var key = "lctags:refDir:" + path;
+    var win = lctags_window_map.get( key );
+    if ( win ) {
+        win.close();
+    }
+    var newWindow = window.open(
+        lctags_getPath( "gen/func-module-graph.html", confId ) +
+            "&path=" + path, key );
+    lctags_window_map.set( key, newWindow );
+}
+
+function lctags_openRefFileTab( confId, fileId, path ) {
+    var key = "lctags:refFile:" + path;
+    var win = lctags_window_map.get( key );
+    if ( win ) {
+        win.close();
+    }
+    var newWindow = window.open(
+        lctags_getPath( "gen/func-module-graph.html", confId ) +
+            "&fileId=" + fileId + "&path=" + path, key );
+    lctags_window_map.set( key, newWindow );
+}
+
+
+function lctags_openFileTab( confId, fileId, path ) {
     var key = "lctags:file:" + fileId;
-    var win = lctags_file_window_map.get( key );
+    var win = lctags_window_map.get( key );
     if ( win ) {
         win.close();
     }
     var newWindow = window.open(
         lctags_getPath( "gen/file.html", confId ) +
-            "&fileId=" + fileId, key );
-    lctags_file_window_map.set( key, newWindow );
+            "&fileId=" + fileId + "&path=" + path, key );
+    lctags_window_map.set( key, newWindow );
 }
 
 function lctags_matchFile( confId, dirPath, parentObj ) {
@@ -275,7 +312,7 @@ function lctags_matchFile( confId, dirPath, parentObj ) {
             obj.innerHTML = path + " (" + info.fileId + ")";
             obj.onclick = function( info ) {
                 return function() {
-                    lctags_openFileTab( confId, info.fileId );
+                    lctags_openFileTab( confId, info.fileId, info.path );
                 };
             }(info);
             parentObj.appendChild( obj );
@@ -287,17 +324,17 @@ function lctags_matchFile( confId, dirPath, parentObj ) {
 
 function lctags_openCallGraph( confId, nsId, name ) {
     var key = "lctags:func:" + nsId;
-    var win = lctags_graph_window_map.get( key );
+    var win = lctags_window_map.get( key );
     if ( win ) {
         win.close();
     }
     var newWindow = window.open(
         lctags_getPath( "gen/func-call-graph.html", confId ) +
             "&nsId=" + nsId + "&name=" + name, key );
-    lctags_graph_window_map.set( key, newWindow );
+    lctags_window_map.set( key, newWindow );
 }
 
-function lctags_getFileInfo( confId, fileId ) {
+function lctags_getFileInfo( confId, fileId, filePath ) {
     $.ajax({
         url: lctags_getPath( 'inq', confId ) + "&command=defAtFileId&fileId=" + fileId,
         type: 'GET',
@@ -321,8 +358,24 @@ function lctags_getFileInfo( confId, fileId ) {
                 return obj1.name.localeCompare( obj2.name );
             });
 
-        
+    
+       
         var parentObj = $('#file-cont' ).get( 0 );
+
+        var refFileButton = document.createElement( "button" );
+        refFileButton.type = "button";
+        refFileButton.innerHTML = "refDir";
+        refFileButton.classList.add( "dir_file" );
+        refFileButton.onclick = function( fileId, path ) {
+            return function() {
+                lctags_openRefFileTab( confId, fileId, path );
+            };
+        }( fileId, filePath );
+        
+        parentObj.appendChild( refFileButton );
+        parentObj.appendChild( document.createElement( "br" ) );
+
+        
         var listing = function( labelName, typeList, titleTypeList ) {
             var typeSet = new Set( typeList );
             var titleSet = new Set( titleTypeList );
@@ -553,51 +606,159 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
     });
 }
 
-function lctags_moduleGraph_force( confId ) {
+function lctags_moduleGraph_tree( projDir, confId, fileId, path ) {
 
-    var nsId = 2208;
-    var obj;
+    var fileId2FileInfoMap = new Map();
+    var nsId2NodeMap = new Map();
+    var dirPath2InfoMap = new Map();
+    var nsIdSeed = 1;
+    var fileIdSet = new Set();
+    
     var paramInfo = {
         svgClick: function() {
-            ;
         },
-        nodeClick: function( node ) {
-            d3.event.stopPropagation();
-            if ( node.opened ) {
-                obj.addNodeLink( [], [] );
-            }
-            else {
-                node.opened = true;
-            }
-        }
+        nodeClick: function( obj, node ) {
+            var localNode = nsId2NodeMap.get( node.nsId );
+            obj.addChild( node.id, localNode.children, [] );
+        },
+        pathClick: function( obj, path ) {
+        },
+        nodeContext: function( obj, node ) {
+        },
+        openNewWindow: function( nsId, name ) {
+        },
     };
-    
-    obj = lctags_graph_module( paramInfo );
+
+   
+    if ( !projDir.endsWith( "/" ) ) {
+        projDir = projDir + "/";
+    }
+    // var targetDir = dir;
+    // if ( targetDir.startsWith( projDir ) ) {
+    //     targetDir = targetDir.substring( projDir.length );
+    // }
+
 
     $.ajax({
-        url: lctags_getPath( 'inq', confId ) + '&command=callee&nsId=' + nsId,
+        url: lctags_getPath( 'inq', confId ) + '&command=refFile' +
+            '&fileId=' + fileId + '&path=' + path,
         type: 'GET',
-        timeout: 5000
+        timeout: 60 * 1000
     }).done(function(data) {
-        var funcListObj = data.lctags_result.callee;
+        
+        var refDirObj = data.lctags_result.refFile;
 
-        var nodeInfoArray = [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ];
+        var nodeInfoArray = [];
         var linkInfoArray = [];
-        for (val in funcListObj) {
-            var info = funcListObj[ val ].info;
 
-            if ( !obj.nodeMap.has( info.nsId ) ) {
-                nodeInfoArray.push(
-                    { nsId: info.nsId,
-                      name: info.name, pos: [ 0, 0 ] } );
+        var fileList = [];
+        data.lctags_result.fileList.forEach( function( item ) {
+            var info = item.info;
+
+            var path = info.path;
+            if ( path.startsWith( projDir ) ) {
+                path = "./" + path.substring( projDir.length );
             }
 
-            linkInfoArray.push(
-                { src: nsId, dst: info.nsId } );
-        }
+            var fileInfo = fileId2FileInfoMap.get( info.fileId );
+            if ( fileInfo == null ) {
+                fileInfo = {};
+                fileInfo.path = path;
+                fileInfo.refFileId2refListMap = new Map();
+                fileId2FileInfoMap.set( info.fileId, fileInfo );
+                fileIdSet.add( info.fileId );
+                fileList.push( { fileId: info.fileId, path: path } );
+            }
+        });
 
-        obj.addNodeLink( nodeInfoArray, linkInfoArray );
+        refDirObj.forEach( function( val ) {
+            var info = val.info;
+
+            var declFileInfo = fileId2FileInfoMap.get( info.declFileId );
+            var refList = declFileInfo.refFileId2refListMap.get( info.refFileId );
+            if ( refList == null ) {
+                refList = [];
+                declFileInfo.refFileId2refListMap.set( info.refFileId, refList );
+            }
+            refList.push( info );
+        });
+
+        if ( path.startsWith( projDir ) ) {
+            path = "./" + path.substring( projDir.length );
+        }
+        
+        var rootObj = { nsId: fileId, name: path };
+        rootObj.children = [];
+
+        nsId2NodeMap.set( rootObj.nsId, rootObj );
+
+        var fileInfo = fileId2FileInfoMap.get( rootObj.nsId );
+        var path2InfoMap = new Map();
+        fileInfo.refFileId2refListMap.forEach( function( refList, refFileId ) {
+            var childPath = fileId2FileInfoMap.get( refFileId ).path;
+            var findIndex = childPath.indexOf( "/" );
+            var prefix = "";
+            var parentObj = rootObj;
+            while ( findIndex > 0 ) {
+                var dirName = childPath.substring( 0, findIndex + 1 );
+                childPath = childPath.substring( findIndex + 1 );
+                findIndex = childPath.indexOf( "/" );
+                prefix = prefix + dirName;
+
+                var info = path2InfoMap.get( prefix );
+                if ( info == null ) {
+                    info = {};
+                    path2InfoMap.set( prefix, info );
+                    
+                    while ( fileIdSet.has( nsIdSeed ) ) {
+                        nsIdSeed++;
+                    }
+                    info.nsId = nsIdSeed;
+                    info.fileId = nsIdSeed;
+                    info.name = dirName;
+                    fileList.push( { fileId: nsIdSeed, path: prefix } );
+                    info.children = [];
+                    fileIdSet.add( nsIdSeed );
+                    nsId2NodeMap.set( info.nsId, info );
+                    nsIdSeed++;
+                    parentObj.children.push( info );
+                }
+                parentObj = info;
+            }
+            
+            var child = {};
+            child.nsId = refFileId;
+            child.fileId = refFileId;
+            child.name = fileId2FileInfoMap.get( refFileId ).path;
+            child.children = [];
+            parentObj.children.push( child );
+            nsId2NodeMap.set( child.nsId, child );
+
+            refList = refList.sort( function( obj1, obj2 ) {
+                return obj1.refLine > obj2.refLine;
+            });
+
+            refList.forEach( function( refInfo ) {
+                while ( fileIdSet.has( nsIdSeed ) ) {
+                    nsIdSeed++;
+                }
+                var refChild = {};
+                refChild.nsId = nsIdSeed;
+                refChild.fileId = refInfo.refFileId;
+                refChild.name = "line: " + refInfo.refLine;
+                nsIdSeed++;
+                nsId2NodeMap.set( refChild.nsId, refChild );
+                child.children.push( refChild );
+            });
+        });
+
+
+        var obj = lctags_graph_tree( projDir, paramInfo );
+        obj.addChild( null, [ { nsId: fileId, name: path } ], fileList );
+
+        
     }).fail(function() {
     });
+
 }
 

@@ -399,7 +399,7 @@ if lctagOptMap.mode == "addIncRef" then
 end
 
 if lctagOptMap.mode == "inq" then
-   local db = DBCtrl:open( lctagOptMap.dbPath, false, Util:getcwd() )
+   local db = DBCtrl:open( lctagOptMap.dbPath, true, Util:getcwd() )
    local nsInfo
    local target = ""
 
@@ -423,7 +423,7 @@ if lctagOptMap.mode == "inq" then
 end
 
 if lctagOptMap.mode == "prepare" then
-   local db = DBCtrl:open( lctagOptMap.dbPath, false, Util:getcwd() )
+   local db = DBCtrl:open( lctagOptMap.dbPath, true, Util:getcwd() )
    db:prepare()
    db:close()
    finish( 0 )
