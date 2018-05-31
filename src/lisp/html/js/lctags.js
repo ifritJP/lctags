@@ -257,7 +257,7 @@ function lctags_openRefDirTab( confId, path ) {
         win.close();
     }
     var newWindow = window.open(
-        lctags_getPath( "gen/func-module-graph.html", confId ) +
+        lctags_getPath( "gen/module-dir-graph.html", confId ) +
             "&path=" + path, key );
     lctags_window_map.set( key, newWindow );
 }
@@ -269,7 +269,7 @@ function lctags_openRefFileTab( confId, fileId, path ) {
         win.close();
     }
     var newWindow = window.open(
-        lctags_getPath( "gen/func-module-graph.html", confId ) +
+        lctags_getPath( "gen/module-file-graph.html", confId ) +
             "&fileId=" + fileId + "&path=" + path, key );
     lctags_window_map.set( key, newWindow );
 }
@@ -289,7 +289,8 @@ function lctags_openFileTab( confId, fileId, path ) {
 
 function lctags_matchFile( confId, dirPath, parentObj ) {
     $.ajax({
-        url: lctags_getPath( 'inq', confId ) + '&command=matchFile&pattern=' + dirPath,
+        url: lctags_getPath( 'inq', confId ) + '&command=matchFile' +
+            '&pattern=' + dirPath + '&option=onlyChild',
         type: 'GET',
         timeout: 5000
     }).done(function(data) {
@@ -334,7 +335,7 @@ function lctags_openCallGraph( confId, nsId, name ) {
     lctags_window_map.set( key, newWindow );
 }
 
-function lctags_getFileInfo( confId, fileId, filePath ) {
+function lctags_getFileInfo( projDir, confId, fileId, filePath ) {
     $.ajax({
         url: lctags_getPath( 'inq', confId ) + "&command=defAtFileId&fileId=" + fileId,
         type: 'GET',
@@ -362,6 +363,15 @@ function lctags_getFileInfo( confId, fileId, filePath ) {
        
         var parentObj = $('#file-cont' ).get( 0 );
 
+        var label = document.createElement( "h1" );
+        var title = filePath;
+        if ( title.startsWith( projDir ) ) {
+            title = "." + title.substring( projDir.length );
+        }
+        label.innerHTML = title;
+        parentObj.appendChild( label );
+        
+
         var refFileButton = document.createElement( "button" );
         refFileButton.type = "button";
         refFileButton.innerHTML = "refDir";
@@ -380,7 +390,7 @@ function lctags_getFileInfo( confId, fileId, filePath ) {
             var typeSet = new Set( typeList );
             var titleSet = new Set( titleTypeList );
 
-            var label = document.createElement( "h1" );
+            var label = document.createElement( "h2" );
             label.innerHTML = labelName;
             parentObj.appendChild( label );
             
@@ -400,7 +410,7 @@ function lctags_getFileInfo( confId, fileId, filePath ) {
                 }(info);
 
                 if ( titleSet.has( info.type ) ) {
-                    var label = document.createElement( "h2" );
+                    var label = document.createElement( "h3" );
                     label.innerHTML = info.name;
                     parentObj.appendChild( label );
                 }
@@ -490,7 +500,13 @@ function lctags_funcCallGraph_force( confId, nsId, name ) {
 
 function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
 
+    var rootObj = { nsId: nsId, name: name, pos: [ 0, 0 ] };
+    
     var paramInfo = {
+        expandModeList: [ "callee", "caller", "refSym" ],
+        changeExpandMode: function( obj ) {
+            obj.addChild( null, [ rootObj ], [] );
+        },
         svgClick: function() {
             ;
         },
@@ -508,7 +524,13 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
                 url: lctags_getPath( 'inq', confId ) +
                     "&command=" + command + '&nsId=' + nsId,
                 type: 'GET',
-                timeout: 10 * 1000
+                complete: function( jqXHR, status ) {
+                    if ( status != "success" ) {
+                        obj.inqError( node );
+                        alert( status );
+                    }
+                },
+                timeout: 10 * 1000,
             }).done(function(data) {
                 var funcListObj = data.lctags_result[ command ];
 
@@ -590,7 +612,7 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
     
     var obj = lctags_graph_tree( projDir, paramInfo );
 
-    obj.addChild( null, [ { nsId: nsId, name: name, pos: [ 0, 0 ] } ], [] );
+    obj.addChild( null, [ rootObj ], [] );
 
     $.ajax({
         url: lctags_getPath( 'inq', confId ) + "&command=decl&nsId=" + nsId,
@@ -606,20 +628,173 @@ function lctags_funcCallGraph_tree( projDir, confId, nsId, name ) {
     });
 }
 
-function lctags_moduleGraph_tree( projDir, confId, fileId, path ) {
+function lctags_moduleGraph_createNodes(
+    projDir, createRootNodeFunc, inqInfoFunc )
+{
+    if ( !projDir.endsWith( "/" ) ) {
+        projDir = projDir + "/";
+    }
 
-    var fileId2FileInfoMap = new Map();
-    var nsId2NodeMap = new Map();
-    var dirPath2InfoMap = new Map();
-    var nsIdSeed = 1;
-    var fileIdSet = new Set();
+
+    var modObj = {};
+    
+    modObj.nsId2NodeMap = new Map();
+    modObj.nsIdSeed = 2; // userNsId が 2 からなので
+    modObj.fileIdSet = new Set();
+    modObj.nsId2NameMap = new Map();
+
+    modObj.reset = function() {
+        modObj.fileId2FileInfoMap = new Map();
+    };
+    modObj.reset();
+
+    modObj.fileList = [];
+    
+    modObj.addFile = function( fileId, path ) {
+        var fileInfo = modObj.fileId2FileInfoMap.get( fileId );
+        if ( fileInfo == null ) {
+            fileInfo = {};
+            fileInfo.path = path;
+            fileInfo.refFileId2refListMap = new Map();
+            modObj.fileId2FileInfoMap.set( fileId, fileInfo );
+            modObj.fileIdSet.add( fileId );
+            modObj.fileList.push( { fileId: fileId, path: path } );
+        }
+        return fileInfo;
+    };
+    modObj.newNsId = function() {
+        modObj.nsIdSeed++;
+        while ( modObj.fileIdSet.has( modObj.nsIdSeed ) ) {
+            modObj.nsIdSeed++;
+        }
+        return modObj.nsIdSeed;
+    };
+    modObj.newNode = function( parentObj, fileId, name ) {
+        var info = {};
+
+        info.nsId = modObj.newNsId();
+        if ( fileId < 0 ) {
+            info.fileId = info.nsId;
+        }
+        else {
+            info.fileId = fileId;
+        }
+        info.name = name;
+        info.children = [];
+        modObj.nsId2NodeMap.set( info.nsId, info );
+        parentObj.children.push( info );
+
+        return info;
+    };
+
+    modObj.createNodes = function(
+        rootObj, refInfoList, fileInfoList, nameInfoList )
+    {
+        rootObj.inquired = true;
+        fileInfoList.forEach( function( item ) {
+            var info = item.info;
+            
+            var path = info.path;
+            if ( path.startsWith( projDir ) ) {
+                path = "./" + path.substring( projDir.length );
+            }
+            modObj.addFile( info.fileId, path );
+        });
+
+        nameInfoList.forEach( function( val ) {
+            var info = val.info;
+            modObj.nsId2NameMap[ info.nsId ] = info.name;
+        });
+
+        refInfoList.forEach( function( val ) {
+            var info = val.info;
+
+            // var declFileInfo = modObj.fileId2FileInfoMap.get( info.declFileId );
+            var declFileInfo = modObj.fileId2FileInfoMap.get( rootObj.nsId );
+            
+            var refList = declFileInfo.refFileId2refListMap.get( info.refFileId );
+            if ( refList == null ) {
+                refList = [];
+                declFileInfo.refFileId2refListMap.set( info.refFileId, refList );
+            }
+            refList.push( info );
+        });
+
+        modObj.nsId2NodeMap.set( rootObj.nsId, rootObj );
+
+        var fileInfo = modObj.fileId2FileInfoMap.get( rootObj.nsId );
+        var path2InfoMap = new Map();
+        fileInfo.refFileId2refListMap.forEach( function( refList, refFileId ) {
+            var childPath = modObj.fileId2FileInfoMap.get( refFileId ).path;
+            var findIndex = childPath.indexOf( "/" );
+            var prefix = "";
+            var parentObj = rootObj;
+            while ( findIndex >= 0 ) {
+                var dirName = childPath.substring( 0, findIndex + 1 );
+                childPath = childPath.substring( findIndex + 1 );
+                findIndex = childPath.indexOf( "/" );
+                prefix = prefix + dirName;
+
+                var info = path2InfoMap.get( prefix );
+                if ( info == null ) {
+                    info = modObj.newNode( parentObj, -1, dirName );
+                    
+                    path2InfoMap.set( prefix, info );
+                    modObj.fileList.push( { fileId: info.fileId, path: prefix } );
+                }
+                parentObj = info;
+            }
+
+            var name = modObj.fileId2FileInfoMap.get( refFileId ).path;
+            var child = modObj.newNode(
+                parentObj, refFileId, name.substring( prefix.length ) );
+
+            refList = refList.sort( function( obj1, obj2 ) {
+                return obj1.refLine > obj2.refLine;
+            });
+
+            var nsIdSet = new Set();
+            refList.forEach( function( refInfo ) {
+                if ( !nsIdSet.has( refInfo.nsId ) ) {
+                    nsIdSet.add( refInfo.nsId );
+                    modObj.newNode( child, refFileId, 
+                                    modObj.nsId2NameMap[ refInfo.nsId ] );
+                }
+            });
+        });
+        modObj.reset();
+    };
+
+    modObj.expandNode = function( obj, node ) {
+        var localNode = modObj.nsId2NodeMap.get( node.nsId );
+        obj.addChild( node.id, localNode.children, modObj.fileList );
+    };
+
+
+    var mode2RootObjMap = new Map();
+
+    mode2RootObjMap.set( "refSym", createRootNodeFunc( modObj ) );
     
     var paramInfo = {
+        expandModeList: [ "refSym", "reqSym" ],
+        changeExpandMode: function( obj ) {
+            var rootObj = mode2RootObjMap.get( obj.expandMode );
+            if ( rootObj == null ) {
+                rootObj = createRootNodeFunc( modObj );
+                mode2RootObjMap.set( obj.expandMode, rootObj );
+            }
+            obj.addChild( null, [ rootObj ], [] );
+        },
         svgClick: function() {
         },
         nodeClick: function( obj, node ) {
-            var localNode = nsId2NodeMap.get( node.nsId );
-            obj.addChild( node.id, localNode.children, [] );
+            var rootObj = mode2RootObjMap.get( obj.expandMode );
+            if ( rootObj.inquired ) {
+                modObj.expandNode( obj, node );
+            }
+            else {
+                inqInfoFunc( modObj, obj, node, rootObj );
+            }
         },
         pathClick: function( obj, path ) {
         },
@@ -629,136 +804,195 @@ function lctags_moduleGraph_tree( projDir, confId, fileId, path ) {
         },
     };
 
-   
-    if ( !projDir.endsWith( "/" ) ) {
-        projDir = projDir + "/";
-    }
-    // var targetDir = dir;
-    // if ( targetDir.startsWith( projDir ) ) {
-    //     targetDir = targetDir.substring( projDir.length );
-    // }
 
+    var obj = lctags_graph_tree( projDir, paramInfo );
 
-    $.ajax({
-        url: lctags_getPath( 'inq', confId ) + '&command=refFile' +
-            '&fileId=' + fileId + '&path=' + path,
-        type: 'GET',
-        timeout: 60 * 1000
-    }).done(function(data) {
-        
-        var refDirObj = data.lctags_result.refFile;
+    obj.addChild( null, [ mode2RootObjMap.get( obj.expandMode ) ], [] );
 
-        var nodeInfoArray = [];
-        var linkInfoArray = [];
-
-        var fileList = [];
-        data.lctags_result.fileList.forEach( function( item ) {
-            var info = item.info;
-
-            var path = info.path;
-            if ( path.startsWith( projDir ) ) {
-                path = "./" + path.substring( projDir.length );
-            }
-
-            var fileInfo = fileId2FileInfoMap.get( info.fileId );
-            if ( fileInfo == null ) {
-                fileInfo = {};
-                fileInfo.path = path;
-                fileInfo.refFileId2refListMap = new Map();
-                fileId2FileInfoMap.set( info.fileId, fileInfo );
-                fileIdSet.add( info.fileId );
-                fileList.push( { fileId: info.fileId, path: path } );
-            }
-        });
-
-        refDirObj.forEach( function( val ) {
-            var info = val.info;
-
-            var declFileInfo = fileId2FileInfoMap.get( info.declFileId );
-            var refList = declFileInfo.refFileId2refListMap.get( info.refFileId );
-            if ( refList == null ) {
-                refList = [];
-                declFileInfo.refFileId2refListMap.set( info.refFileId, refList );
-            }
-            refList.push( info );
-        });
-
-        if ( path.startsWith( projDir ) ) {
-            path = "./" + path.substring( projDir.length );
-        }
-        
-        var rootObj = { nsId: fileId, name: path };
-        rootObj.children = [];
-
-        nsId2NodeMap.set( rootObj.nsId, rootObj );
-
-        var fileInfo = fileId2FileInfoMap.get( rootObj.nsId );
-        var path2InfoMap = new Map();
-        fileInfo.refFileId2refListMap.forEach( function( refList, refFileId ) {
-            var childPath = fileId2FileInfoMap.get( refFileId ).path;
-            var findIndex = childPath.indexOf( "/" );
-            var prefix = "";
-            var parentObj = rootObj;
-            while ( findIndex > 0 ) {
-                var dirName = childPath.substring( 0, findIndex + 1 );
-                childPath = childPath.substring( findIndex + 1 );
-                findIndex = childPath.indexOf( "/" );
-                prefix = prefix + dirName;
-
-                var info = path2InfoMap.get( prefix );
-                if ( info == null ) {
-                    info = {};
-                    path2InfoMap.set( prefix, info );
-                    
-                    while ( fileIdSet.has( nsIdSeed ) ) {
-                        nsIdSeed++;
-                    }
-                    info.nsId = nsIdSeed;
-                    info.fileId = nsIdSeed;
-                    info.name = dirName;
-                    fileList.push( { fileId: nsIdSeed, path: prefix } );
-                    info.children = [];
-                    fileIdSet.add( nsIdSeed );
-                    nsId2NodeMap.set( info.nsId, info );
-                    nsIdSeed++;
-                    parentObj.children.push( info );
-                }
-                parentObj = info;
-            }
-            
-            var child = {};
-            child.nsId = refFileId;
-            child.fileId = refFileId;
-            child.name = fileId2FileInfoMap.get( refFileId ).path;
-            child.children = [];
-            parentObj.children.push( child );
-            nsId2NodeMap.set( child.nsId, child );
-
-            refList = refList.sort( function( obj1, obj2 ) {
-                return obj1.refLine > obj2.refLine;
-            });
-
-            refList.forEach( function( refInfo ) {
-                while ( fileIdSet.has( nsIdSeed ) ) {
-                    nsIdSeed++;
-                }
-                var refChild = {};
-                refChild.nsId = nsIdSeed;
-                refChild.fileId = refInfo.refFileId;
-                refChild.name = "line: " + refInfo.refLine;
-                nsIdSeed++;
-                nsId2NodeMap.set( refChild.nsId, refChild );
-                child.children.push( refChild );
-            });
-        });
-
-
-        var obj = lctags_graph_tree( projDir, paramInfo );
-        obj.addChild( null, [ { nsId: fileId, name: path } ], fileList );
-
-        
-    }).fail(function() {
-    });
-
+    return modObj;
 }
 
+
+function lctags_module_convertRefInfo( expandMode, data ) {
+    var refInfoList = data.refFile;
+    if ( expandMode != "refSym" ) {
+        refInfoList = [];
+
+        data.reqFile.forEach( function( val ) {
+            var info = val.info;
+            refInfoList.push(
+                { info: {
+                    refFileId: info.declFileId,
+                    refLine: info.declLine,
+                    declFileId: info.refFileId,
+                    declLine: info.refLine,
+                    nsId: info.nsId,
+                } } );
+        });
+    }
+    return refInfoList;
+}
+
+function lctags_moduleFileGraph_tree( projDir, confId, fileId, path ) {
+
+    lctags_moduleGraph_createNodes(
+        projDir, 
+        function( modObj ) {
+            if ( path.startsWith( projDir ) ) {
+                path = "." + path.substring( projDir.length );
+            }
+            var rootObj = { nsId: modObj.newNsId(), name: path };
+            rootObj.children = [];
+            var rootFileInfo = modObj.addFile( rootObj.nsId, path );
+            return rootObj;
+        },
+        function( modObj, treeObj, node, rootObj ) {
+            var command = "refFile";
+            if ( treeObj.expandMode != "refSym" ) {
+                command = "reqFile";
+            }
+            
+            $.ajax({
+                url: lctags_getPath( 'inq', confId ) + '&command=' + command +
+                    '&fileId=' + fileId + '&path=' + path,
+                type: 'GET',
+                complete: function( jqXHR, status ) {
+                    if ( status != "success" ) {
+                        alert( status );
+                    }
+                },
+                timeout: 10 * 1000
+            }).done(function(data) {
+                var refInfoList = lctags_module_convertRefInfo(
+                    treeObj.expandMode, data.lctags_result );
+                modObj.createNodes(
+                    rootObj, refInfoList,
+                    data.lctags_result.fileList, data.lctags_result.nameList );
+                modObj.expandNode( treeObj, node );
+                
+            }).fail(function() {
+            });
+        }
+    );
+}
+
+
+
+function lctags_moduleDirGraph_tree( projDir, confId, path ) {
+
+    function createRoot( modObj ) {
+        var dispPath = path;
+        if ( dispPath.startsWith( projDir ) ) {
+            dispPath = "." + path.substring( projDir.length );
+        }
+        var rootObj = { nsId: modObj.newNsId(), name: dispPath };
+        rootObj.children = [];
+
+        var rootFileInfo = modObj.addFile( rootObj.nsId, dispPath );
+        var rootRefFileId2refListMap = rootFileInfo.refFileId2refListMap;
+
+        // path 以降のファイルの参照情報を、 root の参照方法として登録
+        modObj.fileId2FileInfoMap.forEach( function( fileInfo, fileId ) {
+            if ( !fileInfo.path.startsWith( path ) ) {
+                return;
+            }
+            fileInfo.refFileId2refListMap.forEach(
+                function( refList, refFileId ) {
+                    var rootRefList = rootRefFileId2refListMap.get( refFileId );
+                    if ( rootRefList == null ) {
+                        rootRefList = [];
+                        rootRefFileId2refListMap.set( refFileId, rootRefList );
+                    }
+                    refList.forEach( function( refInfo ) {
+                        rootRefList.push( refInfo );
+                    });
+                } );
+        } );
+
+        return rootObj;
+    }
+
+    lctags_moduleGraph_createNodes(
+        projDir, createRoot,
+        function( modObj, treeObj, node, rootObj ) {
+            var fileIdList = [];
+            $.ajax({
+                url: lctags_getPath( 'inq', confId ) + '&command=matchFile&pattern=' + path,
+                type: 'GET',
+                async: false,
+                timeout: 5000
+            }).done(function(data) {
+                var fileListObj = data.lctags_result.matchFile;
+
+                fileListObj.forEach( function( fileInfo ) {
+                    fileIdList.push( fileInfo.info.fileId );
+                });
+            });
+
+            var progressObj = $('#progressbar' );
+            progressObj.progressbar( { max: fileIdList.length } );
+            $('.ui-progressbar-value').css({ 'background': 'red' });
+
+            if ( !projDir.endsWith( "/" ) ) {
+                projDir = projDir + "/";
+            }
+
+            // ディレクトリ以下のファイル全てを一度に処理すると時間がかかるので、
+            // batchCount ずつファイルを分けて処理する。
+            var refList = [];
+            var fileList = [];
+            var nameList = [];
+            
+            var batchCount = 5;
+            function queryRefInfo( beginIndex ) {
+                var workList = fileIdList.slice( beginIndex, beginIndex + batchCount );
+                if ( workList.length != 0 ) {
+
+                    var command = "refFile";
+                    if ( treeObj.expandMode != "refSym" ) {
+                        command = "reqFile";
+                    }
+                    
+                    $.ajax({
+                        url: lctags_getPath( 'inq', confId ) +
+                            '&command=' + command +
+                            '&fileId=' + workList.join( '@' ) + '&path=' + path,
+                        type: 'GET',
+                        complete: function( jqXHR, status ) {
+                            if ( status != "success" ) {
+                                alert( status );
+                            }
+                        },
+                        timeout: 10 * 1000
+                    }).done(function(data) {
+                        progressObj.progressbar( "value", beginIndex + batchCount );
+
+                        var refInfoList = lctags_module_convertRefInfo(
+                            treeObj.expandMode, data.lctags_result );
+                        refInfoList.forEach( function( val ) {
+                            refList.push( val );
+                        });
+                        data.lctags_result.fileList.forEach( function( val ) {
+                            fileList.push( val );
+                        });
+                        data.lctags_result.nameList.forEach( function( val ) {
+                            nameList.push( val );
+                        });
+
+                        queryRefInfo( beginIndex + batchCount );
+                    });
+                }
+                else {
+                    progressObj.progressbar( "destroy" );
+
+                    modObj.createNodes(
+                        rootObj, refList, fileList, nameList );
+
+                    modObj.expandNode( treeObj, node );
+                }
+            }
+
+            queryRefInfo( 0 );
+        }
+    );
+}

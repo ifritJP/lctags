@@ -7,7 +7,11 @@ local QueryParam = {}
 QueryParam.id2Query = {}
 
 function QueryParam:getQuery( name )
-   return QueryParam.id2Query[ name ]
+   local queryParam = QueryParam.id2Query[ name ]
+   if queryParam then
+      queryParam.specifiedName = name;
+   end
+   return queryParam
 end
 
 function QueryParam:getQueryId( name )
@@ -328,6 +332,10 @@ end
 
 local matchFile = QueryParam:addQuery( { name = "matchFile" } )
 
+function matchFile:getQueryParam( param )
+   return { nil, { param[ 1 ], param[ 2 ] } }
+end
+
 function matchFile:queryOutputItem( writer, db, item )
    writer:startParent( "info" )
    writer:write( "fileId", item.id )
@@ -336,7 +344,8 @@ function matchFile:queryOutputItem( writer, db, item )
 end
 
 function matchFile:queryOutput( db, isLimit, output, target )
-   local path = db:convPath( target )
+   local path = db:convPath( target[1] )
+   local onlyChild = target[ 2 ] == "onlyChild"
    if not string.find( path, "/$" ) then
       path = path .. "/"
    end
@@ -346,7 +355,7 @@ function matchFile:queryOutput( db, isLimit, output, target )
       nil, nil,
       function( item )
 	 local basename = string.gsub( item.path, path, "" )
-	 if not string.find( basename, "/" ) then
+	 if not onlyChild or not string.find( basename, "/" ) then
 	    if isLimit() then return false; end
 	    output( db, query, target, "path",
 		    { path = item.path, fileId = item.id, id = item.id, line = 1 } )
@@ -580,16 +589,18 @@ function refDir:queryOutputItem( writer, db, item )
 end
 
 function refDir:queryOutput( db, isLimit, output, target )
-    self.fileIdSet = {}
+   self.fileIdSet = {}
+   self.nsIdSet = {}
 
-  -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
+   -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
    -- 参照しているファイルを取得
    db:mapRefSymbolModule(
-      target, true,
+      target, self.specifiedName == "refDir",
       function( item )
 	 if isLimit() then return false; end
 	 self.fileIdSet[ item.refFileId ] = true
 	 self.fileIdSet[ item.declFileId ] = true
+	 self.nsIdSet[ item.nsId ] = true
 	 output( db, self.name, target, target, item )
 	 return true
       end
@@ -597,9 +608,6 @@ function refDir:queryOutput( db, isLimit, output, target )
 end
 
 function refDir:queryOutputFooter( writer, db )
-   if not self.fileIdSet then
-      return
-   end
    writer:startParent( "fileList", true )
    for fileId in pairs( self.fileIdSet ) do
       writer:startParent( "info" )
@@ -609,60 +617,60 @@ function refDir:queryOutputFooter( writer, db )
       writer:endElement()
    end
    writer:endElement()
+
+
+   writer:startParent( "nameList", true )
+   for nsId in pairs( self.nsIdSet ) do
+      writer:startParent( "info" )
+      writer:write( "nsId", nsId )
+      local nsInfo = db:getNamespace( nsId )
+      writer:write( "name", nsInfo.name )
+      writer:endElement()
+   end
+   writer:endElement()
 end
+
+------ reqDir ------
+
+local reqDir = QueryParam:addQuery( { name = "reqDir" } )
 
 ------ refFile ------
 
-local refFile = QueryParam:addQuery( { name = "refFile" } )
+local refFile = QueryParam:addQuery( { name = "refFile" }, { __index = refDir } )
 
 function refFile:getQueryParam( param )
    return { nil, { param[ 1 ], param[ 2 ] } }
 end
 
-function refFile:queryOutputItem( writer, db, item )
-   writer:startParent( "info" )
-   writer:write( "nsId", item.nsId )
-   writer:write( "refFileId", item.refFileId )
-   writer:write( "refLine", item.refLine )
-   writer:write( "declFileId", item.declFileId )
-   writer:write( "declLine", item.declLine )
-   writer:endElement()
-end
-
 function refFile:queryOutput( db, isLimit, output, target )
-    self.fileIdSet = {}
+   self.fileIdSet = {}
+   self.nsIdSet = {}
 
-  -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
+   -- target のディレクトリでコンパイルしているソース内で定義しているシンボルを
    -- 参照しているファイルを取得
-    local fileId = tonumber( target[1] )
-    local excludePath = target[ 2 ] 
+
+   local fileIdList = {}
+   for idTxt in string.gmatch( target[ 1 ], "%d+" ) do
+      table.insert( fileIdList, tonumber( idTxt ) );
+   end
+   
+   local excludePath = target[ 2 ] 
    db:mapRefSymbolFile(
-      { fileId }, excludePath, true,
+      fileIdList, excludePath, self.specifiedName == "refFile",
       function( item )
 	 if isLimit() then return false; end
 	 self.fileIdSet[ item.refFileId ] = true
 	 self.fileIdSet[ item.declFileId ] = true
+	 self.nsIdSet[ item.nsId ] = true
 	 output( db, self.name, target, target, item )
 	 return true
       end
    )
 end
 
-function refFile:queryOutputFooter( writer, db )
-   if not self.fileIdSet then
-      return
-   end
-   writer:startParent( "fileList", true )
-   for fileId in pairs( self.fileIdSet ) do
-      writer:startParent( "info" )
-      writer:write( "fileId", fileId )
-      local fileInfo = db:getFileInfo( fileId )
-      writer:write( "path", db:convFullpath( db:getSystemPath( fileInfo.path ) ) )
-      writer:endElement()
-   end
-   writer:endElement()
-end
+------ reqFile ------
 
+local reqFile = QueryParam:addQuery( { name = "reqFile" }, { __index = refFile } )
 
 ------ filePath ------
 

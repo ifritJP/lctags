@@ -5,7 +5,6 @@
 <title>lctags func call graph</title>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script type="text/javascript" src="https://d3js.org/d3.v4.js"></script>
-<script type="text/javascript" src="/lctags/contents/js/lctags-graph-force.js"></script>
 <script type="text/javascript" src="/lctags/contents/js/lctags-graph-tree.js"></script>
 <script type="text/javascript" src="/lctags/contents/js/lctags.js"></script>
 <style>
@@ -19,7 +18,7 @@
 </style>
 <script>
 window.onload = function() {
-  lctags_moduleGraph_tree( "$projDir$", $confId$, $fileId$, "$path$" );
+  lctags_moduleFileGraph_tree( "$projDir$", $confId$, $fileId$, "$path$" );
 }
 </script>
 </head>

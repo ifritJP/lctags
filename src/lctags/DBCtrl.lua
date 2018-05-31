@@ -3542,8 +3542,14 @@ function DBCtrl:mapRefSymbolFileExcludeSet(
 		       .. "symbolRef.fileId AS refFileId, symbolRef.line AS refLine, "
 		       .. "symbolDecl.fileId AS declFileId, symbolDecl.line AS declLine",
 		    function( item )
-		       if excludeFileSet[ item.refFileId ] then
-			  return true
+		       if searchRefed then
+			  if excludeFileSet[ item.refFileId ] then
+			     return true
+			  end
+		       else
+			  if excludeFileSet[ item.declFileId ] then
+			     return true
+			  end
 		       end
 		       if item.type == clang.core.CXCursor_TypedefDecl or
 			  item.type == clang.core.CXCursor_MacroDefinition

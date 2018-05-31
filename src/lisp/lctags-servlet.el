@@ -48,7 +48,7 @@
 
 (defconst lctags-servlet-api-info-table
   `(("dumpDir" (:param ("--lctags-form" "json")))
-    ("matchFile" (:param ("?pattern" "--lctags-form" "json" )))
+    ("matchFile" (:param ("?pattern" "?option" "--lctags-form" "json" )))
     ("searchFile" (:param (("?path" ,(lambda (val)
 				       (lctags-replace-txt val "_" "$_")))
 			   "--lctags-form" "json"
@@ -63,6 +63,8 @@
     ("refSym" (:param ("?nsId" "--lctags-form" "json" )))
     ("refDir" (:param ("?path" "--lctags-form" "json" )))
     ("refFile" (:param ("?fileId" "?path" "--lctags-form" "json" )))
+    ("reqDir" (:param ("?path" "--lctags-form" "json" )))
+    ("reqFile" (:param ("?fileId" "?path" "--lctags-form" "json" )))
     ("decl" (:param ("?nsId" "--lctags-form" "json" )))
     ("openDecl" (:param (decl "inq" "decl" "?nsId")
 			:func lctags-servlet-open-pos))
