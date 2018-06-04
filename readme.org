@@ -290,7 +290,8 @@ JSON ファイルを利用する場合、
 次のコマンドを実行することで、ソースの登録が行なえます。
 
 #+BEGIN_SRC txt
-lctags register compile_commands.json
+$ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .
+$ lctags register compile_commands.json
 #+END_SRC
 
 ソース登録後、次のコマンドを実行することでソースの解析を行ないます。

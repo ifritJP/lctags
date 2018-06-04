@@ -26,7 +26,7 @@ function config:loadConfig( path, exitOnErr )
 end
 
 function config:hasUserConf()
-   return self.conf
+   return self.conf ~= gcc
 end
 
 function config:getIgnorePattern()

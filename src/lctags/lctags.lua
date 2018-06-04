@@ -208,7 +208,7 @@ main(){
 	 print( string.format(
 		   "please set clang inc-path at getClangIncPath() in %s, and retry init.",
 		   lctagOptMap.confPath ) )
-	 os.remove( lctagOptMap.dbPath )
+	 --os.remove( lctagOptMap.dbPath )
 	 finish( 1 )
       end
    end

@@ -208,29 +208,30 @@ function lctags_dumpDir( confId, projDir ) {
 
         var parentObj = $('#file-list' ).get( 0 );
         for (val in dirList) {
+            var path = dirList[ val ];
+
+            var refDirButton = document.createElement( "button" );
+            refDirButton.type = "button";
+            refDirButton.innerHTML = "module graph";
+            //           refDirButton.classList.add( "dir_file" );
+            refDirButton.onclick = function( path ) {
+                return function() {
+                    lctags_openRefDirTab( confId, path );
+                };
+            }( path );
+            
+            parentObj.appendChild( refDirButton );
+            
             var obj = document.createElement( "button" );
             obj.type = "button";
-            var path = dirList[ val ];
             obj.innerHTML = path;
+            obj.classList.add( "dir_file" );
             jQuery.data( obj, "opened", false );
             var fileListObj = document.createElement( "div" );
             obj.onclick = function( path, obj ) {
                 return function() {
                     var opened = jQuery.data( obj, "opened" );
                     if ( !opened ) {
-                        var refDirButton = document.createElement( "button" );
-                        refDirButton.type = "button";
-                        refDirButton.innerHTML = "refDir";
-                        refDirButton.classList.add( "dir_file" );
-                        refDirButton.onclick = function( path ) {
-                            return function() {
-                                lctags_openRefDirTab( confId, path );
-                            };
-                        }( path );
-                        
-                        obj.appendChild( refDirButton );
-                        obj.appendChild( document.createElement( "br" ) );
-                        
                         lctags_matchFile( confId, path, obj );
                     }
                     else {
@@ -305,10 +306,24 @@ function lctags_matchFile( confId, dirPath, parentObj ) {
             });
         
         for (val in fileList) {
+            var info = fileList[ val ];
+
+            var refFileButton = document.createElement( "button" );
+            refFileButton.type = "button";
+            refFileButton.innerHTML = "module graph";
+            refFileButton.classList.add( "dir_file" );
+            refFileButton.onclick = function( fileId, path ) {
+                return function() {
+                    lctags_openRefFileTab( confId, fileId, path );
+                };
+            }( info.fileId, info.path );
+            
+            parentObj.appendChild( refFileButton );
+            
+            
             var obj = document.createElement( "button" );
             obj.type = "button";
             obj.classList.add( "dir_file" );
-            var info = fileList[ val ];
             var path = info.path.replace( dirPath + "/", "" );
             obj.innerHTML = path + " (" + info.fileId + ")";
             obj.onclick = function( info ) {
@@ -372,20 +387,6 @@ function lctags_getFileInfo( projDir, confId, fileId, filePath ) {
         parentObj.appendChild( label );
         
 
-        var refFileButton = document.createElement( "button" );
-        refFileButton.type = "button";
-        refFileButton.innerHTML = "refDir";
-        refFileButton.classList.add( "dir_file" );
-        refFileButton.onclick = function( fileId, path ) {
-            return function() {
-                lctags_openRefFileTab( confId, fileId, path );
-            };
-        }( fileId, filePath );
-        
-        parentObj.appendChild( refFileButton );
-        parentObj.appendChild( document.createElement( "br" ) );
-
-        
         var listing = function( labelName, typeList, titleTypeList ) {
             var typeSet = new Set( typeList );
             var titleSet = new Set( titleTypeList );
@@ -943,7 +944,7 @@ function lctags_moduleDirGraph_tree( projDir, confId, path ) {
             var fileList = [];
             var nameList = [];
             
-            var batchCount = 5;
+            var batchCount = 10;
             function queryRefInfo( beginIndex ) {
                 var workList = fileIdList.slice( beginIndex, beginIndex + batchCount );
                 if ( workList.length != 0 ) {

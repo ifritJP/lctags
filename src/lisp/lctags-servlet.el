@@ -83,7 +83,30 @@
 - FUNC: if FUNC is specified, servlet process the form (apply func param).
 ")
 
-;; 
+(defun lctags-servlet-api-info-2-python ()
+  "lctags-servlet-api-info-table から httpy.py の apiInfoMap を生成する。"
+  (lctags-switch-to-buffer-other-window (generate-new-buffer "*lctags-python*"))
+  (dolist (item lctags-servlet-api-info-table)
+    (insert (format "\"%s\": { " (car item)))
+    (insert "\"param\": [")
+    (let ((first t))
+      (dolist (param (plist-get (cadr item) :param))
+	(if first
+	    (setq first nil)
+	  (insert ", "))
+	(cond ((stringp param)
+	       (insert (format "\"%s\"" param)))
+	      ((listp param)
+	       (insert (format "[\"%s\", (lambda val: val.replace( \"_\", \"$_\" ))"
+			       (car param)))
+	       (insert "]"))
+	      ))
+	)
+    (insert "] },\n")
+    ))
+
+
+;; (lctags-servlet-api-info-2-python)
 
 
 ;;(gethash 0 lctags-servlet-cookie-hash)
