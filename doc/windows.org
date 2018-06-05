@@ -1,0 +1,146 @@
+# -*- coding:utf-8 -*-
+#+AUTHOR: ifritJP
+#+STARTUP: nofold
+#+OPTIONS: ^:{}
+
+#+TITLE: Windows で lctags (C言語/C++ のタグジャンプ、コールグラフ、etc..)
+
+C/C++ のコーディングサポートツールとして lctags を開発していますが、
+Linux 上で動作させることを想定して開発しています。
+
+とはいえ、日本のエンジニアは Windows を使用している方が多いと思います。
+特に日本の企業では、会社の基幹システムが MS 系アプリ前提で構築されていることが多いため、
+必然的に Windows を使用することになると思います。
+
+そこで、ここでは Windows 上で lctags を利用する方法について説明します。
+
+
+なお、PC のシステム管理者権限が制限されている残念な環境では、
+今回説明する方法は利用できません。
+
+* cygwin
+  
+Windows で lctags を動かすには、 cygwin が必要です。
+
+Windows10 で Windows Subsystem for Linux が使用可能になりましたが、
+そちらの環境では動作確認していません。
+
+cygwin では、次のパッケージを導入してください。
+
+- lua 5.2.4
+- lua-devel 5.2.4
+- swig 3.0.12
+- libclang 5.0.1-2
+- libclang-devel 5.0.1-2
+- openssl  
+- openssl-devel
+- curl
+- make
+- unzip
+- gcc
+
+必ず環境変数の PATH 設定で、 cygwin が先頭に来るように設定してください。
+find 等のコマンドが、cygwin ではなく Windows 側のコマンドを使われると正常に動作しません。
+
+
+* lctags のビルド
+
+lctags のビルド手順を示します。
+
+** lctags を clone
+   
+git で lctags を clone してください。
+
+#+BEGIN_SRC txt
+$ git clone https://github.com/ifritJP/lctags.git
+#+END_SRC
+
+** lctags/src/makefile の編集
+
+lctags/src/makefile の次の項目を編集してください。
+
+#+BEGIN_SRC txt
+SO=dll
+LUA_COMMAND=lua
+LUA_INC=/usr/include
+LUA_LDFLAGS=
+LUA_SO=-llua
+LIBCLANG_INC=/usr/include
+LIBCLANG_LIB=/lib
+LIBCLANG_STD_INC=/lib/clang/5.0.1/include
+#+END_SRC
+
+** luasqlite3 のダウンロード
+
+次のコマンドを実行。
+
+#+BEGIN_SRC txt
+$ make download_luasqlite3 [PROXY=http://proxy.hoge:port]
+#+END_SRC
+
+PROXY が必要な場合は、PROXY を指定してください。
+
+** ビルド&インストール
+
+次のコマンドを実行。
+
+#+BEGIN_SRC txt
+$ make build
+$ make install
+#+END_SRC
+
+** ~/.bashrc の編集
+
+~/.bashrc に次を追加。
+    
+#+BEGIN_SRC sh
+export PATH=/usr/local/bin:${PATH}
+#+END_SRC
+
+cygwin のコンソールを再起動。
+
+以上で、 cygwin のコンソールから lctags を使用できます。
+
+* Windows の lctags について
+
+ここまで Windows で lctags を使うための方法を説明してきてアレですが、
+個人的には Windows 上で lctags を利用するのはオススメしません。
+
+それは、Linux に比べると Windows はオーバーヘッドが大きく、
+その分 C/C++ コード解析に時間が掛るためです。
+
+Windows と Linux とで、
+Lua-5.3.4 ソースの解析にかかる時間を次に示します。
+なお時間計測に利用した PC は、Windows, Linux ともに同一のものです。
+
+- linux
+
+#+BEGIN_SRC txt
+real	0m12.931s
+user	0m16.061s
+sys	0m6.421s
+#+END_SRC
+
+- Windows
+
+#+BEGIN_SRC txt
+real	0m20.396s
+user	0m32.066s
+sys	0m17.433s
+#+END_SRC
+
+上記の結果から、Windows の方が倍近い時間が掛っていることが分かります。
+
+Windows で lctags を使用するよりは、
+Windows 上に Linux の VM を動かし、
+VM 上で lctags を使用する方がパフォーマンスが上がります。
+
+Linux を利用出来ない特別な理由がない限り、
+Linux で lctags を使用することをオススメします。
+
+* 参考
+
+lctags 全般の紹介は次を参照してください。
+
+- C/C++ ソースコードタグシステム lctags の紹介
+https://qiita.com/dwarfJP/items/982ef7ee3f3bfd435156

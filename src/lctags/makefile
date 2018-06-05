@@ -4,19 +4,20 @@ LUA_LIB=
 LUA_CFLAGS=
 LUA_LDFLAGS=-llua5.3
 INST_DIR=/usr/local/bin
+SO=so
 
-all: Helper.so
+all: Helper.$(SO)
 
-Helper.so: Helper.c
+Helper.$(SO): Helper.c
 	gcc Helper.c -std=c99 -DHELPER_STAND_ALONE -o Helper $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS) -lcrypto -lm -lpthread -lrt
-	gcc Helper.c -std=c99 -fPIC -shared -DHELPER_STAND_ALONE -o Helper.so  $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS) -lcrypto -lm -lpthread -lrt
+	gcc Helper.c -std=c99 -fPIC -shared -DHELPER_STAND_ALONE -o Helper.$(SO)  $(LUA_LIB) $(LUA_CFLAGS) $(LUA_LDFLAGS) -lcrypto -lm -lpthread -lrt
 
 test: all
 	./Helper
 	(cd ..; $(LUA_COMMAND) lctags/testHelper.lua)
 
 clean:
-	rm -f Helper.so Helper
+	rm -f Helper.$(SO) Helper
 
 install:
 	sed "s@lua5.3@$(LUA_COMMAND)@g" lctags | \

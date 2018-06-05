@@ -137,6 +137,12 @@ end
 
 function Util:mkdirWithParent( path )
    local dir = ""
+   local cygdrive = "/cygdrive/"
+   if path:find( cygdrive, 1, true ) then
+      path = path:sub( #cygdrive + 1 )
+      dir = cygdrive .. path:sub( 1, 1 )
+      path = path:sub( 3 )
+   end
    for name in string.gmatch( path, "[^/]+" ) do
       dir = dir .. "/" .. name 
       local result = Helper.mkdir( dir )

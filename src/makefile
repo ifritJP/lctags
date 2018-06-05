@@ -8,7 +8,17 @@ SWIG=swig
 
 INSTALL=/usr/bin/install -c
 
+SO=so
+## cygwin
+#SO=dll
+
 ####### customize Lua environment ######
+
+## cygwin
+# LUA_COMMAND=lua
+# LUA_INC=/usr/include
+# LUA_LDFLAGS=
+# LUA_SO=-llua
 
 # LUA_COMMAND=lua5.1
 # LUA_INC=/usr/include/lua5.1
@@ -36,7 +46,15 @@ LUA_SO=-llua5.3
 
 TEST_LUA_DIR=../external/lua/lua-5.3.4/src
 
+LUA_URL="https://www.lua.org/ftp/lua-5.3.4.tar.gz"
+
 ####### customize libclang environment ######
+
+## cygwin
+# LIBCLANG_INC=/usr/include
+# LIBCLANG_LIB=/lib
+# LIBCLANG_STD_INC=/lib/clang/5.0.1/include
+
 
 CLANG_VER=3.8
 LIBCLANG_INC=/usr/lib/llvm-$(CLANG_VER)/include
@@ -93,11 +111,12 @@ LCTAGS_LUA=lctags/lctags.lua
 
 IF_LUA = libclanglua/if.lua
 IFC_LUA = libclanglua/ifc.lua
-COREBASE_SO = libclanglua/coreBase.so
-CORE_SO = libclanglua/core.so
+COREBASE_SO = libclanglua/coreBase.$(SO)
+CORE_SO = libclanglua/core.$(SO)
 
 LUA_DIR_SCRIPT='for path in string.gmatch( package.path, "[^;]+" ) do if path:find( ".*lua.*%?%.lua" ) then print( (path:gsub( "/%?%.lua", "" )) ); break end end'
-LUA_DIR_LIB='for path in string.gmatch( package.cpath, "[^;]+" ) do if path:find( ".*lua.*%?%.so" ) then print( (path:gsub( "/%?%.so", "" )) ); break end end'
+LUA_DIR_LIB="for path in string.gmatch( package.cpath, '[^;]+' ) do if path:find( \".*lua.*%?%.$(SO)\" ) then print( (path:gsub( \"/%?%.$(SO)\", '' ))); break end end"
+
 
 
 ifneq ($(LUA_DIR),)
@@ -121,8 +140,8 @@ endif
 	rm -f $(IF_LUA) $(IFC_LUA)
 	rm -f swig/libClangLua_wrap.* swig/libClangLuaBase_wrap.*
 	rm -f clanglua
-	rm -f lsqlite3.so
-	$(MAKE) -C lctags clean
+	rm -f lsqlite3.$(SO)
+	$(MAKE) -C lctags SO=$(SO) clean
 
 $(LUA_LIB):
 	$(MAKE) -C $(LUA_DIR) linux ALL=liblua.a MYCFLAGS="$(LUA_CFLAGS)" MYLDFLAGS="$(LUA_LDFLAGS)"
@@ -162,26 +181,26 @@ $(CORE_SO): swig/libClangLua_wrap.o $(LUA_LIB)
 	@gcc $(OPT_OP) -fPIC -shared -Wl,-soname,$(CORE_SO) -o $(CORE_SO) -lrt -ldl -lpthread -lm swig/libClangLua_wrap.o $(LUA_LIB) -L$(LIBCLANG_LIB) $(LIBCLANG_SO) $(LUA_SO)
 
 
-sqlite3: lsqlite3.so
+sqlite3: lsqlite3.$(SO)
 
 ifeq ($(shell $(LUA_COMMAND) -e 'print( require( "lsqlite3" ) )' 2> /dev/null),)
-lsqlite3.so: $(LUASQLITE3_DIR)/lsqlite3.c $(LUASQLITE3_DIR)/sqlite3.c
+lsqlite3.$(SO): $(LUASQLITE3_DIR)/lsqlite3.c $(LUASQLITE3_DIR)/sqlite3.c
 ifeq ($(USE_BDB_SQLITE),y)
-	gcc -std=c99 -fPIC -shared $(OPT_OP) -o lsqlite3.so \
+	gcc -std=c99 -fPIC -shared $(OPT_OP) -o lsqlite3.$(SO) \
 		$(LUASQLITE3_DIR)/lsqlite3.c lctags/lsqlite3.dummy.c \
-		-I$(LUA_INC) $(LUA_LIB) -lpthread -ldb_sql-5.3
+		-I$(LUA_INC) $(LUA_LIB) $(LUA_SO) -lpthread -ldb_sql-5.3
 else
-	gcc -std=c99 -fPIC -shared $(OPT_OP) -o lsqlite3.so \
+	gcc -std=c99 -fPIC -shared $(OPT_OP) -o lsqlite3.$(SO) \
 		$(LUASQLITE3_DIR)/lsqlite3.c $(LUASQLITE3_DIR)/sqlite3.c \
-		-I$(LUA_INC) $(LUA_LIB) -lpthread
+		-I$(LUA_INC) $(LUA_LIB) $(LUA_SO) -lpthread
 endif
 else
-lsqlite3.so:
+lsqlite3.$(SO):
 	@echo lsqlite3 is ready
 endif
 
 lctags-build:
-	$(MAKE) -C lctags LUA_COMMAND=$(LUA_COMMAND) LUA_INC=$(LUA_INC) LUA_LIB=$(LUA_LIB) LUA_CFLAGS="-I$(LUA_INC)" LUA_LDFLAGS=$(LUA_SO)
+	$(MAKE) -C lctags LUA_COMMAND=$(LUA_COMMAND) LUA_INC=$(LUA_INC) LUA_LIB=$(LUA_LIB) LUA_CFLAGS="-I$(LUA_INC)" LUA_LDFLAGS=$(LUA_SO) SO=$(SO)
 
 
 test: build
@@ -493,7 +512,7 @@ install: build
 		LUA_COMMAND=$(LUA_COMMAND) LUA_MOD_DIR=$(LUA_MOD_DIR)
 
 uninstall:
-	PATH=$(PATH):$(INST_DIR) $(MAKE) uninstall-lib
+	PATH="$(PATH):$(INST_DIR)" $(MAKE) uninstall-lib
 	$(MAKE) -C lctags uninstall INST_DIR=$(INST_DIR)
 
 install-lib:
@@ -505,11 +524,14 @@ install-lib:
 	mkdir -p $(LUA_MOD_DIR)/lctags
 	$(INSTALL) $(CORE_SO) $(LUA_LIB_DIR)/libclanglua
 	$(INSTALL) $(IF_LUA) $(IFC_LUA) $(LUA_MOD_DIR)/libclanglua
-	if [ -f lsqlite3.so  ]; then $(INSTALL) lsqlite3.so $(LUA_LIB_DIR); fi
+	if [ -f lsqlite3.$(SO)  ]; then $(INSTALL) lsqlite3.$(SO) $(LUA_LIB_DIR); fi
 	mkdir -p $(LUA_MOD_DIR)/lctags
 	$(INSTALL) lctags/_lctags.conf $(LUA_MOD_DIR)/lctags
 	$(INSTALL) lctags/*.lua $(LUA_MOD_DIR)/lctags
-	$(INSTALL) lctags/*.so $(LUA_LIB_DIR)/lctags
+	sed "s@.*-- replase by install@  self.clangIncPath = \"$(LIBCLANG_STD_INC)\"@g" lctags/config.lua > /tmp/config.lua
+	$(INSTALL) /tmp/config.lua $(LUA_MOD_DIR)/lctags
+	rm /tmp/config.lua
+	$(INSTALL) lctags/*.$(SO) $(LUA_LIB_DIR)/lctags
 ifneq ($(LUA_INST_DIR),)
 	$(INSTALL) $(LUA_COMMAND) $(LUA_INST_DIR)
 endif
@@ -527,7 +549,7 @@ else
 	-rmdir $(LUA_LIB_DIR)/lctags
 	-rm -f $(LUA_MOD_DIR)/lctags/*
 	-rmdir $(LUA_MOD_DIR)/lctags
-	-if [ -f lsqlite3.so ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.so; fi
+	-if [ -f lsqlite3.$(SO) ]; then rm -f $(LUA_LIB_DIR)/lsqlite3.$(SO); fi
 endif
 ifneq ($(LUA_INST_DIR),)
 	-rm $(LUA_INST_DIR)/$(LUA_COMMAND)
@@ -560,11 +582,22 @@ download_luasqlite3:
 	@echo check luasqlite3 ...
 ifeq ($(wildcard $(LUASQLITE3_DIR).zip),)
 	@echo install $(luasqlite3)
-	make -p $(LUASQLITE3_WORKDIR)
-	curl --proxy "$(PROXY)" $(LUASQLITE3_URL) > $(LUASQLITE3_DIR).zip
+	mkdir -p $(LUASQLITE3_WORKDIR)
+	curl --proxy "$(PROXY)" $(LUASQLITE3_URL) -o $(LUASQLITE3_DIR).zip
 	(cd $(LUASQLITE3_WORKDIR); unzip -o $(shell basename $(LUASQLITE3_DIR).zip))
 else
 	@echo ready luasqlite3
+endif
+
+download_lua:
+	@echo check lua ...
+	mkdir -p $(TEST_LUA_DIR)
+ifeq ($(wildcard $(TEST_LUA_DIR)/../../*.tar.gz),)
+	@echo install $(lua)
+	curl --proxy "$(PROXY)" $(LUA_URL) -o $(TEST_LUA_DIR)/../../lua.tar.gz
+	(cd $(TEST_LUA_DIR)/../..; tar xvf lua.tar.gz)
+else
+	@echo ready lua
 endif
 
 

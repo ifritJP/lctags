@@ -69,6 +69,11 @@ function config:getClangIncPath()
 	 end
    end
 
+   self.clangIncPath = nil -- replase by install
+   if self.clangIncPath then
+      return self.clangIncPath
+   end
+
    local clangVer = require( 'libclanglua.if' ).getClangVersion()
    clangVer3 = string.gsub(
       clangVer, "^clang version (%d+)%.(%d+)%.(%d+)[^%d].*", "%1.%2.%3" )

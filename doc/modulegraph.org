@@ -3,7 +3,7 @@
 #+STARTUP: nofold
 #+OPTIONS: ^:{}
 
-#+TITLE: C言語/C++ コードを解析してインタラクティブなモジュール構成っぽい図表示 by lctags
+#+TITLE: C言語/C++ コードを解析してインタラクティブなモジュール構成図っぽいグラフ表示 by lctags
 
 lctags で解析した C言語/C++ コードの情報を基に、
 インタラクティブなモジュール構成っぽい図を表示できるように対応しました。
@@ -36,7 +36,7 @@ ULM のコンポーネント図のようなものというと、伝わるでし�
 文書で色々説明するよりサンプルを見てもらった方が理解が早いと思うので、
 次にサンプル画像を載せます。
 
-[[module.graph.curl.png]]
+[[https://raw.githubusercontent.com/ifritJP/lctags/master/doc/module.graph.curl.png]]
 
 これは、 curl コマンドの cookie.c のモジュール構成図です。
 
