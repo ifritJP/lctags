@@ -195,7 +195,6 @@ function callee:queryOutput( db, isLimit, output, target )
    end
 end
 
-
 ------ caller ------
 
 local caller = QueryParam:addQuery( { name = "caller" }, { __index = callee } )
@@ -345,6 +344,15 @@ end
 
 function matchFile:queryOutput( db, isLimit, output, target )
    local path = db:convPath( target[1] )
+
+   local fileInfo = db:getFileInfo( nil, path )
+   if fileInfo then
+      local item = fileInfo
+      output( db, query, target, "path",
+	      { path = item.path, fileId = item.id, id = item.id, line = 1 } )
+      return
+   end
+   
    local onlyChild = target[ 2 ] == "onlyChild"
    if not string.find( path, "/$" ) then
       path = path .. "/"
@@ -554,14 +562,16 @@ end
 function decl:queryOutput( db, isLimit, output, target )
    local nsInfo = self:getNsInfo( db, target )
 
-   db:mapDecl(
-      nsInfo.id,
-      function( item )
-	 if isLimit() then return false; end
-	 output( db, self.name, target, target, item )
-	 return true
-      end
-   )
+   if nsInfo then
+      db:mapDecl(
+	 nsInfo.id,
+	 function( item )
+	    if isLimit() then return false; end
+	    output( db, self.name, target, target, item )
+	    return true
+	 end
+      )
+   end
 end
 
 
@@ -632,7 +642,7 @@ end
 
 ------ reqDir ------
 
-local reqDir = QueryParam:addQuery( { name = "reqDir" } )
+local reqDir = QueryParam:addQuery( { name = "reqDir" }, { __index = refDir } )
 
 ------ refFile ------
 

@@ -202,6 +202,19 @@ function Query:execWithDb( db, query, target, cursorKind, limit, form )
       	    return true
       	 end
       )
+      if target:sub( 1, 1 ) == ":" then
+	 local indirectList = config:getIndirectFuncList( target, "callee" )
+
+	 if indirectList and #indirectList > 0 then
+	    db:mapFuncDeclPattern(
+	       indirectList,
+	       function( item )
+		  output( db, query, item.name, item.name, item )
+		  return true
+	       end
+	    )
+	 end
+      end
    elseif query:find( "T" ) then
       if not target then
 	 return false
@@ -512,7 +525,7 @@ function Query:outputIncSrcHeader( db, file, stream )
       function( item )
 	 local fileInfo = db:getFileInfo( item.baseFileId )
 	 Util:printLocateDirect(
-	    stream, "path", db:getSystemPath( fileInfo.path ), 1, false )
+	    stream, db, "path", db:getSystemPath( fileInfo.path ), 1, false )
 	 return true
       end
    )

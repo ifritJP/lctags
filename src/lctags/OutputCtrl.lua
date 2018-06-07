@@ -201,7 +201,7 @@ function obj.txt(
    table.sort( pathList )
    for index, path in pairs( pathList ) do
       if path ~= "" then
-	 Util:printLocateDirect( fileHandle, "path", path, 1, false )
+	 Util:printLocateDirect( fileHandle, db, "path", path, 1, false )
       end
    end
 end

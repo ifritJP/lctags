@@ -4,7 +4,7 @@ local clang = require( 'libclanglua.if' )
 local Writer = require( 'lctags.Writer' )
 
 local Util = { _cwd = os.getenv( "PWD" ) }
-
+Util._orgCwd = Util._cwd
 
 local Option
 
@@ -77,23 +77,66 @@ function Util:printLocate(
       path = fileInfo.path
    end
    
-   local baseDir = absFlag and "" or Util:getcwd()
-   path = db:getSystemPath( path, baseDir )
-   self:printLocateDirect( io.stdout, symbol, path, line, printLine, fileContents )
+   -- local baseDir = absFlag and "" or Util:getcwd()
+   path = db:getSystemPath( path, Util:getcwd() )
+   if not absFlag then
+      path = Util:convRelativePath( db, path, Util:getcwd() )
+   end
+   self:printLocateDirect( io.stdout, db, symbol, path, line, printLine, fileContents )
 end
 
 function Util:printLocateDirect(
-      outputHandle, symbol, path, line, printLine, fileContents )
+      outputHandle, db, symbol, path, line, printLine, fileContents )
    if symbol == "" then
       symbol = "none"
    end
 
    -- GNU globalフォーマット
+   local dispPath = path
+   if dispPath:sub( 1, 1 ) ~= "/" then
+      dispPath = Util:convRelativePath(
+	 db, db:convFullpath( path, Util:getcwd() ), Util:getOrgCwd() )
+   end
    outputHandle:write(
       string.format(
-	 "%-16s %4d %-16s %s\n", symbol, line, path,
+	 "%-16s %4d %-16s %s\n", symbol, line, dispPath,
 	 printLine and Util:getFileLineText( path, line, fileContents ) or "" ) )
 end
+
+-- fullpath の指定ディレクトリ dir(フルパス) からの相対パス
+function Util:convRelativePath( db, fullpath, dir )
+   dirList = {}
+   for name in string.gmatch( dir, "[^/]+" ) do
+      table.insert( dirList, name )
+   end
+   
+   pathList = {}
+   for name in string.gmatch( fullpath, "[^/]+" ) do
+      table.insert( pathList, name )
+   end
+   
+   local unmatchIndex = 0
+   for index, name in ipairs( pathList ) do
+      unmatchIndex = index
+      if name ~= dirList[ index ] then
+	 break
+      end
+   end
+   if unmatchIndex < (#pathList / 2) then
+      return fullpath
+   end
+
+   local relative = "."
+   for index = unmatchIndex, #dirList do
+      relative = relative .. "/.."
+   end
+   for index = unmatchIndex, #pathList do
+      relative = relative .. "/" .. pathList[ index ]
+   end
+   return relative
+end
+
+
 
 function Util:calcFileDigest( path )
    if path then
@@ -338,6 +381,10 @@ end
 
 function Util:getcwd()
    return self._cwd
+end
+
+function Util:getOrgCwd()
+   return self._orgCwd
 end
 
 return Util

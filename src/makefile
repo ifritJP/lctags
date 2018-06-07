@@ -48,6 +48,8 @@ TEST_LUA_DIR=../external/lua/lua-5.3.4/src
 
 LUA_URL="https://www.lua.org/ftp/lua-5.3.4.tar.gz"
 
+LUA_COMMAND_FULL:=$(shell python -c 'import os; print( os.path.abspath( "$(shell which $(LUA_COMMAND))" ) );' )
+
 ####### customize libclang environment ######
 
 ## cygwin
@@ -84,8 +86,8 @@ LUASQLITE3_URL="http://lua.sqlite.org/index.cgi/zip/lsqlite3_fsl09x.zip?uuid=fsl
 
 ####### make rules ######
 
-LUA_LIB_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_LIB))
-LUA_MOD_DIR=$(shell $(LUA_COMMAND) -e $(LUA_DIR_SCRIPT))
+LUA_LIB_DIR=$(shell echo $(LUA_DIR_LIB) | $(LUA_COMMAND) )
+LUA_MOD_DIR=$(shell echo $(LUA_DIR_SCRIPT) | $(LUA_COMMAND) )
 
 LCTAGS_LOG=4
 JOBS=3
@@ -208,22 +210,32 @@ ifndef NO_INIT
 	$(LUA_COMMAND) $(LCTAGS_LUA) init . $(IT_OP) $(IS_OP) $(IM_OP)
 endif
 	sync
+	rm -f 
+	emacs -batch -q -eval "(progn (add-to-list 'load-path \"lisp\") (load \"lctags-test.el\"))"
+	cat lisp/lctags_httpd_var.py | sed 's/^#.*//g' | sed 's/^[[:space:]]*//g' | \
+		python -c 'import sys; print( sys.stdin.read().replace( "\n", " " ).replace( "] }, ", "] },\n" ) ).replace( "  apiInfoMap = { ", "apiInfoMap = {\n" )' | \
+	sed 's/[[:space:]]*$$//g' > /tmp/lctags_httpd_var.py
+	diff servlet-api-info /tmp/lctags_httpd_var.py
+
 	rm -f test-result test-result2
 	rm -rf .lctags/pch
 	$(MAKE) test-dbbuild
-	LANG= $(MAKE) test-query | \
+	LANG= $(MAKE) test-query LUA_COMMAND=$(LUA_COMMAND_FULL) | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(NDIR)@NDIR@g" | \
 		grep -v -e 'Leaving directory' -e 'Entering directory' | \
 		sed "s@$(LUA_COMMAND)@lua@g" | sed 's@<hash>[0-9a-f]*</hash>@@g' | \
+		grep -v 'clang/stdinc' | \
 		sed 's@><@>\n<@g' | \
 		tee test-result
-	LANG= $(MAKE) LCTAGS_LUA="$(LCTAGS_LUA) --lctags-form json" test-query | \
+	LANG= $(MAKE) LUA_COMMAND=$(LUA_COMMAND_FULL) \
+		LCTAGS_LUA="$(LCTAGS_LUA) --lctags-form json" test-query | \
 		sed "s@-I/usr/lib/llvm-[\.[:alnum:]_\-\/]\+@-Iclang@g" | \
 		sed "s@$(NDIR)@NDIR@g" | \
 		grep -v -e 'Leaving directory' -e 'Entering directory' | \
 		sed "s@$(LUA_COMMAND)@lua@g" | sed 's@"hash": "[0-9a-f]*"@@g' | \
-		sed 's@,@,\n@g' | \
+		grep -v 'clang/stdinc' | \
+		sed 's@,@,\n@g' | grep -v -i 'id": ' | \
 		tee test-result2
 	$(MAKE) test-stack
 	- diff -c test-result.expect test-result && echo OK
@@ -304,6 +316,9 @@ endif
 	$(call build-test, test/inctest.cpp, , -Itest/inc )
 	$(call build-test, test/indirect.cpp )
 	$(call build-test, test/macro.cpp )
+	$(call build-test, test/module/mod1.cpp, , -Itest/module )
+	$(call build-test, test/module/sub/mod2.cpp, , -Itest/module )
+
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
 #	$(LUA_COMMAND) $(LCTAGS_LUA) update . $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -437,12 +452,24 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq callPair ::test_indirect_t ::test_sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq refPair ::test_indirect_t ::test_sub
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq refSym ::macro_func
-
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq decl ::mod1_func
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq dumpDir
+	$(MAKE) test-inq FILEID=$(shell $(LUA_COMMAND) $(LCTAGS_LUA) inq matchFile ./test/module/sub/mod2.cpp   --lctags-form json | json_pp | grep fileId | awk '//{print($$3);}' | tr -d , ) 
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq refDir ./test/module/sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq reqDir ./test/module/sub
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq searchFile module
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq searchDecl mod1
+	(cd test; $(LUA_COMMAND_FULL) ../start.lua -xt mod1_func)
 
 	$(LUA_COMMAND) $(LCTAGS_LUA) addIncRef test/incFuncTest.c /usr/include/string.h
 	sed 's@//@@' test/incFuncTest.c | $(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/incFuncTest.c 3 8 -i
 
 	$(MAKE) test-chg-proj
+
+test-inq:
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq defAtFileId $(FILEID) 
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq refFile $(FILEID) "./test/module/sub/mod2.c"
+	$(LUA_COMMAND) $(LCTAGS_LUA) inq reqFile $(FILEID) "./test/module/sub/mod2.c"
 
 test-chg-proj:
 	$(LUA_COMMAND) $(LCTAGS_LUA) set-projDir . test@test2 > /dev/null

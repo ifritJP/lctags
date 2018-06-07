@@ -2099,6 +2099,27 @@ function Analyzer:queryAt(
 			return true
 		     end	 
 		  )
+
+		  do
+		     local declNsInfo = db:getNamespaceFromCursor( declCursor )
+		     if declNsInfo then
+			local indirectList = config:getIndirectFuncList(
+			   declNsInfo.name, "callee" )
+
+			if indirectList and #indirectList > 0 then
+			   db:mapFuncDeclPattern(
+			      indirectList,
+			      function( item )
+				 Util:printLocate( 
+				    db, declNsInfo.name,
+				    item.fileId, item.line, absFlag, true,
+				    item.fileId == targetFileId and fileContents or nil )
+				 return true
+			      end
+			   )
+			end
+		     end
+		  end
 	       end
 	    elseif mode == "call-at" or mode == "callee-at" then
 	       db:mapCallForCursor(

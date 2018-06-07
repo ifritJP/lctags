@@ -1,392 +1,256 @@
-lua lctags/lctags.lua --lctags-form json dump all >> dump
-lua lctags/lctags.lua --lctags-form json -x sub
+/usr/bin/lua lctags/lctags.lua --lctags-form json dump all >> dump
+/usr/bin/lua lctags/lctags.lua --lctags-form json -x sub
 {"lctags_result": {"-x": [{"info": {"charSize": 189,
 "column": 9,
 "comment": "none",
 "endColumn": 10,
 "endLine": 257,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 251,
-"nsId": 3367,
-"parentId": 3121,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 36,
 "column": 3,
 "comment": "none",
 "endColumn": 4,
 "endLine": 10,
-"fileId": 90,
 "hasBodyFlag": 1,
 "line": 8,
-"nsId": 3433,
-"parentId": 3428,
-"snameId": 3150,
 "type": 21}},
 {"info": {"charSize": 36,
 "column": 3,
 "comment": "none",
 "endColumn": 4,
 "endLine": 10,
-"fileId": 91,
 "hasBodyFlag": 1,
 "line": 8,
-"nsId": 3433,
-"parentId": 3428,
-"snameId": 3150,
 "type": 21}},
 {"info": {"charSize": 38,
 "column": 3,
 "comment": "none",
 "endColumn": 4,
 "endLine": 10,
-"fileId": 92,
 "hasBodyFlag": 1,
 "line": 7,
-"nsId": 3433,
-"parentId": 3428,
-"snameId": 3150,
 "type": 21}},
 {"info": {"charSize": 38,
 "column": 3,
 "comment": "none",
 "endColumn": 4,
 "endLine": 10,
-"fileId": 93,
 "hasBodyFlag": 1,
 "line": 7,
-"nsId": 3433,
-"parentId": 3428,
-"snameId": 3150,
 "type": 21}},
 {"info": {"charSize": 38,
 "column": 3,
 "comment": "none",
 "endColumn": 4,
 "endLine": 10,
-"fileId": 94,
 "hasBodyFlag": 1,
 "line": 7,
-"nsId": 3433,
-"parentId": 3428,
-"snameId": 3150,
 "type": 21}},
 {"info": {"charSize": 38,
 "column": 3,
 "comment": "none",
 "endColumn": 4,
 "endLine": 10,
-"fileId": 95,
 "hasBodyFlag": 1,
 "line": 7,
-"nsId": 3433,
-"parentId": 3428,
-"snameId": 3150,
 "type": 21}},
 {"info": {"charSize": 30,
 "column": 5,
 "comment": "none",
 "endColumn": 6,
 "endLine": 49,
-"fileId": 96,
 "hasBodyFlag": 1,
 "line": 46,
-"nsId": 3456,
-"parentId": 3120,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 40,
 "column": 5,
 "comment": "none",
 "endColumn": 6,
 "endLine": 49,
-"fileId": 97,
 "hasBodyFlag": 1,
 "line": 46,
-"nsId": 3495,
-"parentId": 3478,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 36,
 "column": 5,
 "comment": "none",
 "endColumn": 6,
 "endLine": 49,
-"fileId": 98,
 "hasBodyFlag": 1,
 "line": 46,
-"nsId": 3534,
-"parentId": 3517,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 31,
 "column": 5,
 "comment": "none",
 "endColumn": 6,
 "endLine": 49,
-"fileId": 99,
 "hasBodyFlag": 1,
 "line": 46,
-"nsId": 3573,
-"parentId": 3556,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 29,
 "column": 5,
 "comment": "none",
 "endColumn": 6,
 "endLine": 49,
-"fileId": 100,
 "hasBodyFlag": 1,
 "line": 46,
-"nsId": 3612,
-"parentId": 3595,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 38,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 12,
-"fileId": 106,
 "hasBodyFlag": 1,
 "line": 9,
-"nsId": 3645,
-"parentId": 1,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 28,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 7,
-"fileId": 107,
 "hasBodyFlag": 1,
 "line": 5,
-"nsId": 3645,
-"parentId": 1,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 23,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 6,
-"fileId": 109,
 "hasBodyFlag": 1,
 "line": 4,
-"nsId": 3645,
-"parentId": 1,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 51,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 6,
-"fileId": 188,
 "hasBodyFlag": 1,
 "line": 3,
-"nsId": 6167,
-"parentId": 3645,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 17,
 "column": 1,
 "comment": "none",
 "endColumn": 18,
 "endLine": 4,
-"fileId": 189,
 "hasBodyFlag": 0,
 "line": 4,
-"nsId": 6170,
-"parentId": 3645,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 57,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 56,
-"fileId": 189,
 "hasBodyFlag": 1,
 "line": 52,
-"nsId": 6170,
-"parentId": 3645,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 108,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 13,
-"fileId": 195,
 "hasBodyFlag": 1,
 "line": 6,
-"nsId": 6205,
-"parentId": 3645,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 53,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 9,
-"fileId": 196,
 "hasBodyFlag": 1,
 "line": 6,
-"nsId": 6209,
-"parentId": 3645,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 41,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 8,
-"fileId": 197,
 "hasBodyFlag": 1,
 "line": 5,
-"nsId": 6210,
-"parentId": 3645,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 296,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 30,
-"fileId": 200,
 "hasBodyFlag": 1,
 "line": 21,
-"nsId": 3645,
-"parentId": 1,
-"snameId": 3150,
 "type": 8}},
 {"info": {"charSize": 37,
 "column": 1,
 "comment": "none",
 "endColumn": 2,
 "endLine": 6,
-"fileId": 201,
 "hasBodyFlag": 1,
 "line": 3,
-"nsId": 3645,
-"parentId": 1,
-"snameId": 3150,
 "type": 8}}]}}
-lua lctags/lctags.lua --lctags-form json -x ccccc
+/usr/bin/lua lctags/lctags.lua --lctags-form json -x ccccc
 {"lctags_result": {"-x": [{"info": {"charSize": 9,
 "column": 1,
 "comment": "none",
 "endColumn": 10,
 "endLine": 6,
-"fileId": 86,
 "hasBodyFlag": 0,
 "line": 6,
-"nsId": 6260,
-"parentId": 3118,
-"snameId": 5213,
 "type": 9}},
 {"info": {"charSize": 9,
 "column": 1,
 "comment": "none",
 "endColumn": 10,
 "endLine": 6,
-"fileId": 86,
 "hasBodyFlag": 0,
 "line": 6,
-"nsId": 6261,
-"parentId": 3273,
-"snameId": 5213,
 "type": 6}},
 {"info": {"charSize": 9,
 "column": 1,
 "comment": "none",
 "endColumn": 10,
 "endLine": 6,
-"fileId": 86,
 "hasBodyFlag": 0,
 "line": 6,
-"nsId": 6262,
-"parentId": 3122,
-"snameId": 5213,
 "type": 9}}]}}
-lua lctags/lctags.lua --lctags-form json -xr enum_val1
-{"lctags_result": {"-xr": [{"info": {"belongNsId": 3296,
+/usr/bin/lua lctags/lctags.lua --lctags-form json -xr enum_val1
 "charSize": 9,
 "column": 21,
 "endColumn": 30,
 "endLine": 18,
-"fileId": 84,
 "line": 18,
-"nsId": 3406,
-"snameId": 3156}},
-{"info": {"belongNsId": 3372,
 "charSize": 9,
 "column": 31,
 "endColumn": 40,
 "endLine": 195,
-"fileId": 84,
 "line": 195,
-"nsId": 3406,
-"snameId": 3156}},
-{"info": {"belongNsId": 3369,
 "charSize": 9,
 "column": 20,
 "endColumn": 29,
 "endLine": 237,
-"fileId": 84,
 "line": 237,
-"nsId": 3406,
-"snameId": 3156}},
-{"info": {"belongNsId": 1,
 "charSize": 9,
 "column": 25,
 "endColumn": 34,
 "endLine": 316,
-"fileId": 84,
 "line": 316,
-"nsId": 3406,
-"snameId": 3156}},
-{"info": {"belongNsId": 3279,
 "charSize": 9,
 "column": 22,
 "endColumn": 31,
 "endLine": 326,
-"fileId": 84,
 "line": 326,
-"nsId": 3406,
-"snameId": 3156}},
-{"info": {"belongNsId": 6174,
 "charSize": 9,
 "column": 10,
 "endColumn": 19,
 "endLine": 12,
-"fileId": 190,
 "line": 12,
-"nsId": 3406,
-"snameId": 3156}},
-{"info": {"belongNsId": 3645,
 "charSize": 9,
 "column": 34,
 "endColumn": 43,
 "endLine": 23,
-"fileId": 200,
 "line": 23,
-"nsId": 3406,
-"snameId": 3156}},
-{"info": {"belongNsId": 3645,
 "charSize": 9,
 "column": 21,
 "endColumn": 30,
 "endLine": 28,
-"fileId": 200,
 "line": 28,
-"nsId": 3406,
-"snameId": 3156}}]}}
-lua lctags/lctags.lua --lctags-form json -c sub
+/usr/bin/lua lctags/lctags.lua --lctags-form json -c sub
 {"lctags_result": {"-c": [sub2
 sub
 sub_t
@@ -394,7 +258,7 @@ sub2_t
 Sub
 substr
 ]}}
-lua lctags/lctags.lua --lctags-form json -c sub$
+/usr/bin/lua lctags/lctags.lua --lctags-form json -c sub$
 {"lctags_result": {"-c": [FPE_FLTSUB
 __tgmath_real_type_sub
 sub
@@ -402,8 +266,9 @@ pSub
 Sub
 func10__sub
 test_sub
+mod1_sub
 ]}}
-lua lctags/lctags.lua --lctags-form json -c %sub
+/usr/bin/lua lctags/lctags.lua --lctags-form json -c %sub
 {"lctags_result": {"-c": [FP_SUBNORMAL
 FPE_FLTSUB
 getsubopt
@@ -419,725 +284,542 @@ __glibcxx_requires_subscript
 substr
 func10__sub
 test_sub
+mod1_sub
 ]}}
-lua lctags/lctags.lua --lctags-form json -xT sub
+/usr/bin/lua lctags/lctags.lua --lctags-form json -xT sub
 {"lctags_result": {"-xT": [{"info": {"column": 9,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 251,
 "name": "::ns1::ns31::sub",
-"nsId": 3367,
 "type": 8}},
 {"info": {"column": 9,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 259,
 "name": "::ns1::ns31::sub2",
-"nsId": 3365,
 "type": 8}},
 {"info": {"column": 3,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 264,
 "name": "::ns1::sub2",
-"nsId": 3284,
 "type": 8}},
 {"info": {"column": 3,
-"fileId": 90,
 "hasBodyFlag": 1,
 "line": 8,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 91,
 "hasBodyFlag": 1,
 "line": 8,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 92,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 93,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 94,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 95,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 5,
-"fileId": 96,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns1::ns2::sub",
-"nsId": 3456,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 97,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns71::ns72::sub",
-"nsId": 3495,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 98,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns81::ns82::sub",
-"nsId": 3534,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 99,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns91::ns92::sub",
-"nsId": 3573,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 100,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns101::ns102::sub",
-"nsId": 3612,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 106,
 "hasBodyFlag": 1,
 "line": 9,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 107,
 "hasBodyFlag": 1,
 "line": 5,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 108,
 "hasBodyFlag": 1,
 "line": 1,
 "name": "::sub_t",
-"nsId": 3649,
 "type": 20}},
 {"info": {"column": 1,
-"fileId": 108,
 "hasBodyFlag": 1,
 "line": 2,
 "name": "::sub2_t",
-"nsId": 3650,
 "type": 20}},
 {"info": {"column": 1,
-"fileId": 109,
 "hasBodyFlag": 1,
 "line": 4,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 110,
 "hasBodyFlag": 1,
 "line": 9,
 "name": "::Sub",
-"nsId": 3657,
 "type": 4}},
 {"info": {"column": 1,
-"fileId": 111,
 "hasBodyFlag": 1,
 "line": 11,
 "name": "::Sub",
-"nsId": 3657,
 "type": 31}},
 {"info": {"column": 7,
-"fileId": 145,
 "hasBodyFlag": 1,
 "line": 2292,
 "name": "::std::__cxx11::basic_string::substr",
-"nsId": 5816,
 "type": 21}},
 {"info": {"column": 1,
-"fileId": 188,
 "hasBodyFlag": 1,
 "line": 3,
 "name": "::sub::188",
-"nsId": 6167,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 189,
 "hasBodyFlag": 0,
 "line": 4,
 "name": "::sub::189",
-"nsId": 6170,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 189,
 "hasBodyFlag": 1,
 "line": 52,
 "name": "::sub::189",
-"nsId": 6170,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 195,
 "hasBodyFlag": 1,
 "line": 6,
 "name": "::sub::195",
-"nsId": 6205,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 196,
 "hasBodyFlag": 1,
 "line": 6,
 "name": "::sub::196",
-"nsId": 6209,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 197,
 "hasBodyFlag": 1,
 "line": 5,
 "name": "::sub::197",
-"nsId": 6210,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 200,
 "hasBodyFlag": 1,
 "line": 21,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 201,
 "hasBodyFlag": 1,
 "line": 3,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}}]}}
-lua lctags/lctags.lua --lctags-form json -xT sub$
+/usr/bin/lua lctags/lctags.lua --lctags-form json -xT sub$
 {"lctags_result": {"-xT": [{"info": {"column": 11,
-"fileId": 59,
 "hasBodyFlag": 1,
 "line": 223,
 "name": "::FPE_FLTSUB",
-"nsId": 1890,
 "type": 501}},
 {"info": {"column": 3,
-"fileId": 59,
 "hasBodyFlag": 0,
 "line": 222,
 "name": "::@enum::<enum_anonymous>::FPE_FLTSUB",
-"nsId": 2052,
 "type": 7}},
 {"info": {"column": 10,
-"fileId": 81,
 "hasBodyFlag": 1,
 "line": 60,
 "name": "::__tgmath_real_type_sub",
-"nsId": 2883,
 "type": 501}},
 {"info": {"column": 9,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 251,
 "name": "::ns1::ns31::sub",
-"nsId": 3367,
 "type": 8}},
 {"info": {"column": 3,
-"fileId": 90,
 "hasBodyFlag": 1,
 "line": 8,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 91,
 "hasBodyFlag": 1,
 "line": 8,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 92,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 93,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 94,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 95,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 5,
-"fileId": 96,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns1::ns2::sub",
-"nsId": 3456,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 97,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns71::ns72::sub",
-"nsId": 3495,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 98,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns81::ns82::sub",
-"nsId": 3534,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 99,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns91::ns92::sub",
-"nsId": 3573,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 100,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns101::ns102::sub",
-"nsId": 3612,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 106,
 "hasBodyFlag": 1,
 "line": 9,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 107,
 "hasBodyFlag": 1,
 "line": 5,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 108,
 "hasBodyFlag": 0,
 "line": 4,
 "name": "::@struct::<struct_TEST>::pSub",
-"nsId": 3652,
 "type": 6}},
 {"info": {"column": 1,
-"fileId": 109,
 "hasBodyFlag": 1,
 "line": 4,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 110,
 "hasBodyFlag": 1,
 "line": 9,
 "name": "::Sub",
-"nsId": 3657,
 "type": 4}},
 {"info": {"column": 1,
-"fileId": 111,
 "hasBodyFlag": 1,
 "line": 11,
 "name": "::Sub",
-"nsId": 3657,
 "type": 31}},
 {"info": {"column": 1,
-"fileId": 188,
 "hasBodyFlag": 1,
 "line": 3,
 "name": "::sub::188",
-"nsId": 6167,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 189,
 "hasBodyFlag": 0,
 "line": 4,
 "name": "::sub::189",
-"nsId": 6170,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 189,
 "hasBodyFlag": 1,
 "line": 52,
 "name": "::sub::189",
-"nsId": 6170,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 193,
 "hasBodyFlag": 1,
 "line": 193,
 "name": "::func10__sub::193",
-"nsId": 6196,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 195,
 "hasBodyFlag": 1,
 "line": 6,
 "name": "::sub::195",
-"nsId": 6205,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 196,
 "hasBodyFlag": 1,
 "line": 6,
 "name": "::sub::196",
-"nsId": 6209,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 197,
 "hasBodyFlag": 1,
 "line": 5,
 "name": "::sub::197",
-"nsId": 6210,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 200,
 "hasBodyFlag": 1,
 "line": 21,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 201,
 "hasBodyFlag": 1,
 "line": 3,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 203,
 "hasBodyFlag": 1,
 "line": 22,
 "name": "::test_sub",
-"nsId": 6234,
+"type": 8}},
+{"info": {"column": 1,
+"hasBodyFlag": 1,
+"line": 8,
+"name": "::mod1_sub",
+"type": 8}},
+{"info": {"column": 1,
+"hasBodyFlag": 0,
+"line": 1,
+"name": "::mod1_sub",
 "type": 8}}]}}
-lua lctags/lctags.lua --lctags-form json -xT %sub
+/usr/bin/lua lctags/lctags.lua --lctags-form json -xT %sub
 {"lctags_result": {"-xT": [{"info": {"column": 10,
-"fileId": 41,
 "hasBodyFlag": 1,
 "line": 221,
 "name": "::FP_SUBNORMAL",
-"nsId": 1600,
 "type": 501}},
 {"info": {"column": 5,
-"fileId": 41,
 "hasBodyFlag": 0,
 "line": 220,
 "name": "::@enum::<enum_anonymous>::FP_SUBNORMAL",
-"nsId": 1659,
 "type": 7}},
 {"info": {"column": 11,
-"fileId": 59,
 "hasBodyFlag": 1,
 "line": 223,
 "name": "::FPE_FLTSUB",
-"nsId": 1890,
 "type": 501}},
 {"info": {"column": 3,
-"fileId": 59,
 "hasBodyFlag": 0,
 "line": 222,
 "name": "::@enum::<enum_anonymous>::FPE_FLTSUB",
-"nsId": 2052,
 "type": 7}},
 {"info": {"column": 1,
-"fileId": 70,
 "hasBodyFlag": 0,
 "line": 898,
 "name": "::getsubopt",
-"nsId": 2718,
 "type": 8}},
 {"info": {"column": 10,
-"fileId": 81,
 "hasBodyFlag": 1,
 "line": 60,
 "name": "::__tgmath_real_type_sub",
-"nsId": 2883,
 "type": 501}},
 {"info": {"column": 9,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 251,
 "name": "::ns1::ns31::sub",
-"nsId": 3367,
 "type": 8}},
 {"info": {"column": 9,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 259,
 "name": "::ns1::ns31::sub2",
-"nsId": 3365,
 "type": 8}},
 {"info": {"column": 3,
-"fileId": 84,
 "hasBodyFlag": 1,
 "line": 264,
 "name": "::ns1::sub2",
-"nsId": 3284,
 "type": 8}},
 {"info": {"column": 3,
-"fileId": 90,
 "hasBodyFlag": 1,
 "line": 8,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 91,
 "hasBodyFlag": 1,
 "line": 8,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 92,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 93,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 94,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 3,
-"fileId": 95,
 "hasBodyFlag": 1,
 "line": 7,
 "name": "::Test1::sub",
-"nsId": 3433,
 "type": 21}},
 {"info": {"column": 5,
-"fileId": 96,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns1::ns2::sub",
-"nsId": 3456,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 97,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns71::ns72::sub",
-"nsId": 3495,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 98,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns81::ns82::sub",
-"nsId": 3534,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 99,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns91::ns92::sub",
-"nsId": 3573,
 "type": 8}},
 {"info": {"column": 5,
-"fileId": 100,
 "hasBodyFlag": 1,
 "line": 46,
 "name": "::ns101::ns102::sub",
-"nsId": 3612,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 106,
 "hasBodyFlag": 1,
 "line": 9,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 107,
 "hasBodyFlag": 1,
 "line": 5,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 108,
 "hasBodyFlag": 1,
 "line": 1,
 "name": "::sub_t",
-"nsId": 3649,
 "type": 20}},
 {"info": {"column": 1,
-"fileId": 108,
 "hasBodyFlag": 1,
 "line": 2,
 "name": "::sub2_t",
-"nsId": 3650,
 "type": 20}},
 {"info": {"column": 5,
-"fileId": 108,
 "hasBodyFlag": 0,
 "line": 4,
 "name": "::@struct::<struct_TEST>::pSub",
-"nsId": 3652,
 "type": 6}},
 {"info": {"column": 5,
-"fileId": 108,
 "hasBodyFlag": 0,
 "line": 5,
 "name": "::@struct::<struct_TEST>::pSub2",
-"nsId": 3653,
 "type": 6}},
 {"info": {"column": 1,
-"fileId": 109,
 "hasBodyFlag": 1,
 "line": 4,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 110,
 "hasBodyFlag": 1,
 "line": 9,
 "name": "::Sub",
-"nsId": 3657,
 "type": 4}},
 {"info": {"column": 1,
-"fileId": 111,
 "hasBodyFlag": 1,
 "line": 11,
 "name": "::Sub",
-"nsId": 3657,
 "type": 31}},
 {"info": {"column": 7,
-"fileId": 145,
 "hasBodyFlag": 1,
 "line": 2292,
 "name": "::std::__cxx11::basic_string::substr",
-"nsId": 5816,
 "type": 21}},
 {"info": {"column": 10,
-"fileId": 174,
 "hasBodyFlag": 1,
 "line": 80,
 "name": "::__glibcxx_requires_subscript",
-"nsId": 4177,
 "type": 501}},
 {"info": {"column": 1,
-"fileId": 188,
 "hasBodyFlag": 1,
 "line": 3,
 "name": "::sub::188",
-"nsId": 6167,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 189,
 "hasBodyFlag": 0,
 "line": 4,
 "name": "::sub::189",
-"nsId": 6170,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 189,
 "hasBodyFlag": 1,
 "line": 52,
 "name": "::sub::189",
-"nsId": 6170,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 193,
 "hasBodyFlag": 1,
 "line": 193,
 "name": "::func10__sub::193",
-"nsId": 6196,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 195,
 "hasBodyFlag": 1,
 "line": 6,
 "name": "::sub::195",
-"nsId": 6205,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 196,
 "hasBodyFlag": 1,
 "line": 6,
 "name": "::sub::196",
-"nsId": 6209,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 197,
 "hasBodyFlag": 1,
 "line": 5,
 "name": "::sub::197",
-"nsId": 6210,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 200,
 "hasBodyFlag": 1,
 "line": 21,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 201,
 "hasBodyFlag": 1,
 "line": 3,
 "name": "::sub",
-"nsId": 3645,
 "type": 8}},
 {"info": {"column": 1,
-"fileId": 203,
 "hasBodyFlag": 1,
 "line": 22,
 "name": "::test_sub",
-"nsId": 6234,
+"type": 8}},
+{"info": {"column": 1,
+"hasBodyFlag": 1,
+"line": 8,
+"name": "::mod1_sub",
+"type": 8}},
+{"info": {"column": 1,
+"hasBodyFlag": 0,
+"line": 1,
+"name": "::mod1_sub",
 "type": 8}}]}}
-lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 14 15
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,
 int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,
@@ -1147,11 +829,11 @@ int> tmp2(1);
 ::int_t           127 ./test/hoge.cpp  void test( int argInt[ ARRAY_LENGTH ],
  int_t argInt2[ ARRAY_LENGTH ] )
 ::int_t           129 ./test/hoge.cpp      int_t array2Int[ ARRAY_LENGTH ][ ARRAY_LENGTH ];
-lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 44 8
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 44 8
 ::@struct::yyyy::kkkk  266 ./test/hoge.cpp      aYYYYY.kkkk = 0;
-lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 236 23
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 236 23
 ::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
-lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 237 23 | sort
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 237 23 | sort
 ::@enum::<enum_enum_t>::enum_val1   12 ./test/sample.c      case enum_val1:
 ::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
 ::@enum::<enum_enum_t>::enum_val1   23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
@@ -1161,7 +843,7 @@ lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 237 23 | sort
 ::@enum::<enum_enum_t>::enum_val1  316 ./test/hoge.cpp  static int s_vals[] = { enum_val1,
  enum_val2 };
 ::@enum::<enum_enum_t>::enum_val1  326 ./test/hoge.cpp        int val2[] = { enum_val1 };
-lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 253 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n",
  *ppArg );
 ::printf           31 ./test/split.cpp   printf( "val = %d,
@@ -1174,23 +856,23 @@ lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 253 18
  typ.val = %d,
  typArray[0].val = %d\n",
 
-lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 204 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 204 18
 ::ns1::g_global   153 ./test/hoge.cpp      int g_global = 0;
-lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 168 15
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
-lua lctags/lctags.lua --lctags-form json call-at test/hoge.cpp 267 15
+/usr/bin/lua lctags/lctags.lua --lctags-form json call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
 ::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
-lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 230 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
-lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 231 20
+/usr/bin/lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 231 20
 ::Callback_t      218 ./test/hoge.cpp          int func3( Callback_t * pCallback ) {
-lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 284 3
-lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 299 12
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at test/hoge.cpp 284 3
+/usr/bin/lua lctags/lctags.lua --lctags-form json def-at test/hoge.cpp 299 12
 ::rootval         299 ./test/hoge.cpp    int rootval;
-lua lctags/lctags.lua --lctags-form json expand test/hoge.cpp 316 29
+/usr/bin/lua lctags/lctags.lua --lctags-form json expand test/hoge.cpp 316 29
 {"lctags_result": {"completion": {"prefix": "",
 "candidateList": [{"candidate": {"canonical": "enum_val1",
 "simple": "enum_val1",
@@ -1234,22 +916,22 @@ lua lctags/lctags.lua --lctags-form json expand test/hoge.cpp 316 29
 "diagnostics": [{"message": "NDIR/test/hoge.cpp:316: error: expected ';' after top level declarator"}]}}
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:311: recipe for target 'test-query' failed
-lua lctags/lctags.lua --lctags-form json graph caller ::Callback_t -o graph.sample/caller.svg
-lua lctags/lctags.lua --lctags-form json graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
-lua lctags/lctags.lua --lctags-form json graph inc test/hoge.cpp -o graph.sample/inc.png -f png
-lua lctags/lctags.lua --lctags-form json graph incSrc 5 -o graph.sample/incSrc.svg
-lua lctags/lctags.lua --lctags-form json graph symbol ::ns1::g_global -o graph.sample/symbol.svg
-lua lctags/lctags.lua --lctags-form json graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
-lua lctags/lctags.lua --lctags-form json graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
-lua lctags/lctags.lua --lctags-form json graph-at symbol test/hoge.cpp 107 18 -o graph.sample/at-symbol.svg
-lua lctags/lctags.lua --lctags-form json list inc test/hoge.cpp -d 2
+makefile:345: recipe for target 'test-query' failed
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph caller ::Callback_t -o graph.sample/caller.svg
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph inc test/hoge.cpp -o graph.sample/inc.png -f png
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph incSrc 5 -o graph.sample/incSrc.svg
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph symbol ::ns1::g_global -o graph.sample/symbol.svg
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
+/usr/bin/lua lctags/lctags.lua --lctags-form json graph-at symbol test/hoge.cpp 107 18 -o graph.sample/at-symbol.svg
+/usr/bin/lua lctags/lctags.lua --lctags-form json list inc test/hoge.cpp -d 2
 path                1 NDIR/test/field.h 
 path                1 NDIR/test/hoge.cpp 
 path                1 NDIR/test/hoge.h 
 path                1 /usr/include/stdio.h 
 path                1 /usr/include/time.h 
-lua lctags/lctags.lua --lctags-form json inq-at test/hoge.cpp 237 24
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq-at test/hoge.cpp 237 24
 {"lctags_result": {"completion": {"prefix": "",
 "candidateList": [{"candidate": {"canonical": "enum_val1",
 "simple": "enum_val1",
@@ -1291,7 +973,7 @@ lua lctags/lctags.lua --lctags-form json inq-at test/hoge.cpp 237 24
 "endPos": {"line": 18,
 "column": 37}}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 212 19
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 212 19
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "pClass->",
 "compMode": "member",
@@ -1363,7 +1045,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 212 19
 "typeInfoList": [{"typeInfo": {,
 "candidateList": []}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 236 15
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 236 15
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "val.",
 "compMode": "member",
@@ -1394,6 +1076,8 @@ lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 236 15
 "endPos": {"line": 160,
 "column": 15}}}],
 "typeInfoList": [{"typeInfo": {,
+"candidateList": []}},
+{"typeInfo": {,
 "candidateList": [{"candidate": {"canonical": "efgh",
 "simple": "efgh",
 "expand": "",
@@ -1406,11 +1090,9 @@ lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 236 15
 "startPos": {"line": 159,
 "column": 11},
 "endPos": {"line": 159,
-"column": 19}}}]}},
-{"typeInfo": {,
-"candidateList": []}}]},
+"column": 19}}}]}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 235 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 235 18
 {"lctags_result": {"completion": {"prefix": "",
 "candidateList": [{"candidate": {"canonical": "::ns1::g_global",
 "simple": "g_global",
@@ -1491,9 +1173,9 @@ lua lctags/lctags.lua --lctags-form json comp-at test/hoge.cpp 235 18
 "endPos": {"line": 154,
 "column": 0}}}]},
 "diagnostics": [{"message": "NDIR/test/hoge.cpp:235: error: unexpected namespace name 'ns1': expected expression"}]}}
-lua lctags/lctags.lua --lctags-form json dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:311: recipe for target 'test-query' failed
-lua lctags/lctags.lua --lctags-form json comp-at test/comp.cpp 26 17
+/usr/bin/lua lctags/lctags.lua --lctags-form json dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
+makefile:345: recipe for target 'test-query' failed
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp.cpp 26 17
 {"lctags_result": {"completion": {"prefix": "me",
 "frontExpr": "pTest1->",
 "compMode": "member",
@@ -1512,7 +1194,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp.cpp 26 17
 "column": 13}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp-2.cpp 25 16
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp-2.cpp 25 16
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "pTest1->pTest->",
 "compMode": "member",
@@ -1597,7 +1279,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp-2.cpp 25 16
 "endPos": {"line": 17,
 "column": 16}}}]}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp2.cpp 31 10
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp2.cpp 31 10
 {"lctags_result": {"completion": {"prefix": "f",
 "frontExpr": "hoge()->",
 "compMode": "member",
@@ -1616,7 +1298,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp2.cpp 31 10
 "column": 4}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp3.cpp 31 25
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp3.cpp 31 25
 {"lctags_result": {"completion": {"prefix": "s",
 "frontExpr": "hoge(1,
 2)->",
@@ -1636,7 +1318,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp3.cpp 31 25
 "column": 4}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp4.cpp 31 17
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp4.cpp 31 17
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "((Test1*)NULL)->",
 "compMode": "member",
@@ -1681,7 +1363,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp4.cpp 31 17
 "column": 4}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp5.cpp 31 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp5.cpp 31 18
 {"lctags_result": {"completion": {"prefix": "f",
 "frontExpr": "((Test1*)NULL)->",
 "compMode": "member",
@@ -1700,7 +1382,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp5.cpp 31 18
 "column": 4}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp6.cpp 48 6
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp6.cpp 48 6
 {"lctags_result": {"completion": {"prefix": "TE",
 "candidateList": [{"candidate": {"canonical": "::TEST601",
 "simple": "TEST601",
@@ -1937,7 +1619,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp6.cpp 48 6
 "endPos": {"line": 28,
 "column": 0}}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp7.cpp 48 17
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp7.cpp 48 17
 {"lctags_result": {"completion": {"prefix": "",
 "candidateList": [{"candidate": {"canonical": "::ns71::ns72::ns73",
 "simple": "ns73",
@@ -2057,7 +1739,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp7.cpp 48 17
 "endPos": {"line": 28,
 "column": 0}}}]},
 "diagnostics": [{"message": "NDIR/test/comp7.cpp:48: error: unexpected namespace name 'ns72': expected expression"}]}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp8.cpp 48 13
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp8.cpp 48 13
 {"lctags_result": {"completion": {"prefix": "TE",
 "candidateList": [{"candidate": {"canonical": "::ns81::TEST83",
 "simple": "TEST83",
@@ -2138,7 +1820,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp8.cpp 48 13
 "endPos": {"line": 17,
 "column": 0}}}]},
 "diagnostics": [{"message": "NDIR/test/comp8.cpp:48: error: unexpected namespace name 'ns81': expected expression"}]}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp9.cpp 48 8
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp9.cpp 48 8
 {"lctags_result": {"completion": {"prefix": "T",
 "candidateList": [{"candidate": {"canonical": "::TEST901",
 "simple": "TEST901",
@@ -2232,7 +1914,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp9.cpp 48 8
 "endPos": {"line": 6,
 "column": 0}}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp10.cpp 48 6
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp10.cpp 48 6
 {"lctags_result": {"completion": {"prefix": "T",
 "candidateList": [{"candidate": {"canonical": "::TMP_MAX",
 "simple": "TMP_MAX",
@@ -2482,7 +2164,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp10.cpp 48 6
 "endPos": {"line": 28,
 "column": 0}}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp11.cpp 10 2
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp11.cpp 10 2
 {"lctags_result": {"completion": {"prefix": "f",
 "candidateList": [{"candidate": {"canonical": "::func123",
 "simple": "func123",
@@ -2511,7 +2193,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp11.cpp 10 2
 "endPos": {"line": 11,
 "column": 0}}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp12.cpp 11 5
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp12.cpp 11 5
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "aaa.",
 "compMode": "member",
@@ -2543,7 +2225,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp12.cpp 11 5
 "column": 11}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp13.cpp 3 8
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp13.cpp 3 8
 {"lctags_result": {"completion": {"prefix": "m_val",
 "candidateList": [{"candidate": {"canonical": "::CCCC::m_val",
 "simple": "m_val",
@@ -2559,7 +2241,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp13.cpp 3 8
 "endPos": {"line": 7,
 "column": 0}}}]},
 "diagnostics": [{"message": "NDIR/test/comp13.cpp:2: error: expected ';' after class"}]}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp14.cpp 4 12
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp14.cpp 4 12
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "func()->",
 "compMode": "member",
@@ -2617,7 +2299,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp14.cpp 4 12
 "endPos": {"line": 7,
 "column": 15}}}]}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp16.cpp 11 9
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp16.cpp 11 9
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "pData->",
 "compMode": "member",
@@ -2637,7 +2319,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp16.cpp 11 9
 "typeInfoList": [{"typeInfo": {,
 "candidateList": []}}]},
 "diagnostics": []}}
-cat test/comp17-2.cpp | lua lctags/lctags.lua --lctags-form json comp-at test/comp17.cpp 7 11 -i
+cat test/comp17-2.cpp | /usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp17.cpp 7 11 -i
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "pData->",
 "compMode": "member",
@@ -2656,7 +2338,7 @@ cat test/comp17-2.cpp | lua lctags/lctags.lua --lctags-form json comp-at test/co
 "column": 12}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp18.cpp 9 9
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp18.cpp 9 9
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "pTest->",
 "compMode": "member",
@@ -2689,7 +2371,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp18.cpp 9 9
 "typeInfoList": [{"typeInfo": {,
 "candidateList": []}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/comp19.cpp 9 21
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/comp19.cpp 9 21
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "pTest->",
 "compMode": "member",
@@ -2708,7 +2390,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/comp19.cpp 9 21
 "column": 12}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/class2.cpp 13 10
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/class2.cpp 13 10
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "this->",
 "compMode": "member",
@@ -2766,7 +2448,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/class2.cpp 13 10
 "column": 4}}}],
 "typeInfoList": []},
 "diagnostics": [{"message": "NDIR/test/class2.cpp:15: error: expected ';' after class"}]}}
-lua lctags/lctags.lua --lctags-form json comp-at test/class3.cpp 16 10
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/class3.cpp 16 10
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "this->",
 "compMode": "member",
@@ -2824,7 +2506,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/class3.cpp 16 10
 "column": 4}}}],
 "typeInfoList": []},
 "diagnostics": [{"message": "NDIR/test/class3.cpp:18: error: expected ';' after class"}]}}
-lua lctags/lctags.lua --lctags-form json comp-at test/class4.cpp 11 7
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/class4.cpp 11 7
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "val.",
 "compMode": "member",
@@ -2843,7 +2525,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/class4.cpp 11 7
 "column": 11}}}],
 "typeInfoList": []},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/class5.cpp 24 6
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/class5.cpp 24 6
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "tmp.",
 "compMode": "member",
@@ -2889,7 +2571,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/class5.cpp 24 6
 "typeInfoList": [{"typeInfo": {,
 "candidateList": []}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json testOpe test/operator.cpp
+/usr/bin/lua lctags/lctags.lua --lctags-form json testOpe test/operator.cpp
 lctags:	1	=
 lctags:	1	||
 lctags:	1	|
@@ -2913,7 +2595,7 @@ lctags:	1	++	front
 lctags:	1	--	front
 lctags:	1	*	front
 lctags:	1	&	front
-lua lctags/lctags.lua --lctags-form json split-at test/hoge.cpp 340 12
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/hoge.cpp 340 12
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args><arg><addressAccess>false</addressAccess><name>aaa</name><argSymbol>aaa</argSymbol><directRet>false</directRet></arg>
@@ -2956,7 +2638,7 @@ if ( func__sub( &amp;funcRet__,
  1;
             }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:val1,
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:val1,
 :o:vvv2:val2'
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
@@ -2964,8 +2646,8 @@ lua lctags/lctags.lua --lctags-form json split-at test/hoge.cpp 340 12 -split-pa
 <arg><addressAccess>false</addressAccess><name>val2</name><argSymbol>vvv2</argSymbol><directRet>false</directRet></arg>
 <arg><addressAccess>false</addressAccess><name>aaa</name><argSymbol>aaa</argSymbol><directRet>false</directRet></arg>
 <arg><addressAccess>false</addressAccess><name>val3</name><argSymbol>val3</argSymbol><directRet>false</directRet></arg>
-<arg><addressAccess>false</addressAccess><name>abcddd</name><argSymbol>abcddd</argSymbol><directRet>false</directRet></arg>
 <arg><addressAccess>true</addressAccess><name>val4</name><argSymbol>pVal4</argSymbol><directRet>false</directRet></arg>
+<arg><addressAccess>false</addressAccess><name>abcddd</name><argSymbol>abcddd</argSymbol><directRet>false</directRet></arg>
 </args><call>{
     int * funcRet__ = 0;
 if ( func__sub( &amp;funcRet__,
@@ -2973,8 +2655,8 @@ if ( func__sub( &amp;funcRet__,
  val2,
  aaa,
  val3,
- abcddd,
- &amp;val4 ) ) {
+ &amp;val4,
+ abcddd ) ) {
        return funcRet__;
     }
 }</call><sub_routine>static int func__sub( int ** pFuncRet__,
@@ -2982,8 +2664,8 @@ if ( func__sub( &amp;funcRet__,
  int vvv2,
  int aaa[1][2],
  int * val3,
- int abcddd[10][1],
- int* pVal4 )
+ int* pVal4,
+ int abcddd[10][1] )
 {
                 int * pVal = POINTER(vvv1);
                 int valval2 = -vvv2;
@@ -3000,18 +2682,18 @@ if ( func__sub( &amp;funcRet__,
  1;
             }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+/usr/bin/lua lctags/lctags.lua --lctags-form json dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
 {"lctags_result": {"dumpTarget": [lctags:	1	-- table target -- 
 lctags:	1	fileId	hasPch	upTime	target	path	compOp
 	 -Iclang -I./test -std=c++11 -Iclang
 ]}}
-lua lctags/lctags.lua --lctags-form json chg-proj . test@./test > /dev/null
-lua lctags/lctags.lua --lctags-form json dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+/usr/bin/lua lctags/lctags.lua --lctags-form json chg-proj . test@./test > /dev/null
+/usr/bin/lua lctags/lctags.lua --lctags-form json dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
 {"lctags_result": {"dumpTarget": [lctags:	1	-- table target -- 
 lctags:	1	fileId	hasPch	upTime	target	path	compOp
 	 -Iclang -I./test -std=c++11 -Iclang
 ]}}
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 62 13
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 62 13
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args></args><call>{
@@ -3025,7 +2707,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
  1;
   }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 65 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 65 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
@@ -3042,7 +2724,7 @@ if ( func4__sub( &amp;funcRet__,
  1;
   }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 68 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 68 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
@@ -3059,7 +2741,7 @@ if ( func4__sub( &amp;funcRet__,
  1;
   }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 71 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 71 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
@@ -3076,7 +2758,7 @@ if ( func4__sub( &amp;funcRet__,
  1;
   }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 74 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 74 18
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args></args><call>{
@@ -3090,9 +2772,9 @@ if ( func4__sub( &amp;funcRet__ ) ) {
  1   ;
   }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:311: recipe for target 'test-query' failed
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 91 20
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 77 18 && echo NG === split 77
+makefile:345: recipe for target 'test-query' failed
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 91 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol><directRet>false</directRet></arg>
@@ -3114,7 +2796,7 @@ if ( func5__sub( &amp;funcRet__,
  1;
     }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 118 20
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 118 20
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args><arg><addressAccess>true</addressAccess><name>typ</name><argSymbol>pTyp</argSymbol><directRet>false</directRet></arg>
@@ -3139,7 +2821,7 @@ if ( func6__sub( &amp;funcRet__,
  1;
     }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 129 0
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 129 0
 <lctags_result><refactoring_split>
 <directRet>false</directRet>
 <args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
@@ -3189,7 +2871,7 @@ if ( func7__sub( &amp;funcRet__,
  1;
 }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 131 43
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 131 43
 <lctags_result><refactoring_split>
 <args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
 </args><call>{
@@ -3216,7 +2898,7 @@ int result__ = func7__sub( &amp;funcRet__,
         return 0;
 }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 142 25
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 142 25
 <lctags_result><refactoring_split>
 <args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol><directRet>false</directRet></arg>
 <arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
@@ -3238,7 +2920,7 @@ int result__ = func7__sub( &amp;index,
         }
     }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 151 7
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 151 7
 <lctags_result><refactoring_split>
 <args><arg><addressAccess>true</addressAccess><name>index</name><argSymbol>pIndex</argSymbol><directRet>false</directRet></arg>
 <arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
@@ -3255,7 +2937,7 @@ lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 151 7
         }
     }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 157 43
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 157 43
 <lctags_result><refactoring_split>
 <args><arg><addressAccess>false</addressAccess><name>val</name><argSymbol>val</argSymbol><directRet>false</directRet></arg>
 </args><call>if ( func7__sub( val ) ) {
@@ -3268,7 +2950,7 @@ lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 157 43
         }
     }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 166 0
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 166 0
 <lctags_result><refactoring_split>
 <args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal_</argSymbol><directRet>false</directRet></arg>
 </args><call>{
@@ -3284,7 +2966,7 @@ lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 166 0
     return 0;
 }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 183 4
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 183 4
 <lctags_result><refactoring_split>
 <args><arg><addressAccess>false</addressAccess><name>pType_</name><argSymbol>pType_</argSymbol><directRet>false</directRet></arg>
 <arg><addressAccess>true</addressAccess><name>type</name><argSymbol>pType__</argSymbol><directRet>false</directRet></arg>
@@ -3300,7 +2982,7 @@ lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 183 4
         type_t * pType2 = pType_;
     }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 211 1 --lctags-directRet
+/usr/bin/lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 211 1 --lctags-directRet
 <lctags_result><refactoring_split>
 <directRet>true</directRet>
 <args><arg><addressAccess>true</addressAccess><name>val</name><argSymbol>pVal</argSymbol><directRet>false</directRet></arg>
@@ -3313,7 +2995,7 @@ lua lctags/lctags.lua --lctags-form json split-at test/split.cpp 211 1 --lctags-
   return -(*pVal);
 }
 </sub_routine></refactoring_split></lctags_result>
-lua lctags/lctags.lua --lctags-form json expand test/enum.cpp 9 15
+/usr/bin/lua lctags/lctags.lua --lctags-form json expand test/enum.cpp 9 15
 {"lctags_result": {"completion": {"prefix": "",
 "candidateList": [{"candidate": {"canonical": "eval_val1",
 "simple": "eval_val1",
@@ -3342,7 +3024,7 @@ lua lctags/lctags.lua --lctags-form json expand test/enum.cpp 9 15
 "endPos": {"line": 3,
 "column": 14}}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/enum.cpp 11 9
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/enum.cpp 11 9
 {"lctags_result": {"completion": {"prefix": "",
 "frontExpr": "",
 "compMode": "case",
@@ -3400,7 +3082,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/enum.cpp 11 9
 "endPos": {"line": 3,
 "column": 14}}}]}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/enum2.cpp 8 19
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/enum2.cpp 8 19
 {"lctags_result": {"completion": {"prefix": "",
 "candidateList": [{"candidate": {"canonical": "eval_val1",
 "simple": "eval_val1",
@@ -3429,7 +3111,7 @@ lua lctags/lctags.lua --lctags-form json comp-at test/enum2.cpp 8 19
 "endPos": {"line": 3,
 "column": 14}}}]},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json comp-at test/enum3.cpp 7 11
+/usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/enum3.cpp 7 11
 {"lctags_result": {"completion": {"prefix": "",
 "candidateList": [{"candidate": {"canonical": "eval_val1",
 "simple": "eval_val1",
@@ -3458,11 +3140,11 @@ lua lctags/lctags.lua --lctags-form json comp-at test/enum3.cpp 7 11
 "endPos": {"line": 3,
 "column": 14}}}]},
 "diagnostics": [{"message": "NDIR/test/enum3.cpp:7: error: non-void function 'sub' should return a value"}]}}
-lua lctags/lctags.lua --lctags-form json def-at test/inc1.cpp 2 1
-NDIR/test/inc1.cpp    1 NDIR/test/inc2.h 
-lua lctags/lctags.lua --lctags-form json def-at test/inc2.h 7 1
-NDIR/test/inc2.h    1 NDIR/test/inc3.h 
-lua lctags/lctags.lua --lctags-form json expand-macro test/stdinc.cpp
+/usr/bin/lua lctags/lctags.lua --lctags-form json def-at test/inc1.cpp 2 1
+NDIR/test/inc1.cpp    1 ./test/inc2.h    
+/usr/bin/lua lctags/lctags.lua --lctags-form json def-at test/inc2.h 7 1
+NDIR/test/inc2.h    1 ./test/inc3.h    
+/usr/bin/lua lctags/lctags.lua --lctags-form json expand-macro test/stdinc.cpp
 #include </usr/include/stdio.h>
 
 
@@ -3472,7 +3154,7 @@ static void sub( void )
                  __null
                      ;
 }
-lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 7
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 7
 {"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "pVal",
 "kind": "ParmDecl",
 "file": "NDIR/test/highlight.cpp",
@@ -3544,7 +3226,7 @@ lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 7
 "endLine": 29,
 "endColumn": 11}}]],
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 18
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 18
 {"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "pVal",
 "kind": "ParmDecl",
 "file": "NDIR/test/highlight.cpp",
@@ -3567,7 +3249,7 @@ lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 21 18
 "endLine": 25,
 "endColumn": 9}}]],
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 24 12
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 24 12
 {"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "val",
 "kind": "FieldDecl",
 "file": "NDIR/test/highlight.cpp",
@@ -3597,7 +3279,7 @@ lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 24 12
 "endLine": 29,
 "endColumn": 15}}]],
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 25 10
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 25 10
 {"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "val2",
 "kind": "FieldDecl",
 "file": "NDIR/test/highlight.cpp",
@@ -3613,7 +3295,7 @@ lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 25 10
 "endLine": 25,
 "endColumn": 15}}]],
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 13
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 13
 {"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "val",
 "kind": "FieldDecl",
 "file": "NDIR/test/highlight.cpp",
@@ -3643,7 +3325,7 @@ lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 13
 "endLine": 29,
 "endColumn": 15}}]],
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 26 19
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 26 19
 {"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "M_VAL",
 "kind": "macro definition",
 "file": "NDIR/test/highlight.cpp",
@@ -3659,7 +3341,7 @@ lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 26 19
 "endLine": 26,
 "endColumn": 24}}]],
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 19
+/usr/bin/lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 19
 {"lctags_result": {"ref": ["locationSet": [{"location": {"symbol": "enum_val2",
 "kind": "EnumConstantDecl",
 "file": "NDIR/test/highlight.cpp",
@@ -3682,17 +3364,13 @@ lua lctags/lctags.lua --lctags-form json ref-at-all test/highlight.cpp 27 19
 "endLine": 27,
 "endColumn": 28}}]],
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json expand-macro test/inc/inctest1.h
+/usr/bin/lua lctags/lctags.lua --lctags-form json expand-macro test/inc/inctest1.h
 =======
 #include <NDIR/test/hoge.h>
 
 typedef struct { int aaa; } struct_1CC; typedef struct { int aaa; } struct_2CC;;
-lua lctags/lctags.lua --lctags-form json call-func test/simple.cpp printf
-{"lctags_result": {"functionList": [{"function": {"name": "_IO_vfprintf",
-"include": "/usr/include/libio.h",
-"included": "false",
-"declaration": "/usr/include/libio.h"}},
-{"function": {"name": "fprintf",
+/usr/bin/lua lctags/lctags.lua --lctags-form json call-func test/simple.cpp printf
+{"lctags_result": {"functionList": [{"function": {"name": "fprintf",
 "include": "/usr/include/stdio.h",
 "included": "false",
 "declaration": "/usr/include/stdio.h"}},
@@ -3732,6 +3410,10 @@ lua lctags/lctags.lua --lctags-form json call-func test/simple.cpp printf
 "include": "/usr/include/stdio.h",
 "included": "false",
 "declaration": "/usr/include/stdio.h"}},
+{"function": {"name": "_IO_vfprintf",
+"include": "/usr/include/libio.h",
+"included": "false",
+"declaration": "/usr/include/libio.h"}},
 {"function": {"name": "fwprintf",
 "include": "/usr/include/wchar.h",
 "included": "false",
@@ -3777,7 +3459,7 @@ lua lctags/lctags.lua --lctags-form json call-func test/simple.cpp printf
 "included": "false",
 "declaration": "/usr/include/stdio.h"}}],
 "diagnostics": []}}
-sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua --lctags-form json inq-at test/simple.cpp 4 4 -i
+sed 's@//@@' test/simple.cpp | /usr/bin/lua lctags/lctags.lua --lctags-form json inq-at test/simple.cpp 4 4 -i
 {"lctags_result": {"candidate": {"canonical": "printf( const char * __restrict __format,
  ... )",
 "simple": "printf( const char * __restrict __format,
@@ -3795,153 +3477,174 @@ sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua --lctags-form json inq-at t
 "endPos": {"line": 362,
 "column": 57}},
 "diagnostics": []}}
-lua lctags/lctags.lua --lctags-form json inq callee ::test_indirect_t
-{"lctags_result": {"callee": [{"info": {"nsId": 6239,
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq callee ::test_indirect_t
 "name": "::test_indirect::203",
 "type": "FunctionDecl",
-"fileId": 203,
-"belongNsId": ""}},
-{"info": {"nsId": 6237,
 "name": "::test_indirect2::203",
 "type": "FunctionDecl",
-"fileId": 203,
-"belongNsId": ""}},
-{"info": {"nsId": 6236,
 "name": "::test_indirect3::203",
 "type": "FunctionDecl",
-"fileId": 203,
-"belongNsId": ""}}]}}
-lua lctags/lctags.lua --lctags-form json inq caller ::test_indirect_t
-{"lctags_result": {"caller": [{"info": {"nsId": 6234,
-"name": "::test_sub"}}]}}
-lua lctags/lctags.lua --lctags-form json inq callee '::@struct::<struct_test_str_t>::func_t'
-{"lctags_result": {"callee": [{"info": {"nsId": 6237,
+"path": "NDIR/test/indirect.cpp"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq caller ::test_indirect_t
+"name": "::test_sub",
+"type": "FunctionDecl",
+"name": "::test_indirect_t",
+"type": "TypedefDecl",
+"path": "NDIR/test/indirect.cpp"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq callee '::@struct::<struct_test_str_t>::func_t'
 "name": "::test_indirect2::203",
 "type": "FunctionDecl",
-"fileId": 203,
-"belongNsId": ""}}]}}
-lua lctags/lctags.lua --lctags-form json inq refSym ::@struct::test_str_t::func_t
-{"lctags_result": {"refSym": [{"info": {"nsId": 6234,
-"name": "::test_sub"}}]}}
-lua lctags/lctags.lua --lctags-form json inq matchFile NDIR/test
-{"lctags_result": {"matchFile": [{"info": {"fileId": 84,
+"path": "NDIR/test/indirect.cpp"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq refSym ::@struct::test_str_t::func_t
+"name": "::test_sub",
+"type": "",
+"path": "NDIR/test/indirect.cpp"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq matchFile NDIR/test
 "path": "NDIR/test/hoge.cpp"}},
-{"info": {"fileId": 86,
 "path": "NDIR/test/field.h"}},
-{"info": {"fileId": 87,
 "path": "NDIR/test/hoge.h"}},
-{"info": {"fileId": 88,
 "path": "NDIR/test/sub.cpp"}},
-{"info": {"fileId": 89,
 "path": "NDIR/test/sub2.cpp"}},
-{"info": {"fileId": 90,
 "path": "NDIR/test/comp.cpp"}},
-{"info": {"fileId": 91,
 "path": "NDIR/test/comp-2.cpp"}},
-{"info": {"fileId": 92,
 "path": "NDIR/test/comp2.cpp"}},
-{"info": {"fileId": 93,
 "path": "NDIR/test/comp3.cpp"}},
-{"info": {"fileId": 94,
 "path": "NDIR/test/comp4.cpp"}},
-{"info": {"fileId": 95,
 "path": "NDIR/test/comp5.cpp"}},
-{"info": {"fileId": 96,
 "path": "NDIR/test/comp6.cpp"}},
-{"info": {"fileId": 97,
 "path": "NDIR/test/comp7.cpp"}},
-{"info": {"fileId": 98,
 "path": "NDIR/test/comp8.cpp"}},
-{"info": {"fileId": 99,
 "path": "NDIR/test/comp9.cpp"}},
-{"info": {"fileId": 100,
 "path": "NDIR/test/comp10.cpp"}},
-{"info": {"fileId": 101,
 "path": "NDIR/test/comp11.cpp"}},
-{"info": {"fileId": 102,
 "path": "NDIR/test/comp12.cpp"}},
-{"info": {"fileId": 103,
 "path": "NDIR/test/comp13.cpp"}},
-{"info": {"fileId": 104,
 "path": "NDIR/test/comp14.cpp"}},
-{"info": {"fileId": 105,
 "path": "NDIR/test/comp15.cpp"}},
-{"info": {"fileId": 106,
 "path": "NDIR/test/comp16.cpp"}},
-{"info": {"fileId": 107,
 "path": "NDIR/test/comp17.cpp"}},
-{"info": {"fileId": 108,
 "path": "NDIR/test/comp18.cpp"}},
-{"info": {"fileId": 109,
 "path": "NDIR/test/comp19.cpp"}},
-{"info": {"fileId": 110,
 "path": "NDIR/test/class2.cpp"}},
-{"info": {"fileId": 111,
 "path": "NDIR/test/class3.cpp"}},
-{"info": {"fileId": 112,
 "path": "NDIR/test/class4.cpp"}},
-{"info": {"fileId": 183,
 "path": "NDIR/test/class5.cpp"}},
-{"info": {"fileId": 184,
 "path": "NDIR/test/inc1.cpp"}},
-{"info": {"fileId": 185,
-"path": "NDIR/test/inc3.h"}},
-{"info": {"fileId": 186,
-"path": "NDIR/test/inc2.h"}},
-{"info": {"fileId": 187,
 "path": "NDIR/test/inc1.h"}},
-{"info": {"fileId": 188,
+"path": "NDIR/test/inc3.h"}},
+"path": "NDIR/test/inc2.h"}},
 "path": "NDIR/test/stdinc.cpp"}},
-{"info": {"fileId": 189,
 "path": "NDIR/test/stack.cpp"}},
-{"info": {"fileId": 190,
 "path": "NDIR/test/sample.c"}},
-{"info": {"fileId": 191,
 "path": "NDIR/test/simple.cpp"}},
-{"info": {"fileId": 192,
 "path": "NDIR/test/operator.cpp"}},
-{"info": {"fileId": 193,
 "path": "NDIR/test/split.cpp"}},
-{"info": {"fileId": 194,
 "path": "NDIR/test/split2.cpp"}},
-{"info": {"fileId": 195,
 "path": "NDIR/test/enum.cpp"}},
-{"info": {"fileId": 196,
 "path": "NDIR/test/enum2.cpp"}},
-{"info": {"fileId": 197,
 "path": "NDIR/test/enum3.cpp"}},
-{"info": {"fileId": 198,
 "path": "NDIR/test/enum4.cpp"}},
-{"info": {"fileId": 199,
 "path": "NDIR/test/incFuncTest.c"}},
-{"info": {"fileId": 200,
 "path": "NDIR/test/highlight.cpp"}},
-{"info": {"fileId": 201,
 "path": "NDIR/test/inctest.cpp"}},
-{"info": {"fileId": 203,
+"path": "NDIR/test/inc/inctest1.h"}},
 "path": "NDIR/test/indirect.cpp"}},
-{"info": {"fileId": 204,
-"path": "NDIR/test/macro.cpp"}}]}}
-lua lctags/lctags.lua --lctags-form json inq defBody ::test_indirect_t
-{"lctags_result": {"defBody": [{"info": {"fileId": 203,
+"path": "NDIR/test/macro.cpp"}},
+"path": "NDIR/test/module/mod1.cpp"}},
+"path": "NDIR/test/module/mod2.h"}},
+"path": "NDIR/test/module/sub/mod2.cpp"}},
+"path": "NDIR/test/module/mod1.h"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq defBody ::test_indirect_t
 "line": 8,
 "column": 1,
 "path": "NDIR/test/indirect.cpp"}}]}}
-lua lctags/lctags.lua --lctags-form json inq callPair ::test_indirect_t ::test_sub
-{"lctags_result": {"callPair": [{"info": {"fileId": 203,
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq callPair ::test_indirect_t ::test_sub
 "line": 23,
 "column": 5,
 "path": "NDIR/test/indirect.cpp"}}]}}
-lua lctags/lctags.lua --lctags-form json inq refPair ::test_indirect_t ::test_sub
-{"lctags_result": {"refPair": [{"info": {"fileId": 203,
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq refPair ::test_indirect_t ::test_sub
 "line": 22,
 "column": 16,
 "path": "NDIR/test/indirect.cpp"}}]}}
-lua lctags/lctags.lua --lctags-form json inq refSym ::macro_func
-{"lctags_result": {"refSym": [{"info": {"nsId": 1,
-"name": ""}}]}}
-lua lctags/lctags.lua --lctags-form json addIncRef test/incFuncTest.c /usr/include/string.h
-sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua --lctags-form json comp-at test/incFuncTest.c 3 8 -i
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq refSym ::macro_func
+"name": "",
+"type": "",
+"path": "NDIR/test/macro.cpp"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq decl ::mod1_func
+"line": 3,
+"column": 1,
+"path": "NDIR/test/module/mod1.cpp",
+"hasBodyFlag": true,
+"type": "FunctionDecl"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq dumpDir
+{"lctags_result": {"dumpDir": [{"path": ""},
+{"path": "/usr/include"},
+{"path": "/usr/include/x86_64-linux-gnu/gnu"},
+{"path": "/usr/include/x86_64-linux-gnu/bits"},
+{"path": "/usr/include/x86_64-linux-gnu/sys"},
+{"path": "/usr/include/linux"},
+{"path": "/usr/include/asm-generic"},
+{"path": "/usr/include/x86_64-linux-gnu/asm"},
+{"path": "/usr/lib/llvm-3.8/lib/clang/3.8.0/include"},
+{"path": "NDIR/test"},
+{"path": "/usr/include/c++/5.4.0/bits"},
+{"path": "/usr/include/c++/5.4.0"},
+{"path": "/usr/include/c++/5.4.0/ext"},
+{"path": "/usr/include/c++/5.4.0/backward"},
+{"path": "/usr/include/x86_64-linux-gnu/c++/5.4.0/bits"},
+{"path": "/usr/include/c++/5.4.0/debug"},
+{"path": "NDIR/test/inc"},
+{"path": "NDIR/test/module"},
+{"path": "NDIR/test/module/sub"}]}}
+make test-inq FILEID=207 
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq defAtFileId 207 
+"name": "::mod2_func",
+"type": "FunctionDecl",
+"hasBody": true,
+"line": 3}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq refFile 207 "./test/module/sub/mod2.c"
+"refLine": 5,
+"declLine": 3}}],
+"path": "NDIR/test/module/sub/mod2.cpp"}},
+"path": "NDIR/test/module/mod1.cpp"}}],
+"name": "::mod2_func"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq reqFile 207 "./test/module/sub/mod2.c"
+"refLine": 5,
+"declLine": 8}},
+"refLine": 5,
+"declLine": 1}}],
+"path": "NDIR/test/module/mod1.h"}},
+"path": "NDIR/test/module/mod1.cpp"}},
+"path": "NDIR/test/module/sub/mod2.cpp"}}],
+"name": "::mod1_sub"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq refDir ./test/module/sub
+"refLine": 5,
+"declLine": 3}}],
+"path": "NDIR/test/module/sub/mod2.cpp"}},
+"path": "NDIR/test/module/mod1.cpp"}}],
+"name": "::mod2_func"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq reqDir ./test/module/sub
+"refLine": 5,
+"declLine": 8}},
+"refLine": 5,
+"declLine": 1}}],
+"path": "NDIR/test/module/mod1.h"}},
+"path": "NDIR/test/module/mod1.cpp"}},
+"path": "NDIR/test/module/sub/mod2.cpp"}}],
+"name": "::mod1_sub"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq searchFile module
+"path": "NDIR/test/module/mod1.cpp"}},
+"path": "NDIR/test/module/mod2.h"}},
+"path": "NDIR/test/module/sub/mod2.cpp"}},
+"path": "NDIR/test/module/mod1.h"}}]}}
+/usr/bin/lua lctags/lctags.lua --lctags-form json inq searchDecl mod1
+"name": "::mod1_func"}},
+"name": "::mod1_sub"}},
+"name": "::mod1_sub"}}]}}
+(cd test; /usr/bin/lua ../start.lua -xt mod1_func)
+mod1_func           3 ./module/mod1.cpp void mod1_func()
+/usr/bin/lua lctags/lctags.lua --lctags-form json addIncRef test/incFuncTest.c /usr/include/string.h
+sed 's@//@@' test/incFuncTest.c | /usr/bin/lua lctags/lctags.lua --lctags-form json comp-at test/incFuncTest.c 3 8 -i
 {"lctags_result": {"completion": {"prefix": "strl",
 "candidateList": [{"candidate": {"canonical": "::strlen",
 "simple": "strlen",
@@ -3958,7 +3661,7 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua --lctags-form json comp-
 "column": 0}}}]},
 "diagnostics": [{"message": "error: invalid argument '-std=c++11' not allowed with 'C/ObjC'"}]}}
 make test-chg-proj
-lua lctags/lctags.lua --lctags-form json set-projDir . test@test2 > /dev/null
-lua lctags/lctags.lua --lctags-form json dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:429: recipe for target 'test-chg-proj' failed
-lua lctags/lctags.lua --lctags-form json set-projDir . test2@test > /dev/null
+/usr/bin/lua lctags/lctags.lua --lctags-form json set-projDir . test@test2 > /dev/null
+/usr/bin/lua lctags/lctags.lua --lctags-form json dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
+makefile:475: recipe for target 'test-chg-proj' failed
+/usr/bin/lua lctags/lctags.lua --lctags-form json set-projDir . test2@test > /dev/null

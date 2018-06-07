@@ -1,5 +1,5 @@
-lua lctags/lctags.lua dump all >> dump
-lua lctags/lctags.lua -x sub
+/usr/bin/lua lctags/lctags.lua dump all >> dump
+/usr/bin/lua lctags/lctags.lua -x sub
 sub               251 ./test/hoge.cpp          void sub( char ** ppArg ) {
 sub                 8 ./test/comp.cpp    static int sub() {
 sub                 8 ./test/comp-2.cpp   static int sub() {
@@ -23,11 +23,11 @@ sub                 6 ./test/enum2.cpp static void sub( eval_t val )
 sub                 5 ./test/enum3.cpp static eval_t sub( void )
 sub                21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 sub                 3 ./test/inctest.cpp void sub( void )
-lua lctags/lctags.lua -x ccccc
+/usr/bin/lua lctags/lctags.lua -x ccccc
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
 ccccc               6 ./test/field.h   
-lua lctags/lctags.lua -xr enum_val1
+/usr/bin/lua lctags/lctags.lua -xr enum_val1
 enum_val1          18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
 enum_val1         195 ./test/hoge.cpp              char buf[ 1 ] = { enum_val1 };
 enum_val1         237 ./test/hoge.cpp              return enum_val1;
@@ -36,14 +36,14 @@ enum_val1         326 ./test/hoge.cpp        int val2[] = { enum_val1 };
 enum_val1          12 ./test/sample.c      case enum_val1:
 enum_val1          23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
 enum_val1          28 ./test/highlight.cpp     pVal3[0]->val = enum_val1;
-lua lctags/lctags.lua -c sub
+/usr/bin/lua lctags/lctags.lua -c sub
 sub2
 sub
 sub_t
 sub2_t
 Sub
 substr
-lua lctags/lctags.lua -c sub$
+/usr/bin/lua lctags/lctags.lua -c sub$
 FPE_FLTSUB
 __tgmath_real_type_sub
 sub
@@ -51,7 +51,8 @@ pSub
 Sub
 func10__sub
 test_sub
-lua lctags/lctags.lua -c %sub
+mod1_sub
+/usr/bin/lua lctags/lctags.lua -c %sub
 FP_SUBNORMAL
 FPE_FLTSUB
 getsubopt
@@ -67,7 +68,8 @@ __glibcxx_requires_subscript
 substr
 func10__sub
 test_sub
-lua lctags/lctags.lua -xT sub
+mod1_sub
+/usr/bin/lua lctags/lctags.lua -xT sub
 ::ns1::ns31::sub  251 ./test/hoge.cpp          void sub( char ** ppArg ) {
 ::ns1::ns31::sub2  259 ./test/hoge.cpp          void sub2() {
 ::ns1::sub2       264 ./test/hoge.cpp    struct yyyy sub2() {
@@ -98,7 +100,7 @@ lua lctags/lctags.lua -xT sub
 ::sub::197          5 ./test/enum3.cpp static eval_t sub( void )
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
-lua lctags/lctags.lua -xT sub$
+/usr/bin/lua lctags/lctags.lua -xT sub$
 ::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
 ::@enum::<enum_anonymous>::FPE_FLTSUB  222 /usr/include/x86_64-linux-gnu/bits/siginfo.h   FPE_FLTSUB			/* Subscript out of range.  */
 ::__tgmath_real_type_sub   60 /usr/include/tgmath.h # define __tgmath_real_type_sub(T, E) \
@@ -130,7 +132,9 @@ lua lctags/lctags.lua -xT sub$
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
 ::test_sub         22 ./test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
-lua lctags/lctags.lua -xT %sub
+::mod1_sub          8 ./test/module/mod1.cpp void mod1_sub()
+::mod1_sub          1 ./test/module/mod1.h extern void mod1_sub();
+/usr/bin/lua lctags/lctags.lua -xT %sub
 ::FP_SUBNORMAL    221 /usr/include/math.h # define FP_SUBNORMAL 3
 ::@enum::<enum_anonymous>::FP_SUBNORMAL  220 /usr/include/math.h     FP_SUBNORMAL =
 ::FPE_FLTSUB      223 /usr/include/x86_64-linux-gnu/bits/siginfo.h #  define FPE_FLTSUB	FPE_FLTSUB
@@ -172,17 +176,19 @@ lua lctags/lctags.lua -xT %sub
 ::sub              21 ./test/highlight.cpp void sub( VAL_t * pVal, VAL2_t * pVal2, VAL_t * pVal3[], struct VAL2_t VAL2_t )
 ::sub               3 ./test/inctest.cpp void sub( void )
 ::test_sub         22 ./test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
-lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
+::mod1_sub          8 ./test/module/mod1.cpp void mod1_sub()
+::mod1_sub          1 ./test/module/mod1.h extern void mod1_sub();
+/usr/bin/lua lctags/lctags.lua ref-at test/hoge.cpp 14 15
 ::int_t           303 ./test/hoge.cpp      TEMP<int_t,int> tmp(1);
 ::int_t           304 ./test/hoge.cpp      TEMP<int_t,int> tmp2(1);
 ::int_t           124 ./test/hoge.cpp  void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] );
 ::int_t           127 ./test/hoge.cpp  void test( int argInt[ ARRAY_LENGTH ], int_t argInt2[ ARRAY_LENGTH ] )
 ::int_t           129 ./test/hoge.cpp      int_t array2Int[ ARRAY_LENGTH ][ ARRAY_LENGTH ];
-lua lctags/lctags.lua ref-at test/hoge.cpp 44 8
+/usr/bin/lua lctags/lctags.lua ref-at test/hoge.cpp 44 8
 ::@struct::yyyy::kkkk  266 ./test/hoge.cpp      aYYYYY.kkkk = 0;
-lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
+/usr/bin/lua lctags/lctags.lua ref-at test/hoge.cpp 236 23
 ::ns1::@struct::<struct_struct_func_t>::@struct::<struct_abcd>::efgh  236 ./test/hoge.cpp              val.abcd.efgh = 1;
-lua lctags/lctags.lua ref-at test/hoge.cpp 237 23 | sort
+/usr/bin/lua lctags/lctags.lua ref-at test/hoge.cpp 237 23 | sort
 ::@enum::<enum_enum_t>::enum_val1   12 ./test/sample.c      case enum_val1:
 ::@enum::<enum_enum_t>::enum_val1   18 ./test/hoge.cpp  	       enum_val3 = enum_val1 + 1000
 ::@enum::<enum_enum_t>::enum_val1   23 ./test/highlight.cpp     /** テスト */ pVal->val = enum_val1;
@@ -191,27 +197,27 @@ lua lctags/lctags.lua ref-at test/hoge.cpp 237 23 | sort
 ::@enum::<enum_enum_t>::enum_val1  237 ./test/hoge.cpp              return enum_val1;
 ::@enum::<enum_enum_t>::enum_val1  316 ./test/hoge.cpp  static int s_vals[] = { enum_val1, enum_val2 };
 ::@enum::<enum_enum_t>::enum_val1  326 ./test/hoge.cpp        int val2[] = { enum_val1 };
-lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
+/usr/bin/lua lctags/lctags.lua ref-at test/hoge.cpp 253 18
 ::printf          253 ./test/hoge.cpp                  printf( "%s\n", *ppArg );
 ::printf           31 ./test/split.cpp   printf( "val = %d, s_vals[0]=%d, aaa[0] = %d, val4 = %d, abcddd[0][0] = %d\n",
 ::printf           99 ./test/split.cpp             printf( "funcRet__ = %d, typ.val = %d, typArray[0].val = %d\n",
-lua lctags/lctags.lua def-at test/hoge.cpp 204 18
+/usr/bin/lua lctags/lctags.lua def-at test/hoge.cpp 204 18
 ::ns1::g_global   153 ./test/hoge.cpp      int g_global = 0;
-lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
+/usr/bin/lua lctags/lctags.lua ref-at test/hoge.cpp 168 15
 ::ns1::ns2::@struct::<struct_struct_func_t>::@struct::<struct_anonymous>::z2  212 ./test/hoge.cpp              pClass->z2 = 1;
-lua lctags/lctags.lua call-at test/hoge.cpp 267 15
+/usr/bin/lua lctags/lctags.lua call-at test/hoge.cpp 267 15
 ::Callback_t      267 ./test/hoge.cpp      aYYYYY.pCallback( NULL );
 ::Callback_t      231 ./test/hoge.cpp                  (*pCallback)( NULL );
 ::Callback_t      211 ./test/hoge.cpp              pClass->   pCallback( NULL );
 ::Callback_t      196 ./test/hoge.cpp              callback( NULL );
-lua lctags/lctags.lua def-at test/hoge.cpp 230 18
+/usr/bin/lua lctags/lctags.lua def-at test/hoge.cpp 230 18
 ::ns1::ns2::func2::84  201 ./test/hoge.cpp          static ZZZZ func2( TEST * pTest ) {
-lua lctags/lctags.lua def-at test/hoge.cpp 231 20
+/usr/bin/lua lctags/lctags.lua def-at test/hoge.cpp 231 20
 ::Callback_t      218 ./test/hoge.cpp          int func3( Callback_t * pCallback ) {
-lua lctags/lctags.lua ref-at test/hoge.cpp 284 3
-lua lctags/lctags.lua def-at test/hoge.cpp 299 12
+/usr/bin/lua lctags/lctags.lua ref-at test/hoge.cpp 284 3
+/usr/bin/lua lctags/lctags.lua def-at test/hoge.cpp 299 12
 ::rootval         299 ./test/hoge.cpp    int rootval;
-lua lctags/lctags.lua expand test/hoge.cpp 316 29
+/usr/bin/lua lctags/lctags.lua expand test/hoge.cpp 316 29
 <lctags_result>
 <completion>
 <prefix>
@@ -285,22 +291,22 @@ lua lctags/lctags.lua expand test/hoge.cpp 316 29
 </lctags_result>
 rm -f graph.sample/*
 mkdir -f graph.sample
-makefile:311: recipe for target 'test-query' failed
-lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
-lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
-lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
-lua lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
-lua lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
-lua lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
-lua lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
-lua lctags/lctags.lua graph-at symbol test/hoge.cpp 107 18 -o graph.sample/at-symbol.svg
-lua lctags/lctags.lua list inc test/hoge.cpp -d 2
+makefile:345: recipe for target 'test-query' failed
+/usr/bin/lua lctags/lctags.lua graph caller ::Callback_t -o graph.sample/caller.svg
+/usr/bin/lua lctags/lctags.lua graph callee ::ns1::ns31::sub2 -o graph.sample/callee.svg
+/usr/bin/lua lctags/lctags.lua graph inc test/hoge.cpp -o graph.sample/inc.png -f png
+/usr/bin/lua lctags/lctags.lua graph incSrc 5 -o graph.sample/incSrc.svg
+/usr/bin/lua lctags/lctags.lua graph symbol ::ns1::g_global -o graph.sample/symbol.svg
+/usr/bin/lua lctags/lctags.lua graph-at callee test/hoge.cpp 218 14 -o graph.sample/at-callee.svg
+/usr/bin/lua lctags/lctags.lua graph-at caller test/hoge.cpp 231 21 -o graph.sample/at-caller.svg
+/usr/bin/lua lctags/lctags.lua graph-at symbol test/hoge.cpp 107 18 -o graph.sample/at-symbol.svg
+/usr/bin/lua lctags/lctags.lua list inc test/hoge.cpp -d 2
 path                1 NDIR/test/field.h 
 path                1 NDIR/test/hoge.cpp 
 path                1 NDIR/test/hoge.h 
 path                1 /usr/include/stdio.h 
 path                1 /usr/include/time.h 
-lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
+/usr/bin/lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <lctags_result>
 <completion>
 <prefix>
@@ -371,7 +377,7 @@ lua lctags/lctags.lua inq-at test/hoge.cpp 237 24
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
+/usr/bin/lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <lctags_result>
 <completion>
 <prefix>
@@ -493,7 +499,7 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 212 19
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
+/usr/bin/lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <lctags_result>
 <completion>
 <prefix>
@@ -544,10 +550,6 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 <typeInfoList>
 <typeInfo>
 <candidateList>
-</candidateList>
-</typeInfo>
-<typeInfo>
-<candidateList>
 <candidate>
 <canonical>efgh</canonical>
 <simple>efgh</simple>
@@ -571,12 +573,16 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 236 15
 </candidate>
 </candidateList>
 </typeInfo>
+<typeInfo>
+<candidateList>
+</candidateList>
+</typeInfo>
 </typeInfoList>
 </completion>
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
+/usr/bin/lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <lctags_result>
 <completion>
 <prefix>
@@ -720,9 +726,9 @@ lua lctags/lctags.lua comp-at test/hoge.cpp 235 18
 <message>NDIR/test/hoge.cpp:235: error: unexpected namespace name &apos;ns1&apos;: expected expression</message>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
-makefile:311: recipe for target 'test-query' failed
-lua lctags/lctags.lua comp-at test/comp.cpp 26 17
+/usr/bin/lua lctags/lctags.lua dump def hoge.cpp | grep ::abcddd && echo =========== NG ===============
+makefile:345: recipe for target 'test-query' failed
+/usr/bin/lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <lctags_result>
 <completion>
 <prefix>me</prefix>
@@ -757,7 +763,7 @@ lua lctags/lctags.lua comp-at test/comp.cpp 26 17
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
+/usr/bin/lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <lctags_result>
 <completion>
 <prefix>
@@ -901,7 +907,7 @@ lua lctags/lctags.lua comp-at test/comp-2.cpp 25 16
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
+/usr/bin/lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <lctags_result>
 <completion>
 <prefix>f</prefix>
@@ -935,7 +941,7 @@ lua lctags/lctags.lua comp-at test/comp2.cpp 31 10
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
+/usr/bin/lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <lctags_result>
 <completion>
 <prefix>s</prefix>
@@ -969,7 +975,7 @@ lua lctags/lctags.lua comp-at test/comp3.cpp 31 25
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
+/usr/bin/lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <lctags_result>
 <completion>
 <prefix>
@@ -1045,7 +1051,7 @@ lua lctags/lctags.lua comp-at test/comp4.cpp 31 17
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
+/usr/bin/lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <lctags_result>
 <completion>
 <prefix>f</prefix>
@@ -1079,7 +1085,7 @@ lua lctags/lctags.lua comp-at test/comp5.cpp 31 18
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
+/usr/bin/lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
 <lctags_result>
 <completion>
 <prefix>TE</prefix>
@@ -1485,7 +1491,7 @@ lua lctags/lctags.lua comp-at test/comp6.cpp 48 6
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
+/usr/bin/lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <lctags_result>
 <completion>
 <prefix>
@@ -1695,7 +1701,7 @@ lua lctags/lctags.lua comp-at test/comp7.cpp 48 17
 <message>NDIR/test/comp7.cpp:48: error: unexpected namespace name &apos;ns72&apos;: expected expression</message>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
+/usr/bin/lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <lctags_result>
 <completion>
 <prefix>TE</prefix>
@@ -1838,7 +1844,7 @@ lua lctags/lctags.lua comp-at test/comp8.cpp 48 13
 <message>NDIR/test/comp8.cpp:48: error: unexpected namespace name &apos;ns81&apos;: expected expression</message>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
+/usr/bin/lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <lctags_result>
 <completion>
 <prefix>T</prefix>
@@ -2002,7 +2008,7 @@ lua lctags/lctags.lua comp-at test/comp9.cpp 48 8
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
+/usr/bin/lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <lctags_result>
 <completion>
 <prefix>T</prefix>
@@ -2430,7 +2436,7 @@ lua lctags/lctags.lua comp-at test/comp10.cpp 48 6
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
+/usr/bin/lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
 <lctags_result>
 <completion>
 <prefix>f</prefix>
@@ -2484,7 +2490,7 @@ lua lctags/lctags.lua comp-at test/comp11.cpp 10 2
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
+/usr/bin/lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
 <lctags_result>
 <completion>
 <prefix>
@@ -2541,7 +2547,7 @@ lua lctags/lctags.lua comp-at test/comp12.cpp 11 5
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp13.cpp 3 8
+/usr/bin/lua lctags/lctags.lua comp-at test/comp13.cpp 3 8
 <lctags_result>
 <completion>
 <prefix>m_val</prefix>
@@ -2574,7 +2580,7 @@ lua lctags/lctags.lua comp-at test/comp13.cpp 3 8
 <message>NDIR/test/comp13.cpp:2: error: expected &apos;;&apos; after class</message>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
+/usr/bin/lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
 <lctags_result>
 <completion>
 <prefix>
@@ -2673,7 +2679,7 @@ lua lctags/lctags.lua comp-at test/comp14.cpp 4 12
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
+/usr/bin/lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
 <lctags_result>
 <completion>
 <prefix>
@@ -2711,7 +2717,7 @@ lua lctags/lctags.lua comp-at test/comp16.cpp 11 9
 <diagnostics>
 </diagnostics>
 </lctags_result>
-cat test/comp17-2.cpp | lua lctags/lctags.lua comp-at test/comp17.cpp 7 11 -i
+cat test/comp17-2.cpp | /usr/bin/lua lctags/lctags.lua comp-at test/comp17.cpp 7 11 -i
 <lctags_result>
 <completion>
 <prefix>
@@ -2747,7 +2753,7 @@ cat test/comp17-2.cpp | lua lctags/lctags.lua comp-at test/comp17.cpp 7 11 -i
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp18.cpp 9 9
+/usr/bin/lua lctags/lctags.lua comp-at test/comp18.cpp 9 9
 <lctags_result>
 <completion>
 <prefix>
@@ -2804,7 +2810,7 @@ lua lctags/lctags.lua comp-at test/comp18.cpp 9 9
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/comp19.cpp 9 21
+/usr/bin/lua lctags/lctags.lua comp-at test/comp19.cpp 9 21
 <lctags_result>
 <completion>
 <prefix>
@@ -2840,7 +2846,7 @@ lua lctags/lctags.lua comp-at test/comp19.cpp 9 21
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/class2.cpp 13 10
+/usr/bin/lua lctags/lctags.lua comp-at test/class2.cpp 13 10
 <lctags_result>
 <completion>
 <prefix>
@@ -2939,7 +2945,7 @@ lua lctags/lctags.lua comp-at test/class2.cpp 13 10
 <message>NDIR/test/class2.cpp:15: error: expected &apos;;&apos; after class</message>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/class3.cpp 16 10
+/usr/bin/lua lctags/lctags.lua comp-at test/class3.cpp 16 10
 <lctags_result>
 <completion>
 <prefix>
@@ -3038,7 +3044,7 @@ lua lctags/lctags.lua comp-at test/class3.cpp 16 10
 <message>NDIR/test/class3.cpp:18: error: expected &apos;;&apos; after class</message>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/class4.cpp 11 7
+/usr/bin/lua lctags/lctags.lua comp-at test/class4.cpp 11 7
 <lctags_result>
 <completion>
 <prefix>
@@ -3074,7 +3080,7 @@ lua lctags/lctags.lua comp-at test/class4.cpp 11 7
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/class5.cpp 24 6
+/usr/bin/lua lctags/lctags.lua comp-at test/class5.cpp 24 6
 <lctags_result>
 <completion>
 <prefix>
@@ -3153,7 +3159,7 @@ lua lctags/lctags.lua comp-at test/class5.cpp 24 6
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua testOpe test/operator.cpp
+/usr/bin/lua lctags/lctags.lua testOpe test/operator.cpp
 lctags:	1	=
 lctags:	1	||
 lctags:	1	|
@@ -3177,7 +3183,7 @@ lctags:	1	++	front
 lctags:	1	--	front
 lctags:	1	*	front
 lctags:	1	&	front
-lua lctags/lctags.lua split-at test/hoge.cpp 340 12
+/usr/bin/lua lctags/lctags.lua split-at test/hoge.cpp 340 12
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3243,7 +3249,7 @@ if ( func__sub( &amp;funcRet__, aaa, abcddd, val1, val2, val3, &amp;val4 ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:val1,:o:vvv2:val2'
+/usr/bin/lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:val1,:o:vvv2:val2'
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3258,12 +3264,6 @@ lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:v
 <addressAccess>false</addressAccess>
 <name>val2</name>
 <argSymbol>vvv2</argSymbol>
-<directRet>false</directRet>
-</arg>
-<arg>
-<addressAccess>false</addressAccess>
-<name>abcddd</name>
-<argSymbol>abcddd</argSymbol>
 <directRet>false</directRet>
 </arg>
 <arg>
@@ -3284,14 +3284,20 @@ lua lctags/lctags.lua split-at test/hoge.cpp 340 12 -split-param-list ':o:vvv1:v
 <argSymbol>aaa</argSymbol>
 <directRet>false</directRet>
 </arg>
+<arg>
+<addressAccess>false</addressAccess>
+<name>abcddd</name>
+<argSymbol>abcddd</argSymbol>
+<directRet>false</directRet>
+</arg>
 </args>
 <call>{
     int * funcRet__ = 0;
-if ( func__sub( &amp;funcRet__, val1, val2, abcddd, val3, &amp;val4, aaa ) ) {
+if ( func__sub( &amp;funcRet__, val1, val2, val3, &amp;val4, aaa, abcddd ) ) {
        return funcRet__;
     }
 }</call>
-<sub_routine>static int func__sub( int ** pFuncRet__, int vvv1, int vvv2, int abcddd[10][1], int * val3, int* pVal4, int aaa[1][2] )
+<sub_routine>static int func__sub( int ** pFuncRet__, int vvv1, int vvv2, int * val3, int* pVal4, int aaa[1][2], int abcddd[10][1] )
 {
                 int * pVal = POINTER(vvv1);
                 int valval2 = -vvv2;
@@ -3309,16 +3315,16 @@ if ( func__sub( &amp;funcRet__, val1, val2, abcddd, val3, &amp;val4, aaa ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+/usr/bin/lua lctags/lctags.lua dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
 lctags:	1	-- table target -- 
 lctags:	1	fileId	hasPch	upTime	target	path	compOp
 	-Iclang -Itest -std=c++11 -Iclang 
-lua lctags/lctags.lua chg-proj . test@./test > /dev/null
-lua lctags/lctags.lua dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
+/usr/bin/lua lctags/lctags.lua chg-proj . test@./test > /dev/null
+/usr/bin/lua lctags/lctags.lua dump target test/class5.cpp | sed 's/.*class5.cpp//g' | sed "s@[a-z/\-\.\-]\+/stdinc@stdinc@g"
 lctags:	1	-- table target -- 
 lctags:	1	fileId	hasPch	upTime	target	path	compOp
 	 -Iclang -I./test -std=c++11 -Iclang
-lua lctags/lctags.lua split-at test/split.cpp 62 13
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 62 13
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3337,7 +3343,7 @@ if ( func4__sub( &amp;funcRet__ ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 65 18
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 65 18
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3362,7 +3368,7 @@ if ( func4__sub( &amp;funcRet__, val ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 68 18
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 68 18
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3387,7 +3393,7 @@ if ( func4__sub( &amp;funcRet__, val ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 71 18
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 71 18
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3412,7 +3418,7 @@ if ( func4__sub( &amp;funcRet__, val ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 74 18
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 74 18
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3431,9 +3437,9 @@ if ( func4__sub( &amp;funcRet__ ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
-makefile:311: recipe for target 'test-query' failed
-lua lctags/lctags.lua split-at test/split.cpp 91 20
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 77 18 && echo NG === split 77
+makefile:345: recipe for target 'test-query' failed
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 91 20
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3466,7 +3472,7 @@ if ( func5__sub( &amp;funcRet__, &amp;typ, typArray ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 118 20
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 118 20
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3502,7 +3508,7 @@ if ( func6__sub( &amp;funcRet__, &amp;typ, &amp;val ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 129 0
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 129 0
 <lctags_result>
 <refactoring_split>
 <directRet>false</directRet>
@@ -3559,7 +3565,7 @@ if ( func7__sub( &amp;funcRet__, val ) ) {
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 131 43
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 131 43
 <lctags_result>
 <refactoring_split>
 <args>
@@ -3594,7 +3600,7 @@ int result__ = func7__sub( &amp;funcRet__, val );
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 142 25
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 142 25
 <lctags_result>
 <refactoring_split>
 <args>
@@ -3630,7 +3636,7 @@ int result__ = func7__sub( &amp;index, val );
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 151 7
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 151 7
 <lctags_result>
 <refactoring_split>
 <args>
@@ -3661,7 +3667,7 @@ lua lctags/lctags.lua split-at test/split.cpp 151 7
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 157 43
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 157 43
 <lctags_result>
 <refactoring_split>
 <args>
@@ -3685,7 +3691,7 @@ lua lctags/lctags.lua split-at test/split.cpp 157 43
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 166 0
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 166 0
 <lctags_result>
 <refactoring_split>
 <args>
@@ -3712,7 +3718,7 @@ lua lctags/lctags.lua split-at test/split.cpp 166 0
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 183 4
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 183 4
 <lctags_result>
 <refactoring_split>
 <args>
@@ -3742,7 +3748,7 @@ lua lctags/lctags.lua split-at test/split.cpp 183 4
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
+/usr/bin/lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
 <lctags_result>
 <refactoring_split>
 <directRet>true</directRet>
@@ -3766,7 +3772,7 @@ lua lctags/lctags.lua split-at test/split.cpp 211 1 --lctags-directRet
 </sub_routine>
 </refactoring_split>
 </lctags_result>
-lua lctags/lctags.lua expand test/enum.cpp 9 15
+/usr/bin/lua lctags/lctags.lua expand test/enum.cpp 9 15
 <lctags_result>
 <completion>
 <prefix>
@@ -3817,7 +3823,7 @@ lua lctags/lctags.lua expand test/enum.cpp 9 15
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/enum.cpp 11 9
+/usr/bin/lua lctags/lctags.lua comp-at test/enum.cpp 11 9
 <lctags_result>
 <completion>
 <prefix>
@@ -3917,7 +3923,7 @@ lua lctags/lctags.lua comp-at test/enum.cpp 11 9
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/enum2.cpp 8 19
+/usr/bin/lua lctags/lctags.lua comp-at test/enum2.cpp 8 19
 <lctags_result>
 <completion>
 <prefix>
@@ -3968,7 +3974,7 @@ lua lctags/lctags.lua comp-at test/enum2.cpp 8 19
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua comp-at test/enum3.cpp 7 11
+/usr/bin/lua lctags/lctags.lua comp-at test/enum3.cpp 7 11
 <lctags_result>
 <completion>
 <prefix>
@@ -4020,11 +4026,11 @@ lua lctags/lctags.lua comp-at test/enum3.cpp 7 11
 <message>NDIR/test/enum3.cpp:7: error: non-void function &apos;sub&apos; should return a value</message>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua def-at test/inc1.cpp 2 1
-NDIR/test/inc1.cpp    1 NDIR/test/inc2.h 
-lua lctags/lctags.lua def-at test/inc2.h 7 1
-NDIR/test/inc2.h    1 NDIR/test/inc3.h 
-lua lctags/lctags.lua expand-macro test/stdinc.cpp
+/usr/bin/lua lctags/lctags.lua def-at test/inc1.cpp 2 1
+NDIR/test/inc1.cpp    1 ./test/inc2.h    
+/usr/bin/lua lctags/lctags.lua def-at test/inc2.h 7 1
+NDIR/test/inc2.h    1 ./test/inc3.h    
+/usr/bin/lua lctags/lctags.lua expand-macro test/stdinc.cpp
 #include </usr/include/stdio.h>
 
 
@@ -4034,7 +4040,7 @@ static void sub( void )
                  __null
                      ;
 }
-lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 7
+/usr/bin/lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 7
 <lctags_result>
 <ref>
 <locationSet>
@@ -4139,7 +4145,7 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 7
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 18
+/usr/bin/lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 18
 <lctags_result>
 <ref>
 <locationSet>
@@ -4175,7 +4181,7 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 21 18
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua ref-at-all test/highlight.cpp 24 12
+/usr/bin/lua lctags/lctags.lua ref-at-all test/highlight.cpp 24 12
 <lctags_result>
 <ref>
 <locationSet>
@@ -4220,7 +4226,7 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 24 12
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua ref-at-all test/highlight.cpp 25 10
+/usr/bin/lua lctags/lctags.lua ref-at-all test/highlight.cpp 25 10
 <lctags_result>
 <ref>
 <locationSet>
@@ -4247,7 +4253,7 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 25 10
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 13
+/usr/bin/lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 13
 <lctags_result>
 <ref>
 <locationSet>
@@ -4292,7 +4298,7 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 13
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua ref-at-all test/highlight.cpp 26 19
+/usr/bin/lua lctags/lctags.lua ref-at-all test/highlight.cpp 26 19
 <lctags_result>
 <ref>
 <locationSet>
@@ -4319,7 +4325,7 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 26 19
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
+/usr/bin/lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
 <lctags_result>
 <ref>
 <locationSet>
@@ -4355,20 +4361,14 @@ lua lctags/lctags.lua ref-at-all test/highlight.cpp 27 19
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua expand-macro test/inc/inctest1.h
+/usr/bin/lua lctags/lctags.lua expand-macro test/inc/inctest1.h
 =======
 #include <NDIR/test/hoge.h>
 
 typedef struct { int aaa; } struct_1CC; typedef struct { int aaa; } struct_2CC;;
-lua lctags/lctags.lua call-func test/simple.cpp printf
+/usr/bin/lua lctags/lctags.lua call-func test/simple.cpp printf
 <lctags_result>
 <functionList>
-<function>
-<name>_IO_vfprintf</name>
-<include>/usr/include/libio.h</include>
-<included>false</included>
-<declaration>/usr/include/libio.h</declaration>
-</function>
 <function>
 <name>fprintf</name>
 <include>/usr/include/stdio.h</include>
@@ -4428,6 +4428,12 @@ lua lctags/lctags.lua call-func test/simple.cpp printf
 <include>/usr/include/stdio.h</include>
 <included>false</included>
 <declaration>/usr/include/stdio.h</declaration>
+</function>
+<function>
+<name>_IO_vfprintf</name>
+<include>/usr/include/libio.h</include>
+<included>false</included>
+<declaration>/usr/include/libio.h</declaration>
 </function>
 <function>
 <name>fwprintf</name>
@@ -4499,7 +4505,7 @@ lua lctags/lctags.lua call-func test/simple.cpp printf
 <diagnostics>
 </diagnostics>
 </lctags_result>
-sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua inq-at test/simple.cpp 4 4 -i
+sed 's@//@@' test/simple.cpp | /usr/bin/lua lctags/lctags.lua inq-at test/simple.cpp 4 4 -i
 <lctags_result>
 <candidate>
 <canonical>printf( const char * __restrict __format, ... )</canonical>
@@ -4524,76 +4530,121 @@ sed 's@//@@' test/simple.cpp | lua lctags/lctags.lua inq-at test/simple.cpp 4 4 
 <diagnostics>
 </diagnostics>
 </lctags_result>
-lua lctags/lctags.lua inq callee ::test_indirect_t
-::test_indirect_t   10 NDIR/test/indirect.cpp static void test_indirect( void )
-::test_indirect_t   14 NDIR/test/indirect.cpp static void test_indirect2( void )
-::test_indirect_t   18 NDIR/test/indirect.cpp static void test_indirect3( void )
-lua lctags/lctags.lua inq caller ::test_indirect_t
-::test_indirect_t   22 NDIR/test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
-lua lctags/lctags.lua inq callee '::@struct::<struct_test_str_t>::func_t'
-::@struct::<struct_test_str_t>::func_t   14 NDIR/test/indirect.cpp static void test_indirect2( void )
-lua lctags/lctags.lua inq refSym ::@struct::test_str_t::func_t
-::@struct::test_str_t::func_t   24 ./test/indirect.cpp     pStr->func_t();
-lua lctags/lctags.lua inq matchFile NDIR/test
-path                1 NDIR/test/hoge.cpp 
-path                1 NDIR/test/field.h 
-path                1 NDIR/test/hoge.h 
-path                1 NDIR/test/sub.cpp 
-path                1 NDIR/test/sub2.cpp 
-path                1 NDIR/test/comp.cpp 
-path                1 NDIR/test/comp-2.cpp 
-path                1 NDIR/test/comp2.cpp 
-path                1 NDIR/test/comp3.cpp 
-path                1 NDIR/test/comp4.cpp 
-path                1 NDIR/test/comp5.cpp 
-path                1 NDIR/test/comp6.cpp 
-path                1 NDIR/test/comp7.cpp 
-path                1 NDIR/test/comp8.cpp 
-path                1 NDIR/test/comp9.cpp 
-path                1 NDIR/test/comp10.cpp 
-path                1 NDIR/test/comp11.cpp 
-path                1 NDIR/test/comp12.cpp 
-path                1 NDIR/test/comp13.cpp 
-path                1 NDIR/test/comp14.cpp 
-path                1 NDIR/test/comp15.cpp 
-path                1 NDIR/test/comp16.cpp 
-path                1 NDIR/test/comp17.cpp 
-path                1 NDIR/test/comp18.cpp 
-path                1 NDIR/test/comp19.cpp 
-path                1 NDIR/test/class2.cpp 
-path                1 NDIR/test/class3.cpp 
-path                1 NDIR/test/class4.cpp 
-path                1 NDIR/test/class5.cpp 
-path                1 NDIR/test/inc1.cpp 
-path                1 NDIR/test/inc3.h 
-path                1 NDIR/test/inc2.h 
-path                1 NDIR/test/inc1.h 
-path                1 NDIR/test/stdinc.cpp 
-path                1 NDIR/test/stack.cpp 
-path                1 NDIR/test/sample.c 
-path                1 NDIR/test/simple.cpp 
-path                1 NDIR/test/operator.cpp 
-path                1 NDIR/test/split.cpp 
-path                1 NDIR/test/split2.cpp 
-path                1 NDIR/test/enum.cpp 
-path                1 NDIR/test/enum2.cpp 
-path                1 NDIR/test/enum3.cpp 
-path                1 NDIR/test/enum4.cpp 
-path                1 NDIR/test/incFuncTest.c 
-path                1 NDIR/test/highlight.cpp 
-path                1 NDIR/test/inctest.cpp 
-path                1 NDIR/test/indirect.cpp 
-path                1 NDIR/test/macro.cpp 
-lua lctags/lctags.lua inq defBody ::test_indirect_t
+/usr/bin/lua lctags/lctags.lua inq callee ::test_indirect_t
+::test_indirect_t   10 ./test/indirect.cpp static void test_indirect( void )
+::test_indirect_t   14 ./test/indirect.cpp static void test_indirect2( void )
+::test_indirect_t   18 ./test/indirect.cpp static void test_indirect3( void )
+/usr/bin/lua lctags/lctags.lua inq caller ::test_indirect_t
+::test_indirect_t   22 ./test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
 ::test_indirect_t    8 ./test/indirect.cpp typedef void (test_indirect_t)(void);
-lua lctags/lctags.lua inq callPair ::test_indirect_t ::test_sub
-::test_sub         23 NDIR/test/indirect.cpp     pFunc();
-lua lctags/lctags.lua inq refPair ::test_indirect_t ::test_sub
-::test_sub         22 NDIR/test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
-lua lctags/lctags.lua inq refSym ::macro_func
+/usr/bin/lua lctags/lctags.lua inq callee '::@struct::<struct_test_str_t>::func_t'
+::@struct::<struct_test_str_t>::func_t   14 ./test/indirect.cpp static void test_indirect2( void )
+/usr/bin/lua lctags/lctags.lua inq refSym ::@struct::test_str_t::func_t
+::@struct::test_str_t::func_t   24 ./test/indirect.cpp     pStr->func_t();
+/usr/bin/lua lctags/lctags.lua inq matchFile NDIR/test
+path                1 ./test/hoge.cpp  
+path                1 ./test/field.h   
+path                1 ./test/hoge.h    
+path                1 ./test/sub.cpp   
+path                1 ./test/sub2.cpp  
+path                1 ./test/comp.cpp  
+path                1 ./test/comp-2.cpp 
+path                1 ./test/comp2.cpp 
+path                1 ./test/comp3.cpp 
+path                1 ./test/comp4.cpp 
+path                1 ./test/comp5.cpp 
+path                1 ./test/comp6.cpp 
+path                1 ./test/comp7.cpp 
+path                1 ./test/comp8.cpp 
+path                1 ./test/comp9.cpp 
+path                1 ./test/comp10.cpp 
+path                1 ./test/comp11.cpp 
+path                1 ./test/comp12.cpp 
+path                1 ./test/comp13.cpp 
+path                1 ./test/comp14.cpp 
+path                1 ./test/comp15.cpp 
+path                1 ./test/comp16.cpp 
+path                1 ./test/comp17.cpp 
+path                1 ./test/comp18.cpp 
+path                1 ./test/comp19.cpp 
+path                1 ./test/class2.cpp 
+path                1 ./test/class3.cpp 
+path                1 ./test/class4.cpp 
+path                1 ./test/class5.cpp 
+path                1 ./test/inc1.cpp  
+path                1 ./test/inc1.h    
+path                1 ./test/inc3.h    
+path                1 ./test/inc2.h    
+path                1 ./test/stdinc.cpp 
+path                1 ./test/stack.cpp 
+path                1 ./test/sample.c  
+path                1 ./test/simple.cpp 
+path                1 ./test/operator.cpp 
+path                1 ./test/split.cpp 
+path                1 ./test/split2.cpp 
+path                1 ./test/enum.cpp  
+path                1 ./test/enum2.cpp 
+path                1 ./test/enum3.cpp 
+path                1 ./test/enum4.cpp 
+path                1 ./test/incFuncTest.c 
+path                1 ./test/highlight.cpp 
+path                1 ./test/inctest.cpp 
+path                1 ./test/inc/inctest1.h 
+path                1 ./test/indirect.cpp 
+path                1 ./test/macro.cpp 
+path                1 ./test/module/mod1.cpp 
+path                1 ./test/module/mod2.h 
+path                1 ./test/module/sub/mod2.cpp 
+path                1 ./test/module/mod1.h 
+/usr/bin/lua lctags/lctags.lua inq defBody ::test_indirect_t
+::test_indirect_t    8 ./test/indirect.cpp typedef void (test_indirect_t)(void);
+/usr/bin/lua lctags/lctags.lua inq callPair ::test_indirect_t ::test_sub
+::test_sub         23 ./test/indirect.cpp     pFunc();
+/usr/bin/lua lctags/lctags.lua inq refPair ::test_indirect_t ::test_sub
+::test_sub         22 ./test/indirect.cpp void test_sub( test_indirect_t * pFunc, test_str_t * pStr) {
+/usr/bin/lua lctags/lctags.lua inq refSym ::macro_func
 ::macro_func       33 ./test/macro.cpp     macro_func();
-lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
-sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
+/usr/bin/lua lctags/lctags.lua inq decl ::mod1_func
+::mod1_func         3 ./test/module/mod1.cpp void mod1_func()
+/usr/bin/lua lctags/lctags.lua inq dumpDir
+path                1 /usr/include/assert.h 
+path                1 /usr/include/x86_64-linux-gnu/gnu/stubs-64.h 
+path                1 /usr/include/x86_64-linux-gnu/bits/wordsize.h 
+path                1 /usr/include/x86_64-linux-gnu/sys/cdefs.h 
+path                1 /usr/include/linux/errno.h 
+path                1 /usr/include/asm-generic/errno.h 
+path                1 /usr/include/x86_64-linux-gnu/asm/errno.h 
+path                1 /usr/lib/llvm-3.8/lib/clang/3.8.0/include/stdint.h 
+path                1 ./test/hoge.cpp  
+path                1 /usr/include/c++/5.4.0/bits/predefined_ops.h 
+path                1 /usr/include/c++/5.4.0/stdexcept 
+path                1 /usr/include/c++/5.4.0/ext/string_conversions.h 
+path                1 /usr/include/c++/5.4.0/backward/binders.h 
+path                1 /usr/include/x86_64-linux-gnu/c++/5.4.0/bits/atomic_word.h 
+path                1 /usr/include/c++/5.4.0/debug/debug.h 
+path                1 ./test/inc/inctest1.h 
+path                1 ./test/module/mod1.cpp 
+path                1 ./test/module/sub/mod2.cpp 
+make test-inq FILEID=207 
+/usr/bin/lua lctags/lctags.lua inq defAtFileId 207 
+207                 3 ./test/module/sub/mod2.cpp void mod2_func()
+/usr/bin/lua lctags/lctags.lua inq refFile 207 "./test/module/sub/mod2.c"
+/usr/bin/lua lctags/lctags.lua inq reqFile 207 "./test/module/sub/mod2.c"
+/usr/bin/lua lctags/lctags.lua inq refDir ./test/module/sub
+/usr/bin/lua lctags/lctags.lua inq reqDir ./test/module/sub
+/usr/bin/lua lctags/lctags.lua inq searchFile module
+path                1 ./test/module/mod1.cpp 
+path                1 ./test/module/mod2.h 
+path                1 ./test/module/sub/mod2.cpp 
+path                1 ./test/module/mod1.h 
+/usr/bin/lua lctags/lctags.lua inq searchDecl mod1
+mod1                3 ./test/module/mod1.cpp void mod1_func()
+mod1                8 ./test/module/mod1.cpp void mod1_sub()
+mod1                1 ./test/module/mod1.h extern void mod1_sub();
+(cd test; /usr/bin/lua ../start.lua -xt mod1_func)
+mod1_func           3 ./module/mod1.cpp void mod1_func()
+/usr/bin/lua lctags/lctags.lua addIncRef test/incFuncTest.c /usr/include/string.h
+sed 's@//@@' test/incFuncTest.c | /usr/bin/lua lctags/lctags.lua comp-at test/incFuncTest.c 3 8 -i
 <lctags_result>
 <completion>
 <prefix>strl</prefix>
@@ -4627,7 +4678,7 @@ sed 's@//@@' test/incFuncTest.c | lua lctags/lctags.lua comp-at test/incFuncTest
 </diagnostics>
 </lctags_result>
 make test-chg-proj
-lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
-lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
-makefile:429: recipe for target 'test-chg-proj' failed
-lua lctags/lctags.lua set-projDir . test2@test > /dev/null
+/usr/bin/lua lctags/lctags.lua set-projDir . test@test2 > /dev/null
+/usr/bin/lua lctags/lctags.lua dump file | grep test/ > /dev/null && (echo ==== NG set-projDir ====; exit 1)
+makefile:475: recipe for target 'test-chg-proj' failed
+/usr/bin/lua lctags/lctags.lua set-projDir . test2@test > /dev/null
