@@ -34,7 +34,7 @@ function Util:getFileLineText( filePath, line, fileContents )
    end
    local handle = io.open( filePath, "r" )
    if not handle then
-      log( -2 )
+      log( 1, "<not found>  " .. filePath )
       return "<not found>" .. filePath
    end
    local lineNo = 1
@@ -80,7 +80,7 @@ function Util:printLocate(
    -- local baseDir = absFlag and "" or Util:getcwd()
    path = db:getSystemPath( path, Util:getcwd() )
    if not absFlag then
-      path = Util:convRelativePath( db, path, Util:getcwd() )
+      path = Util:convRelativePath( db, db:convFullpath( path ), Util:getcwd() )
    end
    self:printLocateDirect( io.stdout, db, symbol, path, line, printLine, fileContents )
 end
@@ -125,6 +125,7 @@ function Util:convRelativePath( db, fullpath, dir )
    if unmatchIndex < (#pathList / 2) then
       return fullpath
    end
+     
 
    local relative = "."
    for index = unmatchIndex, #dirList do

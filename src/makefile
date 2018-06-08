@@ -460,6 +460,7 @@ test-query:
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq searchFile module
 	$(LUA_COMMAND) $(LCTAGS_LUA) inq searchDecl mod1
 	(cd test; $(LUA_COMMAND_FULL) ../start.lua -xt mod1_func)
+	(cd test/module/sub; $(LUA_COMMAND_FULL) ../../../start.lua -xt mod2_func)
 
 	$(LUA_COMMAND) $(LCTAGS_LUA) addIncRef test/incFuncTest.c /usr/include/string.h
 	sed 's@//@@' test/incFuncTest.c | $(LUA_COMMAND) $(LCTAGS_LUA) comp-at test/incFuncTest.c 3 8 -i
