@@ -9,7 +9,6 @@ local Util = require( 'lctags.Util' )
 local Writer = require( 'lctags.Writer' )
 local idMap = require( 'lctags.idMap' )
 local config = require( 'lctags.config' )
-local clang = require( 'libclanglua.if' )
 local QueryParam = require( 'lctags.QueryParam' )
 
 local Query = {}

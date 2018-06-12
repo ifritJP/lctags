@@ -155,7 +155,7 @@
     (dolist (def result)
       (let ((info (lctags-json-val def :info)))
 	(when (or (not def-info)
-		  (lctags-json-val info :hasBodyFlag))
+		  (eq (lctags-json-val info :hasBodyFlag) t))
 	  (setq def-info info))))
     (httpd-send-header t "text/json" 200)
     (let* ((info (lctags-json-val def-info :info))
