@@ -230,13 +230,14 @@ foo --> sub --> test_indirect_t
 動的関数コールの呼び出し先を特定するために
 getIndirectFuncList() が呼び出されます。
 
-そして getIndirectFuncList( symbol ) の symbol には、
+そして getIndirectFuncList( symbol, mode ) の symbol には、
 ::test_indirect_t が与えられます。
 test_indirect_t の関数型に対応する関数名は test_indirect なので、
 次のようにすることで動的関数コールの呼び出し先を指定できます。
+mode 引数は、 "callee", "caller" 等のアクセスモードを示します。
 
 #+BEGIN_SRC lua
-function conf:getIndirectFuncList( symbol )
+function conf:getIndirectFuncList( symbol, mode )
    if symbol == "::test_indirect_t" then
      return { "test_indirect" }
    end
