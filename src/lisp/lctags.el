@@ -137,6 +137,7 @@ This parameter can set function and string.
   ;; マイナモード用キーマップの初期値
   lctags-mode-map
   ;; body
+  (add-hook 'after-save-hook 'lctags-after-save-hook nil t)
   (run-hooks 'lctags-mode-hook)
   )
 

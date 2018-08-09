@@ -1,12 +1,12 @@
 (defvar lctags-diag-ignore-pattern nil)
 (defvar lctags-anything nil)
 (defvar lctags-path-length 60)
+(defvar lctags-after-save-check-diag nil)
 
 (defvar lctags-decide-completion-func nil)
 
 
 (defvar lctags-diag-buf-name "*lctags-diag*" )
-
 
 (defvar lctags-candidate-info nil)
 (defvar lctags-candidate-history nil)
@@ -382,7 +382,7 @@
     nil
   ))
 
-(defun lctags-helm-display-diag ()
+(defun lctags-helm-display-diag (switch-flag)
   (setq lctags-diag-info
 	(delq nil (mapcar (lambda (diag)
 			    (if (not lctags-diag-ignore-pattern)
@@ -393,10 +393,10 @@
 				diag)))
 			  lctags-diag-info)))
   (if lctags-diag-info
-      (progn
-	(switch-to-buffer-other-window lctags-diag-buf-name)
-	(setq buffer-read-only nil)
-	(erase-buffer)
+      (let ((buf (lctags-get-buffer lctags-diag-buf-name t))
+	    (cur-window (selected-window)))
+	;;(lctags-switch-to-buffer-other-window buf)
+	(pop-to-buffer buf)
 	(dolist (diag lctags-diag-info)
 	  (let* ((token-list (split-string (lctags-diag-get-message diag) ":" ))
 		 (path (file-relative-name (car token-list) default-directory))
@@ -405,9 +405,12 @@
 	      (setq message (format "%s:%s" message token)))
 	    (insert message)
 	    )
-	  (insert "\n"))
-	(compilation-mode)
-	(goto-char (point-min)))
+	  (insert "\n")
+	  (compilation-mode)
+	  (goto-char (point-min)))
+	(when (not switch-flag)
+	  (select-window cur-window))
+	)
     (message "none diagnostics message")
     (when (get-buffer lctags-diag-buf-name)
       (kill-buffer lctags-diag-buf-name))))
@@ -429,7 +432,7 @@
     (when toggle-expand
       (setq expand-flag (not expand-flag)))
     (if lctags-diag-info
-	(lctags-helm-display-diag)
+	(lctags-helm-display-diag t)
       (with-current-buffer buffer
 	(setq candidates
 	      (delq nil (lctags-candidate-map-candidate
@@ -480,7 +483,7 @@
 	(pos (point))
 	expr search-token log-func)
     (if lctags-diag-info
-	(lctags-helm-display-diag)
+	(lctags-helm-display-diag t)
       (setq log-func (read-string "log function?: " "printf(" ))
       (setq expr (lctags-candidate-get-frontExpr info))
       (when (string-match "->$" expr)
@@ -522,7 +525,7 @@
 			 (number-to-string lineno) (number-to-string column)
 			 "--lctags-log" "0" "-i")
     (if lctags-diag-info
-	(lctags-helm-display-diag)
+	(lctags-helm-display-diag t)
       (with-current-buffer buffer
 	(setq candidates
 	      (delq nil (lctags-candidate-map-candidate
@@ -644,13 +647,18 @@
     (helm-exit-minibuffer)    
     ))
 
-(defun lctags-display-diag ()
+(defun lctags-after-save-hook ()
+  (when (and (local-variable-p 'lctags-mode (current-buffer))
+	     lctags-after-save-check-diag)
+    (lctags-display-diag t)))
+
+(defun lctags-display-diag (&optional no-switch-flag)
   (interactive)
   (let ((buffer (lctags-get-process-buffer t)))
     (lctags-execute-heml (current-buffer) buffer
 			 (buffer-string) "diag" (buffer-file-name)
 			 "--lctags-log" "0" "-i")
-    (lctags-helm-display-diag)
+    (lctags-helm-display-diag (not no-switch-flag))
     )
   )
 
