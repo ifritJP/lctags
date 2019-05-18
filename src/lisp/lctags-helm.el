@@ -755,7 +755,7 @@
   (interactive)
   (if lctags-anything
       (anything-resume nil "*lctags gtags*")
-    (helm-resume nil "*lctags gtags*")))
+    (helm-resume "*lctags gtags*")))
 
 
 (defun lctags-helm-select-from-list (message list)
