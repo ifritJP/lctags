@@ -60,7 +60,10 @@ function gcc:createCompileOptionConverter( compiler )
 		  return "opt", arg
 	       elseif string.find( arg, "-std=", 1, true ) then
 		  return "opt", arg
-	       end
+               elseif arg == "-include" then
+                  self.nextType = "skip"
+                  return "skip"
+               end
 	       return "skip"
 	    end
 	    return "src", arg

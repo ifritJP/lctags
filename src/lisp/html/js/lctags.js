@@ -862,7 +862,7 @@ function lctags_moduleFileGraph_tree( projDir, confId, fileId, path ) {
                         alert( status );
                     }
                 },
-                timeout: 10 * 1000
+                timeout: 20 * 1000
             }).done(function(data) {
                 var refInfoList = lctags_module_convertRefInfo(
                     treeObj.expandMode, data.lctags_result );
@@ -964,7 +964,7 @@ function lctags_moduleDirGraph_tree( projDir, confId, path ) {
                                 alert( status );
                             }
                         },
-                        timeout: 10 * 1000
+                        timeout: 20 * 1000
                     }).done(function(data) {
                         progressObj.progressbar( "value", beginIndex + batchCount );
 

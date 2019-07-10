@@ -2398,6 +2398,7 @@ function DBCtrl:convFullpath( path, currentDir )
    end
    -- ./, ../ の除去
    local nameList = {}
+   local illegalPath = nil
    for name in string.gmatch( path, "[^/]+" ) do
       if name == "." then
 	 if #nameList == 0 then
@@ -2406,7 +2407,8 @@ function DBCtrl:convFullpath( path, currentDir )
       elseif name == ".." then
 	 if #nameList == 0 or nameList[ #nameList ] == ".." then
 	    log( 1, "illegal path", path, orgPath )
-	    os.exit( 1 )
+            illegalPath = true
+	    -- os.exit( 1 )
 	 else
 	    table.remove( nameList )
 	 end
@@ -2418,7 +2420,7 @@ function DBCtrl:convFullpath( path, currentDir )
    for index, name in ipairs( nameList ) do
       path = path .. "/" .. name
    end
-   return path
+   return path, illegalPath
 end
 
 function DBCtrl:isInProjFile( path )
