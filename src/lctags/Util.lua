@@ -3,7 +3,8 @@ local log = require( 'lctags.LogCtrl' )
 local clang = require( 'libclanglua.if' )
 local Writer = require( 'lctags.Writer' )
 
-local Util = { _cwd = os.getenv( "PWD" ) }
+--local Util = { _cwd = os.getenv( "PWD" ) }
+local Util = { _cwd = Helper.getdir() }
 Util._orgCwd = Util._cwd
 
 local Option

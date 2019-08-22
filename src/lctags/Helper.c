@@ -22,6 +22,12 @@
 #define NAME_MAX 256
 #endif
 
+#ifndef PATH_MAX
+#define PATH_MAX 256
+#endif
+
+#define WORK_PATH_MAX (PATH_MAX+1)
+
 #define DIGEST_ID "lctags.digest"
 #define LOCK_ID "lctags.lock"
 #define MQUEUE_ID "lctags.mqueue"
@@ -113,6 +119,7 @@ static int helper_createLock( lua_State * pLua );
 static int helper_deleteLock( lua_State * pLua );
 static int helper_getTime( lua_State * pLua );
 static int helper_msleep( lua_State * pLua );
+static int helper_getdir( lua_State * pLua );
 static int helper_chdir( lua_State * pLua );
 static int helper_mkdir( lua_State * pLua );
 static int helper_getFileModTime( lua_State * pLua );
@@ -158,6 +165,7 @@ static const luaL_Reg s_if_lib[] = {
     { "createStrBld", helper_strBld_init },
 
     { "msleep", helper_msleep },
+    { "getdir", helper_getdir },
     { "chdir", helper_chdir },
     { "mkdir", helper_mkdir },
     { "getTime", helper_getTime },
@@ -317,6 +325,30 @@ static int helper_msleep( lua_State * pLua )
     return 0;
 }
 
+static int helper_getdir( lua_State * pLua )
+{
+    int len = WORK_PATH_MAX;
+    char * pBuf = malloc( len + 1 );
+    while ( getcwd( pBuf, len ) == NULL ) {
+        if ( errno != ERANGE ) {
+            printf( "%s: errno = %d\n", __func__, errno );
+            free( pBuf );
+            return 0;
+        }
+        len = len * 2;
+        char * pWork = realloc( pBuf, len + 1 );
+        if ( pWork == NULL ) {
+            free( pBuf );
+            printf( "%s: alloc error\n", __func__ );
+            return 0;
+        }
+        pBuf = pWork;
+    }
+    lua_pushstring( pLua, pBuf );
+    free( pBuf );
+    return 1;
+}
+
 static int helper_chdir( lua_State * pLua )
 {
     lua_pushinteger( pLua, chdir( lua_tostring( pLua, 1 ) ) );
@@ -433,7 +465,7 @@ static int helper_createLock( lua_State * pLua )
     sem_t * pSem = sem_open(
         name, O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, 1 );
     if ( pSem == SEM_FAILED ) {
-        printf( "%s: 1  sem_open() retrn NULL\n", __func__ );
+        printf( "%s: 1  sem_open() retrn NULL -- %s\n", __func__, name );
 	exit( 1 );
         return 0;
     }
