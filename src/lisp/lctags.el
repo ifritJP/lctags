@@ -214,7 +214,8 @@ This parameter can set function and string.
 (defun lctags-process-scroll (lctags-buf)
   (with-current-buffer lctags-buf
     (goto-char (point-max))
-    (recenter)
+    (when (get-buffer-window lctags-buf)
+      (recenter))
     ))
 
 (defun lctags-select-gtags (buffer header-name select-func decide-func
