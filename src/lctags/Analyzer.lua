@@ -1043,7 +1043,7 @@ function Analyzer:analyzeUnit( transUnit, compileOp, target, srcFlag )
 	    then
 	       local modTime = Helper.getFileModTime( incFullPath )
 	       local targetInfo = db:getTargetInfo( fileInfo.id, target )
-	       if targetInfo and
+	       if targetInfo and modTime and
 		  targetInfo.updateTime >= modTime and
 		  targetInfo.compOp >= compileOp
 	       then

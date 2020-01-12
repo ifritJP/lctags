@@ -1061,7 +1061,7 @@ function DBCtrl:addFile( filePath, time, digest, compileOp,
 	       log( 2, "detect mismatch digest", filePath, fileDigest )
 	       self:updateFile( fileInfo )
 	       self:update(
-		  "filePath", "digest = '" .. fileDigest .. "'",
+		  "filePath", "digest = '" .. (fileDigest or "nil") .. "'",
 		  string.format( "id = %d", fileInfo.id ) )
 	    end
 	 end
@@ -2406,7 +2406,7 @@ function DBCtrl:convFullpath( path, currentDir )
 	 end
       elseif name == ".." then
 	 if #nameList == 0 or nameList[ #nameList ] == ".." then
-	    log( 1, "illegal path", path, orgPath )
+	    log( 1, "illegal path", path, orgPath, currentDir )
             illegalPath = true
 	    -- os.exit( 1 )
 	 else
