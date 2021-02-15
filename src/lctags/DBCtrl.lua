@@ -2345,7 +2345,7 @@ function DBCtrl:getSystemPath( path, baseDir )
       return path
    end
 
-   if string.find( path, baseDir, 1, true ) == 1 then
+   if string.find( path, baseDir .. "/", 1, true ) == 1 then
       path = "." .. path:sub( #baseDir + 1 )
    end
 

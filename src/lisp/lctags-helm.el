@@ -694,24 +694,28 @@
     (setq projDir (lctags-get-projDir (current-buffer)))
     (while (not (eobp))
       (beginning-of-line)
-      (when (not (looking-at "^\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.*\\)$"))
-	(error "illegal format"))
-      (let* ((symbol (gtags-match-string 1))
-	     (line (string-to-number (gtags-match-string 2)))
-	     (path (gtags-match-string 3))
-	     (txt (gtags-match-string 4)))
-	(setq candidate-list
-	      (cons (cons (concat
-			   (when output-symbol-flag
-			     (concat (propertize symbol 'face lctags-candidate-face)
-				     ":\t"))
-			   (format "%s:%d:%s"
-				   (propertize
-				    (lctags-conv-disp-path path t projDir)
-				    'face lctags-candidate-path-face)
-				    line txt))
-			  (list :line line :path path))
-		    candidate-list)))
+      (cond ((or (looking-at "^lctags:	1")
+		 (looking-at ".*<not found>"))
+	     (message (gtags-match-string 0)))
+	    (t
+	     (when (not (looking-at "^\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]\\([^ \t]+\\)[ \t]\\(.*\\)$"))
+	       (error "illegal format"))
+	     (let* ((symbol (gtags-match-string 1))
+		    (line (string-to-number (gtags-match-string 2)))
+		    (path (gtags-match-string 3))
+		    (txt (gtags-match-string 4)))
+	       (setq candidate-list
+		     (cons (cons (concat
+				  (when output-symbol-flag
+				    (concat (propertize symbol 'face lctags-candidate-face)
+					    ":\t"))
+				  (format "%s:%d:%s"
+					  (propertize
+					   (lctags-conv-disp-path path t projDir)
+					   'face lctags-candidate-path-face)
+					  line txt))
+				 (list :line line :path path))
+			   candidate-list)))))
       (next-line))
     candidate-list
     ))
