@@ -62,6 +62,7 @@ This parameter can set function and string.
 
 (defvar lctags-use-global nil
   )
+(defvar lctags-skip-error t)
 
 
 (defvar lctags-cursor-kind-list
@@ -223,24 +224,24 @@ This parameter can set function and string.
   (with-current-buffer buffer
     ;;(message (buffer-string))
     (let ((lineNum (count-lines (point-min) (point-max))))
-      (cond
-       ((string-match "^lctags:" (buffer-string))
-	(switch-to-buffer buffer)
-	)
-       ((= lineNum 0)
-	(message "not found")
-	(gtags-pop-context)
-	(kill-buffer buffer)
-	nil
-	)
-       (t
-	(funcall select-func decide-func
-		 (if create-candidate-list
-		     create-candidate-list
-		   'lctags-gtags-create-candidate-list)
-		 header-name)
-	t)
-       ))  
+      (if (and (not lctags-skip-error)
+	       (string-match "^lctags:" (buffer-string)))
+	  (switch-to-buffer buffer)
+	(cond
+	 ((= lineNum 0)
+	  (message "not found")
+	  (gtags-pop-context)
+	  (kill-buffer buffer)
+	  nil
+	  )
+	 (t
+	  (funcall select-func decide-func
+		   (if create-candidate-list
+		       create-candidate-list
+		     'lctags-gtags-create-candidate-list)
+		   header-name)
+	  t)
+	 )))
     ))
 
 (defun lctags-pos-at ( mode &optional tag &rest lctags-opt-list)
@@ -581,6 +582,9 @@ This parameter can set function and string.
   (let ()
     (ad-set-args 0 (lctags-call-process-func (ad-get-args 0)))
     ad-do-it))
+
+;; (ad-disable-advice 'call-process 'around 'lctags-call-process)
+;; (ad-enable-advice 'call-process 'around 'lctags-call-process)
 
 
 (defun lctags-execute-xml (src-buf lctags-buf input set-symbol 
