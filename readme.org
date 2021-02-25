@@ -223,7 +223,61 @@ usage:
 $ lctags init .
 
 プロジェクトのルートディレクトリで上記のコマンドを実行します。
+このコマンドを実行すると、以下のファイルが生成されます。
+
+- lctags.conf
+- lctags.sqlite3
+
 これは、一度だけ実行します。
+
+init を実行すると、次のエラーが表示される場合があります。
+
+#+BEGIN_SRC txt
+$ lctags init .
+/usr/include/stdio.h:33:11: fatal error: 'stddef.h' file not found
+please set clang inc-path at getClangIncPath() in /proj/lua-5.4.2/src/lctags.conf, and retry init.
+#+END_SRC
+
+これは、 lctags で利用している libclang が
+clang の include ディレクトリを探せないことを示すエラーです。
+
+この場合、 init コマンドで生成された lctags.conf を編集する必要があります。
+
+lctags.conf 内の getClangIncPath() を編集します。
+
+#+BEGIN_SRC lua
+function config:getClangIncPath()
+   -- return "/usr/lib/llvm/lib/clang/include"
+   return nil -- ここを編集
+end
+#+END_SRC
+
+上記の =ここを編集= の nil を、 clang の include ディレクトリに置き換えます。
+
+clang の include ディレクトリは、次のコマンドで検索します。
+
+#+BEGIN_SRC txt
+$ find /usr -iname 'stddef.h'
+/usr/include/linux/stddef.h
+/usr/lib/gcc/x86_64-linux-gnu/6/include/stddef.h
+/usr/lib/llvm-3.8/lib/clang/3.8.1/include/stddef.h
+#+END_SRC
+
+ここで、 =/usr/lib/llvm-3.8/lib/clang/3.8.1/include= が
+clang の include ディレクトリです。
+
+環境によってパスが異なるので、適宜読み替えてください。
+
+このパスを lctags.conf にセットします。
+
+#+BEGIN_SRC lua
+function config:getClangIncPath()
+   -- return "/usr/lib/llvm/lib/clang/include"
+   return "/usr/lib/llvm-3.8/lib/clang/3.8.1/include" -- ここを編集
+end
+#+END_SRC
+
+この状態でもう一度 lctags init . を実行し、エラーしないかどうか確認してください。
 
 ** ソースの解析
 
