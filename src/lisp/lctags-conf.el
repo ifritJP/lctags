@@ -26,5 +26,7 @@
           '(lambda()
 	     (lctags-mode 1)))
 
+(require 'lctags)
+
 (provide 'lctags-conf)
 

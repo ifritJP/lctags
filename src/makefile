@@ -48,7 +48,10 @@ TEST_LUA_DIR=../external/lua/lua-5.3.4/src
 
 LUA_URL="https://www.lua.org/ftp/lua-5.3.4.tar.gz"
 
-LUA_COMMAND_FULL:=$(shell python -c 'import os; print( os.path.abspath( "$(shell which $(LUA_COMMAND))" ) );' )
+
+PYTHON=python3
+
+LUA_COMMAND_FULL:=$(shell $(PYTHON) -c 'import os; print( os.path.abspath( "$(shell which $(LUA_COMMAND))" ) );' )
 
 ####### customize libclang environment ######
 
@@ -58,10 +61,14 @@ LUA_COMMAND_FULL:=$(shell python -c 'import os; print( os.path.abspath( "$(shell
 # LIBCLANG_STD_INC=/lib/clang/5.0.1/include
 
 
-CLANG_VER=3.8
-LIBCLANG_INC=/usr/lib/llvm-$(CLANG_VER)/include
-LIBCLANG_LIB=/usr/lib/llvm-$(CLANG_VER)/lib
-LIBCLANG_STD_INC=$(shell find /usr/lib/llvm-$(CLANG_VER)/lib/clang/ -maxdepth 1 -mindepth 1 | head -n 1)
+CLANG_VER=9
+LIBCLANG_BASE_DIR:=$(wildcard /usr/lib/llvm-$(CLANG_VER))
+#LIBCLANG_INC=/usr/lib/llvm-$(CLANG_VER)/include
+LIBCLANG_INC=$(LIBCLANG_BASE_DIR)/include
+#LIBCLANG_LIB=/usr/lib/llvm-$(CLANG_VER)/lib
+LIBCLANG_LIB=$(LIBCLANG_BASE_DIR)/lib
+LIBCLANG_STD_INC=$(shell find $(LIBCLANG_LIB)/clang/ -iname 'stddef.h' | head -n 1 )
+LIBCLANG_STD_INC:=$(patsubst %/stddef.h,%,$(LIBCLANG_STD_INC))
 
 # LIBCLANG_DIR=/proj/next/clang/r34-final
 # LIBCLANG_INC=../external/clang/r390/llvm/tools/clang/include
@@ -213,7 +220,7 @@ endif
 	rm -f 
 	emacs -batch -q -eval "(progn (add-to-list 'load-path \"lisp\") (load \"lctags-test.el\"))"
 	cat lisp/lctags_httpd_var.py | sed 's/^#.*//g' | sed 's/^[[:space:]]*//g' | \
-		python -c 'import sys; print( sys.stdin.read().replace( "\n", " " ).replace( "] }, ", "] },\n" ) ).replace( "  apiInfoMap = { ", "apiInfoMap = {\n" )' | \
+		$(PYTHON) -c 'import sys; print( sys.stdin.read().replace( "\n", " " ).replace( "] }, ", "] },\n" ) ).replace( "  apiInfoMap = { ", "apiInfoMap = {\n" )' | \
 	sed 's/[[:space:]]*$$//g' > /tmp/lctags_httpd_var.py
 	diff servlet-api-info /tmp/lctags_httpd_var.py
 
@@ -556,9 +563,13 @@ install-lib:
 	mkdir -p $(LUA_MOD_DIR)/lctags
 	$(INSTALL) lctags/_lctags.conf $(LUA_MOD_DIR)/lctags
 	$(INSTALL) lctags/*.lua $(LUA_MOD_DIR)/lctags
+ifneq ($(LIBCLANG_STD_INC),)
 	sed "s@.*-- replase by install@  self.clangIncPath = \"$(LIBCLANG_STD_INC)\"@g" lctags/config.lua > /tmp/config.lua
 	$(INSTALL) /tmp/config.lua $(LUA_MOD_DIR)/lctags
 	rm /tmp/config.lua
+else
+	$(INSTALL) lctags/config.lua $(LUA_MOD_DIR)/lctags
+endif
 	$(INSTALL) lctags/*.$(SO) $(LUA_LIB_DIR)/lctags
 ifneq ($(LUA_INST_DIR),)
 	$(INSTALL) $(LUA_COMMAND) $(LUA_INST_DIR)
