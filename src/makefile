@@ -142,6 +142,10 @@ all:
 	@echo make install
 	@echo make clean
 	@echo make test
+	@echo make docker
+
+docker:
+	(cd ../docker/; docker-compose build --progress plain)
 
 build: $(IF_LUA) $(TARGET_LUA) $(CORE_SO) sqlite3 lctags-build
 

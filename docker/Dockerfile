@@ -31,17 +31,22 @@ RUN apt-get install -y \
 	rsync \
 	time \
 	software-properties-common
+RUN apt-get install -y unzip
 RUN if [ "$PROXY" != "" ]; then			\
     git config --global http.proxy $PROXY;	\
 fi
 RUN apt update
 
-RUN groupadd -g $GID $UNAME
-RUN useradd -g $GID -u $UID $UNAME
+RUN if ! cat /etc/group | grep :$GID: ; then \
+		echo exist; else groupadd -g $GID $UNAME; fi
+RUN if ! cat /etc/passwd | grep :$UID: ; then \
+		echo exist; else useradd -g $GID -u $UID $UNAME; fi
 RUN apt-get install -y sudo
 RUN echo "$UNAME ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 WORKDIR /opt/
-# RUN git clone --depth 1 https://github.com/ifritJP/lctags.git
-# WORKDIR /opt/lctags/src
-# RUN make build_for_apt
+RUN git clone --depth 1 https://github.com/ifritJP/lctags.git
+WORKDIR /opt/lctags/src
+RUN make build_for_apt
+RUN make install
+

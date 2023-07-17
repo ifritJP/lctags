@@ -5,18 +5,18 @@ services:
     build:
       context: ./
       args:
-        - UID=1000
-        - GID=1000
-        - UNAME=hoge
+        - UID=${UID:-1000}
+        - GID=${GUI:-1000}
+        - UNAME=${USER:-hoge}
     image: lctags_env
     container_name: lctags_env
     volumes:
-       - "../:/opt"
-#      - "${HOST_PROJ:-/home}:/proj"
+        - "../:/opt/lctags"
+        - "${HOST_PROJ:-/home}:/proj"
 #    ports:
 #      - 15900:5900
     tty: true # docker-compose up -d でデーモン起動できるように
 #     cap_add:
 #       - CAP_SYS_PTRACE # docker 内で strace できるように
-    user: hoge
+    user: ${USER:-hoge}
     
