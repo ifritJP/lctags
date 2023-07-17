@@ -58,7 +58,7 @@ LUA_COMMAND_FULL:=$(shell python -c 'import os; print( os.path.abspath( "$(shell
 # LIBCLANG_STD_INC=/lib/clang/5.0.1/include
 
 
-CLANG_VER=3.8
+CLANG_VER=9
 LIBCLANG_INC=/usr/lib/llvm-$(CLANG_VER)/include
 LIBCLANG_LIB=/usr/lib/llvm-$(CLANG_VER)/lib
 LIBCLANG_STD_INC=$(shell find /usr/lib/llvm-$(CLANG_VER)/lib/clang/ -maxdepth 1 -mindepth 1 | head -n 1)
@@ -600,7 +600,7 @@ check-apt:
 	@echo check $(APT_TGT_CMD) ...
 ifeq ($(shell bash -c "which $(APT_TGT_CMD)"),)
 	@echo install $(APT_TGT_CMD)
-	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install $(APT_TGT_PKG)
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install -y $(APT_TGT_PKG)
 else
 	@echo ready $(APT_TGT_CMD)
 endif
@@ -635,19 +635,19 @@ build_for_apt:
 
 	@echo check clang-dev ...
 ifeq ($(wildcard /usr/lib/llvm-*/clang-c),)
-	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install libclang-$(CLANG_VER)-dev
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install -y libclang-$(CLANG_VER)-dev
 endif
 
 	$(MAKE) APT_TGT_CMD=lua5.3 APT_TGT_PKG=lua5.3 check-apt 
 
 	@echo check lua-dev ...
 ifeq ($(wildcard $(LUA_INC)),)
-	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install liblua5.3-dev
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install -y liblua5.3-dev
 endif
 
 	@echo check openssl-dev ...
 ifeq ($(wildcard /usr/include/openssl/),)
-	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install libssl-dev
+	sudo apt-get -o Acquire::http::proxy="$(PROXY)" install -y libssl-dev
 endif
 
 	$(MAKE) APT_TGT_CMD=swig APT_TGT_PKG=swig3.0 check-apt 
