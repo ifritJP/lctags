@@ -1,6 +1,7 @@
 %module libclanglua_coreBase
 %{
 #include <clang-c/Index.h>
+#include <clang-c/Documentation.h>
 #include <clang-c/CXCompilationDatabase.h>
 
 #if LUA_VERSION_NUM >= 502

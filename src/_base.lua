@@ -390,8 +390,11 @@ end
 
 
 libs.getDeclCursorFromType = function( cxtype )
-   while true do
-      local baseType = cxtype and cxtype:getPointeeType()
+   while cxtype do
+      if cxtype.__ptr.kind == libclangcore.CXType_Auto then
+	 break
+      end
+      local baseType = cxtype:getPointeeType()
       if baseType.__ptr.kind == libclangcore.CXType_Invalid then
 	 if cxtype then
 	    baseType = cxtype:getElementType()
