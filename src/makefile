@@ -61,7 +61,7 @@ LUA_COMMAND_FULL:=$(shell $(PYTHON) -c 'import os; print( os.path.abspath( "$(sh
 # LIBCLANG_STD_INC=/lib/clang/5.0.1/include
 
 
-CLANG_VER=9
+CLANG_VER=15
 LIBCLANG_BASE_DIR:=$(wildcard /usr/lib/llvm-$(CLANG_VER))
 #LIBCLANG_INC=/usr/lib/llvm-$(CLANG_VER)/include
 LIBCLANG_INC=$(LIBCLANG_BASE_DIR)/include
@@ -174,7 +174,8 @@ endif
 
 
 swig/libClangLuaBase_wrap.c: swig/libClangLuaBase.i 
-	$(SWIG) -I$(LIBCLANG_INC) -o swig/libClangLuaBase_wrap.c -lua swig/libClangLuaBase.i
+	$(SWIG) -I$(LIBCLANG_INC) -DLLVM_CLANG_C_EXTERN_C_END -DLLVM_CLANG_C_EXTERN_C_BEGIN \
+					-o swig/libClangLuaBase_wrap.c -lua swig/libClangLuaBase.i
 
 swig/libClangLuaBase_wrap.o: swig/libClangLuaBase_wrap.c
 	gcc $(OPT_OP) -std=c99 -fPIC -c swig/libClangLuaBase_wrap.c -o swig/libClangLuaBase_wrap.o -I$(LIBCLANG_INC) -I$(LUA_INC) -L$(LIBCLANG_LIB) $(LIBCLANG_SO)
@@ -184,7 +185,8 @@ swig/libClangLua.i : $(TARGET_LUA) mkwrap.lua _base.lua $(COREBASE_SO)
 	$(LUA_COMMAND) mkwrap.lua base $(LIBCLANG_STD_INC) $(LIBCLANG_INC) $(LUA_INC) >  mkwrap.log
 
 swig/libClangLua_wrap.c: swig/libClangLua.i 
-	$(SWIG) -I$(LIBCLANG_INC) -o swig/libClangLua_wrap.c -lua swig/libClangLua.i 
+	$(SWIG) -I$(LIBCLANG_INC) -DLLVM_CLANG_C_EXTERN_C_END -DLLVM_CLANG_C_EXTERN_C_BEGIN \
+					-o swig/libClangLua_wrap.c -lua swig/libClangLua.i 
 
 swig/libClangLua_wrap.o: swig/libClangLua_wrap.c
 	gcc $(OPT_OP) -std=c99 -fPIC -c swig/libClangLua_wrap.c -o swig/libClangLua_wrap.o -I$(LUA_INC) -I$(LIBCLANG_INC) -I$(LUA_INC) -L$(LIBCLANG_LIB) $(LIBCLANG_SO)
@@ -227,10 +229,10 @@ endif
 	sync
 	rm -f 
 	emacs -batch -q -eval "(progn (add-to-list 'load-path \"lisp\") (load \"lctags-test.el\"))"
-	cat lisp/lctags_httpd_var.py | sed 's/^#.*//g' | sed 's/^[[:space:]]*//g' | \
-		$(PYTHON) -c 'import sys; print( sys.stdin.read().replace( "\n", " " ).replace( "] }, ", "] },\n" ) ).replace( "  apiInfoMap = { ", "apiInfoMap = {\n" )' | \
-	sed 's/[[:space:]]*$$//g' > /tmp/lctags_httpd_var.py
-	diff servlet-api-info /tmp/lctags_httpd_var.py
+	cat lisp/lctags_httpd_var.py | sed 's/^#.*//g' | sed 's/^[[:space:]]*//g' > /tmp/lctags_httpd_var.py
+	cat servlet-api-info | sed 's/"--lctags-candidateLimit"/\n"--lctags-candidateLimit"/g' | \
+		sed 's/))], /))],\n/g' | sed 's/[[:space:]]$$//g' > /tmp/servlet-api-info
+	diff -B /tmp/servlet-api-info /tmp/lctags_httpd_var.py
 
 	rm -f test-result test-result2
 	rm -rf .lctags/pch
@@ -285,54 +287,54 @@ ifdef LCTAGS_SERVER_ON
 endif
 	$(LUA_COMMAND) $(LCTAGS_LUA) addStdInc -I$(LIBCLANG_STD_INC)
 	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc test/hoge.cpp -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 5 | tee dump | grep -e ':[[:space:]][12][[:space:]]'
-	$(call build-test, test/sub.cpp, hoge )
-	$(call build-test, test/sub.cpp, hoge1 )
-	$(call build-test, test/sub.cpp, hoge2 )
-	$(call build-test, test/sub2.cpp )
-	$(call build-test, test/comp.cpp )
-	$(call build-test, test/comp-2.cpp )
-	$(call build-test, test/comp2.cpp )
-	$(call build-test, test/comp3.cpp )
-	$(call build-test, test/comp4.cpp )
-	$(call build-test, test/comp5.cpp )
-	$(call build-test, test/comp6.cpp )
-	$(call build-test, test/comp7.cpp )
-	$(call build-test, test/comp8.cpp )
-	$(call build-test, test/comp9.cpp )
-	$(call build-test, test/comp10.cpp )
-	$(call build-test, test/comp11.cpp )
-	$(call build-test, test/comp12.cpp )
-	$(call build-test, test/comp13.cpp )
-	$(call build-test, test/comp14.cpp )
-	$(call build-test, test/comp15.cpp )
-	$(call build-test, test/comp16.cpp )
-	$(call build-test, test/comp17.cpp )
-	$(call build-test, test/comp18.cpp )
-	$(call build-test, test/comp19.cpp )
-	$(call build-test, test/class2.cpp )
-	$(call build-test, test/class3.cpp )
-	$(call build-test, test/class4.cpp )
-	$(call build-test, test/class5.cpp )
-	$(call build-test, test/inc1.cpp )
-	$(call build-test, test/stdinc.cpp )
-	$(call build-test, test/stack.cpp )
-#	$(call build-test, test/class.cpp )
-	$(call build-test, test/sample.c )
-	$(call build-test, test/simple.cpp )
-	$(call build-test, test/operator.cpp )
-	$(call build-test, test/split.cpp )
-	$(call build-test, test/split2.cpp )
-	$(call build-test, test/enum.cpp )
-	$(call build-test, test/enum2.cpp )
-	$(call build-test, test/enum3.cpp )
-	$(call build-test, test/enum4.cpp )
-	$(call build-test, test/incFuncTest.c )
-	$(call build-test, test/highlight.cpp )
-	$(call build-test, test/inctest.cpp, , -Itest/inc )
-	$(call build-test, test/indirect.cpp )
-	$(call build-test, test/macro.cpp )
-	$(call build-test, test/module/mod1.cpp, , -Itest/module )
-	$(call build-test, test/module/sub/mod2.cpp, , -Itest/module )
+	$(call build-test, -std=c++11,test/sub.cpp, hoge )
+	$(call build-test, -std=c++11,test/sub.cpp, hoge1 )
+	$(call build-test, -std=c++11,test/sub.cpp, hoge2 )
+	$(call build-test, -std=c++11,test/sub2.cpp )
+	$(call build-test, -std=c++11,test/comp.cpp )
+	$(call build-test, -std=c++11,test/comp-2.cpp )
+	$(call build-test, -std=c++11,test/comp2.cpp )
+	$(call build-test, -std=c++11,test/comp3.cpp )
+	$(call build-test, -std=c++11,test/comp4.cpp )
+	$(call build-test, -std=c++11,test/comp5.cpp )
+	$(call build-test, -std=c++11,test/comp6.cpp )
+	$(call build-test, -std=c++11,test/comp7.cpp )
+	$(call build-test, -std=c++11,test/comp8.cpp )
+	$(call build-test, -std=c++11,test/comp9.cpp )
+	$(call build-test, -std=c++11,test/comp10.cpp )
+	$(call build-test, -std=c++11,test/comp11.cpp )
+	$(call build-test, -std=c++11,test/comp12.cpp )
+	$(call build-test, -std=c++11,test/comp13.cpp )
+	$(call build-test, -std=c++11,test/comp14.cpp )
+	$(call build-test, -std=c++11,test/comp15.cpp )
+	$(call build-test, -std=c++11,test/comp16.cpp )
+	$(call build-test, -std=c++11,test/comp17.cpp )
+	$(call build-test, -std=c++11,test/comp18.cpp )
+	$(call build-test, -std=c++11,test/comp19.cpp )
+	$(call build-test, -std=c++11,test/class2.cpp )
+	$(call build-test, -std=c++11,test/class3.cpp )
+	$(call build-test, -std=c++11,test/class4.cpp )
+	$(call build-test, -std=c++11,test/class5.cpp )
+	$(call build-test, -std=c++11,test/inc1.cpp )
+	$(call build-test, -std=c++11,test/stdinc.cpp )
+	$(call build-test, -std=c++11,test/stack.cpp )
+#	$(call build-test, -std=c++11,test/class.cpp )
+	$(call build-test, ,test/sample.c )
+	$(call build-test, -std=c++11,test/simple.cpp )
+	$(call build-test, -std=c++11,test/operator.cpp )
+	$(call build-test, -std=c++11,test/split.cpp )
+	$(call build-test, -std=c++11,test/split2.cpp )
+	$(call build-test, -std=c++11,test/enum.cpp )
+	$(call build-test, -std=c++11,test/enum2.cpp )
+	$(call build-test, -std=c++11,test/enum3.cpp )
+	$(call build-test, -std=c++11,test/enum4.cpp )
+	$(call build-test, ,test/incFuncTest.c )
+	$(call build-test, -std=c++11,test/highlight.cpp )
+	$(call build-test, -std=c++11,test/inctest.cpp, , -Itest/inc )
+	$(call build-test, -std=c++11,test/indirect.cpp )
+	$(call build-test, -std=c++11,test/macro.cpp )
+	$(call build-test, -std=c++11,test/module/mod1.cpp, , -Itest/module )
+	$(call build-test, -std=c++11,test/module/sub/mod2.cpp, , -Itest/module )
 
 
 #	$(LUA_COMMAND) $(LCTAGS_LUA) register -i $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 | tee --append dump | grep -e '^[12][[:space:]]'
@@ -609,7 +611,8 @@ define dumpDB
 endef
 
 define build-test
-	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc $1 $3 -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql  $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) -std=c++11 --lctags-log 3 --lctags-target $2 >> dump
+	$(LUA_COMMAND) $(LCTAGS_LUA) build gcc $2 $1 $4 -I$(LIBCLANG_STD_INC) -Itest --lctags-recSql  $(LOCKLOG) $(LCTAGS_SERVER) $(BATCH_OP) --lctags-log 3 --lctags-target $3 >> dump
+
 
 endef
 
