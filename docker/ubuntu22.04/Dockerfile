@@ -45,8 +45,5 @@ RUN echo "$UNAME ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
 WORKDIR /opt/
 RUN git clone --depth 1 https://github.com/ifritJP/lctags.git
 WORKDIR /opt/lctags/src
-# RUN make build_for_apt
-# RUN make install
-
-
-RUN apt-get install -y emacs
+RUN make build_for_apt
+RUN make install
