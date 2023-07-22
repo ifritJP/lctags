@@ -1,0 +1,22 @@
+version: '3'
+services:
+
+  main:
+    build:
+      context: ./
+      args:
+        - UID=${UID:-1000}
+        - GID=${GUI:-1000}
+        - UNAME=${UNAME:-lctags}
+    image: lctags_env_on_ubuntu22
+    container_name: lctags_env_on_ubuntu22
+    volumes:
+#        - "../:/opt/lctags"
+        - "${HOST_PROJ:-/home}:/proj"
+#    ports:
+#      - 15900:5900
+    tty: true # docker-compose up -d でデーモン起動できるように
+#     cap_add:
+#       - CAP_SYS_PTRACE # docker 内で strace できるように
+    user: ${UNAME:-lctags}
+    
