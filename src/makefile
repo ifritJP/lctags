@@ -679,3 +679,4 @@ endif
 
 	$(MAKE) build SWIG=swig3.0
 
+	sed -i "s@/15@/$(CLANG_VER)@g" lctags.conf
