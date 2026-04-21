@@ -18,4 +18,19 @@ apiInfoMap = {
     "reqDir": { "param": ["?path", "--lctags-form", "json"] },
     "reqFile": { "param": ["?fileId", "?path", "--lctags-form", "json"] },
     "decl": { "param": ["?nsId", "--lctags-form", "json"] },
+    "openDecl": {
+        "command": "decl",
+        "param": ["?nsId", "--lctags-form", "json"],
+        "openTarget": "decl"
+    },
+    "callPair": {
+        "command": "callPair",
+        "param": ["?nsId", "?belongNsId", "--lctags-form", "json"],
+        "openTarget": "callPair"
+    },
+    "refPair": {
+        "command": "refPair",
+        "param": ["?nsId", "?belongNsId", "--lctags-form", "json"],
+        "openTarget": "refPair"
+    },
 }

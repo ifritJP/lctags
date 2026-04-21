@@ -80,6 +80,10 @@ function DBAccess:open( path, readonly, onMemoryFlag )
       --actLockObj = Helper.createLock("act"),
       writeAccessFlag = false,
       lockCount = 0,
+      busySleepMs = 0,
+      beginAcquireTime = 0,
+      beginWallTime = 0,
+      beginMessage = "",
    }
    --obj.actLockObj = obj.transLockObj
    setmetatable(
@@ -109,6 +113,7 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 		 obj.writeAccessFlag and "write" or "read",
 		 obj.beginFlag, obj.inLockFlag, obj.inActLockFlag, obj.actDepth )
 	    Helper.msleep( sleepTime )
+       obj.busySleepMs = obj.busySleepMs + sleepTime
 	 end
 	 if not obj.inLockFlag then
 	    -- 更新アクセスを優先し、読み込みアクセスは遅延させる。
@@ -121,9 +126,11 @@ function DBAccess:open( path, readonly, onMemoryFlag )
 	    -- log( 2, "db is read busy",
 	    -- 	 obj.readonly, obj.writeAccessFlag, obj.inActLockFlag, obj.actDepth )
 	    -- obj.transLockObj:fin()
+       obj.busySleepMs = obj.busySleepMs + sleepTime
 	 elseif not obj.beginFlag then
 	    Helper.msleep( sleepTime )
 	    obj.lockCount = obj.lockCount + 1
+       obj.busySleepMs = obj.busySleepMs + sleepTime
 	 end
 	 return true
       end
@@ -158,8 +165,10 @@ function DBAccess:close()
    if not self.readonly then
       log( 2,
 	   string.format(
-	      "time=%f, lock = %d, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
-	      self.time, self.lockCount, self.insertCount, self.uniqueCount,
+         "time=%f, lock=%d, busySleepMs=%d, beginAcquire=%f, beginWallStart=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
+         self.time, self.lockCount, self.busySleepMs,
+         self.beginAcquireTime, self.beginWallTime,
+         self.insertCount, self.uniqueCount,
 	      self.updateCount, self.deleteCount, self.selectCount ) )
    end
 end
@@ -394,11 +403,17 @@ function DBAccess:begin( message )
    
    self.beginFlag = true
    self.lockLogFlag = true
+   self.beginAcquireTime = 0
+   self.beginWallTime = 0
+   self.beginMessage = message or ""
 
    if not self.server then
-      self:exec( "PRAGMA journal_mode = MEMORY" )
+      --self:exec( "PRAGMA journal_mode = MEMORY" )
+      self:exec( "PRAGMA journal_mode = OFF" )
       self:exec( "PRAGMA synchronous = OFF" )
+      local beginAcquireStart = Helper.getTime( true )
       self:exec( "BEGIN IMMEDIATE" )
+      self.beginAcquireTime = Helper.getTime( true ) - beginAcquireStart
       --self:exec( "BEGIN EXCLUSIVE" )
    end
 
@@ -408,6 +423,7 @@ function DBAccess:begin( message )
    end
 
    self.beginTime = os.clock()
+   self.beginWallTime = Helper.getTime( true )
    log( 2, "beginLock", os.date() )
 end
 
@@ -421,6 +437,10 @@ function DBAccess:commit()
    self.beginFlag = false
 
    local startTime = Helper.getTime( true )
+   local txWall = 0
+   if self.beginWallTime > 0 then
+      txWall = startTime - self.beginWallTime
+   end
    log( 2, "commit: start", os.date() )
    
    if not self.server then
@@ -438,8 +458,10 @@ function DBAccess:commit()
    if self.lockLogMessage then
       self:outputLog(
 	 string.format(
-	    "commit time=%f, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
-	    self.time, self.insertCount, self.uniqueCount,
+       "commit phase=%s time=%f, txWall=%f, beginAcquire=%f, lock=%d, busySleepMs=%d, insert=%d, unique=%d, update=%d, delete=%d, select=%d",
+       self.beginMessage, self.time, txWall, self.beginAcquireTime,
+       self.lockCount, self.busySleepMs,
+       self.insertCount, self.uniqueCount,
 	    self.updateCount, self.deleteCount, self.selectCount ) )
    end
 
@@ -447,7 +469,13 @@ function DBAccess:commit()
    -- self.inLockFlag = nil
    -- self.transLockObj:fin()
 
-   log( 2, "commit: end", Helper.getTime( true ) - startTime, os.date() )
+   log( 2, "commit: end",
+   Helper.getTime( true ) - startTime, os.date(),
+   "phase", self.beginMessage,
+   "txWall", txWall,
+   "beginAcquire", self.beginAcquireTime,
+   "lock", self.lockCount,
+   "busySleepMs", self.busySleepMs )
 end
 
 function DBAccess:addInsert( strBld, tableName, values )

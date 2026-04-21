@@ -145,7 +145,7 @@ function JsonStream:readTokenSub()
 		  return self:readString( startIndex, endIndex )
 	       end, '["\\]', index )
 	 else
-	    log( 1, "illegal format -- ", oneChar )
+	    log( 1, "illegal format -- ", oneChar, index )
 	    return nil
 	 end
       else

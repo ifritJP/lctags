@@ -357,12 +357,13 @@ function matchFile:queryOutput( db, isLimit, output, target )
    if not string.find( path, "/$" ) then
       path = path .. "/"
    end
+   local pat_path = string.gsub( path, "%-", "%%-" )
    db:mapRowList(
       "filePath",
       string.format( "path like '%%%s%%' escape '$'", path ),
       nil, nil,
       function( item )
-	 local basename = string.gsub( item.path, path, "" )
+	 local basename = string.gsub( item.path, pat_path, "" )
 	 if not onlyChild or not string.find( basename, "/" ) then
 	    if isLimit() then return false; end
 	    output( db, query, target, "path",
